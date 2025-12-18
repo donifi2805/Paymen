@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DompetKu - Fixed Navigation</title>
+    <title>DompetKu - Settings Update</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -51,6 +51,11 @@
         .input-group input { padding-left: 44px; transition: all 0.3s; }
         html.dark .input-group i { color: #6b7280; }
         html.dark .input-group input:focus + i { color: #60a5fa; }
+        
+        /* Select Input Styling */
+        .select-wrapper { position: relative; }
+        .select-wrapper i { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8; z-index: 10; pointer-events: none; }
+        .select-wrapper select { padding-left: 44px; appearance: none; -webkit-appearance: none; }
 
         .provider-btn.active { border-color: #2563eb; background-color: #eff6ff; color: #2563eb; transform: scale(1.05); }
         html.dark .provider-btn.active { border-color: #3b82f6; background-color: #1e3a8a; color: #60a5fa; }
@@ -199,6 +204,69 @@
         </div>
     </section>
 
+    <section id="settingsPage" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen relative z-50">
+        <div class="p-4 bg-white dark:bg-gray-900 sticky top-0 z-20 shadow-sm flex items-center gap-4">
+            <button onclick="nav('profilePage')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"><i class="fas fa-arrow-left text-gray-800 dark:text-white"></i></button>
+            <h2 class="font-bold text-lg text-gray-800 dark:text-white">Pengaturan Akun</h2>
+        </div>
+        
+        <div class="p-6 pb-24">
+            <div class="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 space-y-5">
+                
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">Username</label>
+                    <div class="input-group">
+                        <input type="text" id="setUsername" class="w-full h-11 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-100 text-sm font-medium pl-10">
+                        <i class="fas fa-user ml-[-5px]"></i>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">Email</label>
+                    <div class="input-group">
+                        <input type="email" id="setEmail" class="w-full h-11 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-100 text-sm font-medium pl-10">
+                        <i class="fas fa-envelope ml-[-5px]"></i>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">Nomor Handphone</label>
+                    <div class="input-group">
+                        <input type="tel" id="setPhone" class="w-full h-11 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-100 text-sm font-medium pl-10">
+                        <i class="fas fa-phone ml-[-5px]"></i>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">Umur</label>
+                        <div class="input-group">
+                            <input type="number" id="setAge" class="w-full h-11 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-100 text-sm font-medium pl-10">
+                            <i class="fas fa-birthday-cake ml-[-5px]"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">Jenis Kelamin</label>
+                        <div class="select-wrapper">
+                            <i class="fas fa-venus-mars ml-[0px]"></i>
+                            <select id="setGender" class="w-full h-11 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-100 text-sm font-medium">
+                                <option value="Laki-laki">Laki-laki</option>
+                                <option value="Perempuan">Perempuan</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-2">
+                     <button onclick="changePassword()" class="w-full py-3 border border-red-200 dark:border-red-900/50 text-red-500 dark:text-red-400 rounded-lg font-bold text-sm hover:bg-red-50 dark:hover:bg-red-900/20 transition"><i class="fas fa-key mr-2"></i> Ganti Kata Sandi</button>
+                </div>
+
+            </div>
+            
+            <button onclick="saveSettings()" class="w-full bg-blue-600 text-white h-12 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition mt-6">SIMPAN PERUBAHAN</button>
+        </div>
+    </section>
+
     <section id="homePage" class="page hide bg-gray-50/50 dark:bg-gray-950">
         <div class="bg-gradient-brand text-white pt-8 pb-24 px-6 rounded-b-[40px] shadow-lg relative overflow-hidden">
             <div class="flex justify-between items-center mb-6 relative z-10">
@@ -208,7 +276,7 @@
                     </div>
                     <div>
                         <p class="text-xs text-blue-100">Selamat Pagi,</p>
-                        <p class="font-bold text-lg leading-tight">User Test</p>
+                        <p class="font-bold text-lg leading-tight" id="headerUsername">User Test</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-4">
@@ -318,7 +386,7 @@
             <div class="atm-card p-6 mb-8 transform transition hover:scale-[1.02] duration-300">
                 <div class="flex justify-between items-start mb-8"><i class="fas fa-sim-card text-3xl opacity-80"></i><i class="fas fa-wifi text-2xl opacity-50 rotate-90"></i></div>
                 <p class="text-xl tracking-widest font-mono mb-4 font-bold drop-shadow-md">4200 1234 5678 9010</p>
-                <div class="flex justify-between items-end"><div><p class="text-[9px] opacity-70 uppercase tracking-wider mb-1">Card Holder</p><p class="text-sm font-bold uppercase">User Test</p></div><div><p class="text-[9px] opacity-70 uppercase tracking-wider mb-1">Expires</p><p class="text-sm font-bold">12/28</p></div></div>
+                <div class="flex justify-between items-end"><div><p class="text-[9px] opacity-70 uppercase tracking-wider mb-1">Card Holder</p><p class="text-sm font-bold uppercase" id="cardHolder">USER TEST</p></div><div><p class="text-[9px] opacity-70 uppercase tracking-wider mb-1">Expires</p><p class="text-sm font-bold">12/28</p></div></div>
             </div>
             <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 transition-colors">Metode Terhubung</h3>
             <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-4 mb-3 flex items-center justify-between transition-colors">
@@ -331,12 +399,12 @@
     <section id="profilePage" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen">
         <div class="bg-gradient-brand text-white p-6 pb-12 rounded-b-[40px] text-center shadow-lg relative transition-colors">
             <div class="w-24 h-24 bg-white dark:bg-gray-900 p-1 rounded-full mx-auto mb-4 shadow-xl transition-colors"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="User" class="w-full h-full rounded-full bg-gray-100 dark:bg-gray-800"></div>
-            <h2 class="text-xl font-bold">User Test</h2><p class="text-blue-200 text-sm">0812-3456-7890</p>
+            <h2 class="text-xl font-bold" id="profileName">User Test</h2><p class="text-blue-200 text-sm" id="profilePhone">0812-3456-7890</p>
             <div class="mt-4 inline-flex items-center bg-blue-800/50 dark:bg-blue-900/50 backdrop-blur px-4 py-1.5 rounded-full text-xs font-semibold border border-blue-400/30"><i class="fas fa-crown text-yellow-400 mr-2"></i> Member Premium</div>
         </div>
         <div class="px-6 -mt-6 pb-24 relative z-10">
             <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-black/30 overflow-hidden transition-colors">
-                <div class="p-4 border-b border-gray-50 dark:border-gray-800 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"><div class="w-9 h-9 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center"><i class="fas fa-user-cog text-sm"></i></div><div class="flex-1 text-sm font-semibold text-gray-700 dark:text-white">Pengaturan Akun</div><i class="fas fa-chevron-right text-gray-300 dark:text-gray-600 text-xs"></i></div>
+                <div onclick="nav('settingsPage'); loadSettings()" class="p-4 border-b border-gray-50 dark:border-gray-800 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"><div class="w-9 h-9 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center"><i class="fas fa-user-cog text-sm"></i></div><div class="flex-1 text-sm font-semibold text-gray-700 dark:text-white">Pengaturan Akun</div><i class="fas fa-chevron-right text-gray-300 dark:text-gray-600 text-xs"></i></div>
                 <div class="p-4 border-b border-gray-50 dark:border-gray-800 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"><div class="w-9 h-9 rounded-full bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex items-center justify-center"><i class="fas fa-shield-alt text-sm"></i></div><div class="flex-1 text-sm font-semibold text-gray-700 dark:text-white">Keamanan & Privasi</div><i class="fas fa-chevron-right text-gray-300 dark:text-gray-600 text-xs"></i></div>
                 <div onclick="handleLogout()" class="p-4 flex items-center gap-4 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer transition-colors group"><div class="w-9 h-9 rounded-full bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400 group-hover:bg-red-100 dark:group-hover:bg-red-900/50 flex items-center justify-center transition-colors"><i class="fas fa-sign-out-alt text-sm"></i></div><div class="flex-1 text-sm font-bold text-red-500 dark:text-red-400">Keluar</div></div>
             </div>
@@ -398,6 +466,15 @@
 <script>
     // --- STATE MANAGEMENT ---
     let balance = 1400000;
+    // Data Profil Pengguna (Disimpan di variabel untuk simulasi)
+    let userProfile = {
+        username: 'User Test',
+        email: 'user@dompetku.com',
+        phone: '0812-3456-7890',
+        age: 25,
+        gender: 'Laki-laki'
+    };
+
     let transactions = [
         { type: 'out', title: 'Starbucks Coffee', date: 'Hari ini, 14:00', amount: 55000, icon: 'fa-coffee', colorBg: 'bg-green-100 dark:bg-green-900/30', colorText: 'text-green-600 dark:text-green-400' },
         { type: 'in', title: 'Top Up BCA', date: 'Hari ini, 09:00', amount: 500000, icon: 'fa-university', colorBg: 'bg-blue-100 dark:bg-blue-900/30', colorText: 'text-blue-600 dark:text-blue-400' }
@@ -479,6 +556,39 @@
         alert('Pendaftaran Berhasil! Silakan masuk.');
         nav('loginPage');
     }
+
+    // --- SETTINGS LOGIC (NEW) ---
+    function loadSettings() {
+        document.getElementById('setUsername').value = userProfile.username;
+        document.getElementById('setEmail').value = userProfile.email;
+        document.getElementById('setPhone').value = userProfile.phone;
+        document.getElementById('setAge').value = userProfile.age;
+        document.getElementById('setGender').value = userProfile.gender;
+    }
+
+    function saveSettings() {
+        userProfile.username = document.getElementById('setUsername').value;
+        userProfile.email = document.getElementById('setEmail').value;
+        userProfile.phone = document.getElementById('setPhone').value;
+        userProfile.age = document.getElementById('setAge').value;
+        userProfile.gender = document.getElementById('setGender').value;
+        
+        // Update display text elsewhere
+        document.getElementById('headerUsername').innerText = userProfile.username;
+        document.getElementById('profileName').innerText = userProfile.username;
+        document.getElementById('profilePhone').innerText = userProfile.phone;
+        document.getElementById('cardHolder').innerText = userProfile.username.toUpperCase();
+        
+        alert('Profil berhasil diperbarui!');
+        nav('profilePage');
+    }
+
+    function changePassword() {
+        customConfirm('Ganti Sandi', 'Anda akan diarahkan untuk mengganti sandi. Lanjutkan?', () => {
+             alert('Link reset sandi telah dikirim ke email: ' + userProfile.email);
+        });
+    }
+
 
     // --- TOP UP LOGIC ---
     function openTopUpSheet() { document.getElementById('topUpSheet').classList.remove('hide'); }

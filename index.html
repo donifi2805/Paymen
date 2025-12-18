@@ -81,7 +81,7 @@
     <div id="globalLoader" class="hide fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-sm">
         <div class="bg-white dark:bg-gray-900 p-5 rounded-2xl flex flex-col items-center shadow-2xl">
             <div class="loader mb-3"></div>
-            <p class="text-xs font-bold text-gray-600 dark:text-gray-300">Menghubungkan API...</p>
+            <p class="text-xs font-bold text-gray-600 dark:text-gray-300">Memuat Data...</p>
         </div>
     </div>
 
@@ -178,19 +178,15 @@
         <div class="mt-6 px-6">
             <h3 class="font-bold text-gray-800 dark:text-white mb-4 text-sm">Layanan API (Khfy Store)</h3>
             <div class="grid grid-cols-4 gap-4">
-                
                 <div class="text-center group cursor-pointer" onclick="openPPOB('pulsa')">
                     <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center shadow-sm dark:shadow-gray-800 mb-2 group-hover:border-orange-200 transition-all"><i class="fas fa-mobile-alt text-orange-500 text-xl"></i></div><span class="text-[10px] font-medium text-gray-600 dark:text-gray-400">Pulsa</span>
                 </div>
-                
                 <div class="text-center group cursor-pointer" onclick="openPPOB('akrab')">
                     <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center shadow-sm dark:shadow-gray-800 mb-2 group-hover:border-blue-200 transition-all"><i class="fas fa-users text-blue-600 text-xl"></i></div><span class="text-[10px] font-medium text-gray-600 dark:text-gray-400">XL Akrab</span>
                 </div>
-
-                <div class="text-center group cursor-pointer" onclick="alert('Segera Hadir')">
+                <div class="text-center group cursor-pointer" onclick="openPPOB('data')">
                     <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center shadow-sm dark:shadow-gray-800 mb-2 group-hover:border-emerald-200"><i class="fas fa-comment-dots text-emerald-500 text-xl"></i></div><span class="text-[10px] font-medium text-gray-600 dark:text-gray-400">Paket Data</span>
                 </div>
-
                 <div class="text-center group cursor-pointer" onclick="nav('historyPage')">
                     <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center shadow-sm dark:shadow-gray-800 mb-2 group-hover:border-indigo-200"><i class="fas fa-file-invoice-dollar text-indigo-500 text-xl"></i></div><span class="text-[10px] font-medium text-gray-600 dark:text-gray-400">Mutasi</span>
                 </div>
@@ -211,36 +207,27 @@
             <button onclick="closePPOB()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"><i class="fas fa-arrow-left text-gray-800 dark:text-white"></i></button>
             <h2 class="font-bold text-lg text-gray-800 dark:text-white" id="ppobTitle">Isi Pulsa (Live API)</h2>
         </div>
-                <div class="p-4 pb-24">
+        <div class="p-4 pb-24">
             <div id="inputSection" class="transition-all duration-300">
                 <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-800">
                     
-                    
                     <div class="mb-4">
-                        <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Provider</label>
+                        <div class="flex justify-between items-center mb-1">
+                             <label class="block text-xs font-bold text-gray-500 ml-1">Provider</label>
+                             <button onclick="initProductData()" class="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded-md hover:bg-blue-100"><i class="fas fa-sync-alt mr-1"></i> Refresh Data</button>
+                        </div>
                         <div class="relative">
                             <select id="formProvider" onchange="updateProductDropdown()" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none font-bold">
                                 <option value="" disabled selected>-- Pilih Provider --</option>
-                                <optgroup label="Khfy Produk">
-                                    <option value="XDA">Akrab Fresh (XDA)</option>
-                                    <option value="XLA">Akrab Fresh (XLA)</option>
-                                    <option value="FMX">FlexMax (FMX)</option>
-                                    <option value="PLN">PLN Pascabayar</option>
-                                </optgroup>
-                                <optgroup label="Operator Reguler">
-                                    <option value="TELKOMSEL">Telkomsel</option>
-                                    <option value="INDOSAT">Indosat</option>
-                                    <option value="XL">XL Axiata</option>
-                                    <option value="AXIS">Axis</option>
-                                    <option value="TRI">Three (3)</option>
-                                    <option value="SMARTFREN">Smartfren</option>
-                                </optgroup>
+                                                                                                <option value="XDA">Akrab Fresh (XDA)</option>
+                                <option value="XLA">Akrab Fresh (XLA)</option>
+                                <option value="FMX">FlexMax (FMX)</option>
+                                <option value="PLN">PLN Pascabayar</option>
                             </select>
                             <i class="fas fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
                         </div>
                     </div>
 
-                    
                     <div class="mb-4">
                         <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Produk</label>
                         <div class="relative">
@@ -252,7 +239,6 @@
                         <p class="text-[10px] text-blue-500 mt-1 text-right font-bold" id="priceDisplay"></p>
                     </div>
 
-                    
                     <div class="mb-6">
                         <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Nomor Tujuan</label>
                         <div class="input-group">
@@ -261,20 +247,17 @@
                         </div>
                     </div>
 
-                    
                     <button onclick="processFormTransaction()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/30 active:scale-95 transition-transform flex justify-center items-center gap-2">
                         <span>Beli Paket</span>
                         <i class="fas fa-arrow-right"></i>
                     </button>
 
-                    
                     <div class="flex items-center gap-2 mt-4">
                         <div class="w-4 h-4 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800"></div>
                         <span class="text-xs text-gray-500">Aktifkan Multi Transaksi</span>
                     </div>
                 </div>
             </div>
-        </div>
         </div>
     </section>
 
@@ -334,66 +317,103 @@
 </div>
 
 <script>
-    // --- KONFIGURASI API ---
+    // --- KONFIGURASI API (FINAL CLEAN v5.0) ---
     const CONFIG = {
         apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", 
-        baseUrl: "https://panel.khfy-store.com/api_v2",
-        useCorsProxy: true, 
-        corsProxyUrl: "https://api.allorigins.win/raw?url=" // Menggunakan AllOrigins yang lebih stabil
+        baseUrl: "https://panel.khfy-store.com/api_v2"
     };
+
+    // DAFTAR JALUR KONEKSI (Auto-Switch: Prioritas 1-5)
+    // Script akan mencoba semua jalur ini sampai berhasil
+    const PROXY_LIST = [
+        { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
+        { name: 'CorsProxy', url: 'https://corsproxy.io/?' },
+        { name: 'ThingProxy', url: 'https://thingproxy.freeboard.io/fetch/' },
+        { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
+        { name: 'Direct', url: '' } // Coba langsung
+    ];
 
     // --- STATE ---
     let balance = 500000; 
     let transactions = JSON.parse(localStorage.getItem('trx_history_api')) || [];
     let activeCategory = 'pulsa'; 
+    let globalProducts = [];
 
-    // --- API HANDLER (Improved) ---
+    // --- API HANDLER (ANTI-BLOKIR & AUTO-SWITCH) ---
     async function callApi(endpoint, params = {}) {
         params['api_key'] = CONFIG.apiKey;
-        const queryParams = new URLSearchParams(params).toString();
-        let targetUrl = `${CONFIG.baseUrl}${endpoint}?${queryParams}`;
-
-        if (CONFIG.useCorsProxy) {
-            targetUrl = CONFIG.corsProxyUrl + encodeURIComponent(targetUrl);
-        }
-
-        console.log(`[API CALL] Requesting ->`, targetUrl);
+        const queryString = new URLSearchParams(params).toString();
+        const targetUrl = `${CONFIG.baseUrl}${endpoint}?${queryString}`;
         
-        try {
-            const response = await fetch(targetUrl);
-            if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+        let lastError = '';
+
+        // Loop semua proxy sampai ada yang berhasil
+        for (const proxy of PROXY_LIST) {
+            console.log(`[API] Mencoba via ${proxy.name}...`);
+            const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
             
-            const data = await response.json();
-            return { ok: true, data: data };
-        } catch (error) {
-            console.error("API Error:", error);
-            return { ok: false, error: error.message }; 
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 detik timeout per proxy
+
+                const response = await fetch(fullUrl, { signal: controller.signal });
+                clearTimeout(timeoutId);
+
+                if (response.ok) {
+                    const text = await response.text();
+                    try {
+                        const data = JSON.parse(text);
+                        console.log(`[API] SUKSES via ${proxy.name}`);
+                        return { ok: true, data: data };
+                    } catch (e) {
+                        console.warn(`[API] Response bukan JSON via ${proxy.name}`);
+                        continue; // Coba proxy berikutnya
+                    }
+                } else {
+                    console.warn(`[API] Gagal HTTP ${response.status} via ${proxy.name}`);
+                }
+            } catch (error) {
+                console.warn(`[API] Error Koneksi via ${proxy.name}:`, error.message);
+                lastError = `${proxy.name}: ${error.message}`;
+            }
         }
+        return { ok: false, error: `Gagal Koneksi (Semua Jalur). Detail: ${lastError}` };
     }
 
-        // --- LOGIKA UTAMA (FORMULIR BARU) ---
-    let globalProducts = []; // Simpan data produk disini
+    // --- LOGIKA UTAMA (FORMULIR BARU) ---
 
     // 1. Init Data (Dipanggil saat buka menu)
     async function initProductData() {
         const pSelect = document.getElementById('formProduct');
-        pSelect.innerHTML = '<option>Sedang memuat data...</option>';
+        if(!pSelect) return;
+        
+        pSelect.innerHTML = '<option>Sedang mencari jalur koneksi...</option>';
+        pSelect.disabled = true;
         
         const result = await callApi('/list_product');
+        
         if (result.ok && result.data) {
-            // Normalisasi Data
+            // Normalisasi Data (Handle berbagai struktur JSON)
             if (result.data.data && Array.isArray(result.data.data)) globalProducts = result.data.data;
             else if (Array.isArray(result.data)) globalProducts = result.data;
             else if (result.data.products) globalProducts = result.data.products;
             
-            pSelect.innerHTML = '<option value="">-- Pilih Provider Dahulu --</option>';
+            console.log("Total Produk Dimuat:", globalProducts.length);
+
+            if (globalProducts.length > 0) {
+                pSelect.innerHTML = '<option value="">-- Pilih Provider Dahulu --</option>';
+                // Jika provider sudah dipilih, langsung refresh list
+                if(document.getElementById('formProvider').value) updateProductDropdown();
+            } else {
+                pSelect.innerHTML = '<option>Data Produk Kosong</option>';
+            }
         } else {
             pSelect.innerHTML = '<option>Gagal Load Data</option>';
-            alert('Gagal mengambil data produk: ' + result.error);
+            alert('Gagal mengambil data produk (Koneksi Bermasalah).\n' + result.error);
         }
     }
 
-    // 2. Filter Produk berdasarkan Provider
+        // 2. Filter Produk berdasarkan Provider (FIXED MAPPING)
     function updateProductDropdown() {
         const providerCode = document.getElementById('formProvider').value;
         const productSelect = document.getElementById('formProduct');
@@ -405,44 +425,68 @@
         productSelect.className = 'w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none font-medium transition-colors';
         priceDisplay.innerText = '';
 
-        // Logika Filter
+        // Cek Data API
+        if(!globalProducts || globalProducts.length === 0) {
+             productSelect.innerHTML = '<option>Data Belum Siap (Cek Koneksi)</option>';
+             initProductData(); 
+             return;
+        }
+
+        // LOGIKA FILTER PINTAR
         const filtered = globalProducts.filter(p => {
-            const code = (p.code || p.buyer_sku_code || '').toUpperCase();
-            const name = (p.name || p.product_name || '').toUpperCase();
-            const brand = (p.brand || p.operator || '').toUpperCase();
+            // MAPPING DATA API KHFY (PENTING!)
+            const code = (p.code || p.kode_produk || p.buyer_sku_code || '').toUpperCase();
+            const name = (p.name || p.nama_produk || p.product_name || '').toUpperCase();
+            const brand = (p.brand || p.kode_provider || p.operator || '').toUpperCase();
             
-            // Kategori Khusus (XDA/XLA/FMX/PLN)
-            if(['XDA', 'XLA', 'FMX', 'PLN'].includes(providerCode)) {
-                return code.startsWith(providerCode) || name.includes(providerCode);
-            }
-            // Operator Biasa (TELKOMSEL, dll)
-            return brand.includes(providerCode) || name.includes(providerCode);
+            // 1. FILTER KHUSUS
+            if (providerCode === 'XDA') return code.includes('XDA') || name.includes('XDA') || (name.includes('AKRAB') && name.includes('XTRA'));
+            if (providerCode === 'XLA') return code.includes('XLA') || name.includes('XLA') || (name.includes('AKRAB') && !name.includes('XTRA'));
+            if (providerCode === 'FMX') return code.includes('FMX') || name.includes('FLEX') || name.includes('UNLIMITED');
+            if (providerCode === 'PLN') return brand.includes('PLN') || code.includes('PLN') || name.includes('TOKEN');
+
+            // 2. FILTER UMUM
+            return brand.includes(providerCode) || name.includes(providerCode) || code.includes(providerCode);
         });
 
         if(filtered.length === 0) {
-            productSelect.innerHTML = `<option>Produk Kosong / Tidak Ditemukan</option>`;
+            productSelect.innerHTML = `<option>Produk Tidak Ditemukan (${providerCode})</option>`;
             productSelect.disabled = true;
             return;
         }
 
         // Urutkan Harga
-        filtered.sort((a, b) => (a.price || a.buyer_price) - (b.price || b.buyer_price));
+        filtered.sort((a, b) => {
+            const priceA = a.price || a.harga_final || a.buyer_price || 0;
+            const priceB = b.price || b.harga_final || b.buyer_price || 0;
+            return priceA - priceB;
+        });
 
         // Render Option
         productSelect.innerHTML = '<option value="" selected disabled>-- Pilih Produk --</option>';
         filtered.forEach(p => {
-            const price = p.price || p.harga || p.buyer_price || 0;
-            const code = p.code || p.buyer_sku_code;
-            const name = p.name || p.product_name;
-            const status = p.status || p.buyer_product_status || true;
-            const isGangguan = (status.toString() === '0' || status === false || status === 'gangguan');
+            // MAPPING FIELD HARGA & NAMA
+            const price = p.price || p.harga_final || p.buyer_price || 0;
+            const code = p.code || p.kode_produk || p.buyer_sku_code;
+            const name = p.name || p.nama_produk || p.product_name;
+            
+            // Status: API Khfy pakai 'gangguan' (1=gangguan, 0=lancar) atau boolean
+            let isGangguan = false;
+            if (p.gangguan === 1 || p.gangguan === '1') isGangguan = true;
+            if (p.kosong === 1 || p.kosong === '1') isGangguan = true;
+            if (String(p.buyer_product_status) === '0') isGangguan = true;
             
             const opt = document.createElement('option');
             opt.value = code;
-            opt.text = name + (isGangguan ? ' (GANGGUAN)' : '');
+            opt.text = `${name} - Rp ${formatRp(price)}`;
             opt.dataset.price = price;
             opt.dataset.name = name;
-            if(isGangguan) opt.disabled = true;
+            
+            if(isGangguan) {
+                opt.text += ' (GANGGUAN)';
+                opt.disabled = true;
+                opt.style.color = 'red';
+            }
             productSelect.appendChild(opt);
         });
 
@@ -452,8 +496,6 @@
              priceDisplay.innerText = `Harga: Rp ${formatRp(selectedOpt.dataset.price)}`;
         };
     }
-
-    // 3. Proses Transaksi
     function processFormTransaction() {
         const productSelect = document.getElementById('formProduct');
         const destNum = document.getElementById('ppobNumber').value;
@@ -467,10 +509,10 @@
 
     // --- TRANSAKSI ---
     function confirmTransaction(code, name, price) {
-        const num = document.getElementById('ppobNumber').value;
         if(balance < price) return alert('Saldo Aplikasi Kurang! (Top Up Manual dulu)'); 
 
-        customConfirm('Beli Produk?', `${name}\nNo: ${num}\nHarga: Rp ${formatRp(price)}`, () => {
+        customConfirm('Beli Produk?', `${name}\nHarga: Rp ${formatRp(price)}`, () => {
+            const num = document.getElementById('ppobNumber').value;
             executeApiTransaction(code, num, price, name);
         });
     }
@@ -518,7 +560,7 @@
     }
 
     // --- NAVIGATION & UI ---
-        function openPPOB(category) { 
+    function openPPOB(category) { 
         activeCategory = category;
         document.getElementById('homePage').classList.add('hide'); 
         document.getElementById('ppobPage').classList.remove('hide'); 

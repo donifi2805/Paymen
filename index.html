@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DompetKu - Settings Update</title>
+    <title>DompetKu - XL Akrab Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -27,7 +27,7 @@
         html.dark body { background-color: #111827; } 
         html.dark .app-container { background-color: #030712; box-shadow: 0 0 25px rgba(0,0,0,0.5); } 
         
-        /* Animations */
+        /* Utilities */
         .hide { display: none !important; }
         .page { animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -51,14 +51,25 @@
         .input-group input { padding-left: 44px; transition: all 0.3s; }
         html.dark .input-group i { color: #6b7280; }
         html.dark .input-group input:focus + i { color: #60a5fa; }
-        
-        /* Select Input Styling */
-        .select-wrapper { position: relative; }
-        .select-wrapper i { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8; z-index: 10; pointer-events: none; }
-        .select-wrapper select { padding-left: 44px; appearance: none; -webkit-appearance: none; }
 
-        .provider-btn.active { border-color: #2563eb; background-color: #eff6ff; color: #2563eb; transform: scale(1.05); }
-        html.dark .provider-btn.active { border-color: #3b82f6; background-color: #1e3a8a; color: #60a5fa; }
+        /* Provider Select List Style (Mirip Screenshot) */
+        .provider-list-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 16px; border-bottom: 1px solid #f3f4f6; cursor: pointer;
+        }
+        html.dark .provider-list-item { border-bottom-color: #374151; }
+        .provider-list-item:last-child { border-bottom: none; }
+        
+        /* Custom Radio Button */
+        .custom-radio {
+            width: 20px; height: 20px; border: 2px solid #cbd5e1; border-radius: 50%;
+            position: relative; display: flex; align-items: center; justify-content: center;
+        }
+        html.dark .custom-radio { border-color: #4b5563; }
+        .provider-list-item.selected .custom-radio { border-color: #2563eb; }
+        .provider-list-item.selected .custom-radio::after {
+            content: ''; width: 10px; height: 10px; background-color: #2563eb; border-radius: 50%;
+        }
 
         /* ATM Card */
         .atm-card {
@@ -93,6 +104,19 @@
             <div class="flex gap-3">
                 <button onclick="closeConfirm(false)" class="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-semibold text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition">Batal</button>
                 <button id="confirmYesBtn" class="flex-1 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition">Ya, Lanjutkan</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="providerSelectorModal" class="hide fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 fade-enter">
+        <div class="bg-white dark:bg-gray-900 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden">
+            <div class="p-4 border-b border-gray-100 dark:border-gray-800">
+                <h3 class="text-gray-500 dark:text-gray-400 font-medium">-- Pilih Provider --</h3>
+            </div>
+            <div id="providerListContainer" class="max-h-[60vh] overflow-y-auto">
+                </div>
+            <div class="p-3 bg-gray-50 dark:bg-gray-800 text-right">
+                <button onclick="document.getElementById('providerSelectorModal').classList.add('hide')" class="text-blue-600 dark:text-blue-400 font-bold text-sm px-4 py-2">TUTUP</button>
             </div>
         </div>
     </div>
@@ -209,60 +233,17 @@
             <button onclick="nav('profilePage')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"><i class="fas fa-arrow-left text-gray-800 dark:text-white"></i></button>
             <h2 class="font-bold text-lg text-gray-800 dark:text-white">Pengaturan Akun</h2>
         </div>
-        
         <div class="p-6 pb-24">
             <div class="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 space-y-5">
-                
-                <div>
-                    <label class="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">Username</label>
-                    <div class="input-group">
-                        <input type="text" id="setUsername" class="w-full h-11 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-100 text-sm font-medium pl-10">
-                        <i class="fas fa-user ml-[-5px]"></i>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">Email</label>
-                    <div class="input-group">
-                        <input type="email" id="setEmail" class="w-full h-11 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-100 text-sm font-medium pl-10">
-                        <i class="fas fa-envelope ml-[-5px]"></i>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">Nomor Handphone</label>
-                    <div class="input-group">
-                        <input type="tel" id="setPhone" class="w-full h-11 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-100 text-sm font-medium pl-10">
-                        <i class="fas fa-phone ml-[-5px]"></i>
-                    </div>
-                </div>
-
+                <div><label class="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">Username</label><div class="input-group"><input type="text" id="setUsername" class="w-full h-11 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-100 text-sm font-medium pl-10"><i class="fas fa-user ml-[-5px]"></i></div></div>
+                <div><label class="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">Email</label><div class="input-group"><input type="email" id="setEmail" class="w-full h-11 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-100 text-sm font-medium pl-10"><i class="fas fa-envelope ml-[-5px]"></i></div></div>
+                <div><label class="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">Nomor Handphone</label><div class="input-group"><input type="tel" id="setPhone" class="w-full h-11 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-100 text-sm font-medium pl-10"><i class="fas fa-phone ml-[-5px]"></i></div></div>
                 <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">Umur</label>
-                        <div class="input-group">
-                            <input type="number" id="setAge" class="w-full h-11 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-100 text-sm font-medium pl-10">
-                            <i class="fas fa-birthday-cake ml-[-5px]"></i>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">Jenis Kelamin</label>
-                        <div class="select-wrapper">
-                            <i class="fas fa-venus-mars ml-[0px]"></i>
-                            <select id="setGender" class="w-full h-11 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-100 text-sm font-medium">
-                                <option value="Laki-laki">Laki-laki</option>
-                                <option value="Perempuan">Perempuan</option>
-                            </select>
-                        </div>
-                    </div>
+                    <div><label class="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">Umur</label><div class="input-group"><input type="number" id="setAge" class="w-full h-11 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-100 text-sm font-medium pl-10"><i class="fas fa-birthday-cake ml-[-5px]"></i></div></div>
+                    <div><label class="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">Jenis Kelamin</label><select id="setGender" class="w-full h-11 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-100 text-sm font-medium pl-2"><option value="Laki-laki">Laki-laki</option><option value="Perempuan">Perempuan</option></select></div>
                 </div>
-
-                <div class="pt-2">
-                     <button onclick="changePassword()" class="w-full py-3 border border-red-200 dark:border-red-900/50 text-red-500 dark:text-red-400 rounded-lg font-bold text-sm hover:bg-red-50 dark:hover:bg-red-900/20 transition"><i class="fas fa-key mr-2"></i> Ganti Kata Sandi</button>
-                </div>
-
+                <div class="pt-2"><button onclick="changePassword()" class="w-full py-3 border border-red-200 dark:border-red-900/50 text-red-500 dark:text-red-400 rounded-lg font-bold text-sm hover:bg-red-50 dark:hover:bg-red-900/20 transition"><i class="fas fa-key mr-2"></i> Ganti Kata Sandi</button></div>
             </div>
-            
             <button onclick="saveSettings()" class="w-full bg-blue-600 text-white h-12 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition mt-6">SIMPAN PERUBAHAN</button>
         </div>
     </section>
@@ -271,18 +252,11 @@
         <div class="bg-gradient-brand text-white pt-8 pb-24 px-6 rounded-b-[40px] shadow-lg relative overflow-hidden">
             <div class="flex justify-between items-center mb-6 relative z-10">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full border-2 border-white/30 p-0.5">
-                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="User" class="w-full h-full rounded-full bg-white dark:bg-gray-800">
-                    </div>
-                    <div>
-                        <p class="text-xs text-blue-100">Selamat Pagi,</p>
-                        <p class="font-bold text-lg leading-tight" id="headerUsername">User Test</p>
-                    </div>
+                    <div class="w-10 h-10 rounded-full border-2 border-white/30 p-0.5"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="User" class="w-full h-full rounded-full bg-white dark:bg-gray-800"></div>
+                    <div><p class="text-xs text-blue-100">Selamat Pagi,</p><p class="font-bold text-lg leading-tight" id="headerUsername">User Test</p></div>
                 </div>
                 <div class="flex items-center gap-4">
-                    <button onclick="toggleDarkMode()" class="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center hover:bg-white/30 transition active:scale-95">
-                        <i id="themeIcon" class="fas fa-moon text-white"></i>
-                    </button>
+                    <button onclick="toggleDarkMode()" class="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center hover:bg-white/30 transition active:scale-95"><i id="themeIcon" class="fas fa-moon text-white"></i></button>
                     <div class="relative"><i class="fas fa-bell text-xl"></i><span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-blue-600 dark:border-blue-800"></span></div>
                 </div>
             </div>
@@ -291,10 +265,7 @@
         <div class="mx-6 -mt-20 relative z-20">
             <div class="bg-white dark:bg-gray-900 rounded-3xl p-5 shadow-xl shadow-blue-900/5 dark:shadow-black/20">
                 <div class="flex justify-between items-start mb-2">
-                    <div>
-                        <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Total Saldo</p>
-                        <h2 class="text-3xl font-extrabold text-gray-800 dark:text-white mt-1" id="displayBalance">Rp 0</h2>
-                    </div>
+                    <div><p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Total Saldo</p><h2 class="text-3xl font-extrabold text-gray-800 dark:text-white mt-1" id="displayBalance">Rp 0</h2></div>
                     <div class="w-8 h-8 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg flex items-center justify-center"><i class="fas fa-wallet text-sm"></i></div>
                 </div>
                 <div class="flex justify-between mt-6 border-t border-gray-100 dark:border-gray-800 pt-5">
@@ -310,28 +281,21 @@
             <h3 class="font-bold text-gray-800 dark:text-white mb-4 text-sm">Pembayaran & Tagihan</h3>
             <div class="grid grid-cols-4 gap-4">
                 <div class="text-center group cursor-pointer" onclick="openPPOB('pulsa')">
-                    <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center shadow-sm dark:shadow-gray-800 mb-2 group-hover:border-orange-200 transition-all">
-                        <i class="fas fa-mobile-alt text-orange-500 text-xl"></i>
-                    </div>
-                    <span class="text-[10px] font-medium text-gray-600 dark:text-gray-400">Pulsa</span>
+                    <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center shadow-sm dark:shadow-gray-800 mb-2 group-hover:border-orange-200 transition-all"><i class="fas fa-mobile-alt text-orange-500 text-xl"></i></div><span class="text-[10px] font-medium text-gray-600 dark:text-gray-400">Pulsa</span>
                 </div>
-                <div class="text-center group cursor-pointer" onclick="openPPOB('data')">
+                
+                <div class="text-center group cursor-pointer" onclick="openXLAkrab()">
                     <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center shadow-sm dark:shadow-gray-800 mb-2 group-hover:border-blue-200 transition-all">
-                        <i class="fas fa-wifi text-blue-500 text-xl"></i>
+                        <i class="fas fa-users text-blue-600 text-xl"></i>
                     </div>
-                    <span class="text-[10px] font-medium text-gray-600 dark:text-gray-400">Paket Data</span>
+                    <span class="text-[10px] font-medium text-gray-600 dark:text-gray-400">XL Akrab</span>
                 </div>
+
                 <div class="text-center group cursor-pointer" onclick="addDummyTrx('out','PLN',100000,'fa-bolt','text-yellow-500')">
-                    <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center shadow-sm dark:shadow-gray-800 mb-2 group-hover:border-yellow-200">
-                        <i class="fas fa-bolt text-yellow-500 text-xl"></i>
-                    </div>
-                    <span class="text-[10px] font-medium text-gray-600 dark:text-gray-400">Listrik</span>
+                    <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center shadow-sm dark:shadow-gray-800 mb-2 group-hover:border-yellow-200"><i class="fas fa-bolt text-yellow-500 text-xl"></i></div><span class="text-[10px] font-medium text-gray-600 dark:text-gray-400">Listrik</span>
                 </div>
                 <div class="text-center group cursor-pointer">
-                    <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center shadow-sm dark:shadow-gray-800 mb-2 group-hover:border-purple-200">
-                        <i class="fas fa-gamepad text-purple-500 text-xl"></i>
-                    </div>
-                    <span class="text-[10px] font-medium text-gray-600 dark:text-gray-400">Games</span>
+                    <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center shadow-sm dark:shadow-gray-800 mb-2 group-hover:border-purple-200"><i class="fas fa-gamepad text-purple-500 text-xl"></i></div><span class="text-[10px] font-medium text-gray-600 dark:text-gray-400">Games</span>
                 </div>
             </div>
         </div>
@@ -342,6 +306,43 @@
                 <span class="text-xs text-blue-600 dark:text-blue-400 font-semibold cursor-pointer">Lihat Semua</span>
             </div>
             <div id="miniHistory" class="space-y-4"></div>
+        </div>
+    </section>
+
+    <section id="xlAkrabPage" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen z-40 absolute top-0 w-full max-w-[480px]">
+        <div class="p-4 bg-white dark:bg-gray-900 sticky top-0 z-20 shadow-sm flex items-center gap-4">
+            <button onclick="nav('homePage')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"><i class="fas fa-arrow-left text-gray-800 dark:text-white"></i></button>
+            <h2 class="font-bold text-lg text-gray-800 dark:text-white">Transaksi XL Akrab</h2>
+        </div>
+        <div class="p-6 pb-24">
+            
+            <div class="mb-4">
+                <label class="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-2">Provider</label>
+                <div class="relative cursor-pointer" onclick="openProviderSelector()">
+                    <input type="text" id="xlProviderInput" placeholder="-- Pilih Provider --" readonly class="w-full h-12 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none text-gray-700 dark:text-gray-100 text-sm font-medium pl-4 cursor-pointer">
+                    <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-2">Produk</label>
+                <div class="relative">
+                    <select id="xlProductInput" class="w-full h-12 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-100 text-sm font-medium pl-4 appearance-none">
+                        <option value="">-- Pilih Provider Terlebih Dahulu --</option>
+                    </select>
+                    <i class="fas fa-box absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-2">Nomor Tujuan</label>
+                <div class="relative">
+                    <input type="tel" id="xlDestNumber" placeholder="Nomor XL / Tujuan" class="w-full h-12 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-100 text-sm font-medium pl-10">
+                    <i class="fas fa-phone absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                </div>
+            </div>
+
+            <button onclick="processXLPurchase()" class="w-full bg-blue-600 text-white h-12 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition">LANJUTKAN</button>
         </div>
     </section>
 
@@ -466,15 +467,7 @@
 <script>
     // --- STATE MANAGEMENT ---
     let balance = 1400000;
-    // Data Profil Pengguna (Disimpan di variabel untuk simulasi)
-    let userProfile = {
-        username: 'User Test',
-        email: 'user@dompetku.com',
-        phone: '0812-3456-7890',
-        age: 25,
-        gender: 'Laki-laki'
-    };
-
+    let userProfile = { username: 'User Test', email: 'user@dompetku.com', phone: '0812-3456-7890', age: 25, gender: 'Laki-laki' };
     let transactions = [
         { type: 'out', title: 'Starbucks Coffee', date: 'Hari ini, 14:00', amount: 55000, icon: 'fa-coffee', colorBg: 'bg-green-100 dark:bg-green-900/30', colorText: 'text-green-600 dark:text-green-400' },
         { type: 'in', title: 'Top Up BCA', date: 'Hari ini, 09:00', amount: 500000, icon: 'fa-university', colorBg: 'bg-blue-100 dark:bg-blue-900/30', colorText: 'text-blue-600 dark:text-blue-400' }
@@ -483,81 +476,139 @@
     let selectedProvider = null;
 
     // --- DATA ---
-    const banks = [
-        { name: 'Bank BCA', code: 'BCA' }, { name: 'Bank Mandiri', code: 'MANDIRI' }, { name: 'Bank BRI', code: 'BRI' },
-        { name: 'Bank BNI', code: 'BNI' }, { name: 'Bank Syariah Indonesia (BSI)', code: 'BSI' }, { name: 'CIMB Niaga', code: 'CIMB' },
-        { name: 'Bank Jago', code: 'JAGO' }, { name: 'Jenius (BTPN)', code: 'JENIUS' }, { name: 'Bank Permata', code: 'PERMATA' },
-        { name: 'Bank Danamon', code: 'DANAMON' }, { name: 'Maybank', code: 'MAYBANK' }, { name: 'SeaBank', code: 'SEABANK' },
-        { name: 'Bank Neo Commerce', code: 'BNC' }, { name: 'Bank Muamalat', code: 'MUAMALAT' }, { name: 'BTN', code: 'BTN' }
-    ];
-    const providers = [{id:'telkomsel',name:'Telkomsel',color:'text-red-600'},{id:'indosat',name:'Indosat (M3)',color:'text-yellow-500'},{id:'xl',name:'XL Axiata',color:'text-blue-600'},{id:'smartfren',name:'Smartfren',color:'text-pink-600'},{id:'byu',name:'by.U',color:'text-orange-500'}];
-    const dataPackages = {'telkomsel':[{name:'OMG! Internet 10GB',desc:'10GB Utama + 2GB Chat, 30 Hari',price:55000},{name:'Internet Sakti 15GB',desc:'15GB All Net, 30 Hari',price:75000}],'indosat':[{name:'Freedom Internet 20GB',desc:'20GB Utama, 30 Hari',price:60000}],'xl':[{name:'Xtra Combo Flex M',desc:'15GB + Unlimited WA',price:65000}]};
+    const banks = [ { name: 'Bank BCA', code: 'BCA' }, { name: 'Bank Mandiri', code: 'MANDIRI' }, { name: 'Bank BRI', code: 'BRI' }, { name: 'Bank BNI', code: 'BNI' } ];
+    const providers = [{id:'telkomsel',name:'Telkomsel',color:'text-red-600'},{id:'indosat',name:'Indosat (M3)',color:'text-yellow-500'},{id:'xl',name:'XL Axiata',color:'text-blue-600'}];
     const pulsaOptions = [5000, 10000, 20000, 50000, 100000];
+
+    // --- DATA KHUSUS XL AKRAB ---
+    const xlProvidersList = [
+        'XL Akrab V1 (XLA)',
+        'XL Akrab V2 (XDA)',
+        'FLEX MAX (Wajib Cek Promo)',
+        'XL Reguler (Support Semua Nomor XL)',
+        'XL Data Circle',
+        'Cek PLN'
+    ];
+
+    const xlProducts = {
+        'XL Akrab V1 (XLA)': ['10GB + 2GB Bonus (Rp 25.000)', '20GB + 5GB Bonus (Rp 45.000)', '50GB + 10GB Bonus (Rp 90.000)'],
+        'XL Akrab V2 (XDA)': ['15GB Family (Rp 35.000)', '30GB Family (Rp 60.000)'],
+        'FLEX MAX (Wajib Cek Promo)': ['Flex S', 'Flex M', 'Flex L'],
+        'XL Reguler (Support Semua Nomor XL)': ['Xtra Combo 10GB', 'Xtra Combo 20GB'],
+        'XL Data Circle': ['Circle S', 'Circle M'],
+        'Cek PLN': ['Token 20k', 'Token 50k']
+    };
 
     // --- HELPER FUNCTIONS ---
     function formatRp(n) { return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n); }
-    function toggleDarkMode() {
-        document.documentElement.classList.toggle('dark');
-        const isDark = document.documentElement.classList.contains('dark');
-        document.getElementById('themeIcon').className = isDark ? 'fas fa-sun text-white' : 'fas fa-moon text-white';
-        localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    }
+    function toggleDarkMode() { document.documentElement.classList.toggle('dark'); const isDark = document.documentElement.classList.contains('dark'); document.getElementById('themeIcon').className = isDark ? 'fas fa-sun text-white' : 'fas fa-moon text-white'; localStorage.setItem('theme', isDark ? 'dark' : 'light'); }
     if(localStorage.getItem('theme') === 'dark') toggleDarkMode();
 
-    // --- CUSTOM CONFIRM MODAL LOGIC ---
+    function customConfirm(title, message, callback) { document.getElementById('confirmTitle').innerText = title; document.getElementById('confirmMessage').innerText = message; document.getElementById('customConfirmModal').classList.remove('hide'); confirmCallback = callback; }
     let confirmCallback = null;
-    function customConfirm(title, message, callback) {
-        document.getElementById('confirmTitle').innerText = title;
-        document.getElementById('confirmMessage').innerText = message;
-        document.getElementById('customConfirmModal').classList.remove('hide');
-        confirmCallback = callback;
-    }
-    function closeConfirm(result) {
-        document.getElementById('customConfirmModal').classList.add('hide');
-        if (result && confirmCallback) confirmCallback();
-        confirmCallback = null;
-    }
+    function closeConfirm(result) { document.getElementById('customConfirmModal').classList.add('hide'); if (result && confirmCallback) confirmCallback(); confirmCallback = null; }
     document.getElementById('confirmYesBtn').onclick = () => closeConfirm(true);
 
-    // --- NAVIGATION (FIXED: Hide All Pages First) ---
+    // --- NAVIGATION ---
     function nav(pageId) {
-        // 1. Hide ALL pages first (THIS FIXES THE BUG)
-        document.querySelectorAll('.page').forEach(el => {
-            el.classList.add('hide');
-        });
-        
-        // 2. Show target page
+        document.querySelectorAll('.page').forEach(el => { el.classList.add('hide'); });
         document.getElementById(pageId).classList.remove('hide');
-        
-        // 3. Reset and set Active Nav Item
         document.querySelectorAll('.nav-item').forEach(el => { el.classList.remove('text-blue-600', 'dark:text-blue-400'); el.classList.add('text-gray-400', 'dark:text-gray-500'); });
         const navId = 'nav-' + pageId.replace('Page','');
         if(document.getElementById(navId)) { document.getElementById(navId).classList.remove('text-gray-400', 'dark:text-gray-500'); document.getElementById(navId).classList.add('text-blue-600', 'dark:text-blue-400'); }
-        
-        // 4. Special cases
         if(pageId !== 'ppobPage') document.getElementById('ppobPage').classList.add('hide');
-        if(pageId === 'loginPage' || pageId === 'registerPage') document.getElementById('bottomNav').classList.add('hide');
-        else document.getElementById('bottomNav').classList.remove('hide');
-
+        if(pageId === 'loginPage' || pageId === 'registerPage') document.getElementById('bottomNav').classList.add('hide'); else document.getElementById('bottomNav').classList.remove('hide');
         updateUI();
+    }
+
+    // --- XL AKRAB LOGIC (NEW) ---
+    function openXLAkrab() {
+        // Reset form
+        document.getElementById('xlProviderInput').value = '';
+        document.getElementById('xlProductInput').innerHTML = '<option value="">-- Pilih Provider Terlebih Dahulu --</option>';
+        document.getElementById('xlDestNumber').value = '';
+        
+        // Hide Home, Show XL Page
+        document.getElementById('homePage').classList.add('hide');
+        document.getElementById('bottomNav').classList.add('hide');
+        document.getElementById('xlAkrabPage').classList.remove('hide');
+    }
+
+    function openProviderSelector() {
+        const modal = document.getElementById('providerSelectorModal');
+        const container = document.getElementById('providerListContainer');
+        container.innerHTML = ''; // Clear list
+
+        xlProvidersList.forEach(provName => {
+            const isSelected = document.getElementById('xlProviderInput').value === provName;
+            container.innerHTML += `
+                <div class="provider-list-item ${isSelected ? 'selected' : ''}" onclick="selectXLProvider('${provName}')">
+                    <span class="text-sm font-semibold text-gray-700 dark:text-gray-200">${provName}</span>
+                    <div class="custom-radio"></div>
+                </div>
+            `;
+        });
+
+        modal.classList.remove('hide');
+    }
+
+    function selectXLProvider(providerName) {
+        document.getElementById('xlProviderInput').value = providerName;
+        document.getElementById('providerSelectorModal').classList.add('hide');
+        
+        // Populate Products based on selection
+        const productSelect = document.getElementById('xlProductInput');
+        productSelect.innerHTML = '<option value="">-- Pilih Produk --</option>';
+        
+        const products = xlProducts[providerName] || [];
+        products.forEach(prod => {
+            productSelect.innerHTML += `<option value="${prod}">${prod}</option>`;
+        });
+    }
+
+    function processXLPurchase() {
+        const prov = document.getElementById('xlProviderInput').value;
+        const prod = document.getElementById('xlProductInput').value;
+        const num = document.getElementById('xlDestNumber').value;
+
+        if(!prov || !prod || !num) return alert('Mohon lengkapi semua data!');
+        
+        // Dummy Price Extraction
+        let price = 25000; // Default dummy
+        if(prod.includes('Rp')) {
+            const priceString = prod.match(/Rp\s?(\d+\.?\d*)/);
+            if(priceString) price = parseInt(priceString[1].replace('.',''));
+        }
+
+        if(balance < price) return alert('Saldo tidak mencukupi!');
+
+        customConfirm('Konfirmasi Transaksi', `Beli ${prod}\nNomor: ${num}\nHarga: ${formatRp(price)}?`, () => {
+            balance -= price;
+            transactions.unshift({
+                title: 'XL Akrab: ' + prov,
+                date: 'Baru saja',
+                amount: price,
+                type: 'out',
+                icon: 'fa-users',
+                colorBg: 'bg-blue-100 dark:bg-blue-900/30',
+                colorText: 'text-blue-600 dark:text-blue-400'
+            });
+            updateUI();
+            nav('homePage');
+            document.getElementById('xlAkrabPage').classList.add('hide');
+            alert('Transaksi XL Akrab Berhasil!');
+        });
     }
 
     // --- LOGIN & REGISTER ---
     function handleLogin() { nav('homePage'); }
     function handleLogout() { customConfirm('Keluar Akun?', 'Anda yakin ingin keluar?', () => location.reload()); }
     function handleRegister() {
-        const u = document.getElementById('regUsername').value;
-        const e = document.getElementById('regEmail').value;
-        const p = document.getElementById('regPhone').value;
-        const pass = document.getElementById('regPass').value;
-        const pass2 = document.getElementById('regPassConfirm').value;
-        if(!u || !e || !p || !pass) return alert('Semua data wajib diisi!');
-        if(pass !== pass2) return alert('Konfirmasi sandi tidak cocok!');
-        alert('Pendaftaran Berhasil! Silakan masuk.');
-        nav('loginPage');
+        if(!document.getElementById('regUsername').value) return alert('Isi Username!');
+        alert('Pendaftaran Berhasil!'); nav('loginPage');
     }
 
-    // --- SETTINGS LOGIC (NEW) ---
+    // --- SETTINGS LOGIC ---
     function loadSettings() {
         document.getElementById('setUsername').value = userProfile.username;
         document.getElementById('setEmail').value = userProfile.email;
@@ -565,124 +616,31 @@
         document.getElementById('setAge').value = userProfile.age;
         document.getElementById('setGender').value = userProfile.gender;
     }
-
     function saveSettings() {
         userProfile.username = document.getElementById('setUsername').value;
-        userProfile.email = document.getElementById('setEmail').value;
-        userProfile.phone = document.getElementById('setPhone').value;
-        userProfile.age = document.getElementById('setAge').value;
-        userProfile.gender = document.getElementById('setGender').value;
-        
-        // Update display text elsewhere
         document.getElementById('headerUsername').innerText = userProfile.username;
         document.getElementById('profileName').innerText = userProfile.username;
-        document.getElementById('profilePhone').innerText = userProfile.phone;
-        document.getElementById('cardHolder').innerText = userProfile.username.toUpperCase();
-        
-        alert('Profil berhasil diperbarui!');
-        nav('profilePage');
+        alert('Profil diperbarui!'); nav('profilePage');
     }
+    function changePassword() { customConfirm('Ganti Sandi', 'Kirim link reset sandi?', () => alert('Link terkirim!')); }
 
-    function changePassword() {
-        customConfirm('Ganti Sandi', 'Anda akan diarahkan untuk mengganti sandi. Lanjutkan?', () => {
-             alert('Link reset sandi telah dikirim ke email: ' + userProfile.email);
-        });
-    }
-
-
-    // --- TOP UP LOGIC ---
+    // --- TOP UP & OTHERS ---
     function openTopUpSheet() { document.getElementById('topUpSheet').classList.remove('hide'); }
     function closeTopUp() { document.getElementById('topUpSheet').classList.add('hide'); }
-    function processTopUp(method) {
-        closeTopUp();
-        if(method === 'manual') {
-            balance+=100000; 
-            transactions.unshift({type:'in',title:'Top Up Manual',date:'Baru saja',amount:100000,icon:'fa-plus',colorBg:'bg-green-100',colorText:'text-green-600'}); 
-            updateUI(); 
-            alert('Saldo +100rb Berhasil');
-        } else if (method === 'qris') {
-            startScan();
-        }
-    }
-    function showBankList() {
-        closeTopUp();
-        document.getElementById('homePage').classList.add('hide');
-        document.getElementById('bottomNav').classList.add('hide');
-        document.getElementById('bankListPage').classList.remove('hide');
-        const list = document.getElementById('bankListContainer');
-        list.innerHTML = '';
-        banks.forEach(b => {
-            list.innerHTML += `<div onclick="selectBank('${b.name}')" class="flex items-center gap-4 p-4 mb-2 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"><div class="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center font-bold text-gray-500 text-xs">${b.code}</div><span class="font-bold text-gray-700 dark:text-gray-300">${b.name}</span></div>`;
-        });
-    }
-    function closeBankList() {
-        document.getElementById('bankListPage').classList.add('hide');
-        nav('homePage');
-        document.getElementById('bottomNav').classList.remove('hide');
-    }
-    function selectBank(name) {
-        customConfirm('Transfer Bank', `Salin Virtual Account untuk ${name}?`, () => {
-             alert(`VA ${name}: 8800123456789\nSilakan transfer.`);
-             closeBankList();
-        });
-    }
+    function processTopUp(m) { closeTopUp(); if(m==='manual'){ balance+=100000; transactions.unshift({type:'in',title:'Top Up Manual',date:'Baru saja',amount:100000,icon:'fa-plus',colorBg:'bg-green-100',colorText:'text-green-600'}); updateUI(); alert('Saldo +100rb'); } else if(m==='qris'){ startScan(); } }
+    function showBankList() { closeTopUp(); document.getElementById('homePage').classList.add('hide'); document.getElementById('bottomNav').classList.add('hide'); document.getElementById('bankListPage').classList.remove('hide'); const l=document.getElementById('bankListContainer'); l.innerHTML=''; banks.forEach(b=>{ l.innerHTML+=`<div onclick="selectBank('${b.name}')" class="flex items-center gap-4 p-4 mb-2 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"><div class="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center font-bold text-gray-500 text-xs">${b.code}</div><span class="font-bold text-gray-700 dark:text-gray-300">${b.name}</span></div>` }); }
+    function closeBankList() { document.getElementById('bankListPage').classList.add('hide'); nav('homePage'); document.getElementById('bottomNav').classList.remove('hide'); }
+    function selectBank(n) { customConfirm('Transfer Bank', `Salin VA untuk ${n}?`, ()=>{ alert('VA Disalin'); closeBankList(); }); }
+    function addDummyTrx(t,ti,a,i,c) { if(balance<a)return alert('Saldo kurang'); customConfirm('Konfirmasi',`Bayar ${ti} ${formatRp(a)}?`,()=>{ balance-=a; transactions.unshift({type:t,title:ti,date:'Baru saja',amount:a,icon:i,colorBg:'bg-yellow-100',colorText:'text-yellow-600'}); updateUI(); }); }
 
-    // --- TRANSACTION LOGIC ---
-    function addDummyTrx(type, title, amount, icon, color) {
-         if(balance < amount) return alert('Saldo kurang!');
-         customConfirm('Konfirmasi Pembayaran', `Bayar ${title} senilai ${formatRp(amount)}?`, () => {
-             balance -= amount;
-             transactions.unshift({type, title, date:'Baru saja', amount, icon, colorBg:'bg-yellow-100', colorText:'text-yellow-600'});
-             updateUI();
-         });
-    }
-
-    // --- PPOB LOGIC ---
-    function openPPOB(type) {
-        currentPPOBType = type; selectedProvider = null;
-        document.getElementById('homePage').classList.add('hide'); document.getElementById('bottomNav').classList.add('hide'); document.getElementById('ppobPage').classList.remove('hide');
-        document.getElementById('ppobTitle').innerText = type === 'pulsa' ? 'Isi Pulsa' : 'Paket Data';
-        document.getElementById('productListTitle').innerText = type === 'pulsa' ? '3. Nominal Pulsa' : '3. Pilihan Paket Data';
-        document.getElementById('inputSection').classList.add('hide'); document.getElementById('instructionText').classList.remove('hide'); document.getElementById('ppobNumber').value = '';
-        renderProviders();
-    }
-    function closePPOB() { document.getElementById('ppobPage').classList.add('hide'); document.getElementById('homePage').classList.remove('hide'); document.getElementById('bottomNav').classList.remove('hide'); }
-    function renderProviders() {
-        const c = document.getElementById('providerList'); c.innerHTML = '';
-        providers.forEach(p => {
-            const active = p.id === selectedProvider ? 'active ring-2 ring-blue-500' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700';
-            c.innerHTML += `<div onclick="selectProvider('${p.id}')" class="provider-btn ${active} min-w-[80px] p-2 rounded-xl border flex flex-col items-center justify-center cursor-pointer transition-all hover:scale-105"><i class="fas fa-sim-card text-2xl ${p.color} mb-1"></i><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">${p.name}</span></div>`;
-        });
-    }
-    function selectProvider(id) { selectedProvider = id; renderProviders(); document.getElementById('inputSection').classList.remove('hide'); document.getElementById('instructionText').classList.add('hide'); renderProducts(); }
-    function renderProducts() {
-        const c = document.getElementById('productList'); c.innerHTML = '';
-        if(currentPPOBType === 'data') {
-            (dataPackages[selectedProvider]||[]).forEach(pkg => {
-                c.innerHTML += `<div onclick="confirmTransaction('${pkg.name}', ${pkg.price})" class="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm flex justify-between items-center cursor-pointer hover:border-blue-500 dark:hover:border-blue-500 transition"><div><p class="font-bold text-sm text-gray-800 dark:text-white">${pkg.name}</p><p class="text-xs text-gray-400 mt-1">${pkg.desc}</p></div><div class="text-right"><p class="font-bold text-blue-600 dark:text-blue-400">${formatRp(pkg.price)}</p><span class="text-[10px] text-gray-400">Beli</span></div></div>`;
-            });
-        } else {
-            pulsaOptions.forEach(amt => {
-                c.innerHTML += `<div onclick="confirmTransaction('Pulsa ${selectedProvider} ${formatRp(amt)}', ${amt+1500})" class="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm flex justify-between items-center cursor-pointer hover:border-orange-500 dark:hover:border-orange-500 transition"><div><p class="font-bold text-lg text-gray-800 dark:text-white">${formatRp(amt)}</p><p class="text-[10px] text-gray-400">Harga: ${formatRp(amt+1500)}</p></div><button class="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-4 py-1 rounded-full text-xs font-bold">Beli</button></div>`;
-            });
-        }
-    }
-    function confirmTransaction(itemName, price) {
-        const num = document.getElementById('ppobNumber').value;
-        if(num.length < 4) return alert('Nomor HP tidak valid!');
-        if(price > balance) return alert('Saldo tidak cukup!');
-        customConfirm('Konfirmasi Pembelian', `Beli ${itemName} seharga ${formatRp(price)} untuk nomor ${num}?`, () => {
-             balance -= price;
-             transactions.unshift({title: itemName, date: 'Baru saja', amount: price, type: 'out', icon: currentPPOBType === 'data' ? 'fa-wifi' : 'fa-mobile-alt', colorBg: 'bg-indigo-100 dark:bg-indigo-900/30', colorText: 'text-indigo-600 dark:text-indigo-400'});
-             updateUI(); closePPOB(); nav('homePage');
-        });
-    }
-    function detectProvider() {
-        const v = document.getElementById('ppobNumber').value;
-        let d = null;
-        if(v.startsWith('081')) d='telkomsel'; else if(v.startsWith('085')) d='indosat'; else if(v.startsWith('087')) d='xl'; else if(v.startsWith('088')) d='smartfren';
-        if(d && d!==selectedProvider) selectProvider(d);
-    }
+    // --- PPOB GENERAL ---
+    function openPPOB(t) { currentPPOBType=t; selectedProvider=null; document.getElementById('homePage').classList.add('hide'); document.getElementById('bottomNav').classList.add('hide'); document.getElementById('ppobPage').classList.remove('hide'); document.getElementById('ppobTitle').innerText=t==='pulsa'?'Isi Pulsa':'Paket Data'; document.getElementById('inputSection').classList.add('hide'); document.getElementById('instructionText').classList.remove('hide'); document.getElementById('ppobNumber').value=''; renderProviders(); }
+    function closePPOB() { document.getElementById('ppobPage').classList.add('hide'); nav('homePage'); }
+    function renderProviders() { const c=document.getElementById('providerList'); c.innerHTML=''; providers.forEach(p=>{ c.innerHTML+=`<div onclick="selectProvider('${p.id}')" class="provider-btn ${p.id===selectedProvider?'active ring-2 ring-blue-500':'bg-white dark:bg-gray-800 border-gray-200'} min-w-[80px] p-2 rounded-xl border flex flex-col items-center justify-center cursor-pointer transition-all hover:scale-105"><i class="fas fa-sim-card text-2xl ${p.color} mb-1"></i><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">${p.name}</span></div>` }); }
+    function selectProvider(id) { selectedProvider=id; renderProviders(); document.getElementById('inputSection').classList.remove('hide'); document.getElementById('instructionText').classList.add('hide'); renderProducts(); }
+    function renderProducts() { const c=document.getElementById('productList'); c.innerHTML=''; pulsaOptions.forEach(a=>{ c.innerHTML+=`<div onclick="confirmTransaction('Pulsa ${selectedProvider} ${formatRp(a)}',${a+1500})" class="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm flex justify-between items-center cursor-pointer hover:border-orange-500 transition"><div><p class="font-bold text-lg text-gray-800 dark:text-white">${formatRp(a)}</p><p class="text-[10px] text-gray-400">Harga: ${formatRp(a+1500)}</p></div><button class="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-4 py-1 rounded-full text-xs font-bold">Beli</button></div>` }); }
+    function confirmTransaction(n,p) { if(document.getElementById('ppobNumber').value.length<4) return alert('No HP Salah'); if(balance<p) return alert('Saldo kurang'); customConfirm('Beli',`Beli ${n}?`,()=>{ balance-=p; transactions.unshift({title:n,date:'Baru saja',amount:p,type:'out',icon:'fa-mobile-alt',colorBg:'bg-indigo-100',colorText:'text-indigo-600'}); updateUI(); closePPOB(); nav('homePage'); }); }
+    function detectProvider() { const v=document.getElementById('ppobNumber').value; let d=null; if(v.startsWith('081'))d='telkomsel'; else if(v.startsWith('085'))d='indosat'; else if(v.startsWith('087'))d='xl'; if(d&&d!==selectedProvider) selectProvider(d); }
 
     // --- UI UPDATE ---
     function updateUI() {
@@ -701,16 +659,9 @@
     function stopScan() { stopScanInternal(); nav('homePage'); document.getElementById('bottomNav').classList.remove('hide'); }
     function stopScanInternal() { if(scanner){scanner.clear();scanner=null;} }
     function simulateSuccessScan() { stopScanInternal(); openPaymentPage("Warung Makan Enak"); }
-    function openPaymentPage(name) { document.getElementById('scanPage').classList.add('hide'); document.getElementById('paymentPage').classList.remove('hide'); document.getElementById('merchantName').innerText=name; document.getElementById('qrisAmount').value=''; }
+    function openPaymentPage(n) { document.getElementById('scanPage').classList.add('hide'); document.getElementById('paymentPage').classList.remove('hide'); document.getElementById('merchantName').innerText=n; document.getElementById('qrisAmount').value=''; }
     function cancelPayment() { document.getElementById('paymentPage').classList.add('hide'); nav('homePage'); document.getElementById('bottomNav').classList.remove('hide'); }
-    function processQrisPayment() {
-        const amt = parseInt(document.getElementById('qrisAmount').value);
-        if(!amt || amt>balance) return alert('Saldo tidak cukup/Nominal salah');
-        customConfirm('Bayar QRIS', `Bayar Rp${formatRp(amt)} ke ${document.getElementById('merchantName').innerText}?`, () => {
-            balance-=amt; transactions.unshift({title:document.getElementById('merchantName').innerText,date:'Baru saja',amount:amt,type:'out',icon:'fa-qrcode',colorBg:'bg-blue-100',colorText:'text-blue-600'});
-            cancelPayment(); updateUI();
-        });
-    }
+    function processQrisPayment() { const a=parseInt(document.getElementById('qrisAmount').value); if(!a||a>balance)return alert('Saldo kurang/Nominal salah'); customConfirm('Bayar',`Bayar QRIS ${formatRp(a)}?`,()=>{ balance-=a; transactions.unshift({title:document.getElementById('merchantName').innerText,date:'Baru saja',amount:a,type:'out',icon:'fa-qrcode',colorBg:'bg-blue-100',colorText:'text-blue-600'}); cancelPayment(); updateUI(); }); }
 
     updateUI();
 </script>

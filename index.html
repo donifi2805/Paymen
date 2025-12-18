@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DompetKu - XL Akrab Edition</title>
+    <title>DompetKu - Updated Menu</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -52,7 +52,7 @@
         html.dark .input-group i { color: #6b7280; }
         html.dark .input-group input:focus + i { color: #60a5fa; }
 
-        /* Provider Select List Style (Mirip Screenshot) */
+        /* Provider Select List Style */
         .provider-list-item {
             display: flex; justify-content: space-between; align-items: center;
             padding: 16px; border-bottom: 1px solid #f3f4f6; cursor: pointer;
@@ -113,8 +113,7 @@
             <div class="p-4 border-b border-gray-100 dark:border-gray-800">
                 <h3 class="text-gray-500 dark:text-gray-400 font-medium">-- Pilih Provider --</h3>
             </div>
-            <div id="providerListContainer" class="max-h-[60vh] overflow-y-auto">
-                </div>
+            <div id="providerListContainer" class="max-h-[60vh] overflow-y-auto"></div>
             <div class="p-3 bg-gray-50 dark:bg-gray-800 text-right">
                 <button onclick="document.getElementById('providerSelectorModal').classList.add('hide')" class="text-blue-600 dark:text-blue-400 font-bold text-sm px-4 py-2">TUTUP</button>
             </div>
@@ -285,17 +284,27 @@
                 </div>
                 
                 <div class="text-center group cursor-pointer" onclick="openXLAkrab()">
-                    <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center shadow-sm dark:shadow-gray-800 mb-2 group-hover:border-blue-200 transition-all">
-                        <i class="fas fa-users text-blue-600 text-xl"></i>
-                    </div>
-                    <span class="text-[10px] font-medium text-gray-600 dark:text-gray-400">XL Akrab</span>
+                    <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center shadow-sm dark:shadow-gray-800 mb-2 group-hover:border-blue-200 transition-all"><i class="fas fa-users text-blue-600 text-xl"></i></div><span class="text-[10px] font-medium text-gray-600 dark:text-gray-400">XL Akrab</span>
                 </div>
 
-                <div class="text-center group cursor-pointer" onclick="addDummyTrx('out','PLN',100000,'fa-bolt','text-yellow-500')">
-                    <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center shadow-sm dark:shadow-gray-800 mb-2 group-hover:border-yellow-200"><i class="fas fa-bolt text-yellow-500 text-xl"></i></div><span class="text-[10px] font-medium text-gray-600 dark:text-gray-400">Listrik</span>
+                <div class="text-center group cursor-pointer" onclick="alert('Fitur Paket OTP segera hadir!')">
+                    <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center shadow-sm dark:shadow-gray-800 mb-2 group-hover:border-emerald-200"><i class="fas fa-comment-dots text-emerald-500 text-xl"></i></div><span class="text-[10px] font-medium text-gray-600 dark:text-gray-400">Paket OTP</span>
                 </div>
-                <div class="text-center group cursor-pointer">
-                    <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center shadow-sm dark:shadow-gray-800 mb-2 group-hover:border-purple-200"><i class="fas fa-gamepad text-purple-500 text-xl"></i></div><span class="text-[10px] font-medium text-gray-600 dark:text-gray-400">Games</span>
+
+                <div class="text-center group cursor-pointer" onclick="alert('Fitur Pre-ORDER segera hadir!')">
+                    <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center shadow-sm dark:shadow-gray-800 mb-2 group-hover:border-purple-200"><i class="fas fa-box-open text-purple-600 text-xl"></i></div><span class="text-[10px] font-medium text-gray-600 dark:text-gray-400">Pre-ORDER</span>
+                </div>
+
+                <div class="text-center group cursor-pointer" onclick="alert('Fitur REG Kartu segera hadir!')">
+                    <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center shadow-sm dark:shadow-gray-800 mb-2 group-hover:border-cyan-200"><i class="fas fa-address-card text-cyan-500 text-xl"></i></div><span class="text-[10px] font-medium text-gray-600 dark:text-gray-400">REG Kartu</span>
+                </div>
+
+                <div class="text-center group cursor-pointer" onclick="alert('Fitur Login OTP segera hadir!')">
+                    <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center shadow-sm dark:shadow-gray-800 mb-2 group-hover:border-teal-200"><i class="fas fa-key text-teal-500 text-xl"></i></div><span class="text-[10px] font-medium text-gray-600 dark:text-gray-400">Login OTP</span>
+                </div>
+
+                <div class="text-center group cursor-pointer" onclick="nav('historyPage')">
+                    <div class="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center shadow-sm dark:shadow-gray-800 mb-2 group-hover:border-indigo-200"><i class="fas fa-file-invoice-dollar text-indigo-500 text-xl"></i></div><span class="text-[10px] font-medium text-gray-600 dark:text-gray-400">Mutasi</span>
                 </div>
             </div>
         </div>
@@ -315,7 +324,6 @@
             <h2 class="font-bold text-lg text-gray-800 dark:text-white">Transaksi XL Akrab</h2>
         </div>
         <div class="p-6 pb-24">
-            
             <div class="mb-4">
                 <label class="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-2">Provider</label>
                 <div class="relative cursor-pointer" onclick="openProviderSelector()">
@@ -323,17 +331,13 @@
                     <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
                 </div>
             </div>
-
             <div class="mb-4">
                 <label class="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-2">Produk</label>
                 <div class="relative">
-                    <select id="xlProductInput" class="w-full h-12 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-100 text-sm font-medium pl-4 appearance-none">
-                        <option value="">-- Pilih Provider Terlebih Dahulu --</option>
-                    </select>
+                    <select id="xlProductInput" class="w-full h-12 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-100 text-sm font-medium pl-4 appearance-none"><option value="">-- Pilih Provider Terlebih Dahulu --</option></select>
                     <i class="fas fa-box absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
                 </div>
             </div>
-
             <div class="mb-6">
                 <label class="block text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-2">Nomor Tujuan</label>
                 <div class="relative">
@@ -341,7 +345,6 @@
                     <i class="fas fa-phone absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
                 </div>
             </div>
-
             <button onclick="processXLPurchase()" class="w-full bg-blue-600 text-white h-12 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition">LANJUTKAN</button>
         </div>
     </section>

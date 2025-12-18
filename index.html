@@ -491,11 +491,23 @@
         });
 
         // Event Ganti Produk
+                // Event Ganti Produk (Updated untuk PLN)
         productSelect.onchange = function() {
              const selectedOpt = this.options[this.selectedIndex];
              priceDisplay.innerText = `Harga: Rp ${formatRp(selectedOpt.dataset.price)}`;
+             
+             // Ubah Tampilan Tombol jika PLN
+             const btn = document.querySelector('button[onclick="processFormTransaction()"]');
+             if(this.value === 'CEKPLN') {
+                 btn.innerHTML = '<span>Cek Tagihan</span> <i class="fas fa-search"></i>';
+                 btn.className = 'w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-orange-500/30 active:scale-95 transition-transform flex justify-center items-center gap-2';
+             } else {
+                 btn.innerHTML = '<span>Beli Paket</span> <i class="fas fa-arrow-right"></i>';
+                 btn.className = 'w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/30 active:scale-95 transition-transform flex justify-center items-center gap-2';
+             }
         };
     }
+        // 3. Proses Transaksi (Support Cek PLN)
     function processFormTransaction() {
         const productSelect = document.getElementById('formProduct');
         const destNum = document.getElementById('ppobNumber').value;
@@ -504,7 +516,54 @@
         if(destNum.length < 5) return alert('Masukkan Nomor Tujuan yang valid!');
 
         const selectedOpt = productSelect.options[productSelect.selectedIndex];
-        confirmTransaction(productSelect.value, selectedOpt.dataset.name, parseInt(selectedOpt.dataset.price));
+        const code = productSelect.value;
+        const name = selectedOpt.dataset.name;
+        const price = parseInt(selectedOpt.dataset.price);
+
+        // LOGIKA KHUSUS CEK PLN
+        if (code === 'CEKPLN') {
+            checkPLN(destNum);
+            return;
+        }
+
+        confirmTransaction(code, name, price);
+    }
+
+    // Fungsi Cek Tagihan PLN
+    async function checkPLN(num) {
+        showLoader(true);
+        const reffId = crypto.randomUUID();
+        
+        // Hit API Khfy (Cek Tagihan)
+        const result = await callApi('/trx', {
+            produk: 'CEKPLN',
+            tujuan: num,
+            reff_id: reffId
+        });
+
+        showLoader(false);
+
+        if (result.ok && result.data) {
+            // Normalisasi Response
+            const data = result.data.data || result.data;
+            const msg = (data.message || data.sn || '').toLowerCase();
+            const status = data.status;
+            
+            // Logika Deteksi Valid/Invalid
+            const isSuccess = (status === true || status === 'success' || String(data.success) === 'true');
+            const isDataFound = msg.includes('tagihan') || msg.includes('lembar') || msg.includes('nama') || msg.includes('tarif');
+
+            if (isSuccess || isDataFound) {
+                // Format Pesan Agar Rapi
+                let displayMsg = (data.message || data.sn).replace(/\//g, '\n'); // Ganti garis miring dengan baris baru
+                customConfirm('TAGIHAN DITEMUKAN', `Detail Pelanggan:\n------------------\n${displayMsg}\n\n(Saldo aman, ini hanya pengecekan)`, () => {});
+            } else {
+                // Kasus Nomor Salah / Tidak Terdaftar
+                alert('PENGGUNA TIDAK TERDAFTAR\n\nSilakan periksa kembali Nomor ID Pelanggan PLN anda.');
+            }
+        } else {
+            alert('Gagal Terhubung ke Server:\n' + result.error);
+        }
     }
 
     // --- TRANSAKSI ---

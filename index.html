@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DompetKu - Final Features</title>
+    <title>Pandawa Store</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = { darkMode: 'class' }
@@ -221,13 +221,29 @@
             
             
             <div id="qiosStep1">
-                <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-1">Top Up Otomatis</h3>
-                <p class="text-xs text-gray-500 mb-4">Metode QRIS (Cek Otomatis)</p>
+                <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-1">Top Up Saldo</h3>
+                <p class="text-xs text-gray-500 mb-4">Pilih nominal instan atau manual</p>
+                
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <button onclick="setTopUpAmount(50000)" class="py-3 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold border border-blue-100 dark:border-blue-800 hover:bg-blue-100 transition shadow-sm">50.000</button>
+                    <button onclick="setTopUpAmount(100000)" class="py-3 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold border border-blue-100 dark:border-blue-800 hover:bg-blue-100 transition shadow-sm">100.000</button>
+                </div>
+
                 <div class="input-group mb-4">
-                    <input type="number" id="qiosInputAmount" placeholder="Minimal 1.000" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 pl-11 dark:text-white text-lg font-bold">
+                    <input type="number" id="qiosInputAmount" placeholder="Nominal Lain (Min 1.000)" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 pl-11 dark:text-white text-lg font-bold">
                     <i class="fas fa-money-bill-wave"></i>
                 </div>
-                <button onclick="generateQiosTicket()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg">LANJUTKAN</button>
+                <button onclick="generateQiosTicket()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg mb-4">LANJUTKAN PEMBAYARAN</button>
+                
+                <div class="pt-3 border-t border-gray-100 dark:border-gray-800">
+                     <div class="flex justify-between items-center mb-2">
+                        <p class="text-[10px] font-bold text-gray-500">Riwayat Top Up Terakhir</p>
+                        <span class="text-[9px] text-blue-500 cursor-pointer" onclick="nav('historyPage')">Lihat Semua</span>
+                     </div>
+                     <div id="qiosMiniHistory" class="space-y-2 max-h-32 overflow-y-auto no-scrollbar">
+                        <p class="text-[10px] text-center text-gray-400 py-2">Memuat riwayat...</p>
+                     </div>
+                </div>
             </div>
 
             
@@ -283,8 +299,8 @@
         <div class="relative z-10 px-8 pt-20 w-full">
             <div class="text-center mb-6 text-white">
                 <div class="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg border border-white/30"><i class="fas fa-wallet text-4xl text-white"></i></div>
-                <h1 class="text-3xl font-bold tracking-tight">DompetKu</h1>
-                <p class="text-blue-100 text-sm mt-1">Firebase Edition</p>
+                <h1 class="text-3xl font-bold tracking-tight">Pandawa Store</h1>
+                <p class="text-blue-100 text-sm mt-1">PPOB Terpercaya</p>
             </div>
             
             <div class="bg-white dark:bg-gray-900 p-8 rounded-3xl shadow-xl shadow-blue-900/10 dark:shadow-black/30 transition-all duration-300">
@@ -1206,6 +1222,7 @@ window.nav = (pageId) => {
             }
             document.getElementById('miniHistory').innerHTML = miniHtml;
         }
+        if(window.renderTopUpHistory) window.renderTopUpHistory();
     }
 
     // PPOB Logic (Tetap ada)
@@ -1520,6 +1537,43 @@ window.executeApiTransaction = async (code, dest, price, name) => {
         return false;
     };
 
+    window.setTopUpAmount = (amount) => { document.getElementById('qiosInputAmount').value = amount; };
+
+    window.renderTopUpHistory = () => {
+        const container = document.getElementById('qiosMiniHistory');
+        if(!container) return;
+        
+        // Filter Transaksi (Top Up / Masuk)
+        const topups = transactions.filter(t => t.type === 'in' && (t.title.toLowerCase().includes('top') || (t.method && t.method.includes('Qios')))).slice(0, 5);
+        
+        if(topups.length === 0) {
+            container.innerHTML = '<p class="text-[10px] text-center text-gray-400 py-2">Belum ada riwayat Top Up</p>';
+            return;
+        }
+
+        let html = '';
+        topups.forEach(t => {
+            let statusColor = 'text-gray-500';
+            if(t.status === 'Sukses') statusColor = 'text-green-500';
+            else if(t.status === 'Gagal' || t.status.includes('Batal')) statusColor = 'text-red-500';
+            else statusColor = 'text-orange-500';
+
+            html += `<div class="flex justify-between items-center bg-gray-50 dark:bg-gray-800 p-2 rounded-lg border border-gray-100 dark:border-gray-700">
+                <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px]"><i class="fas fa-arrow-down"></i></div>
+                    <div><p class="text-[10px] font-bold text-gray-800 dark:text-white">Rp ${window.formatRp(t.amount)}</p><p class="text-[9px] text-gray-400">${t.date.split('T')[0]}</p></div>
+                </div>
+                <span class="text-[9px] font-bold ${statusColor}">${t.status}</span>
+            </div>`;
+        });
+        container.innerHTML = html;
+    };
+
+    window.openTopUpSheet = () => {
+        // BYPASS SHEET, LANGSUNG KE MODAL QIOS (SESUAI REQUEST)
+        window.openQios();
+    };
+
     window.updateTopUpBadge = () => {
         const hasPending = window.checkPendingTopUp();
         const b1 = document.getElementById('badge-topup-home');
@@ -1619,6 +1673,7 @@ window.executeApiTransaction = async (code, dest, price, name) => {
     window.openQios = () => {
         document.getElementById('topUpSheet').classList.add('hide');
         document.getElementById('qiosModal').classList.remove('hide');
+        window.renderTopUpHistory(); // Render History saat dibuka
         
         // 1. Cek Storage (Persistensi)
         const savedData = localStorage.getItem('qios_trx_' + currentUser.uid);

@@ -462,7 +462,8 @@
         EmailAuthProvider,
                 reauthenticateWithCredential,
         GoogleAuthProvider,
-        signInWithPopup
+        signInWithPopup,
+        signInWithRedirect
     } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, onSnapshot, query, orderBy, where, getDocs, runTransaction, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -825,7 +826,9 @@ window.nav = (pageId) => {
             window.loginWithGoogle = async () => {
         const provider = new GoogleAuthProvider();
         try {
-            await signInWithPopup(auth, provider);
+                        // MODIFIKASI: Redirect Mode untuk HP
+            alert("Memproses Login Google... Mohon tunggu.");
+            await signInWithRedirect(auth, provider);
             // onAuthStateChanged akan menangani routing selanjutnya
         } catch (error) {
             alert("Gagal Login Google: " + error.message);
@@ -864,7 +867,9 @@ window.nav = (pageId) => {
         window.loginWithGoogle = async () => {
         const provider = new GoogleAuthProvider();
         try {
-            await signInWithPopup(auth, provider);
+                        // MODIFIKASI: Redirect Mode untuk HP
+            alert("Memproses Login Google... Mohon tunggu.");
+            await signInWithRedirect(auth, provider);
         } catch (error) {
             alert("Gagal Login Google: " + error.message);
         }

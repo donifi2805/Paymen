@@ -461,7 +461,7 @@
         onAuthStateChanged,
         EmailAuthProvider,
                         reauthenticateWithCredential,
-        GoogleAuthProvider,
+                GoogleAuthProvider,
         signInWithPopup,
         signInWithRedirect,
         getRedirectResult
@@ -481,7 +481,21 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    auth.languageCode = 'id';
+        auth.languageCode = 'id';
+
+    // FIX: Tangkap hasil login Google setelah Redirect
+    getRedirectResult(auth)
+        .then((result) => {
+            if (result) {
+                console.log("Login Google Berhasil:", result.user.uid);
+                // Tidak perlu nav() disini, onAuthStateChanged akan menanganinya otomatis
+            }
+        })
+        .catch((error) => {
+            console.error(error);
+            alert("Gagal Masuk: " + error.message);
+            window.showLoader(false);
+        });
 
     // VARIABLES
     let currentUser = null;

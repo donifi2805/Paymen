@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - DompetKu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <style>
+        /* TWEAK 30% LEBIH KECIL & PADAT */
+        html { font-size: 13px; /* Mengecilkan base font agar semua satuan rem mengecil */ }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f3f4f6; letter-spacing: -0.01em; }
+        
+        /* Sidebar lebih ramping */
+        .sidebar { width: 14rem; } 
+        
+        .hide { display: none !important; }
+        .active-nav { background-color: #1e40af; border-right: 3px solid #60a5fa; }
+        .fade-in { animation: fadeIn 0.2s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .custom-scroll::-webkit-scrollbar { height: 5px; width: 5px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        
+        /* Card Hover Effect */
+        .dashboard-card { transition: all 0.2s ease; cursor: pointer; }
+        .dashboard-card:hover { transform: translateY(-3px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .dashboard-card:active { transform: scale(0.98); }
+    </style>
+</head>
+<body class="flex text-xs bg-gray-100 h-screen overflow-hidden">
+
+    <div id="loginOverlay" class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center fade-in">
+        <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-xs text-center relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1.5 bg-blue-600"></div>
+            <div class="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-sm border border-blue-100">
+                <i class="fas fa-user-shield"></i>
+            </div>
+            <h2 class="text-xl font-bold mb-1 text-gray-800">Admin Panel</h2>
+            <p class="text-gray-400 text-[10px] mb-4">Login Administrator</p>
+            
+            <form onsubmit="event.preventDefault(); handleLogin();" class="space-y-3">
+                <div class="relative">
+                    <input type="email" id="adminEmail" placeholder="Email Admin" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500 pl-9 transition text-xs">
+                    <i class="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                </div>
+                <div class="relative">
+                    <input type="password" id="adminPass" placeholder="Password" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500 pl-9 transition text-xs">
+                    <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg shadow transition transform active:scale-95 text-xs">MASUK</button>
+            </form>
+            <p class="mt-4 text-[9px] text-gray-400">Server v5.0 Compact</p>
+        </div>
+    </div>
+
+    <aside class="sidebar bg-slate-900 text-white fixed h-full z-10 transition-all duration-300 hidden md:block flex flex-col" id="sidebar">
+        <div class="p-4 border-b border-slate-800">
+            <h1 class="text-lg font-bold text-white tracking-tight"><span class="text-blue-500">Dompet</span>Ku</h1>
+            <p class="text-[9px] text-slate-400 uppercase tracking-widest opacity-70">Admin Panel</p>
+        </div>
+        <nav class="mt-2 flex-1 overflow-y-auto custom-scroll">
+            <a onclick="switchTab('dashboard')" id="nav-dashboard" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer active-nav transition group">
+                <i class="fas fa-chart-pie w-4 mr-3 group-hover:scale-110 transition"></i> Dashboard
+            </a>
+            <a onclick="switchTab('users')" id="nav-users" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
+                <i class="fas fa-users w-4 mr-3 group-hover:scale-110 transition"></i> Data User
+            </a>
+            <a onclick="switchTab('transactions')" id="nav-transactions" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
+                <i class="fas fa-receipt w-4 mr-3 group-hover:scale-110 transition"></i> Transaksi
+            </a>
+            <a onclick="switchTab('pricing')" id="nav-pricing" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
+                <i class="fas fa-tags w-4 mr-3 group-hover:scale-110 transition"></i> Kelola Harga
+            </a>
+        </nav>
+        <div class="p-4 border-t border-slate-800">
+             <a onclick="logout()" class="flex items-center text-red-400 hover:text-red-300 cursor-pointer transition text-[11px] font-bold">
+                <i class="fas fa-sign-out-alt w-4 mr-2"></i> Keluar
+            </a>
+        </div>
+    </aside>
+
+    <main class="md:ml-[14rem] w-full p-4 md:p-6 transition-all duration-300 h-screen overflow-y-auto custom-scroll bg-gray-100">
+        
+        <div class="md:hidden flex justify-between items-center mb-4 bg-white p-3 rounded-lg shadow-sm">
+            <h1 class="text-sm font-bold text-gray-800">Admin Panel</h1>
+            <button onclick="logout()" class="text-red-500 font-bold text-[10px]">Keluar</button>
+        </div>
+
+        <div id="tab-dashboard" class="tab-content fade-in pb-10">
+            <div class="flex justify-between items-center mb-5">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800 leading-tight">Dashboard</h2>
+                    <p class="text-gray-500 text-[11px]">Ringkasan sistem & monitoring.</p>
+                </div>
+                <button onclick="loadDashboardData()" class="bg-white text-gray-600 px-3 py-1.5 rounded border hover:bg-gray-50 text-[10px] font-bold transition shadow-sm flex items-center gap-2"><i class="fas fa-sync-alt"></i> Refresh</button>
+            </div>
+
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+                
+                <div onclick="switchTab('users')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-blue-200">
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Total User</p>
+                        <h3 class="text-2xl font-black text-gray-800" id="statUserCount">...</h3>
+                        <p class="text-[9px] text-blue-500 font-bold mt-1">Kelola <i class="fas fa-arrow-right ml-0.5"></i></p>
+                    </div>
+                    <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-users"></i></div>
+                </div>
+                
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Saldo Beredar</p>
+                        <h3 class="text-2xl font-black text-gray-800" id="statTotalBalance">Rp ...</h3>
+                        <p class="text-[9px] text-green-500 font-bold mt-1">Akumulasi</p>
+                    </div>
+                    <div class="w-10 h-10 bg-green-50 text-green-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-wallet"></i></div>
+                </div>
+
+                <div onclick="switchTab('transactions')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-purple-200">
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Transaksi</p>
+                        <h3 class="text-2xl font-black text-gray-800" id="statTrxCount">...</h3>
+                        <p class="text-[9px] text-purple-500 font-bold mt-1">Lihat <i class="fas fa-arrow-right ml-0.5"></i></p>
+                    </div>
+                    <div class="w-10 h-10 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-chart-line"></i></div>
+                </div>
+                <div onclick="switchTab('pricing')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-orange-200">
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Profit / Harga</p>
+                        <h3 class="text-xl font-black text-gray-800">Setting</h3>
+                        <p class="text-[9px] text-orange-500 font-bold mt-1">Kelola <i class="fas fa-arrow-right ml-0.5"></i></p>
+                    </div>
+                    <div class="w-10 h-10 bg-orange-50 text-orange-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-tags"></i></div>
+                </div>
+
+            </div>
+            
+            <div class="bg-white border border-yellow-100 rounded-lg p-3 flex items-start gap-2 shadow-sm">
+                <i class="fas fa-check-circle text-green-500 mt-0.5"></i>
+                <div>
+                    <h4 class="font-bold text-gray-800 text-[11px]">Sistem Terhubung</h4>
+                    <p class="text-[10px] text-gray-500">Database <span class="font-mono bg-gray-100 px-1 rounded text-gray-700">server-ppob-xl</span> aktif dengan Index.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-users" class="tab-content hide fade-in pb-10">
+            <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100 sticky top-0 z-20">
+                <div class="flex items-center gap-3">
+                    <button onclick="switchTab('dashboard')" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition" title="Kembali ke Dashboard">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-800 leading-none">Data Pengguna</h2>
+                        <p class="text-[10px] text-gray-500">Kelola akun user</p>
+                    </div>
+                </div>
+                <button onclick="openAddUserModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-bold text-[10px] shadow transition flex items-center gap-1.5"><i class="fas fa-plus"></i> Manual</button>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="overflow-x-auto custom-scroll">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-500 text-[9px] uppercase tracking-wider border-b border-gray-100">
+                                <th class="p-3 font-bold">Profile</th>
+                                <th class="p-3 font-bold">Detail Akun</th>
+                                <th class="p-3 font-bold">Saldo</th>
+                                <th class="p-3 font-bold text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userTableBody" class="text-[11px] divide-y divide-gray-50">
+                            <tr><td colspan="4" class="p-6 text-center text-gray-400 animate-pulse">Memuat...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-transactions" class="tab-content hide fade-in pb-10">
+            <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-4 gap-3 bg-white p-3 rounded-xl shadow-sm border border-gray-100 sticky top-0 z-20">
+                <div class="flex items-center gap-3">
+                    <button onclick="switchTab('dashboard')" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition" title="Kembali ke Dashboard">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-800 leading-none">Riwayat</h2>
+                        <p class="text-[10px] text-gray-500">Global Transaksi</p>
+                    </div>
+                </div>
+                <div class="flex bg-gray-50 rounded-lg p-0.5 border border-gray-200">
+                    <button onclick="filterTrx('today')" class="px-3 py-1 text-[10px] font-bold rounded-md bg-white text-blue-600 shadow-sm transition" id="btn-today">Hari Ini</button>
+                    <button onclick="filterTrx('week')" class="px-3 py-1 text-[10px] font-bold rounded-md text-gray-500 hover:bg-gray-200 transition" id="btn-week">7 Hari</button>
+                    <button onclick="filterTrx('all')" class="px-3 py-1 text-[10px] font-bold rounded-md text-gray-500 hover:bg-gray-200 transition" id="btn-all">Semua</button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="overflow-x-auto custom-scroll">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-500 text-[9px] uppercase tracking-wider border-b border-gray-100">
+                                <th class="p-3 font-bold">Waktu</th>
+                                <th class="p-3 font-bold">User</th>
+                                <th class="p-3 font-bold">Ket</th>
+                                <th class="p-3 font-bold text-right">Nominal</th>
+                                <th class="p-3 font-bold text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trxTableBody" class="text-[11px] divide-y divide-gray-50">
+                             <tr><td colspan="5" class="p-6 text-center text-gray-400">Menunggu data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+            <div id="tab-pricing" class="tab-content hide fade-in pb-10">
+            <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100 sticky top-0 z-20">
+                <div class="flex items-center gap-3">
+                    <button onclick="switchTab('dashboard')" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition"><i class="fas fa-arrow-left"></i></button>
+                    <div><h2 class="text-lg font-bold text-gray-800 leading-none">Kelola Harga</h2><p class="text-[10px] text-gray-500">Atur keuntungan per produk (Markup/Markdown)</p></div>
+                </div>
+                <button onclick="saveAllPrices()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-[11px] shadow transition flex items-center gap-2"><i class="fas fa-save"></i> Simpan Perubahan</button>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4">
+                <label class="text-[10px] font-bold text-gray-500 block mb-1">Filter Kategori / Provider</label>
+                <select id="pricingProvider" onchange="loadPricingData()" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs font-bold focus:ring-1 focus:ring-blue-500 outline-none">
+                    <option value="XDA">Akrab Fresh (XDA)</option>
+                    <option value="XLA">Akrab Fresh (XLA)</option>
+                    <option value="FMX">FlexMax (FMX)</option>
+                    <option value="PLN">PLN Pascabayar</option>
+                </select>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="overflow-x-auto custom-scroll">
+                    <table class="w-full text-left">
+                        <thead><tr class="bg-gray-50 text-gray-500 text-[9px] uppercase tracking-wider border-b border-gray-100"><th class="p-3">Nama Produk</th><th class="p-3 text-right">Harga Pusat</th><th class="p-3 text-center">Markup (Rp)</th><th class="p-3 text-right">Harga Jual</th></tr></thead>
+                        <tbody id="pricingTableBody" class="text-[11px] divide-y divide-gray-50"><tr><td colspan="4" class="p-6 text-center text-gray-400">Silakan pilih provider...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+</main>
+
+    <div id="editUserModal" class="hide fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 fade-in">
+        <div class="bg-white rounded-xl w-full max-w-xs shadow-2xl overflow-hidden transform transition-all scale-100">
+            <div class="bg-gray-50 px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+                <h3 class="text-sm font-bold text-gray-800">Edit User</h3>
+                <button onclick="document.getElementById('editUserModal').classList.add('hide')" class="text-gray-400 hover:text-red-500"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="p-4">
+                <input type="hidden" id="editUid">
+                <input type="hidden" id="editEmailHidden">
+                
+                <div class="mb-2">
+                    <label class="text-[10px] font-bold text-gray-500 block mb-1">Username</label>
+                    <input type="text" id="editUsername" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs">
+                </div>
+                <div class="mb-3">
+                    <label class="text-[10px] font-bold text-gray-500 block mb-1">Saldo (Rp)</label>
+                    <div class="relative">
+                        <input type="number" id="editBalance" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold text-blue-600 text-sm">
+                    </div>
+                </div>
+
+                <div class="bg-yellow-50 border border-yellow-100 rounded-lg p-2.5 mb-3">
+                     <p class="text-[9px] text-yellow-700 leading-tight mb-2">Admin tidak bisa lihat password user.</p>
+                     <button onclick="triggerResetFromModal()" class="w-full py-1.5 rounded bg-white text-yellow-700 text-[10px] font-bold hover:bg-yellow-100 transition border border-yellow-200 shadow-sm">
+                        <i class="fas fa-key mr-1"></i> Kirim Reset Password
+                    </button>
+                </div>
+
+                <div class="flex gap-2 mt-4 pt-3 border-t border-gray-100">
+                    <button onclick="deleteUserFromModal()" class="flex-1 py-2 rounded-lg bg-red-50 text-red-600 text-[10px] font-bold hover:bg-red-100 transition">Hapus</button>
+                    <button onclick="saveUserChanges()" class="flex-[2] py-2 rounded-lg bg-blue-600 text-white text-[10px] font-bold shadow hover:bg-blue-700 transition">Simpan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="addUserModal" class="hide fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 fade-in">
+        <div class="bg-white p-4 rounded-xl w-full max-w-xs shadow-2xl">
+            <div class="text-center mb-3">
+                <h3 class="text-sm font-bold text-gray-800">Tambah User Manual</h3>
+            </div>
+            
+            <div class="bg-blue-50 border border-blue-100 p-2 rounded-lg mb-3">
+                <p class="text-[9px] text-blue-700 leading-snug">
+                    <b>Note:</b> Ini hanya membuat Data Profil. User harus register sendiri di aplikasi agar bisa login.
+                </p>
+            </div>
+            
+            <div class="space-y-2 mb-4">
+                <input type="email" id="addEmail" placeholder="Email" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none">
+                <input type="text" id="addUsername" placeholder="Username" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none">
+                <input type="number" id="addBalance" placeholder="Saldo Awal" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none">
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="document.getElementById('addUserModal').classList.add('hide')" class="flex-1 py-2 rounded-lg bg-gray-100 text-gray-600 text-[10px] font-bold hover:bg-gray-200 transition">Batal</button>
+                <button onclick="createNewUserDoc()" class="flex-1 py-2 rounded-lg bg-blue-600 text-white text-[10px] font-bold shadow hover:bg-blue-700 transition">Buat Data</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore,
+ getDoc, collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy, collectionGroup, setDoc, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC7vP4QUhxPM3wG_jsnA2Z8dsTYd2IJ1KA",
+            authDomain: "server-ppob-xl.firebaseapp.com",
+            projectId: "server-ppob-xl",
+            storageBucket: "server-ppob-xl.firebasestorage.app",
+            messagingSenderId: "197244150476",
+            appId: "1:197244150476:web:23b3448b65ea5dc66c5869"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
+        const PROXY_LIST = [ { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' }, { name: 'CorsProxy', url: 'https://corsproxy.io/?' }, { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' } ];
+        let globalProducts = [];
+        let pricingRules = {};
+
+        async function callApi(endpoint, params = {}) {
+            params['api_key'] = CONFIG.apiKey;
+            const targetUrl = `${CONFIG.baseUrl}${endpoint}?${new URLSearchParams(params).toString()}`;
+            for (const proxy of PROXY_LIST) {
+                try {
+                    const res = await fetch(proxy.url + encodeURIComponent(targetUrl));
+                    if (res.ok) return { ok: true, data: JSON.parse(await res.text()) };
+                } catch (e) { console.log('Proxy fail', e); }
+            }
+            return { ok: false, error: 'Koneksi Gagal' };
+        }
+
+        window.loadPricingData = async () => {
+            const table = document.getElementById('pricingTableBody');
+            const provider = document.getElementById('pricingProvider').value;
+            table.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Mengambil data pusat...</td></tr>';
+            
+            try {
+                // 1. Ambil Rules dari Firebase
+                const docSnap = await getDoc(doc(db, "settings", "pricing"));
+                if (docSnap.exists()) pricingRules = docSnap.data().rules || {};
+                else pricingRules = {};
+
+                // 2. Ambil Produk API jika kosong
+                if(globalProducts.length === 0) {
+                    const res = await callApi('/list_product');
+                    if(res.ok) globalProducts = res.data.data || res.data;
+                }
+
+                                // 3. Filter Data (Fix Mapping JSON)
+                const filtered = globalProducts.filter(p => {
+                    // Mapping: Cek kode_produk dulu, baru fallback ke code/sku
+                    const code = (p.kode_produk || p.code || p.buyer_sku_code || '').toUpperCase();
+                    const brand = (p.kode_provider || p.brand || p.operator || '').toUpperCase();
+                    
+                    if(provider === 'XDA') return code.includes('XDA');
+                    if(provider === 'XLA') return (code.includes('XLA') && !code.includes('XDA'));
+                    if(provider === 'FMX') return code.includes('FMX');
+                    return brand.includes(provider) || code.includes(provider);
+                }).sort((a,b) => (a.harga_final||a.price||a.buyer_price) - (b.harga_final||b.price||b.buyer_price));
+
+                let html = '';
+                filtered.forEach(p => {
+                    // Mapping: Cek nama field API khfy-store
+                    const code = p.kode_produk || p.code || p.buyer_sku_code;
+                    const name = p.nama_produk || p.product_name || p.name;
+                    const rawPrice = p.harga_final || p.price || p.buyer_price || 0;
+                    
+                    const markup = pricingRules[code] || 0;
+                    const sellPrice = rawPrice + parseInt(markup);
+                    
+                    html += `<tr class="hover:bg-blue-50/20 transition">
+                        <td class="p-3">
+                            <div class="font-bold text-gray-700">${name}</div>
+                            <div class="text-[9px] text-gray-400 font-mono">${code}</div>
+                        </td>
+                        <td class="p-3 text-right text-gray-500">${window.formatRp(rawPrice)}</td>
+                        <td class="p-3 text-center">
+                            <input type="number" onchange="updateCalc('${code}', ${rawPrice}, this)" data-code="${code}" value="${markup}" class="markup-input w-24 px-2 py-1.5 text-center border border-gray-300 rounded-lg text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white shadow-sm" placeholder="0">
+                        </td>
+                        <td class="p-3 text-right font-black text-blue-600" id="final-${code}">${window.formatRp(sellPrice)}</td>
+                    </tr>`;
+                });
+                table.innerHTML = html || '<tr><td colspan="4" class="text-center p-6 text-gray-400">Tidak ada produk ditemukan untuk kategori ini.</td></tr>';
+
+            } catch(e) { table.innerHTML = `<tr><td colspan="4" class="text-center text-red-500 p-6">Error: ${e.message}</td></tr>`; }
+        };
+
+        window.updateCalc = (code, base, input) => {
+            const markup = parseInt(input.value) || 0;
+            document.getElementById(`final-${code}`).innerText = window.formatRp(base + markup);
+        };
+
+        window.saveAllPrices = async () => {
+            const inputs = document.querySelectorAll('.markup-input');
+            const newRules = { ...pricingRules };
+            inputs.forEach(inp => {
+                const val = parseInt(inp.value);
+                if(val !== 0) newRules[inp.dataset.code] = val;
+                else delete newRules[inp.dataset.code];
+            });
+            
+            const btn = document.querySelector('button[onclick="saveAllPrices()"]');
+            const oldHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            try {
+                await setDoc(doc(db, "settings", "pricing"), { rules: newRules }, { merge: true });
+                pricingRules = newRules;
+                Swal.fire({icon: 'success', title: 'Berhasil Disimpan', text: 'Harga di aplikasi pengguna akan otomatis berubah.', toast: true, position: 'top', timer: 2500, showConfirmButton: false});
+            } catch(e) { Swal.fire('Gagal', e.message, 'error'); }
+            btn.innerHTML = oldHtml;
+        };
+
+
+        let allTransactions = [];
+        let allUsers = [];
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('loginOverlay').classList.add('hide');
+                loadDashboardData(); 
+            } else {
+                document.getElementById('loginOverlay').classList.remove('hide');
+            }
+        });
+
+        window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+
+        window.handleLogin = async () => {
+            const email = document.getElementById('adminEmail').value;
+            const pass = document.getElementById('adminPass').value;
+            const btn = document.querySelector('#loginOverlay button');
+            const originalText = btn.innerText;
+            btn.innerText = "...";
+            btn.disabled = true;
+
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+            } catch (error) {
+                Swal.fire({ title: 'Gagal', text: error.message, icon: 'error', toast: true, position: 'top', timer: 3000, showConfirmButton: false });
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        };
+
+        window.logout = async () => {
+            if(confirm('Keluar dari Admin Panel?')) {
+                await signOut(auth);
+                location.reload();
+            }
+        };
+
+        window.switchTab = (tabId) => {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hide'));
+            document.getElementById('tab-' + tabId).classList.remove('hide');
+            
+            document.querySelectorAll('nav a').forEach(el => {
+                el.classList.remove('active-nav', 'text-white');
+                el.classList.add('text-gray-400');
+            });
+                        if(tabId === 'pricing') loadPricingData();
+const activeLink = document.getElementById('nav-' + tabId);
+            if(activeLink) {
+                activeLink.classList.add('active-nav', 'text-white');
+                activeLink.classList.remove('text-gray-400');
+            }
+        };
+
+        window.loadDashboardData = async () => {
+            try {
+                const usersRef = collection(db, "users");
+                const usersSnapshot = await getDocs(usersRef);
+                
+                let totalUsers = 0;
+                let totalBalance = 0;
+                let html = '';
+                allUsers = [];
+
+                if (usersSnapshot.empty) {
+                    html = '<tr><td colspan="4" class="p-4 text-center text-gray-400">Belum ada user.</td></tr>';
+                }
+
+                usersSnapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    const uid = docSnap.id;
+                    totalUsers++;
+                    totalBalance += (data.balance || 0);
+                    allUsers.push({ id: uid, ...data });
+
+                    const avatarUrl = data.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${uid}`;
+
+                    html += `
+                    <tr class="hover:bg-blue-50/30 transition group border-b border-gray-50 last:border-0">
+                        <td class="p-3 align-middle">
+                            <img src="${avatarUrl}" class="w-8 h-8 rounded-full bg-gray-100 object-cover border border-gray-200">
+                        </td>
+                        <td class="p-3">
+                            <div class="font-bold text-gray-800 text-[11px]">${data.username || 'Tanpa Nama'}</div>
+                            <div class="text-[10px] text-gray-500">${data.email || '-'}</div>
+                            <div class="text-[9px] text-gray-300 font-mono mt-0.5 cursor-pointer hover:text-blue-500" onclick="navigator.clipboard.writeText('${uid}')">${uid.substring(0,8)}...</div>
+                        </td>
+                        <td class="p-3 align-middle font-bold text-blue-600 text-[11px]">${window.formatRp(data.balance || 0)}</td>
+                        <td class="p-3 text-center align-middle">
+                            <button onclick="openEditUser('${uid}')" class="px-2 py-1 rounded bg-white text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition text-[10px] font-bold border border-gray-200 shadow-sm">
+                                Edit
+                            </button>
+                        </td>
+                    </tr>`;
+                });
+
+                document.getElementById('userTableBody').innerHTML = html;
+                document.getElementById('statUserCount').innerText = totalUsers;
+                document.getElementById('statTotalBalance').innerText = window.formatRp(totalBalance);
+
+                await loadGlobalTransactions();
+
+            } catch (error) {
+                console.error("LOAD ERROR:", error);
+                Swal.fire({icon: 'error', title: 'Error Load Data', text: error.message, toast: true, position: 'top-end'});
+            }
+        };
+
+        async function loadGlobalTransactions() {
+            try {
+                const historyQuery = query(collectionGroup(db, 'history'), orderBy('date', 'desc'));
+                const querySnapshot = await getDocs(historyQuery);
+                
+                allTransactions = [];
+                querySnapshot.forEach((doc) => {
+                    let ownerUid = 'Unknown';
+                    if (doc.ref.parent && doc.ref.parent.parent) {
+                        ownerUid = doc.ref.parent.parent.id;
+                    }
+                    allTransactions.push({ uid: ownerUid, ...doc.data() });
+                });
+
+                document.getElementById('statTrxCount').innerText = allTransactions.length;
+                renderTransactions(allTransactions); 
+
+            } catch(e) {
+                if(e.code === 'failed-precondition') {
+                    document.getElementById('trxTableBody').innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500 font-bold text-[10px] bg-red-50">Index Error: Perlu Index Firestore.</td></tr>`;
+                }
+            }
+        }
+
+        window.filterTrx = (period) => {
+            ['today', 'week', 'all'].forEach(id => {
+                const btn = document.getElementById('btn-'+id);
+                if(id === period) {
+                    btn.classList.remove('text-gray-500', 'hover:bg-gray-200');
+                    btn.classList.add('bg-white', 'text-blue-600', 'shadow-sm');
+                } else {
+                    btn.classList.add('text-gray-500', 'hover:bg-gray-200');
+                    btn.classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
+                }
+            });
+
+            const now = new Date();
+            const filtered = allTransactions.filter(t => {
+                if (!t.date) return false;
+                const tDate = new Date(t.date);
+                if (period === 'all') return true;
+                if (period === 'today') return tDate.toDateString() === now.toDateString();
+                if (period === 'week') { const d = new Date(); d.setDate(now.getDate() - 7); return tDate >= d; }
+            });
+
+            renderTransactions(filtered);
+        };
+
+        function renderTransactions(data) {
+            let html = '';
+            if(data.length === 0) {
+                html = '<tr><td colspan="5" class="p-4 text-center text-gray-400 text-[10px]">Tidak ada data.</td></tr>';
+            } else {
+                data.forEach(t => {
+                    const isOut = t.type === 'out';
+                    const colorClass = isOut ? 'text-red-500' : 'text-green-500';
+                    const userObj = allUsers.find(u => u.id === t.uid);
+                    const userName = userObj ? userObj.username : (t.uid ? t.uid.substring(0,6) : 'Unk');
+                    
+                    const dateObj = new Date(t.date);
+                    const dateStr = dateObj.toLocaleDateString('id-ID', {day:'numeric', month:'short'});
+                    const timeStr = dateObj.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+
+                    html += `
+                    <tr class="hover:bg-gray-50/50 transition border-b border-gray-50 last:border-0">
+                        <td class="p-3 align-top">
+                            <div class="flex flex-col">
+                                <span class="font-bold text-gray-600 text-[10px]">${dateStr}</span>
+                                <span class="text-[9px] text-gray-400">${timeStr}</span>
+                            </div>
+                        </td>
+                        <td class="p-3">
+                            <div class="font-bold text-[11px] text-gray-800">${userName}</div>
+                            <div class="text-[9px] font-mono text-gray-400">${t.uid ? t.uid.substring(0,4) : ''}..</div>
+                        </td>
+                        <td class="p-3 align-top">
+                            <div class="font-bold text-gray-700 text-[10px] line-clamp-1">${t.title}</div>
+                            <div class="text-[9px] text-gray-400 font-mono mt-0.5">${t.api_msg || '-'}</div>
+                        </td>
+                        <td class="p-3 text-right align-top">
+                            <span class="font-bold text-[10px] ${colorClass}">${isOut?'-':'+'} ${window.formatRp(t.amount)}</span>
+                        </td>
+                        <td class="p-3 text-center align-top">
+                            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded ${t.status === 'Sukses' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}">${t.status}</span>
+                        </td>
+                    </tr>`;
+                });
+            }
+            document.getElementById('trxTableBody').innerHTML = html;
+        }
+
+        window.openEditUser = (uid) => {
+            const user = allUsers.find(u => u.id === uid);
+            if(user) {
+                document.getElementById('editUid').value = uid;
+                document.getElementById('editUsername').value = user.username || '';
+                document.getElementById('editBalance').value = user.balance || 0;
+                document.getElementById('editEmailHidden').value = user.email || ''; 
+                document.getElementById('editUserModal').classList.remove('hide');
+            }
+        };
+
+        window.saveUserChanges = async () => {
+            const uid = document.getElementById('editUid').value;
+            const newName = document.getElementById('editUsername').value;
+            const newBal = parseInt(document.getElementById('editBalance').value);
+            const btn = document.querySelector('#editUserModal button:last-child');
+            const originalText = btn.innerText;
+            btn.innerText = "...";
+
+            try {
+                await updateDoc(doc(db, "users", uid), { username: newName, balance: newBal });
+                document.getElementById('editUserModal').classList.add('hide');
+                btn.innerText = originalText;
+                Swal.fire({ title: 'Tersimpan', icon: 'success', toast: true, position: 'top', timer: 1500, showConfirmButton: false });
+                loadDashboardData(); 
+            } catch(e) {
+                Swal.fire('Gagal', e.message, 'error');
+                btn.innerText = originalText;
+            }
+        };
+
+        window.triggerResetFromModal = async () => {
+            const email = document.getElementById('editEmailHidden').value;
+            if(!email || !email.includes('@')) return Swal.fire('Error', 'Email tidak valid', 'error');
+            
+            if(confirm(`Kirim reset password ke ${email}?`)) {
+                try {
+                    await sendPasswordResetEmail(auth, email);
+                    alert('Email terkirim!');
+                } catch(e) { alert(e.message); }
+            }
+        };
+
+        window.deleteUserFromModal = async () => {
+            const uid = document.getElementById('editUid').value;
+            if(confirm('Hapus user ini permanen?')) {
+                await deleteDoc(doc(db, "users", uid));
+                document.getElementById('editUserModal').classList.add('hide');
+                loadDashboardData();
+            }
+        }
+
+        window.openAddUserModal = () => document.getElementById('addUserModal').classList.remove('hide');
+        window.createNewUserDoc = async () => {
+            const email = document.getElementById('addEmail').value;
+            const username = document.getElementById('addUsername').value;
+            const balance = parseInt(document.getElementById('addBalance').value) || 0;
+            if(!email) return alert('Email wajib diisi');
+
+            try {
+                const tempUid = 'manual_' + Date.now();
+                await setDoc(doc(db, "users", tempUid), {
+                    email: email, username: username, balance: balance,
+                    created_at: new Date().toISOString(), note: 'Via Admin'
+                });
+                document.getElementById('addUserModal').classList.add('hide');
+                loadDashboardData();
+            } catch(e) { alert(e.message); }
+        };
+
+    </script>
+</body>
+</html>

@@ -470,6 +470,7 @@
     let isMultiTrx = false;
     let currentFilter = 'all';
     let scanner = null;
+    let pricingRules = {}; // Cache Aturan Harga
     let passwordPromptCallback = null;
 
     const CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
@@ -960,6 +961,12 @@ document.getElementById('btnAuthAction').addEventListener('click', async () => {
         const pSelect = document.getElementById('formProduct');
         if(!pSelect) return;
         
+                // Load Aturan Harga dari Database (Admin)
+        try {
+            const settingsSnap = await getDoc(doc(db, "settings", "pricing"));
+            if (settingsSnap.exists()) pricingRules = settingsSnap.data().rules || {};
+        } catch(e) { console.log("Gagal load harga custom", e); }
+
         pSelect.innerHTML = '<option>Sedang mencari jalur koneksi...</option>';
         pSelect.disabled = true;
         
@@ -1033,12 +1040,17 @@ document.getElementById('btnAuthAction').addEventListener('click', async () => {
             return priceA - priceB;
         });
 
-        // Render Option
+                // Render Option
         productSelect.innerHTML = '<option value="" selected disabled>-- Pilih Produk --</option>';
         filtered.forEach(p => {
-            const price = p.price || p.harga_final || p.buyer_price || 0;
+            let price = p.price || p.harga_final || p.buyer_price || 0;
             const code = p.code || p.kode_produk || p.buyer_sku_code;
             const name = p.name || p.nama_produk || p.product_name;
+            
+            // LOGIKA MODIFIKASI: Terapkan Markup Admin
+            if(pricingRules[code]) {
+                price += parseInt(pricingRules[code]);
+            }
             
             let isGangguan = false;
             if (p.gangguan === 1 || p.gangguan === '1') isGangguan = true;

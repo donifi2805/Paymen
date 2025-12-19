@@ -539,6 +539,7 @@
             currentUser = user;
             console.log("Logged In:", user.uid);
             setupUserData(user);
+            window.nav('homePage');
             setupRequestListener(user);
             window.nav('homePage');
         } else {
@@ -560,6 +561,7 @@
                      return;
                 }
                 document.getElementById('setupProfileModal').classList.add('hide');
+            window.nav('homePage');
 
                 currentBalance = data.balance || 0;
                 currentUsername = data.username || "User";
@@ -882,6 +884,7 @@ window.nav = (pageId) => {
             }, { merge: true });
             
             document.getElementById('setupProfileModal').classList.add('hide');
+            window.nav('homePage');
             window.showLoader(false);
             alert("Profil berhasil disimpan! Selamat Datang.");
             window.nav('homePage'); // Paksa masuk ke menu utama

@@ -92,21 +92,93 @@
         </div>
     </div>
 
-    <div id="customConfirmModal" class="hide fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 fade-enter">
-        <div class="bg-white dark:bg-gray-900 w-full max-w-xs rounded-3xl p-6 shadow-2xl transform transition-all scale-100">
-            <div class="text-center mb-4">
-                <div class="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center mx-auto mb-3"><i class="fas fa-question text-2xl"></i></div>
-                <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-1" id="confirmTitle">Konfirmasi</h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400" id="confirmMessage">Apakah anda yakin?</p>
+        <div id="customConfirmModal" class="hide fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 fade-enter">
+        <div class="bg-white dark:bg-gray-900 w-full max-w-xs rounded-[2rem] p-6 shadow-2xl border border-white/20 dark:border-gray-800 transform transition-all scale-100 relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-brand"></div>
+            <div class="text-center mb-6 mt-2">
+                <div class="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm ring-4 ring-blue-50/50 dark:ring-blue-900/20"><i class="fas fa-info-circle text-3xl"></i></div>
+                <h3 class="text-xl font-black text-gray-800 dark:text-white mb-2 tracking-tight" id="confirmTitle">Konfirmasi</h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed px-4" id="confirmMessage">Apakah anda yakin?</p>
             </div>
             <div class="flex gap-3">
-                <button onclick="closeConfirm(false)" class="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-semibold text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition">Batal</button>
-                <button id="confirmYesBtn" class="flex-1 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition">Ya, Lanjutkan</button>
+                <button onclick="closeConfirm(false)" class="flex-1 py-3.5 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-bold text-xs hover:bg-gray-100 dark:hover:bg-gray-700 transition border border-transparent hover:border-gray-200 dark:hover:border-gray-700">Batal</button>
+                <button id="confirmYesBtn" class="flex-1 py-3.5 rounded-xl bg-gradient-brand text-white font-bold text-xs shadow-lg shadow-blue-600/20 hover:shadow-blue-600/40 transition transform active:scale-95">Ya, Proses</button>
             </div>
         </div>
     </div>
 
-    <div id="topUpSheet" class="hide fixed inset-0 z-50 flex flex-col justify-end bg-black/60 backdrop-blur-sm">
+        <div id="stockModal" class="hide fixed inset-0 z-[120] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 fade-enter">
+        <div class="bg-white dark:bg-gray-900 w-full max-w-xs rounded-3xl p-6 shadow-2xl flex flex-col max-h-[80vh]">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-800 dark:text-white">Stok XL Akrab</h3>
+                <button onclick="closeStockModal()" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 hover:text-red-500 transition"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="stockList" class="overflow-y-auto pr-1 space-y-2 flex-1 no-scrollbar">
+                
+            </div>
+            <div class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 text-center">
+                 <p class="text-[10px] text-gray-400">Data Realtime Server v3</p>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="invoiceModal" class="hide fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 fade-enter">
+        <div class="bg-white dark:bg-gray-900 w-full max-w-xs rounded-[2rem] overflow-hidden shadow-2xl relative border border-white/20">
+            <div class="bg-gradient-brand p-8 text-center relative overflow-hidden">
+                <div class="absolute -top-10 -left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                <div class="absolute top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                <i class="fas fa-receipt text-5xl text-white/40 mb-3 transform -rotate-12"></i>
+                <p class="text-blue-100 text-[10px] font-bold uppercase tracking-widest mb-1">Total Tagihan</p>
+                <h2 class="text-3xl font-black text-white tracking-tight" id="invTotalMain">Rp 0</h2>
+            </div>
+            <div class="p-6 relative bg-white dark:bg-gray-900">
+                <div class="absolute top-0 left-0 w-full -mt-2 flex justify-between px-2 overflow-hidden">
+                   <div class="w-4 h-4 bg-gray-100 dark:bg-gray-950 rounded-full"></div>
+                   <div class="w-4 h-4 bg-gray-100 dark:bg-gray-950 rounded-full"></div>
+                   <div class="w-4 h-4 bg-gray-100 dark:bg-gray-950 rounded-full"></div>
+                   <div class="w-4 h-4 bg-gray-100 dark:bg-gray-950 rounded-full"></div>
+                   <div class="w-4 h-4 bg-gray-100 dark:bg-gray-950 rounded-full"></div>
+                   <div class="w-4 h-4 bg-gray-100 dark:bg-gray-950 rounded-full"></div>
+                   <div class="w-4 h-4 bg-gray-100 dark:bg-gray-950 rounded-full"></div>
+                   <div class="w-4 h-4 bg-gray-100 dark:bg-gray-950 rounded-full"></div>
+                   <div class="w-4 h-4 bg-gray-100 dark:bg-gray-950 rounded-full"></div>
+                </div>
+                
+                <div class="space-y-4 mt-4">
+                    <div class="flex justify-between items-start">
+                        <span class="text-xs text-gray-500 font-medium">Produk</span>
+                        <span class="text-xs font-bold text-gray-800 dark:text-white text-right max-w-[60%] leading-tight" id="invProductName">-</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs text-gray-500 font-medium">Nomor Tujuan</span>
+                        <span class="text-xs font-bold text-gray-800 dark:text-white font-mono bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded" id="invDestNum">-</span>
+                    </div>
+                    <div class="my-4 border-t-2 border-dashed border-gray-100 dark:border-gray-800"></div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs text-gray-500 font-medium">Harga</span>
+                        <span class="text-xs font-bold text-gray-800 dark:text-white" id="invPrice">Rp 0</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs text-gray-500 font-medium">Biaya Admin</span>
+                        <span class="text-[10px] font-bold text-green-600 bg-green-100 px-2 py-0.5 rounded-full">GRATIS</span>
+                    </div>
+                    <div class="flex justify-between items-center pt-2">
+                        <span class="text-sm font-bold text-gray-800 dark:text-white">Total Bayar</span>
+                        <span class="text-lg font-black text-blue-600 dark:text-blue-400" id="invTotalBottom">Rp 0</span>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 mt-8">
+                    <button onclick="closeInvoice()" class="flex-1 py-3.5 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-bold text-xs hover:bg-gray-100 dark:hover:bg-gray-700 transition border border-transparent hover:border-gray-200 dark:hover:border-gray-700">Batal</button>
+                    <button id="btnPayInvoice" class="flex-1 py-3.5 rounded-xl bg-gradient-brand text-white font-bold text-xs shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50 transition transform active:scale-95">Konfirmasi Bayar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+<div id="topUpSheet" class="hide fixed inset-0 z-50 flex flex-col justify-end bg-black/60 backdrop-blur-sm">
         <div class="bg-white dark:bg-gray-900 w-full rounded-t-[30px] p-6 modal-enter max-w-[480px] mx-auto">
             <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-6"></div>
             <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-4">Pilih Metode Top Up</h3>
@@ -198,7 +270,7 @@
                 <div class="text-center group cursor-pointer" onclick="openPPOB('akrab')"><div class="bg-blue-100 dark:bg-blue-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-users text-blue-600 dark:text-blue-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">XL Akrab</span></div>
                 <div class="text-center group cursor-pointer" onclick="alert('Menu Paket OTP Segera Hadir')"><div class="bg-emerald-100 dark:bg-emerald-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-key text-emerald-600 dark:text-emerald-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Paket OTP</span></div>
                 <div class="text-center group cursor-pointer" onclick="alert('Menu Pre-Order Segera Hadir')"><div class="bg-purple-100 dark:bg-purple-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-clock text-purple-600 dark:text-purple-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Pre-Order</span></div>
-                <div class="text-center group cursor-pointer" onclick="alert('Menu Reg. Kartu Segera Hadir')"><div class="bg-orange-100 dark:bg-orange-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-id-card text-orange-600 dark:text-orange-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Reg. Kartu</span></div>
+                <div class="text-center group cursor-pointer" onclick="checkAkrabStock()"><div class="bg-orange-100 dark:bg-orange-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-cubes text-orange-600 dark:text-orange-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Stok Akrab</span></div>
                 <div class="text-center group cursor-pointer" onclick="alert('Menu Login OTP Segera Hadir')"><div class="bg-rose-100 dark:bg-rose-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-lock text-rose-600 dark:text-rose-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Login OTP</span></div>
                 <div class="text-center group cursor-pointer" onclick="nav('historyPage')"><div class="bg-indigo-100 dark:bg-indigo-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-history text-indigo-600 dark:text-indigo-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Riwayat</span></div>
             </div>
@@ -854,11 +926,34 @@ document.getElementById('btnAuthAction').addEventListener('click', async () => {
     }
 
     // PPOB Logic (Tetap ada)
-    window.openPPOB = (cat) => { /* ... */ 
+    window.openPPOB = async (cat) => { 
         document.getElementById('homePage').classList.add('hide'); 
         document.getElementById('ppobPage').classList.remove('hide'); 
         document.getElementById('bottomNav').classList.add('hide');
-        window.initProductData();
+        
+        // Reset Provider
+        const pSelect = document.getElementById('formProvider');
+        if(pSelect) pSelect.value = "";
+
+        // Load Data Produk
+        await window.initProductData();
+
+        // Logika Auto-Select Kategori
+        if (cat === 'akrab' && pSelect) {
+            // Prioritas pilih XDA, jika tidak ada fallback ke XLA
+            const optXDA = pSelect.querySelector('option[value="XDA"]');
+            pSelect.value = optXDA ? 'XDA' : 'XLA';
+            
+            // Trigger update tampilan produk
+            window.updateProductDropdown();
+            
+            // Ubah Judul Header
+            const tEl = document.getElementById('ppobTitle');
+            if(tEl) tEl.innerText = 'Paket XL Akrab';
+        } else {
+            const tEl = document.getElementById('ppobTitle');
+            if(tEl) tEl.innerText = 'Isi Pulsa (Live API)';
+        }
     };
     window.closePPOB = () => window.nav('homePage');
         window.initProductData = async () => {
@@ -917,7 +1012,7 @@ document.getElementById('btnAuthAction').addEventListener('click', async () => {
             
             // 1. FILTER KHUSUS
             if (providerCode === 'XDA') return code.includes('XDA') || name.includes('XDA') || (name.includes('AKRAB') && name.includes('XTRA'));
-            if (providerCode === 'XLA') return code.includes('XLA') || name.includes('XLA') || (name.includes('AKRAB') && !name.includes('XTRA'));
+                        if (providerCode === 'XLA') return (code.includes('XLA') || name.includes('XLA') || (name.includes('AKRAB') && !name.includes('XTRA'))) && !name.toUpperCase().includes('HARI');
             if (providerCode === 'FMX') return code.includes('FMX') || name.includes('FLEX') || name.includes('UNLIMITED');
             if (providerCode === 'PLN') return brand.includes('PLN') || code.includes('PLN') || name.includes('TOKEN');
 
@@ -973,26 +1068,196 @@ document.getElementById('btnAuthAction').addEventListener('click', async () => {
         const priceDisplay = document.getElementById('priceDisplay');
         
 
-    window.processFormTransaction = () => { /* ... invoice logic ... */ 
-        const select = document.getElementById('formProduct');
-        const price = parseInt(select.options[select.selectedIndex].dataset.price);
-        pendingTrxData = { code: select.value, name: select.options[select.selectedIndex].text, price: price, numbers: [document.getElementById('ppobNumber').value] };
-        document.getElementById('invTotal').innerText = window.formatRp(price);
+        window.processFormTransaction = () => {
+        const productSelect = document.getElementById('formProduct');
+        const destNum = document.getElementById('ppobNumber').value;
+
+        if(!productSelect.value) return alert('Silakan pilih Produk!');
+        if(destNum.length < 5) return alert('Masukkan Nomor Tujuan yang valid!');
+
+        const selectedOpt = productSelect.options[productSelect.selectedIndex];
+        const code = productSelect.value;
+        const name = selectedOpt.dataset.name;
+        const price = parseInt(selectedOpt.dataset.price);
+
+        // LOGIKA KHUSUS CEK PLN
+        if (code === 'CEKPLN') {
+            window.checkPLN(destNum);
+            return;
+        }
+
+        window.confirmTransaction(code, name, price);
+    };
+
+    window.checkPLN = async (num) => {
+        window.showLoader(true);
+        const reffId = crypto.randomUUID();
+        const result = await callApi('/trx', { produk: 'CEKPLN', tujuan: num, reff_id: reffId });
+        window.showLoader(false);
+
+        if (result.ok && result.data) {
+            const data = result.data.data || result.data;
+            const msg = (data.message || data.sn || '').toLowerCase();
+            const status = data.status;
+            
+            // Logika Deteksi Valid/Invalid
+            const isSuccess = (status === true || status === 'success' || String(data.success) === 'true');
+            const isDataFound = msg.includes('tagihan') || msg.includes('lembar') || msg.includes('nama') || msg.includes('tarif');
+
+            if (isSuccess || isDataFound) {
+                let displayMsg = (data.message || data.sn).replace(/\//g, '\n');
+                window.customConfirm('TAGIHAN DITEMUKAN', `Detail Pelanggan:\n------------------\n${displayMsg}\n\n(Saldo aman, ini hanya pengecekan)`, () => {});
+            } else {
+                alert('PENGGUNA TIDAK TERDAFTAR\n\nSilakan periksa kembali Nomor ID Pelanggan PLN anda.');
+            }
+        } else {
+            alert('Gagal Terhubung ke Server:\n' + result.error);
+        }
+    };
+
+    window.confirmTransaction = (code, name, price) => {
+        if(currentBalance < price) return alert('Saldo Aplikasi Kurang! (Top Up Manual dulu)'); 
+
+        window.customConfirm('Beli Produk?', `${name}\nHarga: ${window.formatRp(price)}`, () => {
+            const num = document.getElementById('ppobNumber').value;
+            window.executeApiTransaction(code, num, price, name);
+        });
+    };
+
+        window.showInvoice = (code, name, price, dest) => {
+        const fmtPrice = window.formatRp(price);
+        document.getElementById('invTotalMain').innerText = fmtPrice;
+        document.getElementById('invTotalBottom').innerText = fmtPrice;
+        document.getElementById('invProductName').innerText = name;
+        document.getElementById('invDestNum').innerText = dest;
+        document.getElementById('invPrice').innerText = fmtPrice;
+        
+        const btnPay = document.getElementById('btnPayInvoice');
+        // Bersihkan event listener lama dengan clone node jika perlu, atau cukup reassign onclick
+        btnPay.onclick = () => {
+            window.closeInvoice();
+            window.executeApiTransaction(code, dest, price, name);
+        };
+
         document.getElementById('invoiceModal').classList.remove('hide');
     };
-    window.processFinalPayment = async () => { /* ... existing ppob payment logic using runTransaction or setDoc ... */ 
-        // Note: Gunakan logic PPOB asli Anda di sini, tapi sesuaikan penyimpanan history ke Firestore
-        // Simpan ke Firestore
-        balance -= pendingTrxData.price; // Dummy client update
-        alert("Transaksi PPOB Berhasil (Simulasi)");
-        document.getElementById('invoiceModal').classList.add('hide');
-    };
+
     window.closeInvoice = () => document.getElementById('invoiceModal').classList.add('hide');
-    
+
+    // Redefine confirmTransaction untuk menggunakan Invoice
+    window.confirmTransaction = (code, name, price) => {
+        if(currentBalance < price) return alert('Saldo Aplikasi Kurang! (Top Up Manual dulu)'); 
+        const num = document.getElementById('ppobNumber').value;
+        window.showInvoice(code, name, price, num);
+    };
+
+
+window.executeApiTransaction = async (code, dest, price, name) => {
+        window.showLoader(true);
+        const reffId = crypto.randomUUID();
+
+        // HIT API TRX
+        const result = await callApi('/trx', {
+            produk: code,
+            tujuan: dest,
+            reff_id: reffId
+        });
+
+        window.showLoader(false);
+
+        if(result.ok && result.data) {
+            const d = result.data;
+            // LOGIC FIX: Cek msg/sn/error agar tidak undefined
+            const rawMsg = d.message || d.msg || d.sn || d.error || (d.data ? (d.data.message || d.data.msg || d.data.sn) : null);
+            const msg = rawMsg || 'Server tidak memberikan pesan detail';
+            
+            // LOGIC FIX: Pastikan status benar-benar sukses
+            const isSuccess = d.status === true || d.success === true || d.status === 'success' || (d.data && d.data.status === 'Pending');
+
+            if(isSuccess) { 
+                // UPDATE BALANCE
+                const newBal = currentBalance - price;
+                updateDoc(doc(db, "users", currentUser.uid), { balance: newBal });
+                
+                // SAVE HISTORY
+                addDoc(collection(db, "users", currentUser.uid, "history"), {
+                    title: name,
+                    amount: price,
+                    type: 'out',
+                    date: new Date().toISOString(),
+                    status: 'Sukses',
+                    api_msg: msg,
+                    trx_id: reffId
+                });
+
+                alert(`Sukses!\nInfo: ${msg}`);
+                window.nav('homePage');
+            } else {
+                // Tampilkan pesan error spesifik
+                alert(`Transaksi Gagal!\nAlasan: ${msg}`);
+            }
+        } else {
+            alert(`Gagal Koneksi: ${result.error}`);
+        }
+    };
+
     // Topup Logic
     window.openTopUpSheet = () => document.getElementById('topUpSheet').classList.remove('hide');
     window.closeTopUp = () => document.getElementById('topUpSheet').classList.add('hide');
-    window.processTopUp = (method) => {
+        window.checkAkrabStock = async () => {
+        window.showLoader(true);
+        const targetUrl = "https://panel.khfy-store.com/api_v3/cek_stock_akrab";
+        let data = null;
+
+        // Loop Proxy untuk menembus blokir/cors (Menggunakan PROXY_LIST global)
+        for (const proxy of PROXY_LIST) {
+            try {
+                const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000);
+                
+                const res = await fetch(fullUrl, { signal: controller.signal });
+                clearTimeout(timeoutId);
+                
+                if(res.ok) {
+                    const json = await res.json();
+                    if(json.ok || json.message === "success") {
+                        data = json.data;
+                        break; // Berhasil, stop loop
+                    }
+                }
+            } catch(e) { console.log("Proxy skip:", e); }
+        }
+
+        window.showLoader(false);
+
+        if(data && Array.isArray(data)) {
+            let html = '';
+            data.forEach(item => {
+                 const isAvail = item.sisa_slot > 0;
+                 html += `<div class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                             <p class="text-xs font-bold text-gray-800 dark:text-white uppercase">${item.nama}</p>
+                             <span class="text-[9px] px-1.5 py-0.5 rounded ${isAvail ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'} font-bold">${item.type}</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xl font-black ${isAvail ? 'text-blue-600 dark:text-blue-400' : 'text-gray-300'}">${item.sisa_slot}</p>
+                        <p class="text-[9px] text-gray-400">Slot</p>
+                    </div>
+                 </div>`;
+            });
+            document.getElementById('stockList').innerHTML = html;
+            document.getElementById('stockModal').classList.remove('hide');
+        } else {
+            alert("Gagal mengambil data stok. Pastikan koneksi internet stabil.");
+        }
+    };
+    window.closeStockModal = () => document.getElementById('stockModal').classList.add('hide');
+
+
+window.processTopUp = (method) => {
         window.closeTopUp();
         if(method === 'manual') {
             const newBal = currentBalance + 50000;

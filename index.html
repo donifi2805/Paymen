@@ -59,6 +59,27 @@
         </div>
     </div>
 
+        <div id="setupProfileModal" class="hide fixed inset-0 z-[160] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 fade-enter">
+        <div class="bg-white dark:bg-gray-900 w-full max-w-xs rounded-3xl p-6 shadow-2xl overflow-hidden">
+            <div class="text-center mb-6">
+                <h3 class="text-xl font-bold text-gray-800 dark:text-white">Selamat Datang!</h3>
+                <p class="text-xs text-gray-500">Lengkapi data diri Anda untuk melanjutkan.</p>
+            </div>
+            <div class="space-y-4">
+                <div class="text-center mb-4">
+                    <label for="setupProfilePicInput" class="profile-upload block bg-gray-50 dark:bg-gray-800"><img id="setupProfilePreview" src="" alt="Profile"><div class="upload-placeholder" id="setupUploadPlaceholder"><i class="fas fa-camera text-2xl mb-1"></i><p class="text-[9px]">Foto (Wajib)</p></div></label>
+                    <input type="file" id="setupProfilePicInput" accept="image/*" class="hidden" onchange="previewImage(this, 'setup')">
+                </div>
+                <div class="input-group"><input type="text" id="setupUsername" placeholder="Buat Username" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 pl-11 dark:text-white"><i class="fas fa-user"></i></div>
+                <div class="flex gap-2">
+                    <div class="input-group w-1/2"><select id="setupGender" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 pl-11 dark:text-white text-xs"><option value="" disabled selected>Gender</option><option value="Laki-laki">Pria</option><option value="Perempuan">Wanita</option></select><i class="fas fa-venus-mars"></i></div>
+                    <div class="input-group w-1/2"><input type="date" id="setupDob" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 pl-11 dark:text-white text-xs"><i class="fas fa-calendar"></i></div>
+                </div>
+                <button onclick="saveProfileSetup()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg mt-2">SIMPAN & LANJUTKAN</button>
+            </div>
+        </div>
+    </div>
+
     <div id="passwordPromptModal" class="hide fixed inset-0 z-[130] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 fade-enter">
         <div class="bg-white dark:bg-gray-900 w-full max-w-xs rounded-3xl p-6 shadow-2xl">
             <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-2 text-center">Konfirmasi Keamanan</h3>
@@ -224,7 +245,11 @@
                     <div id="extraOptions" class="flex justify-between items-center text-xs mt-2"><label class="flex items-center gap-2 text-gray-500 dark:text-gray-400 cursor-pointer select-none"><input type="checkbox" id="rememberMe" class="rounded text-blue-600 focus:ring-blue-500 bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"><span>Ingat Saya</span></label><button onclick="setAuthMode('forgot')" class="text-blue-600 dark:text-blue-400 font-bold hover:underline">Lupa Sandi?</button></div>
                     <div id="otpContainer" class="hide space-y-4"><div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800 text-xs text-blue-800 dark:text-blue-300">Kode OTP dikirim. Masukkan kode 6 digit.</div><input type="number" id="otpInput" placeholder="123456" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-lg font-bold tracking-widest"></div>
                     <div id="recaptcha-container"></div>
-                    <button id="btnAuthAction" class="w-full bg-blue-600 dark:bg-blue-500 text-white h-12 rounded-xl font-bold shadow-lg shadow-blue-500/30 active:scale-95 transition-transform hover:bg-blue-700 mt-2">MASUK</button>
+                                        <button id="btnAuthAction" class="w-full bg-blue-600 dark:bg-blue-500 text-white h-12 rounded-xl font-bold shadow-lg shadow-blue-500/30 active:scale-95 transition-transform hover:bg-blue-700 mt-2">MASUK</button>
+                    <button onclick="loginWithGoogle()" class="w-full bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 h-12 rounded-xl font-bold shadow-sm active:scale-95 transition-transform hover:bg-gray-50 dark:hover:bg-gray-700 mt-3 flex items-center justify-center gap-3">
+                        <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-5 h-5" alt="Google">
+                        <span class="text-sm">Masuk dengan Google</span>
+                    </button>
                     <button id="btnVerifyOtp" class="hide w-full bg-green-600 text-white h-12 rounded-xl font-bold shadow-lg shadow-green-500/30 active:scale-95 transition-transform hover:bg-green-700 mt-2">VERIFIKASI OTP</button>
                 </div>
                 <div id="authFooter" class="text-center mt-6 text-xs text-gray-500 dark:text-gray-400">Belum punya akun? <button onclick="setAuthMode('register')" class="text-blue-600 dark:text-blue-400 font-bold hover:underline">Daftar Sekarang</button></div>
@@ -435,7 +460,9 @@
         signOut, 
         onAuthStateChanged,
         EmailAuthProvider,
-        reauthenticateWithCredential
+                reauthenticateWithCredential,
+        GoogleAuthProvider,
+        signInWithPopup
     } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, onSnapshot, query, orderBy, where, getDocs, runTransaction, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -499,9 +526,17 @@
     });
 
     function setupUserData(user) {
-        onSnapshot(doc(db, "users", user.uid), (docSnap) => {
+                onSnapshot(doc(db, "users", user.uid), (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
+                
+                // LOGIK BARU: Cek kelengkapan data (Google Login)
+                if (!data.username || !data.dob) {
+                     document.getElementById('setupProfileModal').classList.remove('hide');
+                     return;
+                }
+                document.getElementById('setupProfileModal').classList.add('hide');
+
                 currentBalance = data.balance || 0;
                 currentUsername = data.username || "User";
                 if(document.getElementById('displayBalance')) document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
@@ -516,6 +551,9 @@
                     document.getElementById('headerProfileImg').src = data.profile_pic;
                     document.getElementById('profilePageImg').src = data.profile_pic;
                 }
+            } else {
+                // User Baru (Login Google pertama kali) -> Tampilkan Modal
+                document.getElementById('setupProfileModal').classList.remove('hide');
             }
         });
 
@@ -784,7 +822,84 @@ window.nav = (pageId) => {
 
     // ... (Code PPOB, Auth UI Handlers lainnya tetap ada di sini - disalin dari versi sebelumnya) ...
     // AUTH LOGIC (Copied & Minimized for brevity, FULL logic included in HTML file above)
-        window.switchLoginMethod = (method) => { 
+            window.loginWithGoogle = async () => {
+        const provider = new GoogleAuthProvider();
+        try {
+            await signInWithPopup(auth, provider);
+            // onAuthStateChanged akan menangani routing selanjutnya
+        } catch (error) {
+            alert("Gagal Login Google: " + error.message);
+        }
+    };
+
+    window.saveProfileSetup = async () => {
+        const username = document.getElementById('setupUsername').value;
+        const gender = document.getElementById('setupGender').value;
+        const dob = document.getElementById('setupDob').value;
+
+        if(!username || !gender || !dob) return alert("Mohon lengkapi semua data!");
+        
+        window.showLoader(true);
+        try {
+            await setDoc(doc(db, "users", currentUser.uid), {
+                email: currentUser.email,
+                username: username,
+                gender: gender,
+                dob: dob,
+                balance: 0,
+                profile_pic: base64ProfilePic || currentUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
+                createdAt: new Date().toISOString(),
+                authMethod: 'google'
+            }, { merge: true });
+            
+            document.getElementById('setupProfileModal').classList.add('hide');
+            window.showLoader(false);
+            alert("Profil berhasil disimpan!");
+        } catch(e) {
+            window.showLoader(false);
+            alert("Gagal menyimpan: " + e.message);
+        }
+    };
+
+        window.loginWithGoogle = async () => {
+        const provider = new GoogleAuthProvider();
+        try {
+            await signInWithPopup(auth, provider);
+        } catch (error) {
+            alert("Gagal Login Google: " + error.message);
+        }
+    };
+
+    window.saveProfileSetup = async () => {
+        const username = document.getElementById('setupUsername').value;
+        const gender = document.getElementById('setupGender').value;
+        const dob = document.getElementById('setupDob').value;
+
+        if(!username || !gender || !dob) return alert("Mohon lengkapi semua data!");
+        
+        window.showLoader(true);
+        try {
+            await setDoc(doc(db, "users", currentUser.uid), {
+                email: currentUser.email,
+                username: username,
+                gender: gender,
+                dob: dob,
+                balance: 0,
+                profile_pic: base64ProfilePic || currentUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
+                createdAt: new Date().toISOString(),
+                authMethod: 'google'
+            }, { merge: true });
+            
+            document.getElementById('setupProfileModal').classList.add('hide');
+            window.showLoader(false);
+            alert("Profil berhasil disimpan!");
+        } catch(e) {
+            window.showLoader(false);
+            alert("Gagal menyimpan: " + e.message);
+        }
+    };
+
+    window.switchLoginMethod = (method) => { 
         loginMethod = method;
         const tabEmail = document.getElementById('tabEmail');
         const tabPhone = document.getElementById('tabPhone');
@@ -968,19 +1083,32 @@ window.nav = (pageId) => {
         }
     });
 
-    window.previewImage = (input) => { /* ... existing resize logic ... */ 
+            window.previewImage = (input, type = 'reg') => { 
         if (input.files && input.files[0]) {
             const reader = new FileReader();
             reader.onload = function (e) {
-                document.getElementById('profilePreview').src = e.target.result;
-                document.getElementById('profilePreview').style.display = 'block';
-                document.getElementById('uploadPlaceholder').style.display = 'none';
+                if(type === 'setup') {
+                     const el = document.getElementById('setupProfilePreview');
+                     if(el) { el.src = e.target.result; el.style.display = 'block'; }
+                     const ph = document.getElementById('setupUploadPlaceholder');
+                     if(ph) ph.style.display = 'none';
+                } else {
+                     document.getElementById('profilePreview').src = e.target.result;
+                     document.getElementById('profilePreview').style.display = 'block';
+                     document.getElementById('uploadPlaceholder').style.display = 'none';
+                }
+                
                 const img = new Image();
                 img.onload = () => {
                     const canvas = document.createElement('canvas'); canvas.width = 400; canvas.height = 400;
                     const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, 400, 400);
                     base64ProfilePic = canvas.toDataURL('image/jpeg', 0.7);
                 };
+                img.src = e.target.result;
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    };
                 img.src = e.target.result;
             }
             reader.readAsDataURL(input.files[0]);

@@ -1167,11 +1167,22 @@ window.executeApiTransaction = async (code, dest, price, name) => {
 
         if(result.ok && result.data) {
             const d = result.data;
-            // LOGIC FIX: Cek msg/sn/error agar tidak undefined
-            const rawMsg = d.message || d.msg || d.sn || d.error || (d.data ? (d.data.message || d.data.msg || d.data.sn) : null);
-            const msg = rawMsg || 'Server tidak memberikan pesan detail';
+            // AMBIL PESAN MENTAH
+            let msg = d.message || d.msg || d.sn || d.error || (d.data ? (d.data.message || d.data.msg || d.data.sn) : null) || 'Tidak ada respon server';
             
-            // LOGIC FIX: Pastikan status benar-benar sukses
+            // CLEANUP PESAN (Hapus URL parameter sensitif)
+            // Jika formatnya: "url... #PesanError @Tanggal"
+            if (typeof msg === 'string') {
+                if (msg.includes('#')) {
+                    msg = msg.split('#')[1]; // Ambil setelah tanda pagar
+                }
+                if (msg.includes('@')) {
+                    msg = msg.split('@')[0]; // Hapus tanggal di belakang
+                }
+                msg = msg.trim();
+            }
+            
+            // CEK STATUS SUKSES
             const isSuccess = d.status === true || d.success === true || d.status === 'success' || (d.data && d.data.status === 'Pending');
 
             if(isSuccess) { 
@@ -1193,7 +1204,7 @@ window.executeApiTransaction = async (code, dest, price, name) => {
                 alert(`Sukses!\nInfo: ${msg}`);
                 window.nav('homePage');
             } else {
-                // Tampilkan pesan error spesifik
+                // TAMPILKAN PESAN BERSIH
                 alert(`Transaksi Gagal!\nAlasan: ${msg}`);
             }
         } else {

@@ -784,8 +784,63 @@ window.nav = (pageId) => {
 
     // ... (Code PPOB, Auth UI Handlers lainnya tetap ada di sini - disalin dari versi sebelumnya) ...
     // AUTH LOGIC (Copied & Minimized for brevity, FULL logic included in HTML file above)
-    window.switchLoginMethod = (method) => { loginMethod = method; /* UI updates */ };
-    window.setAuthMode = (mode) => { authMode = mode; /* UI updates */ };
+        window.switchLoginMethod = (method) => { 
+        loginMethod = method;
+        const tabEmail = document.getElementById('tabEmail');
+        const tabPhone = document.getElementById('tabPhone');
+        const input = document.getElementById('emailInput');
+        const icon = document.getElementById('loginIcon');
+        
+        if(method === 'email') {
+            tabEmail.className = 'flex-1 py-2 rounded-lg text-xs font-bold bg-white dark:bg-gray-700 shadow text-blue-600 dark:text-blue-400 transition-all';
+            tabPhone.className = 'flex-1 py-2 rounded-lg text-xs font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all';
+            input.placeholder = 'Alamat Email';
+            input.type = 'email';
+            icon.className = 'fas fa-envelope';
+        } else {
+             alert('Login No. HP sedang pemeliharaan. Silakan gunakan Email.');
+        }
+    };
+
+    window.setAuthMode = (mode) => {
+        authMode = mode;
+        const title = document.getElementById('authTitle');
+        const btn = document.getElementById('btnAuthAction');
+        const regFields = document.getElementById('registerFields');
+        const passContainer = document.getElementById('passContainer');
+        const extras = document.getElementById('extraOptions');
+        const footer = document.getElementById('authFooter');
+        const backBtn = document.getElementById('backToLoginContainer');
+        const status = document.getElementById('statusMessage');
+        
+        status.innerText = 'Aman & Terenkripsi';
+
+        if (mode === 'login') {
+            title.innerText = 'Masuk Akun';
+            btn.innerText = 'MASUK';
+            regFields.classList.add('hide');
+            passContainer.classList.remove('hide');
+            extras.classList.remove('hide');
+            footer.classList.remove('hide');
+            backBtn.classList.add('hide');
+        } else if (mode === 'register') {
+            title.innerText = 'Daftar Akun Baru';
+            btn.innerText = 'DAFTAR SEKARANG';
+            regFields.classList.remove('hide');
+            passContainer.classList.remove('hide');
+            extras.classList.add('hide');
+            footer.classList.add('hide');
+            backBtn.classList.remove('hide');
+        } else if (mode === 'forgot') {
+            title.innerText = 'Reset Kata Sandi';
+            btn.innerText = 'KIRIM LINK RESET';
+            regFields.classList.add('hide');
+            passContainer.classList.add('hide');
+            extras.classList.add('hide');
+            footer.classList.add('hide');
+            backBtn.classList.remove('hide');
+        }
+    };
     
     // API CALLER
         // --- API HANDLER (ANTI-BLOKIR & AUTO-SWITCH DARI INDEX 41) ---
@@ -849,31 +904,67 @@ window.nav = (pageId) => {
     });
 
 
-document.getElementById('btnAuthAction').addEventListener('click', async () => {
-        // ... (Logika Auth Register/Login yang sama) ...
-        const inputVal = document.getElementById('emailInput').value;
-        const passVal = document.getElementById('passwordInput').value;
+        document.getElementById('btnAuthAction').addEventListener('click', async () => {
+        const email = document.getElementById('emailInput').value;
+        const password = document.getElementById('passwordInput').value;
         const status = document.getElementById('statusMessage');
-        if(!inputVal) return alert("Isi data login!");
+
+        if(!email) return alert("Mohon isi Email!");
         status.innerText = "Memproses...";
 
+        // 1. HANDLER LUPA SANDI
+        if(authMode === 'forgot') {
+            try {
+                await sendPasswordResetEmail(auth, email);
+                alert("Link reset password telah dikirim ke: " + email + "\nSilakan cek inbox/spam email Anda.");
+                window.setAuthMode('login');
+                status.innerText = "Email Terkirim";
+            } catch(e) {
+                status.innerText = "Gagal Kirim";
+                alert("Gagal: " + e.message);
+            }
+            return;
+        }
+
+        // 2. VALIDASI PASSWORD (Login & Register Butuh Password)
+        if(!password) {
+            status.innerText = "Menunggu Input";
+            return alert("Mohon isi Kata Sandi!");
+        }
+
+        // 3. HANDLER LOGIN
         if(authMode === 'login') {
             try { 
-                await signInWithEmailAndPassword(auth, inputVal, passVal);
-            } catch(e) { alert("Login Gagal: " + e.message); }
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch(e) { 
+                status.innerText = "Gagal Login";
+                alert("Login Gagal: " + e.message); 
+            }
+        
+        // 4. HANDLER REGISTER
         } else if (authMode === 'register') {
             const username = document.getElementById('regUsername').value;
-            // ... validasi lain ...
+            const gender = document.getElementById('regGender').value;
+            const dob = document.getElementById('regDob').value;
+
+            if(!username || !gender || !dob) return alert("Mohon lengkapi Username, Gender, dan Tanggal Lahir!");
+
             try {
-                const cred = await createUserWithEmailAndPassword(auth, inputVal, passVal);
+                const cred = await createUserWithEmailAndPassword(auth, email, password);
                 await setDoc(doc(db, "users", cred.user.uid), {
-                    email: inputVal, balance: 0, username: username, // Tambah field lain
-                    gender: document.getElementById('regGender').value,
-                    dob: document.getElementById('regDob').value,
-                    profile_pic: base64ProfilePic
+                    email: email, 
+                    balance: 0, 
+                    username: username,
+                    gender: gender,
+                    dob: dob,
+                    profile_pic: base64ProfilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
+                    createdAt: new Date().toISOString()
                 });
-                alert("Daftar Berhasil!");
-            } catch(e) { alert("Gagal Daftar: " + e.message); }
+                alert("Pendaftaran Berhasil! Silakan Masuk.");
+            } catch(e) { 
+                status.innerText = "Gagal Daftar";
+                alert("Gagal Daftar: " + e.message); 
+            }
         }
     });
 

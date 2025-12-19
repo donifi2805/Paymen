@@ -460,10 +460,11 @@
         signOut, 
         onAuthStateChanged,
         EmailAuthProvider,
-                reauthenticateWithCredential,
+                        reauthenticateWithCredential,
         GoogleAuthProvider,
-                        signInWithPopup,
-        signInWithRedirect
+        signInWithPopup,
+        signInWithRedirect,
+        getRedirectResult
     } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, onSnapshot, query, orderBy, where, getDocs, runTransaction, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -509,6 +510,14 @@
         { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
         { name: 'Direct', url: '' }
     ];
+
+        // Handle Redirect Result (Mencegah stuck di login page)
+    getRedirectResult(auth).then((result) => {
+        if (result) console.log("Redirect Sukses");
+    }).catch((error) => {
+        console.error("Redirect Error:", error);
+        window.showLoader(false);
+    });
 
     // AUTH & DATA
     onAuthStateChanged(auth, (user) => {
@@ -827,14 +836,13 @@ window.nav = (pageId) => {
 
 
 
-        window.loginWithGoogle = async () => {
-        // DEBUG: Alert agar tahu tombol ditekan
-        alert("Mengarahkan ke Google... Mohon Tunggu.");
-        
+            window.loginWithGoogle = async () => {
+        window.showLoader(true);
         const provider = new GoogleAuthProvider();
         try {
             await signInWithRedirect(auth, provider);
         } catch (error) {
+            window.showLoader(false);
             alert("Gagal Login Google: " + error.message);
         }
     };

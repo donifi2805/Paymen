@@ -75,7 +75,7 @@
                     <div class="input-group w-1/2"><select id="setupGender" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 pl-11 dark:text-white text-xs"><option value="" disabled selected>Gender</option><option value="Laki-laki">Pria</option><option value="Perempuan">Wanita</option></select><i class="fas fa-venus-mars"></i></div>
                     <div class="input-group w-1/2"><input type="date" id="setupDob" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 pl-11 dark:text-white text-xs"><i class="fas fa-calendar"></i></div>
                 </div>
-                <button onclick="saveProfileSetup()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg mt-2">SIMPAN & LANJUTKAN</button>
+                <button type="button" onclick="saveProfileSetup()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg mt-2">SIMPAN & LANJUTKAN</button>
             </div>
         </div>
     </div>
@@ -870,7 +870,7 @@ window.nav = (pageId) => {
         
         window.showLoader(true);
         try {
-            await setDoc(doc(db, "users", currentUser.uid), {
+                        await setDoc(doc(db, "users", currentUser.uid), {
                 email: currentUser.email,
                 username: username,
                 gender: gender,
@@ -883,7 +883,8 @@ window.nav = (pageId) => {
             
             document.getElementById('setupProfileModal').classList.add('hide');
             window.showLoader(false);
-            alert("Profil berhasil disimpan!");
+            alert("Profil berhasil disimpan! Selamat Datang.");
+            window.nav('homePage'); // Paksa masuk ke menu utama
         } catch(e) {
             window.showLoader(false);
             alert("Gagal menyimpan: " + e.message);

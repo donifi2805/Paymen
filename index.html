@@ -462,7 +462,8 @@
         EmailAuthProvider,
                 reauthenticateWithCredential,
         GoogleAuthProvider,
-        signInWithPopup,
+                signInWithPopup,
+        signInWithRedirect,
         signInWithRedirect
     } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, onSnapshot, query, orderBy, where, getDocs, runTransaction, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -826,6 +827,47 @@ window.nav = (pageId) => {
     
 
 
+
+        window.loginWithGoogle = async () => {
+        // DEBUG: Alert agar tahu tombol ditekan
+        alert("Mengarahkan ke Google... Mohon Tunggu.");
+        
+        const provider = new GoogleAuthProvider();
+        try {
+            await signInWithRedirect(auth, provider);
+        } catch (error) {
+            alert("Gagal Login Google: " + error.message);
+        }
+    };
+
+    window.saveProfileSetup = async () => {
+        const username = document.getElementById('setupUsername').value;
+        const gender = document.getElementById('setupGender').value;
+        const dob = document.getElementById('setupDob').value;
+
+        if(!username || !gender || !dob) return alert("Mohon lengkapi semua data!");
+        
+        window.showLoader(true);
+        try {
+            await setDoc(doc(db, "users", currentUser.uid), {
+                email: currentUser.email,
+                username: username,
+                gender: gender,
+                dob: dob,
+                balance: 0,
+                profile_pic: base64ProfilePic || currentUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
+                createdAt: new Date().toISOString(),
+                authMethod: 'google'
+            }, { merge: true });
+            
+            document.getElementById('setupProfileModal').classList.add('hide');
+            window.showLoader(false);
+            alert("Profil berhasil disimpan!");
+        } catch(e) {
+            window.showLoader(false);
+            alert("Gagal menyimpan: " + e.message);
+        }
+    };
 
     window.switchLoginMethod = (method) => { 
         loginMethod = method;

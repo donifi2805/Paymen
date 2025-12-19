@@ -199,7 +199,23 @@
     </div>
 
 
-    <div id="qiosModal" class="hide fixed inset-0 z-[160] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 fade-enter">
+        
+    <div id="fullQrModal" class="hide fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-md p-6 fade-enter">
+        <div class="relative w-full max-w-xs flex flex-col items-center">
+            <button onclick="closeFullQr()" class="absolute -top-12 right-0 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/30 transition backdrop-blur-sm shadow-lg">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+            <div class="bg-white p-4 rounded-3xl shadow-2xl w-full">
+                <img id="fullQrImage" src="" class="w-full h-auto object-contain rounded-xl">
+                <div class="text-center mt-4">
+                    <p class="text-lg font-black text-gray-800">Scan QRIS</p>
+                    <p class="text-xs text-gray-500">Pastikan nama merchant sesuai</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<div id="qiosModal" class="hide fixed inset-0 z-[160] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 fade-enter">
         <div class="bg-white dark:bg-gray-900 w-full max-w-xs rounded-3xl p-6 shadow-2xl relative">
             <button onclick="closeQios()" class="absolute top-4 right-4 text-gray-400 hover:text-red-500"><i class="fas fa-times text-xl"></i></button>
             
@@ -219,7 +235,8 @@
             <div id="qiosStep2" class="hide text-center">
                 <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-2">Scan & Bayar</h3>
                 <div class="bg-white p-2 rounded-xl border border-gray-200 inline-block mb-2">
-                    <img id="qiosQrDisplay" src="" class="w-48 h-48 object-contain">
+                                        <img id="qiosQrDisplay" src="" class="w-48 h-48 object-contain cursor-pointer hover:opacity-90 transition" onclick="openFullQr()">
+                    <p class="text-[9px] text-gray-400 mt-1">(Klik gambar untuk memperbesar)</p>
                 </div>
                 <p class="text-xs text-gray-500">Total Transfer (Wajib Sama):</p>
                 <div class="flex justify-center items-center gap-2 mb-2">
@@ -251,10 +268,6 @@
             <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-6"></div>
             <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-4">Pilih Metode Top Up</h3>
             <div class="space-y-3">
-                <div onclick="processTopUp('manual')" class="flex items-center gap-4 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition">
-                    <div class="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center"><i class="fas fa-hand-holding-usd"></i></div>
-                    <div class="flex-1"><h4 class="font-bold text-gray-800 dark:text-white text-sm">Manual (Simulasi)</h4><p class="text-xs text-gray-500">Isi saldo +50.000 (Firestore)</p></div><i class="fas fa-chevron-right text-gray-300"></i>
-                </div>
             </div>
                         <div onclick="openQios()" class="flex items-center gap-4 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition mb-3">
                 <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center"><i class="fas fa-qrcode"></i></div>
@@ -333,7 +346,7 @@
                     <button onclick="initProductData()" class="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-800 text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all flex items-center justify-center shadow-sm"><i class="fas fa-sync-alt text-xs"></i></button>
                 </div>
                 <div class="grid grid-cols-4 gap-2">
-                    <div class="text-center group/btn cursor-pointer" onclick="openTopUpSheet()"><div class="w-11 h-11 mx-auto bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/30 mb-1.5 transform group-hover/btn:scale-110 transition-all duration-300"><i class="fas fa-plus text-base"></i></div><span class="text-[10px] font-bold text-gray-600 dark:text-gray-300">Top Up</span></div>
+                                        <div class="text-center group/btn cursor-pointer" onclick="openTopUpSheet()"><div class="w-11 h-11 mx-auto bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/30 mb-1.5 transform group-hover/btn:scale-110 transition-all duration-300 relative"><div id="badge-topup-home" class="hide absolute -top-1 -right-1 w-4 h-4 bg-red-500 border-2 border-white rounded-full flex items-center justify-center text-[9px] font-bold">1</div><i class="fas fa-plus text-base"></i></div><span class="text-[10px] font-bold text-gray-600 dark:text-gray-300">Top Up</span></div>
                     <div class="text-center group/btn cursor-pointer" onclick="nav('sendPage')"><div class="w-11 h-11 mx-auto bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 border border-gray-100 dark:border-gray-700 rounded-2xl flex items-center justify-center shadow-sm mb-1.5 transform group-hover/btn:scale-110 transition-all duration-300"><i class="fas fa-paper-plane text-base"></i></div><span class="text-[10px] font-bold text-gray-600 dark:text-gray-300">Kirim</span></div>
                     <div class="text-center group/btn cursor-pointer" onclick="nav('requestPage')"><div class="w-11 h-11 mx-auto bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 border border-gray-100 dark:border-gray-700 rounded-2xl flex items-center justify-center shadow-sm mb-1.5 transform group-hover/btn:scale-110 transition-all duration-300"><i class="fas fa-arrow-down text-base"></i></div><span class="text-[10px] font-bold text-gray-600 dark:text-gray-300">Minta</span></div>
                     <div class="text-center group/btn cursor-pointer" onclick="alert('Lainnya...')"><div class="w-11 h-11 mx-auto bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 border border-gray-100 dark:border-gray-700 rounded-2xl flex items-center justify-center shadow-sm mb-1.5 transform group-hover/btn:scale-110 transition-all duration-300"><i class="fas fa-qrcode text-base"></i></div><span class="text-[10px] font-bold text-gray-600 dark:text-gray-300">Lainnya</span></div>
@@ -494,7 +507,7 @@
     <nav id="bottomNav" class="fixed bottom-0 left-0 right-0 max-w-[480px] mx-auto bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 flex justify-around items-end pb-4 pt-3 text-[10px] shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-40 hide rounded-t-3xl">
         <div class="text-center cursor-pointer w-1/5 nav-item text-blue-600 dark:text-blue-400 group" id="nav-home" onclick="nav('homePage')"><div class="mb-1 transition group-hover:-translate-y-1"><i class="fas fa-home text-xl"></i></div><p class="font-medium">Beranda</p></div>
         <div class="text-center cursor-pointer w-1/5 nav-item text-gray-400 dark:text-gray-500 group" id="nav-buy" onclick="openPPOB('akrab')"><div class="mb-1 transition group-hover:-translate-y-1"><i class="fas fa-shopping-cart text-xl"></i></div><p class="font-medium">Beli</p></div>
-        <div class="text-center w-1/5 qris-btn-container cursor-pointer" onclick="openTopUpSheet()"><div class="qris-btn w-11 h-11 rounded-full flex items-center justify-center mx-auto text-white transform transition hover:scale-105 active:scale-95 mb-1"><i class="fas fa-plus text-lg"></i></div><p class="font-bold text-gray-700 dark:text-gray-400">Top Up</p></div>
+                <div class="text-center w-1/5 qris-btn-container cursor-pointer" onclick="openTopUpSheet()"><div class="qris-btn w-11 h-11 rounded-full flex items-center justify-center mx-auto text-white transform transition hover:scale-105 active:scale-95 mb-1 relative"><div id="badge-topup-nav" class="hide absolute -top-1 -right-1 w-4 h-4 bg-red-500 border-2 border-white dark:border-gray-900 rounded-full flex items-center justify-center text-[9px] font-bold">1</div><i class="fas fa-plus text-lg"></i></div><p class="font-bold text-gray-700 dark:text-gray-400">Top Up</p></div>
         <div class="text-center cursor-pointer w-1/5 nav-item text-gray-400 dark:text-gray-500 group" id="nav-preorder" onclick="nav('sendPage')"><div class="mb-1 transition group-hover:-translate-y-1"><i class="fas fa-paper-plane text-xl"></i></div><p class="font-medium">Kirim</p></div>
         <div class="text-center cursor-pointer w-1/5 nav-item text-gray-400 dark:text-gray-500 group" id="nav-profile" onclick="nav('profilePage')"><div class="mb-1 transition group-hover:-translate-y-1"><i class="fas fa-user text-xl"></i></div><p class="font-medium">Saya</p></div>
     </nav>
@@ -1493,9 +1506,46 @@ window.executeApiTransaction = async (code, dest, price, name) => {
         }
     };
 
-    // Topup Logic
-    window.openTopUpSheet = () => document.getElementById('topUpSheet').classList.remove('hide');
+        // --- TOP UP LOGIC & SMART BADGE ---
+    window.checkPendingTopUp = () => {
+        if(!currentUser) return false;
+        const savedData = localStorage.getItem('qios_trx_' + currentUser.uid);
+        if (savedData) {
+            const ticket = JSON.parse(savedData);
+            const now = Date.now();
+            const limit = 25 * 60 * 1000;
+            if ((now - ticket.created) < limit) return true;
+            else localStorage.removeItem('qios_trx_' + currentUser.uid);
+        }
+        return false;
+    };
+
+    window.updateTopUpBadge = () => {
+        const hasPending = window.checkPendingTopUp();
+        const b1 = document.getElementById('badge-topup-home');
+        const b2 = document.getElementById('badge-topup-nav');
+        if(hasPending) {
+            if(b1) b1.classList.remove('hide');
+            if(b2) b2.classList.remove('hide');
+        } else {
+            if(b1) b1.classList.add('hide');
+            if(b2) b2.classList.add('hide');
+        }
+    };
+
+    window.openTopUpSheet = () => {
+        if(window.checkPendingTopUp()) {
+            window.openQios(); // Resume pending transaction
+        } else {
+            document.getElementById('topUpSheet').classList.remove('hide');
+        }
+    };
+    
     window.closeTopUp = () => document.getElementById('topUpSheet').classList.add('hide');
+    
+    // Auto Update Badge
+    setInterval(window.updateTopUpBadge, 2000);
+
         window.checkAkrabStock = async () => {
         window.showLoader(true);
         const targetUrl = "https://panel.khfy-store.com/api_v3/cek_stock_akrab";
@@ -1550,7 +1600,20 @@ window.executeApiTransaction = async (code, dest, price, name) => {
 
 
 
-        // --- QIOSPAY SYSTEM V2 (Timer & History) ---
+        
+    // --- FULL QR PREVIEW ---
+    window.openFullQr = () => {
+        const src = document.getElementById('qiosQrDisplay').src;
+        if(!src) return;
+        document.getElementById('fullQrImage').src = src;
+        document.getElementById('fullQrModal').classList.remove('hide');
+    };
+    
+    window.closeFullQr = () => {
+        document.getElementById('fullQrModal').classList.add('hide');
+    };
+
+// --- QIOSPAY SYSTEM V2 (Timer & History) ---
     let qiosInterval = null;
 
     window.openQios = () => {
@@ -1819,14 +1882,7 @@ window.copyToClipboard = (text) => {
     };
 
 
-window.processTopUp = (method) => {
-        window.closeTopUp();
-        if(method === 'manual') {
-            const newBal = currentBalance + 50000;
-            updateDoc(doc(db, "users", currentUser.uid), { balance: newBal });
-            alert("Top Up Berhasil +50.000");
-        }
-    };
+
 
 </script>
 </body>

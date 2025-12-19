@@ -823,86 +823,9 @@ window.nav = (pageId) => {
 
     // ... (Code PPOB, Auth UI Handlers lainnya tetap ada di sini - disalin dari versi sebelumnya) ...
     // AUTH LOGIC (Copied & Minimized for brevity, FULL logic included in HTML file above)
-            window.loginWithGoogle = async () => {
-        const provider = new GoogleAuthProvider();
-        try {
-                        // MODIFIKASI: Redirect Mode untuk HP
-            alert("Memproses Login Google... Mohon tunggu.");
-            await signInWithRedirect(auth, provider);
-            // onAuthStateChanged akan menangani routing selanjutnya
-        } catch (error) {
-            alert("Gagal Login Google: " + error.message);
-        }
-    };
+    
 
-    window.saveProfileSetup = async () => {
-        const username = document.getElementById('setupUsername').value;
-        const gender = document.getElementById('setupGender').value;
-        const dob = document.getElementById('setupDob').value;
 
-        if(!username || !gender || !dob) return alert("Mohon lengkapi semua data!");
-        
-        window.showLoader(true);
-        try {
-            await setDoc(doc(db, "users", currentUser.uid), {
-                email: currentUser.email,
-                username: username,
-                gender: gender,
-                dob: dob,
-                balance: 0,
-                profile_pic: base64ProfilePic || currentUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
-                createdAt: new Date().toISOString(),
-                authMethod: 'google'
-            }, { merge: true });
-            
-            document.getElementById('setupProfileModal').classList.add('hide');
-            window.showLoader(false);
-            alert("Profil berhasil disimpan!");
-        } catch(e) {
-            window.showLoader(false);
-            alert("Gagal menyimpan: " + e.message);
-        }
-    };
-
-        window.loginWithGoogle = async () => {
-        const provider = new GoogleAuthProvider();
-        try {
-                        // MODIFIKASI: Redirect Mode untuk HP
-            alert("Memproses Login Google... Mohon tunggu.");
-            await signInWithRedirect(auth, provider);
-        } catch (error) {
-            alert("Gagal Login Google: " + error.message);
-        }
-    };
-
-    window.saveProfileSetup = async () => {
-        const username = document.getElementById('setupUsername').value;
-        const gender = document.getElementById('setupGender').value;
-        const dob = document.getElementById('setupDob').value;
-
-        if(!username || !gender || !dob) return alert("Mohon lengkapi semua data!");
-        
-        window.showLoader(true);
-        try {
-            await setDoc(doc(db, "users", currentUser.uid), {
-                email: currentUser.email,
-                username: username,
-                gender: gender,
-                dob: dob,
-                balance: 0,
-                profile_pic: base64ProfilePic || currentUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
-                createdAt: new Date().toISOString(),
-                authMethod: 'google'
-            }, { merge: true });
-            
-            document.getElementById('setupProfileModal').classList.add('hide');
-            window.showLoader(false);
-            alert("Profil berhasil disimpan!");
-        } catch(e) {
-            window.showLoader(false);
-            alert("Gagal menyimpan: " + e.message);
-        }
-    };
 
     window.switchLoginMethod = (method) => { 
         loginMethod = method;
@@ -1088,7 +1011,7 @@ window.nav = (pageId) => {
         }
     });
 
-            window.previewImage = (input, type = 'reg') => { 
+                window.previewImage = (input, type = 'reg') => { 
         if (input.files && input.files[0]) {
             const reader = new FileReader();
             reader.onload = function (e) {
@@ -1109,11 +1032,6 @@ window.nav = (pageId) => {
                     const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, 400, 400);
                     base64ProfilePic = canvas.toDataURL('image/jpeg', 0.7);
                 };
-                img.src = e.target.result;
-            }
-            reader.readAsDataURL(input.files[0]);
-        }
-    };
                 img.src = e.target.result;
             }
             reader.readAsDataURL(input.files[0]);

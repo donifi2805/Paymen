@@ -199,6 +199,53 @@
     </div>
 
 
+    <div id="qiosModal" class="hide fixed inset-0 z-[160] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 fade-enter">
+        <div class="bg-white dark:bg-gray-900 w-full max-w-xs rounded-3xl p-6 shadow-2xl relative">
+            <button onclick="closeQios()" class="absolute top-4 right-4 text-gray-400 hover:text-red-500"><i class="fas fa-times text-xl"></i></button>
+            
+            
+            <div id="qiosStep1">
+                <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-1">Top Up Otomatis</h3>
+                <p class="text-xs text-gray-500 mb-4">Metode QRIS (Cek Otomatis)</p>
+                <div class="input-group mb-4">
+                    <input type="number" id="qiosInputAmount" placeholder="Minimal 1.000" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 pl-11 dark:text-white text-lg font-bold">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <button onclick="generateQiosTicket()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg">LANJUTKAN</button>
+            </div>
+
+            
+                        
+            <div id="qiosStep2" class="hide text-center">
+                <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-2">Scan & Bayar</h3>
+                <div class="bg-white p-2 rounded-xl border border-gray-200 inline-block mb-2">
+                    <img id="qiosQrDisplay" src="" class="w-48 h-48 object-contain">
+                </div>
+                <p class="text-xs text-gray-500">Total Transfer (Wajib Sama):</p>
+                <div class="flex justify-center items-center gap-2 mb-2">
+                    <h2 class="text-2xl font-black text-blue-600 dark:text-blue-400" id="qiosTotalDisplay">Rp 0</h2>
+                    <button onclick="copyToClipboard(document.getElementById('qiosTotalDisplay').innerText.replace(/[^0-9]/g,''))" class="text-gray-400 hover:text-blue-500"><i class="fas fa-copy"></i></button>
+                </div>
+                
+                
+                <div class="bg-red-50 dark:bg-red-900/20 rounded-lg p-2 mb-3 border border-red-100 dark:border-red-800">
+                    <p class="text-[10px] text-red-600 dark:text-red-400 mb-0">Batas Waktu Pembayaran</p>
+                    <div id="qiosTimerDisplay" class="text-xl font-mono font-bold text-red-600 dark:text-red-400">25:00</div>
+                </div>
+
+                <div class="bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded-xl border border-yellow-100 dark:border-yellow-800 mb-3">
+                    <p class="text-[10px] text-left text-yellow-700 dark:text-yellow-400 leading-tight"><b>PENTING:</b><br>1. Transfer nominal persis sampai 3 digit terakhir.<br>2. Saldo masuk otomatis setelah transfer berhasil.</p>
+                </div>
+                
+                <div class="flex flex-col gap-2">
+                    <button onclick="checkQiosStatus()" id="btnCheckQios" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow-lg transition">SAYA SUDAH BAYAR</button>
+                    <button onclick="cancelQiosTransaction()" class="w-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 text-gray-500 hover:text-red-500 font-bold py-3 rounded-xl transition">Batalkan Transaksi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
 <div id="topUpSheet" class="hide fixed inset-0 z-50 flex flex-col justify-end bg-black/60 backdrop-blur-sm">
         <div class="bg-white dark:bg-gray-900 w-full rounded-t-[30px] p-6 modal-enter max-w-[480px] mx-auto">
             <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-6"></div>
@@ -209,7 +256,12 @@
                     <div class="flex-1"><h4 class="font-bold text-gray-800 dark:text-white text-sm">Manual (Simulasi)</h4><p class="text-xs text-gray-500">Isi saldo +50.000 (Firestore)</p></div><i class="fas fa-chevron-right text-gray-300"></i>
                 </div>
             </div>
-            <button onclick="closeTopUp()" class="mt-6 w-full py-3 text-gray-500 dark:text-gray-400 font-semibold text-sm">Tutup</button>
+                        <div onclick="openQios()" class="flex items-center gap-4 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition mb-3">
+                <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center"><i class="fas fa-qrcode"></i></div>
+                <div class="flex-1"><h4 class="font-bold text-gray-800 dark:text-white text-sm">QRIS (Otomatis)</h4><p class="text-xs text-gray-500">Metode QiosPay (Cek Otomatis)</p></div><i class="fas fa-chevron-right text-gray-300"></i>
+            </div>
+
+<button onclick="closeTopUp()" class="mt-6 w-full py-3 text-gray-500 dark:text-gray-400 font-semibold text-sm">Tutup</button>
         </div>
     </div>
 
@@ -516,7 +568,15 @@
     let pricingRules = {}; // Cache Aturan Harga
     let passwordPromptCallback = null;
 
-    const CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
+        const QIOS_CONFIG = {
+        merchant_code: "QP036963",
+        api_key: "812feff6d5e883a1b0bb860bb2af215b5cbde41d937ba0e0814edb88334dd5df",
+        qr_string: "00020101021126670016COM.NOBUBANK.WWW01189360050300000907180214600239684104160303UMI51440014ID.CO.QRIS.WWW0215ID20254442075210303UMI5204541153033605802ID5919Mini Market Pandawa6011KARANGANYAR61055711162070703A016304DA77",
+        base_url: "https://qiospay.com/api" 
+    };
+    let qiosTicket = null;
+
+const CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
         const PROXY_LIST = [
         { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
         { name: 'CorsProxy', url: 'https://corsproxy.io/?' },
@@ -1487,6 +1547,276 @@ window.executeApiTransaction = async (code, dest, price, name) => {
         }
     };
     window.closeStockModal = () => document.getElementById('stockModal').classList.add('hide');
+
+
+
+        // --- QIOSPAY SYSTEM V2 (Timer & History) ---
+    let qiosInterval = null;
+
+    window.openQios = () => {
+        document.getElementById('topUpSheet').classList.add('hide');
+        document.getElementById('qiosModal').classList.remove('hide');
+        
+        // 1. Cek Storage (Persistensi)
+        const savedData = localStorage.getItem('qios_trx_' + currentUser.uid);
+        if (savedData) {
+            const ticket = JSON.parse(savedData);
+            const now = Date.now();
+            const limit = 25 * 60 * 1000; // 25 Menit
+            
+            if ((now - ticket.created) < limit) {
+                qiosTicket = ticket;
+                window.restoreQiosUI();
+                return;
+            } else {
+                localStorage.removeItem('qios_trx_' + currentUser.uid);
+            }
+        }
+        window.resetQiosStep();
+    };
+    
+    window.closeQios = () => document.getElementById('qiosModal').classList.add('hide');
+    
+    window.resetQiosStep = () => {
+        document.getElementById('qiosStep1').classList.remove('hide');
+        document.getElementById('qiosStep2').classList.add('hide');
+        document.getElementById('qiosInputAmount').value = '';
+        if(qiosInterval) clearInterval(qiosInterval);
+        qiosTicket = null;
+    };
+
+    window.generateQiosTicket = () => {
+        const input = parseInt(document.getElementById('qiosInputAmount').value);
+        if(!input || input < 1000) return alert('Minimal Top Up Rp 1.000');
+        
+        const uniqueCode = Math.floor(Math.random() * 900) + 100;
+        const total = input + uniqueCode;
+        
+        qiosTicket = {
+            base: input,
+            unique: uniqueCode,
+            total: total,
+            created: Date.now()
+        };
+        
+        // SIMPAN DATA
+        localStorage.setItem('qios_trx_' + currentUser.uid, JSON.stringify(qiosTicket));
+        window.restoreQiosUI();
+    };
+
+    window.restoreQiosUI = () => {
+        document.getElementById('qiosTotalDisplay').innerText = window.formatRp(qiosTicket.total);
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(QIOS_CONFIG.qr_string)}`;
+        document.getElementById('qiosQrDisplay').src = qrUrl;
+
+        document.getElementById('qiosStep1').classList.add('hide');
+        document.getElementById('qiosStep2').classList.remove('hide');
+        window.startQiosTimer();
+    };
+
+    window.startQiosTimer = () => {
+        if(qiosInterval) clearInterval(qiosInterval);
+        
+        const tick = () => {
+            if(!qiosTicket) return;
+            const now = Date.now();
+            const endTime = qiosTicket.created + (25 * 60 * 1000);
+            const diff = endTime - now;
+
+            if(diff <= 0) {
+                clearInterval(qiosInterval);
+                document.getElementById('qiosTimerDisplay').innerText = "00:00";
+                alert("Waktu pembayaran habis. Transaksi dibatalkan.");
+                window.cancelQiosTransaction(true, "Gagal (Timeout)");
+                return;
+            }
+
+            const m = Math.floor(diff / 60000);
+            const s = Math.floor((diff % 60000) / 1000);
+            document.getElementById('qiosTimerDisplay').innerText = `${m}:${s < 10 ? '0'+s : s}`;
+        };
+        
+        tick();
+        qiosInterval = setInterval(tick, 1000);
+    };
+
+    window.cancelQiosTransaction = async (silent = false, statusLabel = "Dibatalkan") => {
+        if(!silent && !confirm("Batalkan transaksi ini?")) return;
+
+        if(qiosTicket) {
+            try {
+                // Catat Riwayat Gagal/Batal
+                const hRef = doc(db, "users", currentUser.uid, "history", "TOPUP-FAIL-"+qiosTicket.created);
+                await setDoc(hRef, {
+                    title: "Top Up " + statusLabel,
+                    amount: qiosTicket.total,
+                    type: "in",
+                    date: new Date().toISOString(),
+                    status: statusLabel,
+                    method: "QiosPay QRIS"
+                });
+            } catch(e) { console.error(e); }
+        }
+
+        localStorage.removeItem('qios_trx_' + currentUser.uid);
+        if(qiosInterval) clearInterval(qiosInterval);
+        window.resetQiosStep();
+    };
+
+    window.checkQiosStatus = async () => {
+        if(!qiosTicket) return;
+        const btn = document.getElementById('btnCheckQios');
+        const oldText = btn.innerText;
+        btn.innerText = "Mengecek...";
+        btn.disabled = true;
+
+        try {
+            const res = await callApi('/mutasi', {
+                secret: QIOS_CONFIG.api_key,
+                merchant: QIOS_CONFIG.merchant_code
+            });
+
+            let success = false;
+            if(res.ok && res.data && Array.isArray(res.data.data)) {
+                const found = res.data.data.find(tx => 
+                    parseInt(tx.amount) === qiosTicket.total && 
+                    tx.type === "CR"
+                );
+                if(found) success = true;
+            }
+
+            if(success) {
+                await runTransaction(db, async (t) => {
+                    const userRef = doc(db, "users", currentUser.uid);
+                    const uDoc = await t.get(userRef);
+                    const newBal = (uDoc.data().balance || 0) + qiosTicket.total;
+                    t.update(userRef, { balance: newBal });
+                    
+                    const hRef = doc(db, "users", currentUser.uid, "history", "TOPUP-"+qiosTicket.created);
+                    t.set(hRef, {
+                        title: "Top Up Berhasil",
+                        amount: qiosTicket.total,
+                        type: "in",
+                        date: new Date().toISOString(),
+                        status: "Sukses",
+                        method: "QiosPay QRIS",
+                        desc: "Otomatis"
+                    });
+                });
+
+                alert("Saldo Berhasil Masuk!");
+                localStorage.removeItem('qios_trx_' + currentUser.uid);
+                window.closeQios();
+                window.nav('homePage');
+            } else {
+                alert("Dana belum masuk. Pastikan nominal transfer sesuai 3 digit terakhir.");
+            }
+        } catch(e) {
+            console.error(e);
+            alert("Gagal: " + e.message);
+        } finally {
+            btn.innerText = oldText;
+            btn.disabled = false;
+        }
+    };
+    
+    
+    // --- QIOSPAY FIX (Override Logic) ---
+    // Menimpa fungsi lama dengan logika koneksi yang benar
+    window.checkQiosStatus = async () => {
+        if(!qiosTicket) return;
+        const btn = document.getElementById('btnCheckQios');
+        const originalText = "SAYA SUDAH BAYAR"; // Reset text manual
+        btn.innerText = "Mengecek Server...";
+        btn.disabled = true;
+
+        try {
+            // URL Target sesuai screenshot Anda
+            const targetUrl = `https://qiospay.id/api/mutasi/qris/${QIOS_CONFIG.merchant_code}/${QIOS_CONFIG.api_key}`;
+            console.log("Cek Mutasi ke:", targetUrl);
+            
+            let resultData = null;
+            let isConnected = false;
+
+            // Loop Proxy untuk menembus CORS
+            for (const proxy of PROXY_LIST) {
+                if(isConnected) break;
+                try {
+                    const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
+                    const response = await fetch(fullUrl);
+                    
+                    if (response.ok) {
+                        const text = await response.text();
+                        try {
+                            // Coba parse JSON (kadang proxy membungkus response)
+                            const json = JSON.parse(text);
+                            // Handle response dari proxy CodeTabs/AllOrigins yang membungkus data
+                            resultData = json.contents ? JSON.parse(json.contents) : (json.data && json.status ? json : json);
+                            isConnected = true;
+                        } catch (e) { 
+                            console.warn("Parse JSON gagal via", proxy.name); 
+                        }
+                    }
+                } catch (e) { console.warn("Gagal via", proxy.name); }
+            }
+
+            if (!isConnected || !resultData) throw new Error("Gagal terhubung ke QiosPay. Periksa internet Anda.");
+
+            console.log("Data Mutasi:", resultData);
+
+            // LOGIKA PENCOCOKAN DATA
+            let success = false;
+            // Sesuai screenshot: resultData.data adalah array transaksi
+            const mutations = resultData.data || [];
+            
+            if (Array.isArray(mutations)) {
+                const found = mutations.find(tx => 
+                    parseInt(tx.amount) === parseInt(qiosTicket.total) && 
+                    (tx.type === "CR" || tx.type === "credit") // Pastikan uang masuk
+                );
+                
+                if(found) success = true;
+            }
+
+            if(success) {
+                // EKSEKUSI SUKSES
+                await runTransaction(db, async (t) => {
+                    const userRef = doc(db, "users", currentUser.uid);
+                    const uDoc = await t.get(userRef);
+                    const newBal = (uDoc.data().balance || 0) + qiosTicket.total;
+                    t.update(userRef, { balance: newBal });
+                    
+                    const hRef = doc(db, "users", currentUser.uid, "history", "TOPUP-"+qiosTicket.created);
+                    t.set(hRef, {
+                        title: "Top Up Berhasil",
+                        amount: qiosTicket.total,
+                        type: "in",
+                        date: new Date().toISOString(),
+                        status: "Sukses",
+                        method: "QiosPay QRIS",
+                        desc: "Saldo Otomatis"
+                    });
+                });
+
+                alert(`PEMBAYARAN DITERIMA!\nSaldo bertambah: ${window.formatRp(qiosTicket.total)}`);
+                localStorage.removeItem('qios_trx_' + currentUser.uid);
+                window.closeQios();
+                window.nav('homePage');
+            } else {
+                alert(`Dana sebesar ${window.formatRp(qiosTicket.total)} BELUM DITEMUKAN di mutasi.\n\nPastikan Anda mentransfer NOMINAL UNIK (sampai 3 digit terakhir).\nJika sudah transfer, tunggu 1-2 menit lalu tekan tombol ini lagi.`);
+            }
+        } catch(e) {
+            console.error(e);
+            alert("Error: " + e.message);
+        } finally {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+    };
+
+window.copyToClipboard = (text) => {
+        navigator.clipboard.writeText(text).then(() => alert('Disalin: ' + text));
+    };
 
 
 window.processTopUp = (method) => {

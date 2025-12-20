@@ -630,7 +630,8 @@ const CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https
                 document.getElementById('setupProfileModal').classList.add('hide');
             window.nav('homePage');
 
-                currentBalance = data.balance || 0;
+                window.showLoader(false);
+currentBalance = data.balance || 0;
                 currentUsername = data.username || "User";
                 if(document.getElementById('displayBalance')) document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
                 

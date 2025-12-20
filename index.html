@@ -59,7 +59,7 @@
         </div>
     </div>
 
-        <div id="setupProfileModal" class="hide fixed inset-0 z-[160] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 fade-enter">
+    <div id="setupProfileModal" class="hide fixed inset-0 z-[160] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 fade-enter">
         <div class="bg-white dark:bg-gray-900 w-full max-w-xs rounded-3xl p-6 shadow-2xl overflow-hidden">
             <div class="text-center mb-6">
                 <h3 class="text-xl font-bold text-gray-800 dark:text-white">Selamat Datang!</h3>
@@ -564,20 +564,6 @@
     const db = getFirestore(app);
         auth.languageCode = 'id';
 
-    // FIX: Tangkap hasil login Google setelah Redirect
-    getRedirectResult(auth)
-        .then((result) => {
-            if (result) {
-                console.log("Login Google Berhasil:", result.user.uid);
-                // Tidak perlu nav() disini, onAuthStateChanged akan menanganinya otomatis
-            }
-        })
-        .catch((error) => {
-            console.error(error);
-            alert("Gagal Masuk: " + error.message);
-            window.showLoader(false);
-        });
-
     // VARIABLES
     let currentUser = null;
     let currentBalance = 0;
@@ -613,14 +599,6 @@ const CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https
         { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
         { name: 'Direct', url: '' }
     ];
-
-        // Handle Redirect Result (Mencegah stuck di login page)
-    getRedirectResult(auth).then((result) => {
-        if (result) console.log("Redirect Sukses");
-    }).catch((error) => {
-        console.error("Redirect Error:", error);
-        window.showLoader(false);
-    });
 
     // AUTH & DATA
     onAuthStateChanged(auth, (user) => {
@@ -939,18 +917,66 @@ window.nav = (pageId) => {
     // AUTH LOGIC (Copied & Minimized for brevity, FULL logic included in HTML file above)
     
 
-
-
-            window.loginWithGoogle = async () => {
+     window.loginWithGoogle = async () => {
         window.showLoader(true);
         const provider = new GoogleAuthProvider();
+        
+        // Memaksa meminta akses profil dan email
+        provider.addScope('profile');
+        provider.addScope('email');
+
         try {
-            await signInWithRedirect(auth, provider);
+            // MENGGUNAKAN POPUP AGAR LEBIH STABIL DI WEBVIEW
+            const result = await signInWithPopup(auth, provider);
+            const user = result.user;
+
+            // Cek apakah user sudah ada di database Firestore
+            const userDocRef = doc(db, "users", user.uid);
+            const userDoc = await getDoc(userDocRef);
+
+            if (!userDoc.exists()) {
+                // --- USER BARU ---
+                // Simpan data dasar dari Google ke Firestore sementara
+                await setDoc(userDocRef, {
+                    email: user.email,
+                    balance: 0,
+                    // Gunakan foto profil Google
+                    profile_pic: user.photoURL, 
+                    createdAt: new Date().toISOString(),
+                    authMethod: 'google'
+                }, { merge: true });
+
+                // Tampilkan Modal Setup Profile untuk lengkapi data
+                document.getElementById('setupProfileModal').classList.remove('hide');
+                
+                // Masukkan foto Google ke preview di modal setup
+                const setupPreview = document.getElementById('setupProfilePreview');
+                if(setupPreview) {
+                    setupPreview.src = user.photoURL;
+                    setupPreview.style.display = 'block';
+                    document.getElementById('setupUploadPlaceholder').style.display = 'none';
+                }
+                
+                window.showLoader(false);
+            } else {
+                // --- USER LAMA ---
+                // Data sudah ada, biarkan onAuthStateChanged yang mengurus navigasi ke Home
+                console.log("User lama login kembali:", user.email);
+            }
+
         } catch (error) {
             window.showLoader(false);
-            alert("Gagal Login Google: " + error.message);
+            console.error("Google Login Error:", error);
+            
+            // Handle jika user menutup popup manual
+            if (error.code === 'auth/popup-closed-by-user') {
+                alert("Login dibatalkan (Popup ditutup).");
+            } else {
+                alert("Gagal Login Google: " + error.message);
+            }
         }
     };
+
 
     window.saveProfileSetup = async () => {
         const username = document.getElementById('setupUsername').value;
@@ -1781,64 +1807,6 @@ window.executeApiTransaction = async (code, dest, price, name) => {
         window.resetQiosStep();
     };
 
-    window.checkQiosStatus = async () => {
-        if(!qiosTicket) return;
-        const btn = document.getElementById('btnCheckQios');
-        const oldText = btn.innerText;
-        btn.innerText = "Mengecek...";
-        btn.disabled = true;
-
-        try {
-            const res = await callApi('/mutasi', {
-                secret: QIOS_CONFIG.api_key,
-                merchant: QIOS_CONFIG.merchant_code
-            });
-
-            let success = false;
-            if(res.ok && res.data && Array.isArray(res.data.data)) {
-                const found = res.data.data.find(tx => 
-                    parseInt(tx.amount) === qiosTicket.total && 
-                    tx.type === "CR"
-                );
-                if(found) success = true;
-            }
-
-            if(success) {
-                await runTransaction(db, async (t) => {
-                    const userRef = doc(db, "users", currentUser.uid);
-                    const uDoc = await t.get(userRef);
-                    const newBal = (uDoc.data().balance || 0) + qiosTicket.total;
-                    t.update(userRef, { balance: newBal });
-                    
-                    const hRef = doc(db, "users", currentUser.uid, "history", "TOPUP-"+qiosTicket.created);
-                    t.set(hRef, {
-                        title: "Top Up Berhasil",
-                        amount: qiosTicket.total,
-                        type: "in",
-                        date: new Date().toISOString(),
-                        status: "Sukses",
-                        method: "QiosPay QRIS",
-                        desc: "Otomatis"
-                    });
-                });
-
-                alert("Saldo Berhasil Masuk!");
-                localStorage.removeItem('qios_trx_' + currentUser.uid);
-                window.closeQios();
-                window.nav('homePage');
-            } else {
-                alert("Dana belum masuk. Pastikan nominal transfer sesuai 3 digit terakhir.");
-            }
-        } catch(e) {
-            console.error(e);
-            alert("Gagal: " + e.message);
-        } finally {
-            btn.innerText = oldText;
-            btn.disabled = false;
-        }
-    };
-    
-    
     // --- QIOSPAY FIX (Override Logic) ---
     // Menimpa fungsi lama dengan logika koneksi yang benar
     window.checkQiosStatus = async () => {
@@ -1935,9 +1903,6 @@ window.executeApiTransaction = async (code, dest, price, name) => {
 window.copyToClipboard = (text) => {
         navigator.clipboard.writeText(text).then(() => alert('Disalin: ' + text));
     };
-
-
-
 
 </script>
 </body>

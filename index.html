@@ -483,7 +483,8 @@
                             <input type="tel" id="ppobNumber" placeholder="Nomor HP / ID Pelanggan" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-800 text-gray-800 dark:text-white text-sm font-bold pl-11">
                             <i class="fas fa-address-book text-gray-400 absolute left-4 top-1/2 -translate-y-1/2 z-10"></i>
                         </div>
-                        <div id="multiNumContainer" class="hide space-y-2 mt-2"></div>
+                        <div id="productDescription" class="hide mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-xs text-gray-600 dark:text-gray-300 border border-blue-100 dark:border-blue-800 leading-relaxed transition-all animate-fade-in-down"></div>
+<div id="multiNumContainer" class="hide space-y-2 mt-2"></div>
                         <button id="btnAddNum" onclick="addMultiInput()" class="hide mt-2 w-full py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl text-xs font-bold border border-blue-200 dark:border-blue-800 border-dashed hover:bg-blue-100 dark:hover:bg-blue-900/40 transition"><i class="fas fa-plus mr-1"></i> Tambah Nomor Tujuan</button>
                     </div>
                     <button onclick="processFormTransaction()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/30 active:scale-95 transition-transform flex justify-center items-center gap-2"><span>Beli Paket</span><i class="fas fa-arrow-right"></i></button>
@@ -1387,6 +1388,7 @@
             opt.text = `${name} - Rp ${window.formatRp(price)}`;
             opt.dataset.price = price;
             opt.dataset.name = name;
+            opt.dataset.description = p.deskripsi || '';
             
             if(isGangguan) {
                 opt.text += ' (GANGGUAN)';
@@ -1396,9 +1398,21 @@
             productSelect.appendChild(opt);
         });
 
-        productSelect.onchange = function() {
+                productSelect.onchange = function() {
              const selectedOpt = this.options[this.selectedIndex];
              priceDisplay.innerText = `Harga: Rp ${window.formatRp(selectedOpt.dataset.price)}`;
+             
+             const descBox = document.getElementById('productDescription');
+             if(descBox) {
+                 const rawDesc = selectedOpt.dataset.description;
+                 if(rawDesc && rawDesc !== 'undefined' && rawDesc.trim() !== '') {
+                     descBox.innerHTML = '<div class="font-bold mb-1 text-blue-600 dark:text-blue-400"><i class="fas fa-info-circle mr-1"></i>Detail Paket:</div>' + rawDesc.replace(/\r?\n/g, '<br>');
+                     descBox.classList.remove('hide');
+                 } else {
+                     descBox.classList.add('hide');
+                     descBox.innerHTML = '';
+                 }
+             }
         };
     };
     const priceDisplay = document.getElementById('priceDisplay');

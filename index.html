@@ -901,6 +901,27 @@
         try {
             const result = await signInWithPopup(auth, provider);
             const user = result.user;
+            
+            // PERBAIKAN: Cek via Email untuk mencegah akun ganda/terpisah
+            const q = query(collection(db, "users"), where("email", "==", user.email));
+            const querySnapshot = await getDocs(q);
+            
+            if (!querySnapshot.empty) {
+                // Jika email ditemukan di database
+                let isManualUser = false;
+                querySnapshot.forEach((doc) => {
+                    if (doc.data().authMethod === 'email') isManualUser = true;
+                });
+
+                if (isManualUser) {
+                    await signOut(auth);
+                    window.showLoader(false);
+                    alert("AKSES DITOLAK: Email ini terdaftar menggunakan Sandi.\n\nMohon login manual, jangan gunakan Google agar akun tidak tertimpa/ganda.");
+                    window.location.reload();
+                    return;
+                }
+            }
+
             const userDocRef = doc(db, "users", user.uid);
             const userDoc = await getDoc(userDocRef);
 

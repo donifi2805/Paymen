@@ -692,44 +692,49 @@
 
     // --- FITUR KIRIM (TRANSFER) ---
     window.initiateSend = async () => {
-        const username = document.getElementById('sendTargetUser').value;
-        const amount = parseInt(document.getElementById('sendAmount').value);
+        try {
+            const username = document.getElementById('sendTargetUser').value;
+            const amount = parseInt(document.getElementById('sendAmount').value);
 
-        if(!username) return alert("Masukkan username tujuan!");
-        if(!amount || amount < 1000) return alert("Minimal transfer Rp 1.000");
-        if(amount > currentBalance) return alert("Saldo tidak cukup!");
+            if(!username) return alert("Masukkan username tujuan!");
+            if(!amount || amount < 1000) return alert("Minimal transfer Rp 1.000");
+            if(amount > currentBalance) return alert("Saldo tidak cukup!");
 
-        window.showLoader(true);
-        const targetUser = await findUserByUsername(username);
-        window.showLoader(false);
+            window.showLoader(true);
+            const targetUser = await findUserByUsername(username);
+            window.showLoader(false);
 
-        if(!targetUser) return alert("Username tidak ditemukan!");
-        if(targetUser.uid === currentUser.uid) return alert("Tidak bisa transfer ke diri sendiri!");
+            if(!targetUser) return alert("Username tidak ditemukan!");
+            if(targetUser.uid === currentUser.uid) return alert("Tidak bisa transfer ke diri sendiri!");
 
-        pendingTransferData = { targetUid: targetUser.uid, targetName: targetUser.username, amount: amount, type: 'send' };
-        
-        // Minta Password untuk konfirmasi
-        openPasswordPrompt((password) => {
-            verifyPasswordAndExecute(password);
-        });
+            pendingTransferData = { targetUid: targetUser.uid, targetName: targetUser.username, amount: amount, type: 'send' };
+            
+            // Minta Password untuk konfirmasi
+            openPasswordPrompt((password) => {
+                verifyPasswordAndExecute(password);
+            });
+        } catch (e) {
+            window.showLoader(false);
+            alert("Terjadi kesalahan: " + e.message);
+        }
     };
 
     // --- FITUR MINTA (REQUEST) ---
     window.initiateRequest = async () => {
-        const username = document.getElementById('reqTargetUser').value;
-        const amount = parseInt(document.getElementById('reqAmountInput').value);
-
-        if(!username) return alert("Masukkan username tujuan!");
-        if(!amount || amount < 1000) return alert("Minimal minta Rp 1.000");
-
-        window.showLoader(true);
-        const targetUser = await findUserByUsername(username);
-        window.showLoader(false);
-
-        if(!targetUser) return alert("Username tidak ditemukan!");
-        if(targetUser.uid === currentUser.uid) return alert("Tidak bisa minta ke diri sendiri!");
-
         try {
+            const username = document.getElementById('reqTargetUser').value;
+            const amount = parseInt(document.getElementById('reqAmountInput').value);
+
+            if(!username) return alert("Masukkan username tujuan!");
+            if(!amount || amount < 1000) return alert("Minimal minta Rp 1.000");
+
+            window.showLoader(true);
+            const targetUser = await findUserByUsername(username);
+            window.showLoader(false);
+
+            if(!targetUser) return alert("Username tidak ditemukan!");
+            if(targetUser.uid === currentUser.uid) return alert("Tidak bisa minta ke diri sendiri!");
+
             await addDoc(collection(db, "requests"), {
                 senderUid: currentUser.uid,
                 senderName: currentUsername,
@@ -741,6 +746,7 @@
             alert("Permintaan berhasil dikirim ke " + targetUser.username);
             window.nav('homePage');
         } catch(e) {
+            window.showLoader(false);
             alert("Gagal mengirim permintaan: " + e.message);
         }
     };
@@ -818,6 +824,7 @@
     }
 
     async function executeTransfer() {
+        window.showLoader(true);
         const { targetUid, targetName, amount, type } = pendingTransferData;
         const senderRef = doc(db, "users", currentUser.uid);
         const receiverRef = doc(db, "users", targetUid);

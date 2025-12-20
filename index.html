@@ -465,7 +465,8 @@
                     <div class="mb-4">
                         <div class="flex justify-between items-center mb-1"><label class="block text-xs font-bold text-gray-500 ml-1">Provider</label><button onclick="initProductData()" class="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded-md hover:bg-blue-100"><i class="fas fa-sync-alt mr-1"></i> Refresh Data</button></div>
                         <div class="relative">
-                            <select id="formProvider" onchange="updateProductDropdown()" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white text-sm rounded-xl px-4 py-3 font-bold"><option value="" disabled selected>-- Pilih Provider --</option><option value="XDA">Akrab Fresh (XDA)</option><option value="XLA">Akrab Fresh (XLA)</option><option value="FMX">FlexMax (FMX)</option><option value="PLN">PLN Pascabayar</option></select>
+                            <select id="formProvider" onchange="updateProductDropdown()" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white text-sm rounded-xl px-4 py-3 font-bold"><option value="" disabled selected>-- Pilih Provider --</option><option value="XDA">Akrab Fresh (XDA)</option><option value="XLA">Akrab Fresh (XLA)</option><option value="FMX">FlexMax (FMX)</option>
+<option value="XLR">XL Reguler (XLR)</option><option value="PLN">PLN Pascabayar</option></select>
                             <i class="fas fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
                         </div>
                     </div>
@@ -1351,6 +1352,7 @@
             if (providerCode === 'XDA') return code.includes('XDA') || name.includes('XDA') || (name.includes('AKRAB') && name.includes('XTRA'));
             if (providerCode === 'XLA') return (code.includes('XLA') || name.includes('XLA') || (name.includes('AKRAB') && !name.includes('XTRA'))) && !name.toUpperCase().includes('HARI');
             if (providerCode === 'FMX') return code.includes('FMX') || name.includes('FLEX') || name.includes('UNLIMITED');
+            if (providerCode === 'XLR') return brand.includes('XLREGULER') || name.includes('REGULER');
             if (providerCode === 'PLN') return brand.includes('PLN') || code.includes('PLN') || name.includes('TOKEN');
 
             return brand.includes(providerCode) || name.includes(providerCode) || code.includes(providerCode);

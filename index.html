@@ -910,7 +910,7 @@
                 if (userData.authMethod === 'email') {
                     await signOut(auth);
                     window.showLoader(false);
-                    alert("KEAMANAN: Email ini terdaftar Manual (Password).\nSilakan login biasa, jangan pakai Google agar password tidak hilang.");
+                    alert("Akun sudah terdaftar menggunakan sandi, harap login menggunakan sandi.");
                     return;
                 }
                 console.log("User Google lama login kembali");
@@ -935,7 +935,7 @@
         } catch (error) {
             window.showLoader(false);
             console.error("Google Login Error:", error);
-            if (error.code === 'auth/popup-closed-by-user') alert("Login dibatalkan.");
+            if (error.code === 'auth/account-exists-with-different-credential') { alert("Akun sudah terdaftar menggunakan sandi, harap login menggunakan sandi."); } else if (error.code === 'auth/popup-closed-by-user') alert("Login dibatalkan.");
             else alert("Gagal Login Google: " + error.message);
         }
     };

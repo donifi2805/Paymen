@@ -543,6 +543,7 @@ const activeLink = document.getElementById('nav-' + tabId);
 
         async function loadGlobalTransactions() {
             try {
+                console.log("Mengambil data transaksi dari Firestore...");
                 const historyQuery = query(collectionGroup(db, 'history'), orderBy('date', 'desc'));
                 const querySnapshot = await getDocs(historyQuery);
                 
@@ -552,10 +553,13 @@ const activeLink = document.getElementById('nav-' + tabId);
                     if (doc.ref.parent && doc.ref.parent.parent) {
                         ownerUid = doc.ref.parent.parent.id;
                     }
-                    allTransactions.push({ uid: ownerUid, ...doc.data() });
+                    const data = doc.data();
+                    allTransactions.push({ uid: ownerUid, id: doc.id, ...data });
                 });
 
-                                let totalProfit = 0;
+                console.log("Transaksi ditemukan:", allTransactions.length);
+
+                let totalProfit = 0;
                 const now = new Date();
                 const currentMonth = now.getMonth();
                 const currentYear = now.getFullYear();
@@ -564,8 +568,6 @@ const activeLink = document.getElementById('nav-' + tabId);
                     if (t.status === 'Sukses' && t.type === 'out' && t.date) {
                         const tDate = new Date(t.date);
                         if (tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear) {
-                            // Mencoba mengambil markup dari rules jika tersedia di data transaksi
-                            // Jika tidak ada, kita asumsikan markup statis atau 0 untuk dashboard
                             totalProfit += (parseInt(t.markup) || 0);
                         }
                     }
@@ -576,9 +578,14 @@ const activeLink = document.getElementById('nav-' + tabId);
                 renderTransactions(allTransactions); 
 
             } catch(e) {
-                if(e.code === 'failed-precondition') {
-                    document.getElementById('trxTableBody').innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500 font-bold text-[10px] bg-red-50">Index Error: Perlu Index Firestore.</td></tr>`;
+                console.error("Error Firestore:", e);
+                let errorMsg = "Gagal memuat data.";
+                if (e.code === 'failed-precondition' || e.message.includes('index')) {
+                    errorMsg = "Error: Index Firestore diperlukan. Cek Console (F12) untuk link aktivasi.";
                 }
+                document.getElementById('trxTableBody').innerHTML = `<tr><td colspan='5' class='p-6 text-center text-red-500 font-bold text-[10px]'>${errorMsg}</td></tr>`;
+                // Tetap panggil render dengan array kosong agar status 'Menunggu' hilang
+                renderTransactions([]);
             }
         }
 

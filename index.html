@@ -901,18 +901,35 @@
         try {
             const result = await signInWithPopup(auth, provider);
             const user = result.user;
+            
+            // PERBAIKAN: Cek via Email untuk mencegah akun ganda/terpisah
+            const q = query(collection(db, "users"), where("email", "==", user.email));
+            const querySnapshot = await getDocs(q);
+            
+            if (!querySnapshot.empty) {
+                // Jika email ditemukan di database
+                let isManualUser = false;
+                querySnapshot.forEach((doc) => {
+                    if (doc.data().authMethod === 'email') isManualUser = true;
+                });
+
+                if (isManualUser) {
+                    await signOut(auth);
+                    window.showLoader(false);
+                    alert("AKSES DITOLAK: Email ini terdaftar menggunakan Sandi.\n\nMohon login manual, jangan gunakan Google agar akun tidak tertimpa/ganda.");
+                    window.location.reload();
+                    return;
+                }
+            }
+
             const userDocRef = doc(db, "users", user.uid);
             const userDoc = await getDoc(userDocRef);
 
             if (userDoc.exists()) {
                 // PROTEKSI: Cek apakah ini akun email/password
                 const userData = userDoc.data();
-                if (userData.authMethod === 'email') {
-                    await signOut(auth);
-                    window.showLoader(false);
-                    alert("KEAMANAN: Email ini terdaftar Manual (Password).\nSilakan login biasa, jangan pakai Google agar password tidak hilang.");
-                    return;
-                }
+                // Akun lama terdeteksi (Baik Sandi maupun Google), izinkan masuk.
+                console.log("User lama login via Google (Account Linking)");
                 console.log("User Google lama login kembali");
             } else {
                 await setDoc(userDocRef, {
@@ -935,7 +952,7 @@
         } catch (error) {
             window.showLoader(false);
             console.error("Google Login Error:", error);
-            if (error.code === 'auth/popup-closed-by-user') alert("Login dibatalkan.");
+            if (error.code === 'auth/account-exists-with-different-credential') { alert("Akun sudah terdaftar menggunakan sandi, harap login menggunakan sandi."); } else if (error.code === 'auth/popup-closed-by-user') alert("Login dibatalkan.");
             else alert("Gagal Login Google: " + error.message);
         }
     };

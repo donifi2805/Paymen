@@ -813,8 +813,9 @@
         const input = document.getElementById('confirmPasswordInput').value.trim().toLowerCase();
         if(input !== 'ya') return alert("Ketik 'ya' untuk konfirmasi!");
         if(passwordPromptCallback) {
+             const callback = passwordPromptCallback;
              window.closePasswordPrompt();
-             passwordPromptCallback();
+             callback();
         }
     });
 

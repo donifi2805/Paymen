@@ -46,6 +46,24 @@
         .profile-upload:hover { border-color: #2563eb; }
         .profile-upload img { width: 100%; height: 100%; object-fit: cover; display: none; }
         .profile-upload .upload-placeholder { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #94a3b8; pointer-events: none; }
+            /* LIVE CHAT STYLES */
+        .chat-float-btn { position: fixed; bottom: 65px; left: 90%; transform: translateX(-50%); z-index: 50; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4); transition: all 0.3s; }
+        .chat-float-btn:active { transform: scale(0.9); }
+        @keyframes floatBounce { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, -5px); } }
+        
+        .chat-window { position: fixed; bottom: 100px; right: 20px; width: 320px; height: 450px; background: white; z-index: 46; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; transform-origin: bottom right; transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1); border: 1px solid #e2e8f0; }
+        html.dark .chat-window { background: #111827; border-color: #374151; }
+        .chat-window.hide { transform: scale(0); opacity: 0; pointer-events: none; }
+        
+        .chat-body { flex: 1; overflow-y: auto; padding: 15px; scroll-behavior: smooth; background-color: #f8fafc; }
+        html.dark .chat-body { background-color: #0f172a; }
+        
+        .chat-bubble { max-width: 80%; padding: 10px 14px; border-radius: 12px; font-size: 12px; line-height: 1.4; position: relative; word-wrap: break-word; margin-bottom: 8px; animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+        
+        .chat-me { align-self: flex-end; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; border-bottom-right-radius: 2px; margin-left: auto; }
+        .chat-admin { align-self: flex-start; background: #e2e8f0; color: #1e293b; border-bottom-left-radius: 2px; margin-right: auto; }
+        html.dark .chat-admin { background: #374151; color: #f3f4f6; }
     </style>
 </head>
 <body>
@@ -513,13 +531,48 @@
         </div>
     </section>
 
+        <div id="liveChatContainer"><div id="liveChatModal" class="chat-window hide">
+            <div class="bg-blue-600 p-4 flex justify-between items-center shadow-md shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-white"><i class="fas fa-user-astronaut"></i></div>
+                    <div>
+                        <h4 class="text-white font-bold text-sm leading-tight">Admin Support</h4>
+                        <p class="text-blue-100 text-[10px]">Online • Membalas cepat</p>
+                    </div>
+                </div>
+                <button onclick="toggleChat()" class="text-white/80 hover:text-white"><i class="fas fa-times text-lg"></i></button>
+            </div>
+            
+            <div id="chatMessages" class="chat-body flex flex-col gap-2 custom-scroll">
+                <div class="text-center mt-10 opacity-50">
+                    <i class="fas fa-comments text-4xl text-gray-300 mb-2"></i>
+                    <p class="text-xs text-gray-400">Mulai percakapan dengan Admin.</p>
+                </div>
+            </div>
+
+            <div class="p-3 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 shrink-0">
+                <form onsubmit="event.preventDefault(); sendChatMessage();" class="flex gap-2">
+                    <input type="text" id="chatInput" placeholder="Tulis pesan..." class="flex-1 bg-gray-100 dark:bg-gray-800 border-0 rounded-xl px-4 py-3 text-xs focus:ring-2 focus:ring-blue-500 dark:text-white">
+                    <button type="submit" class="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center hover:bg-blue-700 transition shadow-lg shadow-blue-500/30"><i class="fas fa-paper-plane"></i></button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <nav id="bottomNav" class="fixed bottom-0 left-0 right-0 max-w-[480px] mx-auto bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 flex justify-around items-end pb-4 pt-3 text-[10px] shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-40 hide rounded-t-3xl">
         <div class="text-center cursor-pointer w-1/5 nav-item text-blue-600 dark:text-blue-400 group" id="nav-home" onclick="nav('homePage')"><div class="mb-1 transition group-hover:-translate-y-1"><i class="fas fa-home text-xl"></i></div><p class="font-medium">Beranda</p></div>
         <div class="text-center cursor-pointer w-1/5 nav-item text-gray-400 dark:text-gray-500 group" id="nav-buy" onclick="openPPOB('akrab')"><div class="mb-1 transition group-hover:-translate-y-1"><i class="fas fa-shopping-cart text-xl"></i></div><p class="font-medium">Beli</p></div>
                 <div class="text-center w-1/5 qris-btn-container cursor-pointer" onclick="openTopUpSheet()"><div class="qris-btn w-11 h-11 rounded-full flex items-center justify-center mx-auto text-white transform transition hover:scale-105 active:scale-95 mb-1 relative"><div id="badge-topup-nav" class="hide absolute -top-1 -right-1 w-4 h-4 bg-red-500 border-2 border-white dark:border-gray-900 rounded-full flex items-center justify-center text-[9px] font-bold">1</div><i class="fas fa-plus text-lg"></i></div><p class="font-bold text-gray-700 dark:text-gray-400">Top Up</p></div>
         <div class="text-center cursor-pointer w-1/5 nav-item text-gray-400 dark:text-gray-500 group" id="nav-preorder" onclick="nav('sendPage')"><div class="mb-1 transition group-hover:-translate-y-1"><i class="fas fa-paper-plane text-xl"></i></div><p class="font-medium">Kirim</p></div>
         <div class="text-center cursor-pointer w-1/5 nav-item text-gray-400 dark:text-gray-500 group" id="nav-profile" onclick="nav('profilePage')"><div class="mb-1 transition group-hover:-translate-y-1"><i class="fas fa-user text-xl"></i></div><p class="font-medium">Saya</p></div>
-    </nav>
+    
+    <div class="absolute -top-8 right-[7%] z-50">
+        <button onclick="toggleChat()" id="chatFloatBtn" class="hide w-11 h-11 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center shadow-lg shadow-blue-600/40 border-2 border-white dark:border-gray-800 transition-transform active:scale-95">
+            <i class="fas fa-headset text-sm"></i>
+            <div id="chatBadge" class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 border-2 border-white rounded-full text-[9px] font-bold flex items-center justify-center hide">!</div>
+        </button>
+    </div>
+</nav>
 </div>
 
 <script type="module">
@@ -540,7 +593,7 @@
         signInWithRedirect,
         getRedirectResult
     } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, onSnapshot, query, orderBy, where, getDocs, runTransaction, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, onSnapshot, query, orderBy, where, getDocs, runTransaction, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyC7vP4QUhxPM3wG_jsnA2Z8dsTYd2IJ1KA",
@@ -1802,10 +1855,117 @@
         }
     };
 
-    window.copyToClipboard = (text) => {
+        window.copyToClipboard = (text) => {
         navigator.clipboard.writeText(text).then(() => alert('Disalin: ' + text));
     };
 
-</script>
+    // --- SYSTEM LIVE CHAT ---
+    let chatListenerUnsub = null;
+    
+    window.toggleChat = () => {
+        const modal = document.getElementById('liveChatModal');
+        const isClosed = modal.classList.contains('hide');
+        
+        if (isClosed) {
+            modal.classList.remove('hide');
+            document.getElementById('chatBadge').classList.add('hide');
+            if(!chatListenerUnsub) initChatListener();
+            setTimeout(() => scrollChatBottom(), 100);
+        } else {
+            modal.classList.add('hide');
+        }
+    };
+
+    window.initChatListener = () => {
+        if (!currentUser) return;
+        const msgsRef = collection(db, "chats", currentUser.uid, "messages");
+        const q = query(msgsRef, orderBy("timestamp", "asc"));
+
+        chatListenerUnsub = onSnapshot(q, (snapshot) => {
+            const container = document.getElementById('chatMessages');
+            container.innerHTML = '';
+            
+            if(snapshot.empty) {
+                container.innerHTML = '<div class="text-center mt-10 opacity-50"><i class="fas fa-comments text-4xl text-gray-300 dark:text-gray-600 mb-2"></i><p class="text-xs text-gray-400">Halo, ada yang bisa kami bantu?</p></div>';
+                return;
+            }
+
+            let unreadCount = 0;
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const isMe = data.sender === 'user';
+                const bubble = document.createElement('div');
+                bubble.className = `chat-bubble ${isMe ? 'chat-me' : 'chat-admin'}`;
+                bubble.innerHTML = `${data.text}<br><span class="text-[9px] opacity-70 block text-right mt-1">${formatTime(data.timestamp)}</span>`;
+                container.appendChild(bubble);
+
+                // Hitung notifikasi jika window tertutup & pengirim adalah admin
+                if(!isMe && document.getElementById('liveChatModal').classList.contains('hide')) {
+                    unreadCount++;
+                }
+            });
+
+            if(unreadCount > 0) {
+                 document.getElementById('chatBadge').innerText = unreadCount;
+                 document.getElementById('chatBadge').classList.remove('hide');
+            }
+            scrollChatBottom();
+        });
+    };
+
+    window.sendChatMessage = async () => {
+        const input = document.getElementById('chatInput');
+        const text = input.value.trim();
+        if (!text || !currentUser) return;
+
+        input.value = ''; // Clear dulu biar responsif
+        
+        try {
+            // 1. Simpan Pesan
+            await addDoc(collection(db, "chats", currentUser.uid, "messages"), {
+                text: text,
+                sender: 'user',
+                timestamp: serverTimestamp(),
+                isRead: false
+            });
+
+            // 2. Update Info Header Chat (Untuk Admin List)
+            await setDoc(doc(db, "chats", currentUser.uid), {
+                username: currentUsername,
+                lastMessage: text,
+                lastTimestamp: serverTimestamp(),
+                lastSender: 'user',
+                isRead: false,
+                userEmail: currentUser.email || '-'
+            }, { merge: true });
+
+        } catch(e) {
+            console.error("Chat Error", e);
+            alert("Gagal mengirim pesan.");
+        }
+    };
+
+    function scrollChatBottom() {
+        const el = document.getElementById('chatMessages');
+        el.scrollTop = el.scrollHeight;
+    }
+
+    function formatTime(ts) {
+        if(!ts) return '...';
+        return new Date(ts.toDate()).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+    }
+
+    // Tampilkan tombol chat hanya jika login
+    onAuthStateChanged(auth, (user) => {
+        if(user) {
+            document.getElementById('chatFloatBtn').classList.remove('hide');
+            initChatListener(); // Listen background untuk notifikasi
+        } else {
+            document.getElementById('chatFloatBtn').classList.add('hide');
+            if(chatListenerUnsub) chatListenerUnsub();
+        }
+    });
+
+        </script>
 </body>
 </html>

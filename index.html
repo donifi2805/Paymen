@@ -907,10 +907,11 @@
             if (userDoc.exists()) {
                 // PROTEKSI: Cek apakah ini akun email/password
                 const userData = userDoc.data();
-                if (userData.authMethod === 'email') {
+                if (userData.authMethod !== 'google') {
                     await signOut(auth);
                     window.showLoader(false);
-                    alert("Akun sudah terdaftar menggunakan sandi, harap login menggunakan sandi.");
+                    alert("AKSES DITOLAK: Akun ini sudah terdaftar dengan Sandi.\n\nSilakan login manual menggunakan Email & Kata Sandi.");
+                    window.location.reload();
                     return;
                 }
                 console.log("User Google lama login kembali");

@@ -1136,8 +1136,6 @@ window.nav = (pageId) => {
         const status = document.getElementById('statusMessage');
 
         if(!email) return alert("Mohon isi Email!");
-        const cleanEmail = email.trim();
-        const cleanPassword = password.trim();
         status.innerText = "Memproses...";
 
         // 1. HANDLER LUPA SANDI
@@ -1163,18 +1161,12 @@ window.nav = (pageId) => {
         // 3. HANDLER LOGIN
         if(authMode === 'login') {
             try { 
-                await signInWithEmailAndPassword(auth, cleanEmail, cleanPassword);
-            } catch(e) {
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch(e) { 
                 status.innerText = "Gagal Login";
-                let msg = "Login Gagal";
-                if (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password' || e.code === 'auth/user-not-found') {
-                    msg = "Email atau Kata Sandi salah. Silakan periksa kembali.";
-                } else {
-                    msg = "Terjadi kesalahan: " + e.message;
-                }
-                alert(msg);
+                alert("Login Gagal: " + e.message); 
             }
-        }
+        
         // 4. HANDLER REGISTER
         } else if (authMode === 'register') {
             const username = document.getElementById('regUsername').value;

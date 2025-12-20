@@ -82,15 +82,14 @@
 
     <div id="passwordPromptModal" class="hide fixed inset-0 z-[130] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 fade-enter">
         <div class="bg-white dark:bg-gray-900 w-full max-w-xs rounded-3xl p-6 shadow-2xl">
-            <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-2 text-center">Konfirmasi Keamanan</h3>
-            <p class="text-xs text-gray-500 text-center mb-4">Masukkan kata sandi untuk melanjutkan transaksi.</p>
+            <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-2 text-center">Konfirmasi Transaksi</h3>
+            <p class="text-xs text-gray-500 text-center mb-4">Ketik <b>"ya"</b> (kecil semua) untuk melanjutkan.</p>
             <div class="input-group mb-4">
-                <input type="password" id="confirmPasswordInput" placeholder="Kata Sandi" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-800 text-gray-700 dark:text-gray-100 text-sm font-medium pl-11">
-                <i class="fas fa-lock"></i>
+                <input type="text" id="confirmPasswordInput" placeholder="Ketik: ya" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-800 text-gray-700 dark:text-gray-100 text-lg font-bold text-center uppercase">
             </div>
             <div class="flex gap-2">
                 <button onclick="closePasswordPrompt(false)" class="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold text-xs">Batal</button>
-                <button id="btnConfirmPassword" class="flex-1 py-2.5 rounded-xl bg-blue-600 text-white font-bold text-xs shadow-lg">Konfirmasi</button>
+                <button id="btnConfirmPassword" class="flex-1 py-2.5 rounded-xl bg-blue-600 text-white font-bold text-xs shadow-lg">PROSES</button>
             </div>
         </div>
     </div>
@@ -113,7 +112,7 @@
         </div>
     </div>
 
-        <div id="customConfirmModal" class="hide fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 fade-enter">
+    <div id="customConfirmModal" class="hide fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 fade-enter">
         <div class="bg-white dark:bg-gray-900 w-full max-w-xs rounded-[2rem] p-6 shadow-2xl border border-white/20 dark:border-gray-800 transform transition-all scale-100 relative overflow-hidden">
             <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-brand"></div>
             <div class="text-center mb-6 mt-2">
@@ -128,21 +127,18 @@
         </div>
     </div>
 
-        <div id="stockModal" class="hide fixed inset-0 z-[120] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 fade-enter">
+    <div id="stockModal" class="hide fixed inset-0 z-[120] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 fade-enter">
         <div class="bg-white dark:bg-gray-900 w-full max-w-xs rounded-3xl p-6 shadow-2xl flex flex-col max-h-[80vh]">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-bold text-gray-800 dark:text-white">Stok XL Akrab</h3>
                 <button onclick="closeStockModal()" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 hover:text-red-500 transition"><i class="fas fa-times"></i></button>
             </div>
-            <div id="stockList" class="overflow-y-auto pr-1 space-y-2 flex-1 no-scrollbar">
-                
-            </div>
+            <div id="stockList" class="overflow-y-auto pr-1 space-y-2 flex-1 no-scrollbar"></div>
             <div class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 text-center">
                  <p class="text-[10px] text-gray-400">Data Realtime Server v3</p>
             </div>
         </div>
     </div>
-
 
     <div id="invoiceModal" class="hide fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 fade-enter">
         <div class="bg-white dark:bg-gray-900 w-full max-w-xs rounded-[2rem] overflow-hidden shadow-2xl relative border border-white/20">
@@ -198,8 +194,6 @@
         </div>
     </div>
 
-
-        
     <div id="fullQrModal" class="hide fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-md p-6 fade-enter">
         <div class="relative w-full max-w-xs flex flex-col items-center">
             <button onclick="closeFullQr()" class="absolute -top-12 right-0 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/30 transition backdrop-blur-sm shadow-lg">
@@ -215,10 +209,9 @@
         </div>
     </div>
 
-<div id="qiosModal" class="hide fixed inset-0 z-[160] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 fade-enter">
+    <div id="qiosModal" class="hide fixed inset-0 z-[160] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 fade-enter">
         <div class="bg-white dark:bg-gray-900 w-full max-w-xs rounded-3xl p-6 shadow-2xl relative">
             <button onclick="closeQios()" class="absolute top-4 right-4 text-gray-400 hover:text-red-500"><i class="fas fa-times text-xl"></i></button>
-            
             
             <div id="qiosStep1">
                 <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-1">Top Up Saldo</h3>
@@ -245,13 +238,11 @@
                      </div>
                 </div>
             </div>
-
-            
                         
             <div id="qiosStep2" class="hide text-center">
                 <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-2">Scan & Bayar</h3>
                 <div class="bg-white p-2 rounded-xl border border-gray-200 inline-block mb-2">
-                                        <img id="qiosQrDisplay" src="" class="w-48 h-48 object-contain cursor-pointer hover:opacity-90 transition" onclick="openFullQr()">
+                    <img id="qiosQrDisplay" src="" class="w-48 h-48 object-contain cursor-pointer hover:opacity-90 transition" onclick="openFullQr()">
                     <p class="text-[9px] text-gray-400 mt-1">(Klik gambar untuk memperbesar)</p>
                 </div>
                 <p class="text-xs text-gray-500">Total Transfer (Wajib Sama):</p>
@@ -259,7 +250,6 @@
                     <h2 class="text-2xl font-black text-blue-600 dark:text-blue-400" id="qiosTotalDisplay">Rp 0</h2>
                     <button onclick="copyToClipboard(document.getElementById('qiosTotalDisplay').innerText.replace(/[^0-9]/g,''))" class="text-gray-400 hover:text-blue-500"><i class="fas fa-copy"></i></button>
                 </div>
-                
                 
                 <div class="bg-red-50 dark:bg-red-900/20 rounded-lg p-2 mb-3 border border-red-100 dark:border-red-800">
                     <p class="text-[10px] text-red-600 dark:text-red-400 mb-0">Batas Waktu Pembayaran</p>
@@ -278,19 +268,16 @@
         </div>
     </div>
 
-
-<div id="topUpSheet" class="hide fixed inset-0 z-50 flex flex-col justify-end bg-black/60 backdrop-blur-sm">
+    <div id="topUpSheet" class="hide fixed inset-0 z-50 flex flex-col justify-end bg-black/60 backdrop-blur-sm">
         <div class="bg-white dark:bg-gray-900 w-full rounded-t-[30px] p-6 modal-enter max-w-[480px] mx-auto">
             <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-6"></div>
             <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-4">Pilih Metode Top Up</h3>
-            <div class="space-y-3">
-            </div>
-                        <div onclick="openQios()" class="flex items-center gap-4 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition mb-3">
+            <div class="space-y-3"></div>
+            <div onclick="openQios()" class="flex items-center gap-4 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition mb-3">
                 <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center"><i class="fas fa-qrcode"></i></div>
                 <div class="flex-1"><h4 class="font-bold text-gray-800 dark:text-white text-sm">QRIS (Otomatis)</h4><p class="text-xs text-gray-500">Metode QiosPay (Cek Otomatis)</p></div><i class="fas fa-chevron-right text-gray-300"></i>
             </div>
-
-<button onclick="closeTopUp()" class="mt-6 w-full py-3 text-gray-500 dark:text-gray-400 font-semibold text-sm">Tutup</button>
+            <button onclick="closeTopUp()" class="mt-6 w-full py-3 text-gray-500 dark:text-gray-400 font-semibold text-sm">Tutup</button>
         </div>
     </div>
 
@@ -322,11 +309,17 @@
                         </div>
                     </div>
                     <div class="input-group"><input type="email" id="emailInput" placeholder="Email" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-800 text-gray-700 dark:text-gray-100 text-sm font-medium pl-11"><i class="fas fa-envelope" id="loginIcon"></i></div>
-                    <div class="relative" id="passContainer"><div class="input-group"><input type="password" id="passwordInput" placeholder="Kata Sandi" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-800 text-gray-700 dark:text-gray-100 text-sm font-medium pl-11 pr-10"><i class="fas fa-lock"></i></div><button type="button" id="togglePassBtn" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 z-20 outline-none"><i class="fas fa-eye"></i></button></div>
+                    <div class="relative" id="passContainer">
+                        <div class="input-group">
+                            <input type="password" id="passwordInput" placeholder="Kata Sandi" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-800 text-gray-700 dark:text-gray-100 text-sm font-medium pl-11 pr-10">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <button type="button" id="togglePassBtn" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 z-20 outline-none"><i class="fas fa-eye"></i></button>
+                    </div>
                     <div id="extraOptions" class="flex justify-between items-center text-xs mt-2"><label class="flex items-center gap-2 text-gray-500 dark:text-gray-400 cursor-pointer select-none"><input type="checkbox" id="rememberMe" class="rounded text-blue-600 focus:ring-blue-500 bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"><span>Ingat Saya</span></label><button onclick="setAuthMode('forgot')" class="text-blue-600 dark:text-blue-400 font-bold hover:underline">Lupa Sandi?</button></div>
                     <div id="otpContainer" class="hide space-y-4"><div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800 text-xs text-blue-800 dark:text-blue-300">Kode OTP dikirim. Masukkan kode 6 digit.</div><input type="number" id="otpInput" placeholder="123456" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-lg font-bold tracking-widest"></div>
                     <div id="recaptcha-container"></div>
-                                        <button id="btnAuthAction" class="w-full bg-blue-600 dark:bg-blue-500 text-white h-12 rounded-xl font-bold shadow-lg shadow-blue-500/30 active:scale-95 transition-transform hover:bg-blue-700 mt-2">MASUK</button>
+                    <button id="btnAuthAction" class="w-full bg-blue-600 dark:bg-blue-500 text-white h-12 rounded-xl font-bold shadow-lg shadow-blue-500/30 active:scale-95 transition-transform hover:bg-blue-700 mt-2">MASUK</button>
                     <button onclick="loginWithGoogle()" class="w-full bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 h-12 rounded-xl font-bold shadow-sm active:scale-95 transition-transform hover:bg-gray-50 dark:hover:bg-gray-700 mt-3 flex items-center justify-center gap-3">
                         <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-5 h-5" alt="Google">
                         <span class="text-sm">Masuk dengan Google</span>
@@ -530,7 +523,7 @@
 </div>
 
 <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { 
         getAuth, 
         signInWithEmailAndPassword, 
@@ -562,7 +555,7 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-        auth.languageCode = 'id';
+    auth.languageCode = 'id';
 
     // VARIABLES
     let currentUser = null;
@@ -583,7 +576,7 @@
     let pricingRules = {}; // Cache Aturan Harga
     let passwordPromptCallback = null;
 
-        const QIOS_CONFIG = {
+    const QIOS_CONFIG = {
         merchant_code: "QP036963",
         api_key: "812feff6d5e883a1b0bb860bb2af215b5cbde41d937ba0e0814edb88334dd5df",
         qr_string: "00020101021126670016COM.NOBUBANK.WWW01189360050300000907180214600239684104160303UMI51440014ID.CO.QRIS.WWW0215ID20254442075210303UMI5204541153033605802ID5919Mini Market Pandawa6011KARANGANYAR61055711162070703A016304DA77",
@@ -591,8 +584,8 @@
     };
     let qiosTicket = null;
 
-const CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
-        const PROXY_LIST = [
+    const CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
+    const PROXY_LIST = [
         { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
         { name: 'CorsProxy', url: 'https://corsproxy.io/?' },
         { name: 'ThingProxy', url: 'https://thingproxy.freeboard.io/fetch/' },
@@ -608,30 +601,29 @@ const CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https
             setupUserData(user);
             window.nav('homePage');
             setupRequestListener(user);
-            window.nav('homePage');
         } else {
             currentUser = null;
             console.log("Logged Out");
             window.nav('loginPage');
-                        window.showLoader(false);
+            window.showLoader(false);
         }
     });
 
     function setupUserData(user) {
-                onSnapshot(doc(db, "users", user.uid), (docSnap) => {
+        onSnapshot(doc(db, "users", user.uid), (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 
-                // LOGIK BARU: Cek kelengkapan data (Google Login)
+                // Cek kelengkapan data (Google Login)
                 if (!data.username || !data.dob) {
                      document.getElementById('setupProfileModal').classList.remove('hide');
                      return;
                 }
                 document.getElementById('setupProfileModal').classList.add('hide');
-            window.nav('homePage');
+                window.nav('homePage');
 
                 window.showLoader(false);
-currentBalance = data.balance || 0;
+                currentBalance = data.balance || 0;
                 currentUsername = data.username || "User";
                 if(document.getElementById('displayBalance')) document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
                 
@@ -676,12 +668,11 @@ currentBalance = data.balance || 0;
     }
 
     // GLOBAL NAV
-        window.handleLogout = () => {
+    window.handleLogout = () => {
         window.customConfirm('Konfirmasi Keluar', 'Apakah Anda yakin ingin keluar dari aplikasi?', async () => {
             window.showLoader(true);
             try {
                 await signOut(auth);
-                // Loader akan hilang saat onAuthStateChanged redirect ke login
             } catch(e) {
                 window.showLoader(false);
                 alert('Gagal keluar: ' + e.message);
@@ -689,8 +680,7 @@ currentBalance = data.balance || 0;
         });
     };
 
-
-window.nav = (pageId) => {
+    window.nav = (pageId) => {
         document.querySelectorAll('.page').forEach(el => el.classList.add('hide'));
         document.getElementById(pageId).classList.remove('hide');
         document.querySelectorAll('.nav-item').forEach(el => { el.classList.remove('text-blue-600', 'dark:text-blue-400'); el.classList.add('text-gray-400', 'dark:text-gray-500'); });
@@ -800,11 +790,12 @@ window.nav = (pageId) => {
         return null;
     }
 
-    // Helper: Password Prompt
+    // Helper: Simple Confirmation Prompt (Updated)
     window.openPasswordPrompt = (callback) => {
         document.getElementById('confirmPasswordInput').value = '';
         document.getElementById('passwordPromptModal').classList.remove('hide');
         passwordPromptCallback = callback;
+        setTimeout(() => document.getElementById('confirmPasswordInput').focus(), 100);
     }
     
     window.closePasswordPrompt = () => {
@@ -813,29 +804,17 @@ window.nav = (pageId) => {
     }
 
     document.getElementById('btnConfirmPassword').addEventListener('click', () => {
-        const pass = document.getElementById('confirmPasswordInput').value;
-        if(!pass) return alert("Masukkan password!");
-        if(passwordPromptCallback) passwordPromptCallback(pass);
+        const input = document.getElementById('confirmPasswordInput').value.trim().toLowerCase();
+        if(input !== 'ya') return alert("Ketik 'ya' untuk konfirmasi!");
+        if(passwordPromptCallback) {
+             window.closePasswordPrompt();
+             passwordPromptCallback();
+        }
     });
 
-    // Verifikasi Auth & Eksekusi Transfer
-    async function verifyPasswordAndExecute(password) {
-        window.showLoader(true);
-        const cred = EmailAuthProvider.credential(currentUser.email, password);
-        
-        try {
-            // Re-authenticate untuk memastikan password benar
-            await reauthenticateWithCredential(currentUser, cred);
-            window.closePasswordPrompt();
-            
-            // Eksekusi Transfer
-            await executeTransfer();
-            
-        } catch(error) {
-            window.showLoader(false);
-            console.error(error);
-            alert("Password Salah!");
-        }
+    // Verifikasi Auth & Eksekusi Transfer (Tanpa Password)
+    async function verifyPasswordAndExecute(ignored) {
+        await executeTransfer();
     }
 
     async function executeTransfer() {
@@ -904,8 +883,6 @@ window.nav = (pageId) => {
     }
 
     // --- EXISTING CODE (AUTH, UI, ETC) ---
-    // (Kode login, register, UI handling, PPOB tetap sama seperti sebelumnya, 
-    // hanya ditambahkan helper function showLoader yang global)
 
     window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
     window.showLoader = (show) => document.getElementById('globalLoader').classList.toggle('hide', !show);
@@ -914,67 +891,52 @@ window.nav = (pageId) => {
     window.closeConfirm = (r) => { document.getElementById('customConfirmModal').classList.add('hide'); if(r && window.confirmCallback) window.confirmCallback(); };
     document.getElementById('confirmYesBtn').onclick = () => window.closeConfirm(true);
 
-    // ... (Code PPOB, Auth UI Handlers lainnya tetap ada di sini - disalin dari versi sebelumnya) ...
-    // AUTH LOGIC (Copied & Minimized for brevity, FULL logic included in HTML file above)
-    
-
-     window.loginWithGoogle = async () => {
+    // AUTH LOGIC
+    window.loginWithGoogle = async () => {
         window.showLoader(true);
         const provider = new GoogleAuthProvider();
-        
-        // Memaksa meminta akses profil dan email
         provider.addScope('profile');
         provider.addScope('email');
 
         try {
-            // MENGGUNAKAN POPUP AGAR LEBIH STABIL DI WEBVIEW
             const result = await signInWithPopup(auth, provider);
             const user = result.user;
-
-            // Cek apakah user sudah ada di database Firestore
             const userDocRef = doc(db, "users", user.uid);
             const userDoc = await getDoc(userDocRef);
 
-            if (!userDoc.exists()) {
-                // --- USER BARU ---
-                // Simpan data dasar dari Google ke Firestore sementara
+            if (userDoc.exists()) {
+                // PROTEKSI: Cek apakah ini akun email/password
+                const userData = userDoc.data();
+                if (userData.authMethod === 'email') {
+                    await signOut(auth);
+                    window.showLoader(false);
+                    alert("KEAMANAN: Email ini terdaftar Manual (Password).\nSilakan login biasa, jangan pakai Google agar password tidak hilang.");
+                    return;
+                }
+                console.log("User Google lama login kembali");
+            } else {
                 await setDoc(userDocRef, {
                     email: user.email,
                     balance: 0,
-                    // Gunakan foto profil Google
                     profile_pic: user.photoURL, 
                     createdAt: new Date().toISOString(),
                     authMethod: 'google'
                 }, { merge: true });
 
-                // Tampilkan Modal Setup Profile untuk lengkapi data
                 document.getElementById('setupProfileModal').classList.remove('hide');
-                
-                // Masukkan foto Google ke preview di modal setup
                 const setupPreview = document.getElementById('setupProfilePreview');
                 if(setupPreview) {
                     setupPreview.src = user.photoURL;
                     setupPreview.style.display = 'block';
                     document.getElementById('setupUploadPlaceholder').style.display = 'none';
                 }
-                
                 window.showLoader(false);
-            } else {
-                // --- USER LAMA ---
-                // Data sudah ada, biarkan onAuthStateChanged yang mengurus navigasi ke Home
-                console.log("User lama login kembali:", user.email);
             }
-
         } catch (error) {
             window.showLoader(false);
             console.error("Google Login Error:", error);
-            
-            // Handle jika user menutup popup manual
-            if (error.code === 'auth/popup-closed-by-user') {
-                alert("Login dibatalkan (Popup ditutup).");
-            } else {
-                alert("Gagal Login Google: " + error.message);
-            }
+            if (error.code === 'auth/popup-closed-by-user') alert("Login dibatalkan.");
+            else alert("Gagal Login Google: " + error.message);
         }
     };
 
@@ -988,7 +950,7 @@ window.nav = (pageId) => {
         
         window.showLoader(true);
         try {
-                        await setDoc(doc(db, "users", currentUser.uid), {
+            await setDoc(doc(db, "users", currentUser.uid), {
                 email: currentUser.email,
                 username: username,
                 gender: gender,
@@ -1069,7 +1031,6 @@ window.nav = (pageId) => {
     };
     
     // API CALLER
-        // --- API HANDLER (ANTI-BLOKIR & AUTO-SWITCH DARI INDEX 41) ---
     async function callApi(endpoint, params = {}) {
         params['api_key'] = CONFIG.apiKey;
         const queryString = new URLSearchParams(params).toString();
@@ -1077,7 +1038,6 @@ window.nav = (pageId) => {
         
         let lastError = '';
 
-        // Loop semua proxy sampai ada yang berhasil
         for (const proxy of PROXY_LIST) {
             console.log(`[API] Mencoba via ${proxy.name}...`);
             const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
@@ -1114,7 +1074,6 @@ window.nav = (pageId) => {
     window.updateUI = () => {}; 
     
     // Auth Event Listeners (Register, Login, etc)
-        // Fix: Toggle Password Visibility
     document.getElementById('togglePassBtn').addEventListener('click', () => {
         const input = document.getElementById('passwordInput');
         const icon = document.querySelector('#togglePassBtn i');
@@ -1129,8 +1088,7 @@ window.nav = (pageId) => {
         }
     });
 
-
-        document.getElementById('btnAuthAction').addEventListener('click', async () => {
+    document.getElementById('btnAuthAction').addEventListener('click', async () => {
         const email = document.getElementById('emailInput').value;
         const password = document.getElementById('passwordInput').value;
         const status = document.getElementById('statusMessage');
@@ -1184,7 +1142,8 @@ window.nav = (pageId) => {
                     gender: gender,
                     dob: dob,
                     profile_pic: base64ProfilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
-                    createdAt: new Date().toISOString()
+                    createdAt: new Date().toISOString(),
+                    authMethod: 'email'
                 });
                 alert("Pendaftaran Berhasil! Silakan Masuk.");
             } catch(e) { 
@@ -1194,7 +1153,7 @@ window.nav = (pageId) => {
         }
     });
 
-                window.previewImage = (input, type = 'reg') => { 
+    window.previewImage = (input, type = 'reg') => { 
         if (input.files && input.files[0]) {
             const reader = new FileReader();
             reader.onload = function (e) {
@@ -1225,7 +1184,7 @@ window.nav = (pageId) => {
     window.downloadHistoryPDF = () => { /* ... existing PDF logic ... */ };
     window.filterHistory = (t) => { currentFilter=t; renderHistoryList(); };
     function renderHistoryList() { /* ... existing render logic ... */ 
-        const filtered = transactions; // Simplifikasi, gunakan logic filter asli
+        const filtered = transactions;
         let html = '';
         if(filtered.length === 0) html = '<div class="text-center text-gray-400 text-xs py-10">Belum ada transaksi</div>';
         else {
@@ -1234,14 +1193,13 @@ window.nav = (pageId) => {
                 html += `<div class="flex justify-between items-center bg-white dark:bg-gray-900 p-3 rounded-2xl border border-gray-50 dark:border-gray-800 shadow-sm mb-2"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full flex items-center justify-center ${isOut?'bg-blue-100 text-blue-600':'bg-green-100 text-green-600'}"><i class="fas ${isOut?'fa-arrow-up':'fa-arrow-down'}"></i></div><div><p class="font-bold text-sm text-gray-800 dark:text-white">${t.title}</p><p class="text-[10px] text-gray-400">${t.date}</p></div></div><div class="text-right"><p class="text-sm font-bold ${isOut?'text-gray-800 dark:text-white':'text-green-600'}">${isOut?'-':'+'} ${window.formatRp(t.amount)}</p><p class="text-[10px] text-gray-400">${t.status}</p></div></div>`;
             });
         }
-                document.getElementById('fullHistory').innerHTML = html;
+        document.getElementById('fullHistory').innerHTML = html;
 
         // UPDATE MINI HISTORY (HOME PAGE)
         if(document.getElementById('miniHistory')) {
             let miniHtml = '';
             if(filtered.length === 0) miniHtml = '<div class="text-center text-gray-400 text-[10px] py-4">Belum ada transaksi</div>';
             else {
-                // Ambil 3 transaksi teratas untuk Home
                 filtered.slice(0, 3).forEach(t => {
                     const isOut = t.type === 'out';
                     miniHtml += `<div class="flex justify-between items-center border-b border-gray-50 dark:border-gray-800 pb-3 last:border-0 last:pb-0"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-full flex items-center justify-center ${isOut?'bg-blue-50 text-blue-600':'bg-green-50 text-green-600'}"><i class="fas ${isOut?'fa-arrow-up':'fa-arrow-down'} text-xs"></i></div><div><p class="font-bold text-xs text-gray-800 dark:text-white line-clamp-1">${t.title}</p><p class="text-[9px] text-gray-400">${t.date.split('T')[0]}</p></div></div><p class="text-xs font-bold ${isOut?'text-gray-800 dark:text-white':'text-green-600'}">${isOut?'-':'+'} ${window.formatRp(t.amount)}</p></div>`;
@@ -1252,29 +1210,21 @@ window.nav = (pageId) => {
         if(window.renderTopUpHistory) window.renderTopUpHistory();
     }
 
-    // PPOB Logic (Tetap ada)
+    // PPOB Logic
     window.openPPOB = async (cat) => { 
         document.getElementById('homePage').classList.add('hide'); 
         document.getElementById('ppobPage').classList.remove('hide'); 
         document.getElementById('bottomNav').classList.add('hide');
         
-        // Reset Provider
         const pSelect = document.getElementById('formProvider');
         if(pSelect) pSelect.value = "";
 
-        // Load Data Produk
         await window.initProductData();
 
-        // Logika Auto-Select Kategori
         if (cat === 'akrab' && pSelect) {
-            // Prioritas pilih XDA, jika tidak ada fallback ke XLA
             const optXDA = pSelect.querySelector('option[value="XDA"]');
             pSelect.value = optXDA ? 'XDA' : 'XLA';
-            
-            // Trigger update tampilan produk
             window.updateProductDropdown();
-            
-            // Ubah Judul Header
             const tEl = document.getElementById('ppobTitle');
             if(tEl) tEl.innerText = 'Paket XL Akrab';
         } else {
@@ -1283,11 +1233,11 @@ window.nav = (pageId) => {
         }
     };
     window.closePPOB = () => window.nav('homePage');
-        window.initProductData = async () => {
+    
+    window.initProductData = async () => {
         const pSelect = document.getElementById('formProduct');
         if(!pSelect) return;
         
-                // Load Aturan Harga dari Database (Admin)
         try {
             const settingsSnap = await getDoc(doc(db, "settings", "pricing"));
             if (settingsSnap.exists()) pricingRules = settingsSnap.data().rules || {};
@@ -1299,7 +1249,6 @@ window.nav = (pageId) => {
         const result = await callApi('/list_product');
         
         if (result.ok && result.data) {
-            // Normalisasi Data (Handle berbagai struktur JSON)
             if (result.data.data && Array.isArray(result.data.data)) globalProducts = result.data.data;
             else if (Array.isArray(result.data)) globalProducts = result.data;
             else if (result.data.products) globalProducts = result.data.products;
@@ -1308,7 +1257,6 @@ window.nav = (pageId) => {
 
             if (globalProducts.length > 0) {
                 pSelect.innerHTML = '<option value="">-- Pilih Provider Dahulu --</option>';
-                // Jika provider sudah dipilih, langsung refresh list
                 if(document.getElementById('formProvider').value) window.updateProductDropdown();
             } else {
                 pSelect.innerHTML = '<option>Data Produk Kosong</option>';
@@ -1319,37 +1267,31 @@ window.nav = (pageId) => {
         }
     };
 
-            window.updateProductDropdown = () => {
+    window.updateProductDropdown = () => {
         const providerCode = document.getElementById('formProvider').value;
         const productSelect = document.getElementById('formProduct');
         const priceDisplay = document.getElementById('priceDisplay');
         
-        // Reset UI Dropdown
         productSelect.innerHTML = '';
         productSelect.disabled = false;
         priceDisplay.innerText = '';
 
-        // Cek Data API
         if(!globalProducts || globalProducts.length === 0) {
              productSelect.innerHTML = '<option>Data Belum Siap (Cek Koneksi)</option>';
              window.initProductData(); 
              return;
         }
 
-        // LOGIKA FILTER PINTAR (DARI INDEX 41)
         const filtered = globalProducts.filter(p => {
-            // MAPPING DATA API KHFY
             const code = (p.code || p.kode_produk || p.buyer_sku_code || '').toUpperCase();
             const name = (p.name || p.nama_produk || p.product_name || '').toUpperCase();
             const brand = (p.brand || p.kode_provider || p.operator || '').toUpperCase();
             
-            // 1. FILTER KHUSUS
             if (providerCode === 'XDA') return code.includes('XDA') || name.includes('XDA') || (name.includes('AKRAB') && name.includes('XTRA'));
-                        if (providerCode === 'XLA') return (code.includes('XLA') || name.includes('XLA') || (name.includes('AKRAB') && !name.includes('XTRA'))) && !name.toUpperCase().includes('HARI');
+            if (providerCode === 'XLA') return (code.includes('XLA') || name.includes('XLA') || (name.includes('AKRAB') && !name.includes('XTRA'))) && !name.toUpperCase().includes('HARI');
             if (providerCode === 'FMX') return code.includes('FMX') || name.includes('FLEX') || name.includes('UNLIMITED');
             if (providerCode === 'PLN') return brand.includes('PLN') || code.includes('PLN') || name.includes('TOKEN');
 
-            // 2. FILTER UMUM
             return brand.includes(providerCode) || name.includes(providerCode) || code.includes(providerCode);
         });
 
@@ -1359,21 +1301,18 @@ window.nav = (pageId) => {
             return;
         }
 
-        // Urutkan Harga
         filtered.sort((a, b) => {
             const priceA = a.price || a.harga_final || a.buyer_price || 0;
             const priceB = b.price || b.harga_final || b.buyer_price || 0;
             return priceA - priceB;
         });
 
-                // Render Option
         productSelect.innerHTML = '<option value="" selected disabled>-- Pilih Produk --</option>';
         filtered.forEach(p => {
             let price = p.price || p.harga_final || p.buyer_price || 0;
             const code = p.code || p.kode_produk || p.buyer_sku_code;
             const name = p.name || p.nama_produk || p.product_name;
             
-            // LOGIKA MODIFIKASI: Terapkan Markup Admin
             if(pricingRules[code]) {
                 price += parseInt(pricingRules[code]);
             }
@@ -1397,16 +1336,15 @@ window.nav = (pageId) => {
             productSelect.appendChild(opt);
         });
 
-        // Event Ganti Produk
         productSelect.onchange = function() {
              const selectedOpt = this.options[this.selectedIndex];
              priceDisplay.innerText = `Harga: Rp ${window.formatRp(selectedOpt.dataset.price)}`;
         };
     };
-        const priceDisplay = document.getElementById('priceDisplay');
+    const priceDisplay = document.getElementById('priceDisplay');
         
 
-        window.processFormTransaction = () => {
+    window.processFormTransaction = () => {
         const productSelect = document.getElementById('formProduct');
         const destNum = document.getElementById('ppobNumber').value;
 
@@ -1418,7 +1356,6 @@ window.nav = (pageId) => {
         const name = selectedOpt.dataset.name;
         const price = parseInt(selectedOpt.dataset.price);
 
-        // LOGIKA KHUSUS CEK PLN
         if (code === 'CEKPLN') {
             window.checkPLN(destNum);
             return;
@@ -1438,7 +1375,6 @@ window.nav = (pageId) => {
             const msg = (data.message || data.sn || '').toLowerCase();
             const status = data.status;
             
-            // Logika Deteksi Valid/Invalid
             const isSuccess = (status === true || status === 'success' || String(data.success) === 'true');
             const isDataFound = msg.includes('tagihan') || msg.includes('lembar') || msg.includes('nama') || msg.includes('tarif');
 
@@ -1453,16 +1389,7 @@ window.nav = (pageId) => {
         }
     };
 
-    window.confirmTransaction = (code, name, price) => {
-        if(currentBalance < price) return alert('Saldo Aplikasi Kurang! (Top Up Manual dulu)'); 
-
-        window.customConfirm('Beli Produk?', `${name}\nHarga: ${window.formatRp(price)}`, () => {
-            const num = document.getElementById('ppobNumber').value;
-            window.executeApiTransaction(code, num, price, name);
-        });
-    };
-
-        window.showInvoice = (code, name, price, dest) => {
+    window.showInvoice = (code, name, price, dest) => {
         const fmtPrice = window.formatRp(price);
         document.getElementById('invTotalMain').innerText = fmtPrice;
         document.getElementById('invTotalBottom').innerText = fmtPrice;
@@ -1471,7 +1398,6 @@ window.nav = (pageId) => {
         document.getElementById('invPrice').innerText = fmtPrice;
         
         const btnPay = document.getElementById('btnPayInvoice');
-        // Bersihkan event listener lama dengan clone node jika perlu, atau cukup reassign onclick
         btnPay.onclick = () => {
             window.closeInvoice();
             window.executeApiTransaction(code, dest, price, name);
@@ -1482,19 +1408,16 @@ window.nav = (pageId) => {
 
     window.closeInvoice = () => document.getElementById('invoiceModal').classList.add('hide');
 
-    // Redefine confirmTransaction untuk menggunakan Invoice
     window.confirmTransaction = (code, name, price) => {
         if(currentBalance < price) return alert('Saldo Aplikasi Kurang! (Top Up Manual dulu)'); 
         const num = document.getElementById('ppobNumber').value;
         window.showInvoice(code, name, price, num);
     };
 
-
-window.executeApiTransaction = async (code, dest, price, name) => {
+    window.executeApiTransaction = async (code, dest, price, name) => {
         window.showLoader(true);
         const reffId = crypto.randomUUID();
 
-        // HIT API TRX
         const result = await callApi('/trx', {
             produk: code,
             tujuan: dest,
@@ -1505,30 +1428,24 @@ window.executeApiTransaction = async (code, dest, price, name) => {
 
         if(result.ok && result.data) {
             const d = result.data;
-            // AMBIL PESAN MENTAH
             let msg = d.message || d.msg || d.sn || d.error || (d.data ? (d.data.message || d.data.msg || d.data.sn) : null) || 'Tidak ada respon server';
             
-            // CLEANUP PESAN (Hapus URL parameter sensitif)
-            // Jika formatnya: "url... #PesanError @Tanggal"
             if (typeof msg === 'string') {
                 if (msg.includes('#')) {
-                    msg = msg.split('#')[1]; // Ambil setelah tanda pagar
+                    msg = msg.split('#')[1];
                 }
                 if (msg.includes('@')) {
-                    msg = msg.split('@')[0]; // Hapus tanggal di belakang
+                    msg = msg.split('@')[0];
                 }
                 msg = msg.trim();
             }
             
-            // CEK STATUS SUKSES
             const isSuccess = d.status === true || d.success === true || d.status === 'success' || (d.data && d.data.status === 'Pending');
 
             if(isSuccess) { 
-                // UPDATE BALANCE
                 const newBal = currentBalance - price;
                 updateDoc(doc(db, "users", currentUser.uid), { balance: newBal });
                 
-                // SAVE HISTORY
                 addDoc(collection(db, "users", currentUser.uid, "history"), {
                     title: name,
                     amount: price,
@@ -1542,7 +1459,6 @@ window.executeApiTransaction = async (code, dest, price, name) => {
                 alert(`Sukses!\nInfo: ${msg}`);
                 window.nav('homePage');
             } else {
-                // TAMPILKAN PESAN BERSIH
                 alert(`Transaksi Gagal!\nAlasan: ${msg}`);
             }
         } else {
@@ -1550,7 +1466,7 @@ window.executeApiTransaction = async (code, dest, price, name) => {
         }
     };
 
-        // --- TOP UP LOGIC & SMART BADGE ---
+    // --- TOP UP LOGIC & SMART BADGE ---
     window.checkPendingTopUp = () => {
         if(!currentUser) return false;
         const savedData = localStorage.getItem('qios_trx_' + currentUser.uid);
@@ -1570,7 +1486,6 @@ window.executeApiTransaction = async (code, dest, price, name) => {
         const container = document.getElementById('qiosMiniHistory');
         if(!container) return;
         
-        // Filter Transaksi (Top Up / Masuk)
         const topups = transactions.filter(t => t.type === 'in' && (t.title.toLowerCase().includes('top') || (t.method && t.method.includes('Qios')))).slice(0, 5);
         
         if(topups.length === 0) {
@@ -1594,11 +1509,6 @@ window.executeApiTransaction = async (code, dest, price, name) => {
             </div>`;
         });
         container.innerHTML = html;
-    };
-
-    window.openTopUpSheet = () => {
-        // BYPASS SHEET, LANGSUNG KE MODAL QIOS (SESUAI REQUEST)
-        window.openQios();
     };
 
     window.updateTopUpBadge = () => {
@@ -1627,12 +1537,11 @@ window.executeApiTransaction = async (code, dest, price, name) => {
     // Auto Update Badge
     setInterval(window.updateTopUpBadge, 2000);
 
-        window.checkAkrabStock = async () => {
+    window.checkAkrabStock = async () => {
         window.showLoader(true);
         const targetUrl = "https://panel.khfy-store.com/api_v3/cek_stock_akrab";
         let data = null;
 
-        // Loop Proxy untuk menembus blokir/cors (Menggunakan PROXY_LIST global)
         for (const proxy of PROXY_LIST) {
             try {
                 const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
@@ -1646,7 +1555,7 @@ window.executeApiTransaction = async (code, dest, price, name) => {
                     const json = await res.json();
                     if(json.ok || json.message === "success") {
                         data = json.data;
-                        break; // Berhasil, stop loop
+                        break; 
                     }
                 }
             } catch(e) { console.log("Proxy skip:", e); }
@@ -1679,9 +1588,6 @@ window.executeApiTransaction = async (code, dest, price, name) => {
     };
     window.closeStockModal = () => document.getElementById('stockModal').classList.add('hide');
 
-
-
-        
     // --- FULL QR PREVIEW ---
     window.openFullQr = () => {
         const src = document.getElementById('qiosQrDisplay').src;
@@ -1694,20 +1600,19 @@ window.executeApiTransaction = async (code, dest, price, name) => {
         document.getElementById('fullQrModal').classList.add('hide');
     };
 
-// --- QIOSPAY SYSTEM V2 (Timer & History) ---
+    // --- QIOSPAY SYSTEM V2 (Timer & History) ---
     let qiosInterval = null;
 
     window.openQios = () => {
         document.getElementById('topUpSheet').classList.add('hide');
         document.getElementById('qiosModal').classList.remove('hide');
-        window.renderTopUpHistory(); // Render History saat dibuka
+        window.renderTopUpHistory(); 
         
-        // 1. Cek Storage (Persistensi)
         const savedData = localStorage.getItem('qios_trx_' + currentUser.uid);
         if (savedData) {
             const ticket = JSON.parse(savedData);
             const now = Date.now();
-            const limit = 25 * 60 * 1000; // 25 Menit
+            const limit = 25 * 60 * 1000; 
             
             if ((now - ticket.created) < limit) {
                 qiosTicket = ticket;
@@ -1744,7 +1649,6 @@ window.executeApiTransaction = async (code, dest, price, name) => {
             created: Date.now()
         };
         
-        // SIMPAN DATA
         localStorage.setItem('qios_trx_' + currentUser.uid, JSON.stringify(qiosTicket));
         window.restoreQiosUI();
     };
@@ -1790,7 +1694,6 @@ window.executeApiTransaction = async (code, dest, price, name) => {
 
         if(qiosTicket) {
             try {
-                // Catat Riwayat Gagal/Batal
                 const hRef = doc(db, "users", currentUser.uid, "history", "TOPUP-FAIL-"+qiosTicket.created);
                 await setDoc(hRef, {
                     title: "Top Up " + statusLabel,
@@ -1808,24 +1711,20 @@ window.executeApiTransaction = async (code, dest, price, name) => {
         window.resetQiosStep();
     };
 
-    // --- QIOSPAY FIX (Override Logic) ---
-    // Menimpa fungsi lama dengan logika koneksi yang benar
     window.checkQiosStatus = async () => {
         if(!qiosTicket) return;
         const btn = document.getElementById('btnCheckQios');
-        const originalText = "SAYA SUDAH BAYAR"; // Reset text manual
+        const originalText = "SAYA SUDAH BAYAR";
         btn.innerText = "Mengecek Server...";
         btn.disabled = true;
 
         try {
-            // URL Target sesuai screenshot Anda
             const targetUrl = `https://qiospay.id/api/mutasi/qris/${QIOS_CONFIG.merchant_code}/${QIOS_CONFIG.api_key}`;
             console.log("Cek Mutasi ke:", targetUrl);
             
             let resultData = null;
             let isConnected = false;
 
-            // Loop Proxy untuk menembus CORS
             for (const proxy of PROXY_LIST) {
                 if(isConnected) break;
                 try {
@@ -1835,9 +1734,7 @@ window.executeApiTransaction = async (code, dest, price, name) => {
                     if (response.ok) {
                         const text = await response.text();
                         try {
-                            // Coba parse JSON (kadang proxy membungkus response)
                             const json = JSON.parse(text);
-                            // Handle response dari proxy CodeTabs/AllOrigins yang membungkus data
                             resultData = json.contents ? JSON.parse(json.contents) : (json.data && json.status ? json : json);
                             isConnected = true;
                         } catch (e) { 
@@ -1851,22 +1748,19 @@ window.executeApiTransaction = async (code, dest, price, name) => {
 
             console.log("Data Mutasi:", resultData);
 
-            // LOGIKA PENCOCOKAN DATA
             let success = false;
-            // Sesuai screenshot: resultData.data adalah array transaksi
             const mutations = resultData.data || [];
             
             if (Array.isArray(mutations)) {
                 const found = mutations.find(tx => 
                     parseInt(tx.amount) === parseInt(qiosTicket.total) && 
-                    (tx.type === "CR" || tx.type === "credit") // Pastikan uang masuk
+                    (tx.type === "CR" || tx.type === "credit") 
                 );
                 
                 if(found) success = true;
             }
 
             if(success) {
-                // EKSEKUSI SUKSES
                 await runTransaction(db, async (t) => {
                     const userRef = doc(db, "users", currentUser.uid);
                     const uDoc = await t.get(userRef);
@@ -1901,7 +1795,7 @@ window.executeApiTransaction = async (code, dest, price, name) => {
         }
     };
 
-window.copyToClipboard = (text) => {
+    window.copyToClipboard = (text) => {
         navigator.clipboard.writeText(text).then(() => alert('Disalin: ' + text));
     };
 

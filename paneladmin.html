@@ -98,7 +98,7 @@
                 <button onclick="loadDashboardData()" class="bg-white text-gray-600 px-3 py-1.5 rounded border hover:bg-gray-50 text-[10px] font-bold transition shadow-sm flex items-center gap-2"><i class="fas fa-sync-alt"></i> Refresh</button>
             </div>
 
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+                        <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
                 
                 <div onclick="switchTab('users')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-blue-200">
                     <div>
@@ -126,7 +126,15 @@
                     </div>
                     <div class="w-10 h-10 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-chart-line"></i></div>
                 </div>
-                <div onclick="switchTab('pricing')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-orange-200">
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Estimasi Profit</p>
+                    <h3 class="text-2xl font-black text-gray-800" id="statEstimatedProfit">Rp 0</h3>
+                    <p class="text-[9px] text-blue-500 font-bold mt-1">Bulan Ini</p>
+                </div>
+                <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-hand-holding-usd"></i></div>
+            </div>
+<div onclick="switchTab('pricing')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-orange-200">
                     <div>
                         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Profit / Harga</p>
                         <h3 class="text-xl font-black text-gray-800">Setting</h3>
@@ -547,6 +555,23 @@ const activeLink = document.getElementById('nav-' + tabId);
                     allTransactions.push({ uid: ownerUid, ...doc.data() });
                 });
 
+                                let totalProfit = 0;
+                const now = new Date();
+                const currentMonth = now.getMonth();
+                const currentYear = now.getFullYear();
+
+                allTransactions.forEach(t => {
+                    if (t.status === 'Sukses' && t.type === 'out' && t.date) {
+                        const tDate = new Date(t.date);
+                        if (tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear) {
+                            // Mencoba mengambil markup dari rules jika tersedia di data transaksi
+                            // Jika tidak ada, kita asumsikan markup statis atau 0 untuk dashboard
+                            totalProfit += (parseInt(t.markup) || 0);
+                        }
+                    }
+                });
+
+                document.getElementById('statEstimatedProfit').innerText = window.formatRp(totalProfit);
                 document.getElementById('statTrxCount').innerText = allTransactions.length;
                 renderTransactions(allTransactions); 
 

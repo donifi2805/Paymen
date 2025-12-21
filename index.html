@@ -1843,7 +1843,57 @@ window.renderTopUpHistory = () => {
         document.getElementById('detailTrxModal').classList.remove('hide');
     };
 
-    window.manualCheckTrx = async (docId, providerId) => {
+        window.manualCheckTrx = async (docId, providerId) => {
+        const btn = document.getElementById('btnRefreshStatus');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        
+        // PERBAIKAN: Sesuai dokumentasi Khfy
+        // Endpoint: /history
+        // Param: refid (diisi dengan UUID / trx_id lokal kita)
+        const res = await callApi('/history', { refid: docId });
+        
+        // Deteksi struktur response (support data.data atau root object)
+        const r = (res.ok && res.data) ? (res.data.data || res.data) : null;
+        
+        if(r) {
+            // Normalisasi Status dari respon Khfy
+            // Khfy bisa mengembalikan status, status_text, atau result
+            let freshStatus = 'Pending';
+            const rawStatus = String(r.status || r.status_text || r.result || '').toLowerCase();
+            const sn = r.sn || r.keterangan || r.message || 'Tidak ada pesan server';
+
+            if (rawStatus.includes('sukses') || rawStatus.includes('success') || rawStatus === '0') {
+                freshStatus = 'Sukses';
+            } else if (rawStatus.includes('gagal') || rawStatus.includes('batal') || rawStatus === '1') {
+                freshStatus = 'Gagal';
+            }
+
+            // Update Tampilan Langsung
+            const statusEl = document.getElementById('dtStatus');
+            statusEl.innerText = freshStatus;
+            statusEl.className = 'text-xs font-bold ' + (freshStatus === 'Sukses' ? 'text-green-600' : (freshStatus === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
+            document.getElementById('dtSn').innerText = sn.replace(/,/g, ', ');
+
+            // Update Database Firestore
+            await updateDoc(doc(db, "users", currentUser.uid, "history", docId), {
+                status: freshStatus,
+                api_msg: sn
+            });
+            
+            if(freshStatus !== 'Pending') {
+                btn.classList.add('hide');
+                alert('Status Berhasil Diperbarui: ' + freshStatus + '\n\n' + sn);
+            } else {
+                btn.innerHTML = '<i class="fas fa-sync-alt"></i>';
+                alert('Status di server masih Pending/Proses.');
+            }
+
+        } else {
+            console.error("API Error:", res);
+            alert('Gagal cek status. Response server tidak valid atau kosong.');
+            btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+        }
+    };
         const btn = document.getElementById('btnRefreshStatus');
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         

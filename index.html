@@ -174,9 +174,21 @@
                     <p class="text-xs text-gray-700 dark:text-gray-300 font-mono break-words leading-relaxed" id="dtSn">-</p>
                 </div>
 
-                <div class="p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+                                <div class="p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
                     <p class="text-[10px] text-gray-500 mb-1">Waktu Transaksi</p>
                     <p class="text-xs font-bold text-gray-800 dark:text-white" id="dtDate">-</p>
+                </div>
+
+                <div class="mt-2">
+                    <details class="group">
+                        <summary class="flex justify-between items-center cursor-pointer list-none p-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-[10px] font-bold text-gray-500 hover:text-blue-600 select-none">
+                            <span><i class="fas fa-code mr-1"></i> Lihat Data Mentah (JSON)</span>
+                            <i class="fas fa-chevron-down transition-transform group-open:rotate-180"></i>
+                        </summary>
+                        <div class="mt-2 p-3 bg-gray-900 rounded-xl overflow-x-auto border border-gray-700 shadow-inner max-h-40 custom-scroll">
+                            <pre id="dtRawJson" class="text-[9px] font-mono text-green-400 whitespace-pre-wrap leading-tight">Klik tombol refresh (ikon sync) di atas untuk memuat data mentah dari server...</pre>
+                        </div>
+                    </details>
                 </div>
             </div>
 
@@ -1905,17 +1917,18 @@ window.renderTopUpHistory = () => {
         const btnRefresh = document.getElementById('btnRefreshStatus');
         
         // Cek jika status Pending/Proses dan bukan transaksi manual
-        if((trx.status === 'Pending' || trx.status === 'Proses') && trx.provider_id && trx.provider_id !== 'MANUAL') {
+                // Cek status & enable tombol refresh untuk semua trx non-manual (agar bisa cek raw data)
+        if(trx.provider_id && trx.provider_id !== 'MANUAL') {
             btnRefresh.classList.remove('hide');
             btnRefresh.onclick = () => manualCheckTrx(trx.trx_id, trx.provider_id);
             
-            // --- PERBAIKAN: OTOMATIS CEK KE SERVER SETELAH 0.5 DETIK ---
-            console.log("Auto-check triggered for:", trx.trx_id);
-            setTimeout(() => {
-                 manualCheckTrx(trx.trx_id, trx.provider_id);
-            }, 500);
-            // ----------------------------------------------------------
+            if(document.getElementById('dtRawJson')) document.getElementById('dtRawJson').innerText = "Klik tombol refresh di atas untuk menarik data mentah terbaru...";
             
+            // Auto check hanya jika masih pending
+            if(trx.status === 'Pending' || trx.status === 'Proses') {
+                 console.log("Auto-check triggered for:", trx.trx_id);
+                 setTimeout(() => { manualCheckTrx(trx.trx_id, trx.provider_id); }, 500);
+            }
         } else {
             btnRefresh.classList.add('hide');
         }
@@ -1936,8 +1949,16 @@ window.renderTopUpHistory = () => {
         const root = res.data || {};
         const inner = root.data || {};
         
-        if(res.ok || root) {
+                if(res.ok || root) {
             console.log("[CheckTrx] Result:", root);
+            
+            // TAMPILKAN RAW DATA JSON
+            if(document.getElementById('dtRawJson')) {
+                document.getElementById('dtRawJson').innerText = JSON.stringify(root, null, 2);
+                // Buka details element jika belum terbuka
+                const details = document.getElementById('dtRawJson').closest('details');
+                if(details) details.open = true;
+            }
             
             let freshStatus = 'Pending';
             

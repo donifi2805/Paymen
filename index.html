@@ -1383,7 +1383,7 @@
                             <div class="flex-1 min-w-0">
                                 <p class="font-bold text-xs text-gray-800 dark:text-white line-clamp-1">${t.title}</p>
                                 <div class="flex items-center gap-2">
-                                     <p class="text-[9px] text-gray-400">${t.date.split('T')[0]}</p>
+                                                                          <p class="text-[9px] text-gray-400">${new Date(t.date).toLocaleDateString('id-ID', {day:'numeric', month:'short'})} • ${new Date(t.date).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}</p>
                                      <span class="text-[8px] font-bold px-1.5 py-0.5 rounded border border-gray-100 dark:border-gray-700 ${statusColor}">${t.status}</span>
                                 </div>
                             </div>
@@ -1742,7 +1742,18 @@
 
                 alert(`Transaksi Sedang Diproses!\nInfo: ${msg}`);
                 window.nav('homePage');
-            } else {
+                        } else {
+                // MODIFIKASI: Simpan Riwayat meskipun Gagal (untuk catatan)
+                addDoc(collection(db, "users", currentUser.uid, "history"), {
+                    title: name,
+                    amount: price,
+                    type: 'out',
+                    date: new Date().toISOString(),
+                    status: 'Gagal',
+                    api_msg: msg,
+                    trx_id: reffId,
+                    provider_id: (d.data && d.data.id) ? d.data.id : ''
+                });
                 alert(`Transaksi Gagal!\nAlasan: ${msg}`);
             }
         } else {
@@ -1908,7 +1919,7 @@ window.renderTopUpHistory = () => {
             html += `<div class="flex justify-between items-center bg-gray-50 dark:bg-gray-800 p-2 rounded-lg border border-gray-100 dark:border-gray-700">
                 <div class="flex items-center gap-2">
                     <div class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px]"><i class="fas fa-arrow-down"></i></div>
-                    <div><p class="text-[10px] font-bold text-gray-800 dark:text-white">Rp ${window.formatRp(t.amount)}</p><p class="text-[9px] text-gray-400">${t.date.split('T')[0]}</p></div>
+                    <div><p class="text-[10px] font-bold text-gray-800 dark:text-white">Rp ${window.formatRp(t.amount)}</p>                                     <p class="text-[9px] text-gray-400">${new Date(t.date).toLocaleDateString('id-ID', {day:'numeric', month:'short'})} • ${new Date(t.date).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}</p></div>
                 </div>
                 <span class="text-[9px] font-bold ${statusColor}">${t.status}</span>
             </div>`;

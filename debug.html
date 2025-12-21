@@ -9,6 +9,8 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     
     <style>
         /* TWEAK 30% LEBIH KECIL & PADAT */
@@ -233,6 +235,10 @@
                     <button onclick="downloadTrxPDF()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 text-[10px] font-bold rounded-md shadow-sm transition flex items-center gap-1">
                         <i class="fas fa-file-pdf"></i> PDF
                     </button>
+                                    <div class="flex gap-2">
+                    <button onclick="downloadTrxPDF()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 text-[10px] font-bold rounded-md shadow-sm transition flex items-center gap-1">
+                        <i class="fas fa-file-pdf"></i> PDF
+                    </button>
                     <div class="flex bg-gray-50 rounded-lg p-0.5 border border-gray-200">
                     <button onclick="filterTrx('today')" class="px-3 py-1 text-[10px] font-bold rounded-md bg-white text-blue-600 shadow-sm transition" id="btn-today">Hari Ini</button>
                     <button onclick="filterTrx('week')" class="px-3 py-1 text-[10px] font-bold rounded-md text-gray-500 hover:bg-gray-200 transition" id="btn-week">7 Hari</button>
@@ -264,7 +270,18 @@
             <div class="flex h-full gap-4 md:gap-6">
                 
                 <div class="w-full md:w-1/3 bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col overflow-hidden">
-                    <div class="p-3 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                                        <div class="p-3 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                        <div class="flex items-center gap-2">
+                            <button onclick="switchTab('dashboard')" class="w-7 h-7 rounded-full bg-white hover:bg-gray-200 flex items-center justify-center text-gray-600 transition border border-gray-200">
+                                <i class="fas fa-arrow-left text-[10px]"></i>
+                            </button>
+                            <h3 class="font-bold text-gray-700">Pesan Masuk</h3>
+                        </div>
+                        <div class="flex gap-1">
+                            <button onclick="openNewChatModal()" class="text-green-600 hover:bg-green-50 p-1.5 rounded transition" title="Pesan Baru"><i class="fas fa-plus-circle"></i></button>
+                            <button onclick="loadChatList()" class="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition"><i class="fas fa-sync-alt"></i></button>
+                        </div>
+                    </div>
                         <div class="flex items-center gap-2">
                             <button onclick="switchTab('dashboard')" class="w-7 h-7 rounded-full bg-white hover:bg-gray-200 flex items-center justify-center text-gray-600 transition border border-gray-200" title="Kembali ke Dashboard">
                                 <i class="fas fa-arrow-left text-[10px]"></i>
@@ -286,8 +303,17 @@
                 
                 <div class="hidden md:flex flex-col flex-1 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden relative" id="chatBoxArea">
                     
-                    <div class="p-3 border-b border-gray-100 bg-white flex justify-between items-center z-10 shadow-sm">
-                        <div class="flex items-center gap-3">
+                                            <div class="flex items-center gap-3">
+                            <button onclick="closeChatMobile()" class="md:hidden mr-3 text-gray-500 hover:bg-gray-100 w-8 h-8 flex items-center justify-center rounded-full transition"><i class="fas fa-arrow-left"></i></button>
+                            <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs" id="chatHeaderInitials">?</div>
+                            <div>
+                                <h3 class="font-bold text-gray-800 leading-tight" id="chatHeaderName">Pilih User</h3>
+                                <p class="text-[10px] text-gray-500 font-mono" id="chatHeaderId">-</p>
+                            </div>
+                        </div>
+                        <button onclick="deleteChatSession()" id="btnDeleteChat" class="hidden text-red-400 hover:text-red-600 p-2 transition">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
                             <button onclick="closeChatMobile()" class="md:hidden mr-3 text-gray-500 hover:bg-gray-100 w-8 h-8 flex items-center justify-center rounded-full transition"><i class="fas fa-arrow-left"></i></button>
                             <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs" id="chatHeaderInitials">?</div>
                             <div>
@@ -459,6 +485,33 @@ import { getFirestore, getDoc, collection, getDocs, doc, updateDoc, deleteDoc, q
     let chatUnsub = null;
     let chatListUnsub = null;
     let isRedirectFromUsers = false;
+
+        window.downloadTrxPDF = () => {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const rows = [];
+        document.querySelectorAll("#trxTableBody tr").forEach(tr => {
+            const cols = Array.from(tr.querySelectorAll("td")).map(td => td.innerText.replace(/\n/g, " ").trim());
+            if(cols.length > 0) rows.push(cols);
+        });
+        doc.text("Laporan Transaksi DompetKu", 14, 15);
+        doc.autoTable({ startY: 25, head: [['Waktu', 'User', 'Ket', 'Nominal', 'Status']], body: rows });
+        doc.save("Transaksi.pdf");
+    };
+
+    window.openNewChatModal = async () => {
+        const { value: uid } = await Swal.fire({ title: 'Chat Baru', input: 'select', inputOptions: Object.fromEntries(allUsers.map(u => [u.id, u.username || u.email])), inputPlaceholder: 'Pilih User', showCancelButton: true });
+        if (uid) { const u = allUsers.find(x => x.id === uid); window.openChatSession(uid, u.username || 'User'); }
+    };
+
+    window.deleteChatSession = async () => {
+        if(!currentChatUid || !confirm('Hapus chat ini?')) return;
+        const msgs = await getDocs(collection(db, "chats", currentChatUid, "messages"));
+        for (const m of msgs.docs) await deleteDoc(m.ref);
+        await deleteDoc(doc(db, "chats", currentChatUid));
+        document.getElementById('chatBoxArea').classList.add('hidden');
+        window.loadChatList();
+    };
 
     window.loadChatList = () => {
         const listContainer = document.getElementById('chatUserList');

@@ -1815,7 +1815,7 @@ window.renderTopUpHistory = () => {
         }
     };
     window.closeStockModal = () => document.getElementById('stockModal').classList.add('hide');
-                    window.openTrxDetail = (trxId) => {
+                        window.openTrxDetail = (trxId) => {
         const trx = transactions.find(t => t.trx_id === trxId);
         if(!trx) return;
 
@@ -1833,7 +1833,6 @@ window.renderTopUpHistory = () => {
 
         // Logika Tombol Refresh
         const btnRefresh = document.getElementById('btnRefreshStatus');
-        // Tampilkan tombol jika status Pending/Proses DAN ada ID Provider (bukan manual)
         if((trx.status === 'Pending' || trx.status === 'Proses') && trx.provider_id && trx.provider_id !== 'MANUAL') {
             btnRefresh.classList.remove('hide');
             btnRefresh.onclick = () => manualCheckTrx(trx.trx_id, trx.provider_id);
@@ -1848,16 +1847,13 @@ window.renderTopUpHistory = () => {
         const btn = document.getElementById('btnRefreshStatus');
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         
-        // PERBAIKAN FINAL: Endpoint /history dengan parameter refid
         console.log("[CheckTrx] Checking refid:", docId);
         const res = await callApi('/history', { refid: docId });
         
-        // Handle response (support data.data atau root object)
         const r = (res.ok && res.data) ? (res.data.data || res.data) : null;
         
         if(r) {
             console.log("[CheckTrx] Result:", r);
-            // Normalisasi Status
             let freshStatus = 'Pending';
             const rawStatus = String(r.status || r.status_text || r.result || '').toLowerCase();
             const sn = r.sn || r.keterangan || r.message || 'Tidak ada pesan server';
@@ -1868,13 +1864,11 @@ window.renderTopUpHistory = () => {
                 freshStatus = 'Gagal';
             }
 
-            // Update UI
             const statusEl = document.getElementById('dtStatus');
             statusEl.innerText = freshStatus;
             statusEl.className = 'text-xs font-bold ' + (freshStatus === 'Sukses' ? 'text-green-600' : (freshStatus === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
             document.getElementById('dtSn').innerText = sn.replace(/,/g, ', ');
 
-            // Update Firestore
             await updateDoc(doc(db, "users", currentUser.uid, "history", docId), {
                 status: freshStatus,
                 api_msg: sn

@@ -1344,7 +1344,7 @@
              return;
         }
 
-                const filtered = globalProducts.filter(p => {
+                        const filtered = globalProducts.filter(p => {
             const code = (p.code || p.kode_produk || p.buyer_sku_code || '').toUpperCase();
             const name = (p.name || p.nama_produk || p.product_name || '').toUpperCase();
             const brand = (p.brand || p.kode_provider || p.operator || '').toUpperCase();
@@ -1352,7 +1352,7 @@
             // Filter Ketat (Strict) Sesuai Request
             if (providerCode === 'XDA') return code.startsWith('XDA');
             if (providerCode === 'XLA') return code.startsWith('XLA');
-            if (providerCode === 'FMX') return code.startsWith('FMX') && brand === 'FMAX';
+            if (providerCode === 'FMX') return (code.startsWith('FMX') || code === 'CFMX') && brand === 'FMAX';
             if (providerCode === 'XLR') return brand === 'XLREGULER';
             
             // Filter Tambahan

@@ -1948,8 +1948,12 @@ window.renderTopUpHistory = () => {
         const res = await callApi('/history', { refid: docId });
         
         // Ambil root data (karena field 'msg' ada di root, bukan selalu di data.data)
-        const root = res.data || {};
-        const inner = root.data || {};
+                const root = res.data || {};
+        // PERBAIKAN: Deteksi jika 'data' adalah Array (List) atau Object
+        let inner = root.data || {};
+        if (Array.isArray(inner) && inner.length > 0) {
+             inner = inner[0]; // Ambil data pertama jika bentuknya Array
+        }
         
                 if(res.ok || root) {
             console.log("[CheckTrx] Result:", root);

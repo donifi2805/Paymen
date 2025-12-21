@@ -7,6 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     
     <style>
         /* TWEAK 30% LEBIH KECIL & PADAT */
@@ -227,7 +229,11 @@
                         <p class="text-[10px] text-gray-500">Global Transaksi</p>
                     </div>
                 </div>
-                <div class="flex bg-gray-50 rounded-lg p-0.5 border border-gray-200">
+                <div class="flex gap-2 items-center">
+                    <button onclick="downloadTrxPDF()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 text-[10px] font-bold rounded-md shadow-sm transition flex items-center gap-1">
+                        <i class="fas fa-file-pdf"></i> PDF
+                    </button>
+                    <div class="flex bg-gray-50 rounded-lg p-0.5 border border-gray-200">
                     <button onclick="filterTrx('today')" class="px-3 py-1 text-[10px] font-bold rounded-md bg-white text-blue-600 shadow-sm transition" id="btn-today">Hari Ini</button>
                     <button onclick="filterTrx('week')" class="px-3 py-1 text-[10px] font-bold rounded-md text-gray-500 hover:bg-gray-200 transition" id="btn-week">7 Hari</button>
                     <button onclick="filterTrx('all')" class="px-3 py-1 text-[10px] font-bold rounded-md text-gray-500 hover:bg-gray-200 transition" id="btn-all">Semua</button>
@@ -265,6 +271,11 @@
                             </button>
                             <h3 class="font-bold text-gray-700">Pesan Masuk</h3>
                         </div>
+                        <div class="flex gap-1">
+                            <button onclick="openNewChatModal()" class="text-green-600 hover:bg-green-50 p-1.5 rounded transition" title="Pesan Baru"><i class="fas fa-plus-circle"></i></button>
+                            <button onclick="loadChatList()" class="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition"><i class="fas fa-sync-alt"></i></button>
+                        </div>
+                    </div>
                         <button onclick="loadChatList()" class="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition"><i class="fas fa-sync-alt"></i></button>
                     </div>
                     <div id="chatUserList" class="flex-1 overflow-y-auto custom-scroll p-2 space-y-1">
@@ -278,7 +289,15 @@
                     <div class="p-3 border-b border-gray-100 bg-white flex justify-between items-center z-10 shadow-sm">
                         <div class="flex items-center gap-3">
                             <button onclick="closeChatMobile()" class="md:hidden mr-3 text-gray-500 hover:bg-gray-100 w-8 h-8 flex items-center justify-center rounded-full transition"><i class="fas fa-arrow-left"></i></button>
-<div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs" id="chatHeaderInitials">?</div>
+                            <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs" id="chatHeaderInitials">?</div>
+                            <div>
+                                <h3 class="font-bold text-gray-800 leading-tight" id="chatHeaderName">Pilih User</h3>
+                                <p class="text-[10px] text-gray-500 font-mono" id="chatHeaderId">-</p>
+                            </div>
+                        </div>
+                        <button onclick="deleteChatSession()" id="btnDeleteChat" class="hidden text-red-400 hover:text-red-600 p-2 transition" title="Hapus Percakapan">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
                             <div>
                                 <h3 class="font-bold text-gray-800 leading-tight" id="chatHeaderName">Pilih User</h3>
                                 <p class="text-[10px] text-gray-500 font-mono" id="chatHeaderId">-</p>
@@ -580,6 +599,85 @@ import { getFirestore, getDoc, collection, getDocs, doc, updateDoc, deleteDoc, q
         }
     };
 
+    window.downloadTrxPDF = () => {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const table = document.getElementById("trxTableBody");
+        const rows = [];
+        
+        table.querySelectorAll("tr").forEach(tr => {
+            const cols = [];
+            tr.querySelectorAll("td").forEach((td, index) => {
+                cols.push(td.innerText.replace(/\n/g, " ").trim());
+            });
+            if(cols.length > 0) rows.push(cols);
+        });
+
+        doc.text("Laporan Transaksi DompetKu", 14, 15);
+        doc.setFontSize(10);
+        doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, 14, 22);
+        
+        doc.autoTable({
+            startY: 25,
+            head: [['Waktu', 'User', 'Keterangan', 'Nominal', 'Status']],
+            body: rows,
+            theme: 'grid',
+            headStyles: { fillColor: [30, 64, 175] },
+            styles: { fontSize: 8 }
+        });
+        
+        doc.save(`Transaksi_DompetKu_${Date.now()}.pdf`);
+    };
+
+    window.openNewChatModal = async () => {
+        const { value: selectedUid } = await Swal.fire({
+            title: 'Mulai Chat Baru',
+            input: 'select',
+            inputOptions: Object.fromEntries(allUsers.map(u => [u.id, u.username || u.email])),
+            inputPlaceholder: 'Pilih User',
+            showCancelButton: true,
+            confirmButtonText: 'Mulai',
+            cancelButtonText: 'Batal'
+        });
+        if (selectedUid) {
+            const user = allUsers.find(u => u.id === selectedUid);
+            window.initChat(selectedUid, user.username || 'User');
+        }
+    };
+
+    window.deleteChatSession = async () => {
+        if(!currentChatUid) return;
+        const result = await Swal.fire({
+            title: 'Hapus Chat?',
+            text: "Semua riwayat pesan akan hilang permanen!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Ya, Hapus'
+        });
+
+        if(result.isConfirmed) {
+            try {
+                // Hapus sub-koleksi messages manual (Firebase Client tidak dukung hapus koleksi sekaligus)
+                const msgs = await getDocs(collection(db, "chats", currentChatUid, "messages"));
+                for (const m of msgs.docs) { await deleteDoc(m.ref); }
+                await deleteDoc(doc(db, "chats", currentChatUid));
+                
+                Swal.fire('Terhapus', 'Percakapan telah dihapus.', 'success');
+                currentChatUid = null;
+                document.getElementById('chatBoxArea').classList.add('hidden');
+                document.getElementById('btnDeleteChat').classList.add('hidden');
+                window.loadChatList();
+            } catch(e) { Swal.fire('Gagal', e.message, 'error'); }
+        }
+    };
+
+    // Update existing openChatSession to show delete button
+    const oldOpenChat = window.openChatSession;
+    window.openChatSession = (uid, username) => {
+        oldOpenChat(uid, username);
+        document.getElementById('btnDeleteChat').classList.remove('hidden');
+    };
     window.closeChatMobile = () => {
         if(isRedirectFromUsers) {
             if(chatUnsub) chatUnsub();

@@ -1048,14 +1048,14 @@
                 // 2. Tambah Saldo Penerima
                 transaction.update(receiverRef, { balance: receiverBalance + amount });
 
-                // 3. Catat History Pengirim
+                                // 3. Catat History Pengirim
                 const senderHistoryRef = doc(db, "users", currentUser.uid, "history", trxId);
                 transaction.set(senderHistoryRef, {
                     title: `Kirim ke ${targetName}`,
                     amount: amount,
                     type: 'out',
                     date: new Date().toISOString(),
-                    status: 'Pending',
+                    status: 'Sukses',
                     api_msg: 'Transfer Sesama',
                     trx_id: trxId
                 });

@@ -1,81 +1,80 @@
 import admin from 'firebase-admin';
 
+// Inisialisasi Firebase Admin
 if (!admin.apps.length) {
   try {
-    const serviceAccountRaw = process.env.FIREBASE_SERVICE_ACCOUNT;
-    if (!serviceAccountRaw) throw new Error("Environment Variable FIREBASE_SERVICE_ACCOUNT tidak ditemukan");
-    
-    const serviceAccount = JSON.parse(serviceAccountRaw);
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    // Mengatasi masalah karakter newline yang sering rusak di Vercel
     if (serviceAccount.private_key) {
-      // Memperbaiki format private key yang sering rusak saat di-paste ke Vercel
       serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
     }
-
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
-    console.log("Firebase Admin Initialized");
-  } catch (error) {
-    console.error("Firebase Init Error:", error.message);
+    console.log("Firebase Admin Berhasil Terhubung");
+  } catch (e) {
+    console.error("Firebase Init Error:", e.message);
   }
 }
 
 const db = admin.firestore();
 
 export default async function handler(req, res) {
-  // Mengambil pesan dari query string (?message=...)
-  const message = req.query.message || req.body?.message;
+  // KH-FY biasanya mengirim via GET ?message=...
+  // Kita ambil message secara aman
+  const { message } = req.query;
 
   if (!message) {
-    return res.status(200).send("Webhook Pandawa Store Aktif");
+    return res.status(200).send("Webhook Aktif - Menunggu Laporan KH-FY");
   }
 
   try {
-    // Regex untuk membedah laporan KH-FY
+    // Regex untuk mengambil ReffID dan Status
     const RX = /RC=(?<reffid>[a-f0-9-]+)\s+TrxID=(?<trxid>\d+)\s+(?<produk>[A-Z0-9]+)\.(?<tujuan>\d+)\s+(?<status_text>[A-Za-z]+)/i;
     const match = message.match(RX);
     
     if (!match) {
-      console.log("[WEBHOOK] Format tidak dikenali:", message);
+      console.log("[WEBHOOK] Format pesan tidak sesuai regex:", message);
       return res.status(200).json({ ok: false, error: "Format tidak sesuai" });
     }
 
     const { reffid, status_text } = match.groups;
     const isSuccess = /sukses/i.test(status_text);
 
-    console.log(`[WEBHOOK] Memproses ReffID: ${reffid} | Status: ${status_text}`);
+    console.log(`[WEBHOOK] ReffID: ${reffid} | Status: ${status_text}`);
 
-    // Cari transaksi di Firestore menggunakan Collection Group
+    // Mencari transaksi di Firestore
     const snapshot = await db.collectionGroup('history')
       .where('trx_id', '==', reffid)
       .limit(1)
       .get();
     
     if (snapshot.empty) {
-      console.log("[WEBHOOK] ReffID tidak ditemukan di DB:", reffid);
-      return res.status(200).json({ ok: false, error: "Trx ID tidak ditemukan" });
+      console.log("[WEBHOOK] Trx ID tidak ditemukan di Firestore:", reffid);
+      return res.status(200).json({ ok: false, error: "Data tidak ditemukan" });
     }
 
-    const doc = snapshot.docs[0];
-    const userRef = doc.ref.parent.parent;
+    const docTrx = snapshot.docs[0];
+    const userRef = docTrx.ref.parent.parent;
 
     if (isSuccess) {
-      await doc.ref.update({ status: 'Sukses' });
-      console.log("[AKSI] Status diupdate ke SUKSES");
+      // Update status menjadi Sukses
+      await docTrx.ref.update({ status: 'Sukses' });
+      console.log("[AKSI] Transaksi Sukses Berhasil Diupdate");
     } else {
-      // Logika Refund jika gagal
+      // Jalankan Refund jika Gagal
       await db.runTransaction(async (t) => {
         const userDoc = await t.get(userRef);
         const currentBalance = userDoc.data().balance || 0;
-        const refundAmount = doc.data().amount || 0;
+        const refundAmount = docTrx.data().amount || 0;
 
         t.update(userRef, { balance: currentBalance + refundAmount });
-        t.update(doc.ref, { status: 'Gagal', api_msg: 'Refund Otomatis (Provider Gagal)' });
+        t.update(docTrx.ref, { status: 'Gagal', api_msg: 'Refund Berhasil' });
       });
-      console.log("[AKSI] Status diupdate ke GAGAL & Refund Berhasil");
+      console.log("[AKSI] Transaksi Gagal - Refund Telah Diproses");
     }
 
-    return res.status(200).json({ ok: true });
+    return res.status(200).json({ ok: true, reffid });
   } catch (err) {
     console.error("[WEBHOOK ERROR]:", err.message);
     return res.status(500).json({ error: err.message });

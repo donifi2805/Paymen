@@ -1815,7 +1815,7 @@ window.renderTopUpHistory = () => {
         }
     };
     window.closeStockModal = () => document.getElementById('stockModal').classList.add('hide');
-                window.openTrxDetail = (trxId) => {
+                    window.openTrxDetail = (trxId) => {
         const trx = transactions.find(t => t.trx_id === trxId);
         if(!trx) return;
 
@@ -1833,6 +1833,7 @@ window.renderTopUpHistory = () => {
 
         // Logika Tombol Refresh
         const btnRefresh = document.getElementById('btnRefreshStatus');
+        // Tampilkan tombol jika status Pending/Proses DAN ada ID Provider (bukan manual)
         if((trx.status === 'Pending' || trx.status === 'Proses') && trx.provider_id && trx.provider_id !== 'MANUAL') {
             btnRefresh.classList.remove('hide');
             btnRefresh.onclick = () => manualCheckTrx(trx.trx_id, trx.provider_id);
@@ -1843,21 +1844,20 @@ window.renderTopUpHistory = () => {
         document.getElementById('detailTrxModal').classList.remove('hide');
     };
 
-        window.manualCheckTrx = async (docId, providerId) => {
+    window.manualCheckTrx = async (docId, providerId) => {
         const btn = document.getElementById('btnRefreshStatus');
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         
-        // PERBAIKAN: Sesuai dokumentasi Khfy
-        // Endpoint: /history
-        // Param: refid (diisi dengan UUID / trx_id lokal kita)
+        // PERBAIKAN FINAL: Endpoint /history dengan parameter refid
+        console.log("[CheckTrx] Checking refid:", docId);
         const res = await callApi('/history', { refid: docId });
         
-        // Deteksi struktur response (support data.data atau root object)
+        // Handle response (support data.data atau root object)
         const r = (res.ok && res.data) ? (res.data.data || res.data) : null;
         
         if(r) {
-            // Normalisasi Status dari respon Khfy
-            // Khfy bisa mengembalikan status, status_text, atau result
+            console.log("[CheckTrx] Result:", r);
+            // Normalisasi Status
             let freshStatus = 'Pending';
             const rawStatus = String(r.status || r.status_text || r.result || '').toLowerCase();
             const sn = r.sn || r.keterangan || r.message || 'Tidak ada pesan server';
@@ -1868,13 +1868,13 @@ window.renderTopUpHistory = () => {
                 freshStatus = 'Gagal';
             }
 
-            // Update Tampilan Langsung
+            // Update UI
             const statusEl = document.getElementById('dtStatus');
             statusEl.innerText = freshStatus;
             statusEl.className = 'text-xs font-bold ' + (freshStatus === 'Sukses' ? 'text-green-600' : (freshStatus === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
             document.getElementById('dtSn').innerText = sn.replace(/,/g, ', ');
 
-            // Update Database Firestore
+            // Update Firestore
             await updateDoc(doc(db, "users", currentUser.uid, "history", docId), {
                 status: freshStatus,
                 api_msg: sn
@@ -1882,50 +1882,14 @@ window.renderTopUpHistory = () => {
             
             if(freshStatus !== 'Pending') {
                 btn.classList.add('hide');
-                alert('Status Berhasil Diperbarui: ' + freshStatus + '\n\n' + sn);
+                alert('Status Berhasil Diperbarui: ' + freshStatus + '\n' + sn);
             } else {
                 btn.innerHTML = '<i class="fas fa-sync-alt"></i>';
-                alert('Status di server masih Pending/Proses.');
+                alert('Status masih Pending di server Khfy.');
             }
-
         } else {
-            console.error("API Error:", res);
-            alert('Gagal cek status. Response server tidak valid atau kosong.');
-            btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
-        }
-    };
-        const btn = document.getElementById('btnRefreshStatus');
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        
-        const res = await callApi('/status', { id_trx: providerId });
-        
-        if(res.ok && res.data && res.data.data) {
-            const r = res.data.data;
-            const freshStatus = r.status === 'Success' ? 'Sukses' : (r.status === 'Gagal' ? 'Gagal' : 'Pending');
-            const freshMsg = r.sn || r.message || 'Tidak ada pesan';
-
-            // Update Tampilan Langsung
-            const statusEl = document.getElementById('dtStatus');
-            statusEl.innerText = freshStatus;
-            statusEl.className = 'text-xs font-bold ' + (freshStatus === 'Sukses' ? 'text-green-600' : (freshStatus === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
-            document.getElementById('dtSn').innerText = freshMsg.replace(/,/g, ', ');
-
-            // Update Database
-            await updateDoc(doc(db, "users", currentUser.uid, "history", docId), {
-                status: freshStatus,
-                api_msg: freshMsg
-            });
-            
-            if(freshStatus !== 'Pending') {
-                btn.classList.add('hide');
-                alert('Status Berhasil Diperbarui: ' + freshStatus);
-            } else {
-                btn.innerHTML = '<i class="fas fa-sync-alt"></i>';
-                alert('Status masih Pending di server.');
-            }
-
-        } else {
-            alert('Gagal cek status: ' + (res.error || 'Unknown Error'));
+            console.error("[CheckTrx] API Error:", res);
+            alert('Gagal cek status. Response server kosong/error.');
             btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
         }
     };

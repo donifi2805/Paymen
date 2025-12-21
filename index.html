@@ -1590,7 +1590,7 @@ if(window.checkPendingTrx) window.checkPendingTrx();
                 msg = msg.trim();
             }
             
-            const isSuccess = d.status === true || d.success === true || d.status === 'success' || (d.data && d.data.status === 'Pending') || msg.toLowerCase().includes('proses') || msg.toLowerCase().includes('akan di proses');
+                        const isSuccess = d.status === true || d.success === true || d.status === 'success' || (d.data && d.data.status === 'Pending') || msg.toLowerCase().includes('proses') || msg.toLowerCase().includes('akan di proses');
 
             if(isSuccess) { 
                 const newBal = currentBalance - price;
@@ -1603,7 +1603,7 @@ if(window.checkPendingTrx) window.checkPendingTrx();
                 }
                 // Default ke Pending agar Webhook yang merubah ke Sukses
                 
-                addDoc(collection(db, "users", currentUser.uid, "history"), {
+                                addDoc(collection(db, "users", currentUser.uid, "history"), {
                     title: name,
                     amount: price,
                     type: 'out',

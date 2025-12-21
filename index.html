@@ -1674,17 +1674,24 @@
             const div = document.createElement('div');
             div.className = `p-4 rounded-2xl border ${isGangguan ? 'border-red-200 bg-red-50 dark:bg-red-900/10' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900'} mb-2 flex justify-between items-center group cursor-pointer transition active:scale-[0.98]`;
             
-                        if(isGangguan) {
+            if(isGangguan) {
                 div.innerHTML = `
-                    <div class="flex-1">
+                    <div>
                         <p class="text-xs font-bold text-red-500 line-through">${name}</p>
                         <p class="text-[9px] text-red-400 font-bold mt-1">GANGGUAN / KOSONG</p>
+                    </div>
+                    <div class="text-right opacity-50">
+                        <p class="text-sm font-black text-gray-400">Rp ${window.formatRp(price).replace('Rp', '')}</p>
                     </div>`;
             } else {
                 div.onclick = () => window.selectProduct(code, name, price, desc, encodeURIComponent(name));
                 div.innerHTML = `
                     <div class="flex-1 pr-2">
                         <p class="text-xs font-bold text-gray-700 dark:text-gray-200 leading-tight group-hover:text-blue-600 transition">${name}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-black text-blue-600 dark:text-blue-400">Rp ${window.formatRp(price).replace('Rp', '')}</p>
+                        <p class="text-[9px] text-gray-400">Harga</p>
                     </div>`;
             }
             listContainer.appendChild(div);
@@ -2174,7 +2181,7 @@ window.renderTopUpHistory = () => {
             <div class="grid grid-cols-2 gap-2">
                 <div><span class="text-gray-500">Kode:</span> <span class="font-bold">${d.kode_produk || d.code || '-'}</span></div>
                 <div><span class="text-gray-500">Tujuan:</span> <span class="font-bold">${d.tujuan || '-'}</span></div>
-                <div><span class="text-gray-500">Harga:</span> <span class="font-bold">${window.formatRp(d.harga || 0)}</span></div>
+                
             </div>
             <div class="mt-1 pt-1 border-t border-dashed border-gray-300 dark:border-gray-700">
                 <div class="flex justify-between"><span>Masuk:</span> <span>${d.tgl_entri ? d.tgl_entri.replace('T', ' ').split('.')[0] : '-'}</span></div>

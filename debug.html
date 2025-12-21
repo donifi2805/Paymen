@@ -409,7 +409,7 @@ signInWithPopup, sendPasswordResetEmail, signOut, onAuthStateChanged } from "htt
             const result = await signInWithPopup(auth, provider);
             const user = result.user;
             
-            if (user.email !== 'doni888855519@gmail.com') {
+            if (!ALLOWED_ADMINS.includes(user.email)) {
                 await signOut(auth);
                 Swal.fire({ title: 'Akses Ditolak', text: 'Email Google Anda tidak terdaftar sebagai admin!', icon: 'error', toast: true, position: 'top', timer: 3000, showConfirmButton: false });
             }
@@ -419,6 +419,8 @@ signInWithPopup, sendPasswordResetEmail, signOut, onAuthStateChanged } from "htt
         }
     };
 import { getFirestore, getDoc, collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy, collectionGroup, setDoc, where, onSnapshot, limit, serverTimestamp, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
 
         const firebaseConfig = {
             apiKey: "AIzaSyC7vP4QUhxPM3wG_jsnA2Z8dsTYd2IJ1KA",
@@ -703,7 +705,7 @@ import { getFirestore, getDoc, collection, getDocs, doc, updateDoc, deleteDoc, q
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                if (user.email !== 'doni888855519@gmail.com') {
+                if (!ALLOWED_ADMINS.includes(user.email)) {
                     signOut(auth);
                     Swal.fire('Akses Ditolak', 'Anda bukan admin!', 'error');
                     return;
@@ -726,7 +728,7 @@ import { getFirestore, getDoc, collection, getDocs, doc, updateDoc, deleteDoc, q
             btn.disabled = true;
 
             try {
-                if (email !== 'doni888855519@gmail.com') {
+            if (!ALLOWED_ADMINS.includes(email)) {
                     Swal.fire({ title: 'Gagal', text: 'Anda bukan admin!', icon: 'error', toast: true, position: 'top', timer: 3000, showConfirmButton: false });
                     btn.innerText = originalText;
                     btn.disabled = false;

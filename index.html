@@ -519,14 +519,17 @@
                     <div class="mb-4">
                         <div class="flex justify-between items-center mb-1"><label class="block text-xs font-bold text-gray-500 ml-1">Provider</label><button onclick="initProductData()" class="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded-md hover:bg-blue-100"><i class="fas fa-sync-alt mr-1"></i> Refresh Data</button></div>
                         <div class="relative">
-                            Mengubah style dropdown Provider<option value="" disabled selected>-- Pilih Provider --</option><option value="XDA">Akrab Fresh (XDA)</option><option value="XLA">Akrab Fresh (XLA)</option><option value="FMX">FlexMax (FMX)</option>
+                            <select id="formProvider" onchange="updateProductDropdown()" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white text-sm rounded-xl px-4 py-3 font-bold"><option value="" disabled selected>-- Pilih Provider --</option><option value="XDA">Akrab Fresh (XDA)</option><option value="XLA">Akrab Fresh (XLA)</option><option value="FMX">FlexMax (FMX)</option>
 <option value="XLR">XL Reguler (XLR)</option><option value="PLN">PLN Pascabayar</option></select>
                             <i class="fas fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
                         </div>
                     </div>
                     <div class="mb-4">
                         <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Produk</label>
-                        Mengganti container dropdown produk dengan Grid Container
+                        <div class="relative">
+                            <select id="formProduct" disabled class="w-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm rounded-xl px-4 py-3 appearance-none font-medium transition-colors"><option value="">Menunggu Provider...</option></select>
+                            <i class="fas fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                        </div>
                         <p class="text-[10px] text-blue-500 mt-1 text-right font-bold" id="priceDisplay"></p>
                     </div>
                     <div class="mb-6">
@@ -1455,10 +1458,15 @@
 
     window.updateProductDropdown = () => {
         const providerCode = document.getElementById('formProvider').value;
-        Update logika inisialisasi variabel di fungsi updateProductDropdown
+        const productSelect = document.getElementById('formProduct');
+        const priceDisplay = document.getElementById('priceDisplay');
+        
+        productSelect.innerHTML = '';
+        productSelect.disabled = false;
+        priceDisplay.innerText = '';
 
         if(!globalProducts || globalProducts.length === 0) {
-             Update pesan error 'Data Belum Siap'
+             productSelect.innerHTML = '<option>Data Belum Siap (Cek Koneksi)</option>';
              window.initProductData(); 
              return;
         }
@@ -1481,7 +1489,8 @@
         });
 
         if(filtered.length === 0) {
-            Update pesan 'Produk Tidak Ditemukan'
+            productSelect.innerHTML = `<option>Produk Tidak Ditemukan (${providerCode})</option>`;
+            productSelect.disabled = true;
             return;
         }
 
@@ -1491,7 +1500,52 @@
             return priceA - priceB;
         });
 
-        Mengganti loop render produk dari Option ke Card Grid
+        productSelect.innerHTML = '<option value="" selected disabled>-- Pilih Produk --</option>';
+        filtered.forEach(p => {
+            let price = p.price || p.harga_final || p.buyer_price || 0;
+            const code = p.code || p.kode_produk || p.buyer_sku_code;
+            const name = p.name || p.nama_produk || p.product_name;
+            
+            if(pricingRules[code]) {
+                price += parseInt(pricingRules[code]);
+            }
+            
+            let isGangguan = false;
+            if (p.gangguan === 1 || p.gangguan === '1') isGangguan = true;
+            if (p.kosong === 1 || p.kosong === '1') isGangguan = true;
+            if (String(p.buyer_product_status) === '0') isGangguan = true;
+            
+            const opt = document.createElement('option');
+            opt.value = code;
+            opt.text = `${name} - Rp ${window.formatRp(price)}`;
+            opt.dataset.price = price;
+            opt.dataset.name = name;
+            opt.dataset.description = p.deskripsi || '';
+            
+            if(isGangguan) {
+                opt.text += ' (GANGGUAN)';
+                opt.disabled = true;
+                opt.style.color = 'red';
+            }
+            productSelect.appendChild(opt);
+        });
+
+                productSelect.onchange = function() {
+             const selectedOpt = this.options[this.selectedIndex];
+             priceDisplay.innerText = `Harga: Rp ${window.formatRp(selectedOpt.dataset.price)}`;
+             
+             const descBox = document.getElementById('productDescription');
+             if(descBox) {
+                 const rawDesc = selectedOpt.dataset.description;
+                 if(rawDesc && rawDesc !== 'undefined' && rawDesc.trim() !== '') {
+                     descBox.innerHTML = '<div class="font-bold mb-1 text-blue-600 dark:text-blue-400"><i class="fas fa-info-circle mr-1"></i>Detail Paket:</div>' + rawDesc.replace(/\r?\n/g, '<br>');
+                     descBox.classList.remove('hide');
+                 } else {
+                     descBox.classList.add('hide');
+                     descBox.innerHTML = '';
+                 }
+             }
+        };
     };
     const priceDisplay = document.getElementById('priceDisplay');    window.toggleMultiTrx = () => {
         isMultiTrx = !isMultiTrx;
@@ -1554,7 +1608,13 @@
     };
 
     window.processFormTransaction = () => {
-        Update pengambilan nilai form saat transaksi
+        const productSelect = document.getElementById('formProduct');
+        if(!productSelect.value) return alert('Silakan pilih Produk!');
+
+        const selectedOpt = productSelect.options[productSelect.selectedIndex];
+        const code = productSelect.value;
+        const name = selectedOpt.dataset.name;
+        const price = parseInt(selectedOpt.dataset.price);
 
         if (code === 'CEKPLN') {
             window.checkPLN(document.getElementById('ppobNumber').value);
@@ -1680,7 +1740,8 @@
                     provider_id: (d.data && d.data.id) ? d.data.id : ''
                 });
 
-                Update notifikasi sukses transaksi
+                alert(`Transaksi Sedang Diproses!\nInfo: ${msg}`);
+                window.nav('homePage');
                         } else {
                 // MODIFIKASI: Simpan Riwayat meskipun Gagal (untuk catatan)
                 addDoc(collection(db, "users", currentUser.uid, "history"), {

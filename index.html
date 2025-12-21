@@ -1815,7 +1815,7 @@ window.renderTopUpHistory = () => {
         }
     };
     window.closeStockModal = () => document.getElementById('stockModal').classList.add('hide');
-                            window.openTrxDetail = (trxId) => {
+                                window.openTrxDetail = (trxId) => {
         const trx = transactions.find(t => t.trx_id === trxId);
         if(!trx) return;
 
@@ -1834,16 +1834,17 @@ window.renderTopUpHistory = () => {
         // Logika Tombol Refresh & Auto Check
         const btnRefresh = document.getElementById('btnRefreshStatus');
         
-        // Cek apakah perlu refresh ke server (Jika Pending/Proses)
+        // Cek jika status Pending/Proses dan bukan transaksi manual
         if((trx.status === 'Pending' || trx.status === 'Proses') && trx.provider_id && trx.provider_id !== 'MANUAL') {
             btnRefresh.classList.remove('hide');
             btnRefresh.onclick = () => manualCheckTrx(trx.trx_id, trx.provider_id);
             
-            // FITUR BARU: Otomatis Cek Status saat dibuka
+            // --- PERBAIKAN: OTOMATIS CEK KE SERVER SETELAH 0.5 DETIK ---
+            console.log("Auto-check triggered for:", trx.trx_id);
             setTimeout(() => {
-                console.log("Auto-checking status...");
-                manualCheckTrx(trx.trx_id, trx.provider_id);
+                 manualCheckTrx(trx.trx_id, trx.provider_id);
             }, 500);
+            // ----------------------------------------------------------
             
         } else {
             btnRefresh.classList.add('hide');
@@ -1851,6 +1852,7 @@ window.renderTopUpHistory = () => {
 
         document.getElementById('detailTrxModal').classList.remove('hide');
     };
+
 
     window.manualCheckTrx = async (docId, providerId) => {
         const btn = document.getElementById('btnRefreshStatus');

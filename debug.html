@@ -113,7 +113,7 @@
             <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
                 <div onclick="switchTab('livechat')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-green-200">
                     <div>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Chat Aktif</p>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Pesan Terbaru</p>
                         <h3 class="text-2xl font-black text-gray-800" id="statChatCount">0</h3>
                         <p class="text-[9px] text-green-500 font-bold mt-1">Buka Chat <i class="fas fa-arrow-right ml-0.5"></i></p>
                     </div>
@@ -299,7 +299,7 @@
             <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100 sticky top-0 z-20">
                 <div class="flex items-center gap-3">
                     <button onclick="switchTab('dashboard')" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition"><i class="fas fa-arrow-left"></i></button>
-                    <div><h2 class="text-lg font-bold text-gray-800 leading-none">Kelola Harga</h2><p class="text-[10px] text-gray-500">Atur keuntungan per produk (Markup/Markdown)</p></div>
+                    <div><h2 class="text-lg font-bold text-gray-800 leading-none">Kelola Harga</h2><p class="text-[10px] text-gray-500">Atur keuntungan per produk</p></div>
                 </div>
                 <button onclick="saveAllPrices()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-[11px] shadow transition flex items-center gap-2"><i class="fas fa-save"></i> Simpan Perubahan</button>
             </div>
@@ -321,7 +321,7 @@
                 </div>
             </div>
         </div>
-</main>
+    </main>
 
     <div id="editUserModal" class="hide fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 fade-in">
         <div class="bg-white rounded-xl w-full max-w-xs shadow-2xl overflow-hidden transform transition-all scale-100">
@@ -391,7 +391,6 @@
         let currentChatUid = null, chatUnsub = null, chatListUnsub = null, isRedirectFromUsers = false;
         let globalProducts = [], pricingRules = {}, allTransactions = [], allUsers = [];
 
-        // --- AUTH & CORE LOGIC ---
         onAuthStateChanged(auth, u => { 
             if(u && ALLOWED_ADMINS.includes(u.email)) { 
                 document.getElementById('loginOverlay').classList.add('hide'); 
@@ -425,7 +424,6 @@
             if(tabId === 'livechat') loadChatList();
         };
 
-        // --- DASHBOARD & USER LOGIC ---
         window.loadDashboardData = async () => {
             try {
                 const snap = await getDocs(collection(db, "users"));
@@ -434,10 +432,7 @@
                     const data = docSnap.data(), uid = docSnap.id;
                     totalUsers++; totalBalance += (data.balance || 0);
                     allUsers.push({ id: uid, ...data });
-                    
-                    // KEMBALIKAN FOTO PROFIL DICEBEAR
                     const avatarUrl = data.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${uid}`;
-                    
                     html += `<tr class="hover:bg-blue-50/30 border-b border-gray-50 last:border-0">
                         <td class="p-3"><img src="${avatarUrl}" class="w-8 h-8 rounded-full border bg-gray-100"></td>
                         <td class="p-3"><div class="font-bold text-gray-800">${data.username || 'User'}</div><div class="text-[9px] text-gray-400">${data.email || '-'}</div></td>
@@ -450,11 +445,18 @@
                 document.getElementById('userTableBody').innerHTML = html;
                 document.getElementById('statUserCount').innerText = totalUsers;
                 document.getElementById('statTotalBalance').innerText = window.formatRp(totalBalance);
+                
+                // UPDATE PENGHITUNG PESAN BELUM DIBACA
+                onSnapshot(query(collection(db, "chats")), (chatSnap) => {
+                    let unreadCount = 0;
+                    chatSnap.forEach(d => { if(d.data().lastSender === 'user' && !d.data().isRead) unreadCount++; });
+                    document.getElementById('statChatCount').innerText = unreadCount;
+                });
+
                 loadGlobalTransactions();
             } catch (e) { console.log(e); }
         };
 
-        // --- TRANSACTION LOGIC ---
         async function loadGlobalTransactions() {
             try {
                 const snap = await getDocs(query(collectionGroup(db, 'history'), orderBy('date', 'desc')));
@@ -471,9 +473,7 @@
         function renderTransactions(data) {
             let html = '';
             data.forEach(t => {
-                const isOut = t.type === 'out';
-                const user = allUsers.find(u => u.id === t.uid);
-                const date = t.date ? new Date(t.date).toLocaleDateString('id-ID', {day:'numeric', month:'short'}) : '-';
+                const isOut = t.type === 'out', user = allUsers.find(u => u.id === t.uid), date = t.date ? new Date(t.date).toLocaleDateString('id-ID', {day:'numeric', month:'short'}) : '-';
                 html += `<tr class="border-b border-gray-50">
                     <td class="p-3"><div class="font-bold">${date}</div></td>
                     <td class="p-3"><div class="font-bold">${user ? user.username : 'User'}</div></td>
@@ -500,7 +500,6 @@
             doc.save(`Transaksi_${Date.now()}.pdf`);
         };
 
-        // --- PRICING LOGIC ---
         const API_CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
         const PROXY_LIST = [ { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' }, { name: 'CorsProxy', url: 'https://corsproxy.io/?' }, { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' } ];
 
@@ -544,7 +543,6 @@
             Swal.fire('Berhasil', 'Harga diupdate', 'success');
         };
 
-        // --- LIVE CHAT LOGIC ---
         window.loadChatList = () => {
             const listContainer = document.getElementById('chatUserList');
             if(!listContainer) return;
@@ -631,7 +629,6 @@
             if (selectedUid) window.initChat(selectedUid, allUsers.find(u => u.id === selectedUid).username);
         };
 
-        // --- USER MGMT LOGIC ---
         window.openEditUser = (uid) => {
             const u = allUsers.find(x => x.id === uid);
             if(u) { document.getElementById('editUid').value = uid; document.getElementById('editUsername').value = u.username || ''; document.getElementById('editBalance').value = u.balance || 0; document.getElementById('editEmailHidden').value = u.email || ''; document.getElementById('editUserModal').classList.remove('hide'); }

@@ -430,7 +430,7 @@
                                         <div class="text-center group/btn cursor-pointer" onclick="openTopUpSheet()"><div class="w-11 h-11 mx-auto bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/30 mb-1.5 transform group-hover/btn:scale-110 transition-all duration-300 relative"><div id="badge-topup-home" class="hide absolute -top-1 -right-1 w-4 h-4 bg-red-500 border-2 border-white rounded-full flex items-center justify-center text-[9px] font-bold">1</div><i class="fas fa-plus text-base"></i></div><span class="text-[10px] font-bold text-gray-600 dark:text-gray-300">Top Up</span></div>
                     <div class="text-center group/btn cursor-pointer" onclick="nav('sendPage')"><div class="w-11 h-11 mx-auto bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 border border-gray-100 dark:border-gray-700 rounded-2xl flex items-center justify-center shadow-sm mb-1.5 transform group-hover/btn:scale-110 transition-all duration-300"><i class="fas fa-paper-plane text-base"></i></div><span class="text-[10px] font-bold text-gray-600 dark:text-gray-300">Kirim</span></div>
                     <div class="text-center group/btn cursor-pointer" onclick="nav('requestPage')"><div class="w-11 h-11 mx-auto bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 border border-gray-100 dark:border-gray-700 rounded-2xl flex items-center justify-center shadow-sm mb-1.5 transform group-hover/btn:scale-110 transition-all duration-300"><i class="fas fa-arrow-down text-base"></i></div><span class="text-[10px] font-bold text-gray-600 dark:text-gray-300">Minta</span></div>
-                    <div class="text-center group/btn cursor-pointer" onclick="alert('Lainnya...')"><div class="w-11 h-11 mx-auto bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 border border-gray-100 dark:border-gray-700 rounded-2xl flex items-center justify-center shadow-sm mb-1.5 transform group-hover/btn:scale-110 transition-all duration-300"><i class="fas fa-qrcode text-base"></i></div><span class="text-[10px] font-bold text-gray-600 dark:text-gray-300">Lainnya</span></div>
+                    <div class="text-center group/btn cursor-pointer" onclick="startScan()"><div class="w-11 h-11 mx-auto bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 border border-gray-100 dark:border-gray-700 rounded-2xl flex items-center justify-center shadow-sm mb-1.5 transform group-hover/btn:scale-110 transition-all duration-300"><i class="fas fa-qrcode text-base"></i></div><span class="text-[10px] font-bold text-gray-600 dark:text-gray-300">Scan</span></div>
                 </div>
             </div>
         </div>
@@ -516,20 +516,23 @@
         <div class="p-4 pb-24">
             <div id="inputSection" class="transition-all duration-300">
                 <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-800">
-                    <div class="mb-4">
+                                        <div class="mb-4">
                         <div class="flex justify-between items-center mb-1"><label class="block text-xs font-bold text-gray-500 ml-1">Provider</label><button onclick="initProductData()" class="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded-md hover:bg-blue-100"><i class="fas fa-sync-alt mr-1"></i> Refresh Data</button></div>
-                        <div class="relative">
-                            <select id="formProvider" onchange="updateProductDropdown()" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white text-sm rounded-xl px-4 py-3 font-bold"><option value="" disabled selected>-- Pilih Provider --</option><option value="XDA">Akrab Fresh (XDA)</option><option value="XLA">Akrab Fresh (XLA)</option><option value="FMX">FlexMax (FMX)</option>
-<option value="XLR">XL Reguler (XLR)</option><option value="PLN">PLN Pascabayar</option></select>
-                            <i class="fas fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                        <div onclick="openSheet('provider')" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white text-sm rounded-xl px-4 py-3 font-bold flex justify-between items-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                            <span id="displayProvider">-- Pilih Provider --</span>
+                            <i class="fas fa-chevron-down text-gray-400"></i>
                         </div>
+                        <input type="hidden" id="formProvider" onchange="updateProductDropdown()">
                     </div>
                     <div class="mb-4">
                         <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Produk</label>
-                        <div class="relative">
-                            <select id="formProduct" disabled class="w-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm rounded-xl px-4 py-3 appearance-none font-medium transition-colors"><option value="">Menunggu Provider...</option></select>
-                            <i class="fas fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                        <div onclick="openSheet('product')" id="btnProductTrigger" class="w-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm rounded-xl px-4 py-3 font-medium flex justify-between items-center cursor-not-allowed transition">
+                            <span id="displayProduct">Menunggu Provider...</span>
+                            <i class="fas fa-chevron-down text-gray-400"></i>
                         </div>
+                        <input type="hidden" id="formProduct">
+                        <input type="hidden" id="selectedProductName">
+                        <input type="hidden" id="selectedProductPrice">
                         <p class="text-[10px] text-blue-500 mt-1 text-right font-bold" id="priceDisplay"></p>
                     </div>
                     <div class="mb-6">
@@ -631,6 +634,52 @@
 </nav>
 </div>
 
+    
+    <div id="sheetOverlay" onclick="closeAllSheets()" class="hide fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm fade-enter"></div>
+
+    
+    <div id="sheetProvider" class="hide fixed bottom-0 left-0 right-0 z-[70] bg-white dark:bg-gray-900 rounded-t-[2rem] p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.3)] max-w-[480px] mx-auto transition-transform duration-300 transform translate-y-0">
+        <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-6"></div>
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Pilih Provider</h3>
+            <button onclick="closeAllSheets()" class="text-gray-400 hover:text-red-500"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="space-y-2 max-h-[60vh] overflow-y-auto no-scrollbar pb-8">
+            <div onclick="selectProvider('XDA', 'Akrab Fresh (XDA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Akrab Fresh (XDA)</span>
+                <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
+            </div>
+            <div onclick="selectProvider('XLA', 'Akrab Fresh (XLA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Akrab Fresh (XLA)</span>
+                <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
+            </div>
+            <div onclick="selectProvider('FMX', 'FlexMax (FMX)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">FlexMax (FMX)</span>
+                <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
+            </div>
+            <div onclick="selectProvider('XLR', 'XL Reguler (XLR)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">XL Reguler (XLR)</span>
+                <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
+            </div>
+            <div onclick="selectProvider('PLN', 'PLN Pascabayar')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">PLN Pascabayar</span>
+                <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
+            </div>
+        </div>
+    </div>
+
+    
+    <div id="sheetProduct" class="hide fixed bottom-0 left-0 right-0 z-[70] bg-white dark:bg-gray-900 rounded-t-[2rem] p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.3)] max-w-[480px] mx-auto transition-transform duration-300">
+        <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-6"></div>
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Pilih Produk</h3>
+            <button onclick="closeAllSheets()" class="text-gray-400 hover:text-red-500"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="sheetProductList" class="space-y-3 max-h-[60vh] overflow-y-auto no-scrollbar pb-8">
+            <div class="text-center text-gray-400 py-10">Silakan pilih provider terlebih dahulu</div>
+        </div>
+    </div>
+
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { 
@@ -682,6 +731,45 @@
     let isMultiTrx = false;
     let currentFilter = 'all';
     let scanner = null;
+
+    window.startScan = () => {
+        window.nav('scanPage');
+        if(!scanner) {
+             scanner = new Html5Qrcode("reader");
+        }
+        scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (decodedText) => {
+            window.stopScan();
+            // Cek apakah hasil scan adalah angka (Nomor HP/ID Pelanggan)
+            if (/^\d+$/.test(decodedText)) {
+                window.openPPOB('akrab');
+                setTimeout(() => {
+                    document.getElementById('ppobNumber').value = decodedText;
+                    alert("Nomor Terdeteksi: " + decodedText);
+                }, 500);
+            } else {
+                alert("Hasil Scan: " + decodedText + "\n(Fitur QRIS Pembayaran belum aktif)");
+                window.nav('homePage');
+            }
+        }).catch(err => {
+            console.error(err);
+            alert("Gagal akses kamera: " + err);
+            window.nav('homePage');
+        });
+    };
+
+    window.stopScan = () => {
+        if(scanner) {
+            scanner.stop().then(() => {
+                 scanner.clear();
+                 window.nav('homePage');
+            }).catch(err => {
+                 console.log("Stop error", err);
+                 window.nav('homePage');
+            });
+        } else {
+            window.nav('homePage');
+        }
+    };
     let pricingRules = {}; // Cache Aturan Harga
     let passwordPromptCallback = null;
 
@@ -1423,17 +1511,78 @@
     };
     window.closePPOB = () => window.nav('homePage');
     
+        // --- CUSTOM SHEET LOGIC ---
+        // --- CUSTOM SHEET LOGIC (FIXED) ---
+    window.openSheet = (type) => {
+        if(type === 'product') {
+             const prov = document.getElementById('formProvider').value;
+             if(!prov) return alert('Pilih Provider dulu!');
+             if(document.getElementById('btnProductTrigger').classList.contains('cursor-not-allowed')) return;
+             document.getElementById('sheetProduct').classList.remove('hide');
+        } else {
+             document.getElementById('sheetProvider').classList.remove('hide');
+        }
+        document.getElementById('sheetOverlay').classList.remove('hide');
+        document.body.style.overflow = 'hidden';
+    };
+
+    window.closeAllSheets = () => {
+        document.getElementById('sheetProvider').classList.add('hide');
+        document.getElementById('sheetProduct').classList.add('hide');
+        document.getElementById('sheetOverlay').classList.add('hide');
+        document.body.style.overflow = '';
+    };
+
+    window.selectProvider = (code, name) => {
+        document.getElementById('formProvider').value = code;
+        document.getElementById('displayProvider').innerText = name;
+        document.getElementById('displayProvider').className = "text-gray-800 dark:text-white font-bold truncate pr-6";
+        
+        // Reset Product
+        document.getElementById('formProduct').value = '';
+        document.getElementById('displayProduct').innerText = 'Memuat Produk...';
+        document.getElementById('displayProduct').className = "text-gray-500 dark:text-gray-400";
+        document.getElementById('priceDisplay').innerText = '';
+        document.getElementById('productDescription').classList.add('hide');
+        
+        closeAllSheets();
+        window.updateProductDropdown();
+    };
+
+    window.selectProduct = (code, name, price, desc, encodedName) => {
+        const finalName = encodedName ? decodeURIComponent(encodedName) : name;
+        
+        document.getElementById('formProduct').value = code;
+        document.getElementById('displayProduct').innerText = finalName;
+        document.getElementById('displayProduct').className = "text-gray-800 dark:text-white font-bold truncate pr-6";
+        
+        document.getElementById('selectedProductName').value = finalName;
+        document.getElementById('selectedProductPrice').value = price;
+        
+        document.getElementById('priceDisplay').innerText = `Harga: Rp ${window.formatRp(price)}`;
+        
+        const descBox = document.getElementById('productDescription');
+        if(desc && desc !== 'undefined' && desc.trim() !== '') {
+             descBox.innerHTML = '<div class="font-bold mb-1 text-blue-600 dark:text-blue-400"><i class="fas fa-info-circle mr-1"></i>Detail Paket:</div>' + desc.replace(/\r?\n/g, '<br>');
+             descBox.classList.remove('hide');
+        } else {
+             descBox.classList.add('hide');
+        }
+
+        closeAllSheets();
+    };
+
     window.initProductData = async () => {
-        const pSelect = document.getElementById('formProduct');
-        if(!pSelect) return;
+        const btnProd = document.getElementById('btnProductTrigger');
+        const txtProd = document.getElementById('displayProduct');
         
         try {
             const settingsSnap = await getDoc(doc(db, "settings", "pricing"));
             if (settingsSnap.exists()) pricingRules = settingsSnap.data().rules || {};
         } catch(e) { console.log("Gagal load harga custom", e); }
 
-        pSelect.innerHTML = '<option>Sedang mencari jalur koneksi...</option>';
-        pSelect.disabled = true;
+        if(txtProd) txtProd.innerText = 'Menghubungkan Server...';
+        if(btnProd) btnProd.classList.add('cursor-not-allowed', 'opacity-50');
         
         const result = await callApi('/list_product');
         
@@ -1445,54 +1594,63 @@
             console.log("Total Produk Dimuat:", globalProducts.length);
 
             if (globalProducts.length > 0) {
-                pSelect.innerHTML = '<option value="">-- Pilih Provider Dahulu --</option>';
-                if(document.getElementById('formProvider').value) window.updateProductDropdown();
+                if(document.getElementById('formProvider').value) {
+                    window.updateProductDropdown();
+                } else {
+                    if(txtProd) txtProd.innerText = 'Pilih Provider Dahulu';
+                }
             } else {
-                pSelect.innerHTML = '<option>Data Produk Kosong</option>';
+                if(txtProd) txtProd.innerText = 'Produk Kosong';
             }
         } else {
-            pSelect.innerHTML = '<option>Gagal Load Data</option>';
+            if(txtProd) txtProd.innerText = 'Gagal Koneksi';
             alert('Gagal mengambil data produk (Koneksi Bermasalah).\n' + result.error);
         }
     };
 
     window.updateProductDropdown = () => {
         const providerCode = document.getElementById('formProvider').value;
-        const productSelect = document.getElementById('formProduct');
-        const priceDisplay = document.getElementById('priceDisplay');
+        const listContainer = document.getElementById('sheetProductList');
+        const btnProd = document.getElementById('btnProductTrigger');
+        const txtProd = document.getElementById('displayProduct');
         
-        productSelect.innerHTML = '';
-        productSelect.disabled = false;
-        priceDisplay.innerText = '';
-
+        if(!listContainer) return;
+        listContainer.innerHTML = '';
+        
         if(!globalProducts || globalProducts.length === 0) {
-             productSelect.innerHTML = '<option>Data Belum Siap (Cek Koneksi)</option>';
+             if(txtProd) txtProd.innerText = 'Data Belum Siap';
              window.initProductData(); 
              return;
         }
 
-                        const filtered = globalProducts.filter(p => {
+        const filtered = globalProducts.filter(p => {
             const code = (p.code || p.kode_produk || p.buyer_sku_code || '').toUpperCase();
             const name = (p.name || p.nama_produk || p.product_name || '').toUpperCase();
             const brand = (p.brand || p.kode_provider || p.operator || '').toUpperCase();
             
-            // Filter Ketat (Strict) Sesuai Request
             if (providerCode === 'XDA') return code.startsWith('XDA');
             if (providerCode === 'XLA') return code.startsWith('XLA');
             if (providerCode === 'FMX') return (code.startsWith('FMX') || code === 'CFMX') && brand === 'FMAX';
             if (providerCode === 'XLR') return brand === 'XLREGULER';
-            
-            // Filter Tambahan
             if (providerCode === 'PLN') return brand.includes('PLN') || code.includes('PLN') || name.includes('TOKEN');
 
             return brand.includes(providerCode) || name.includes(providerCode) || code.includes(providerCode);
         });
 
         if(filtered.length === 0) {
-            productSelect.innerHTML = `<option>Produk Tidak Ditemukan (${providerCode})</option>`;
-            productSelect.disabled = true;
+            if(txtProd) txtProd.innerText = `Kosong (${providerCode})`;
+            listContainer.innerHTML = `<div class="text-center py-8 text-gray-400 flex flex-col items-center"><i class="fas fa-box-open text-2xl mb-2"></i><p class="text-xs">Tidak ada produk tersedia</p></div>`;
             return;
         }
+
+        // Enable Button
+        if(btnProd) {
+            btnProd.classList.remove('cursor-not-allowed', 'opacity-50');
+            btnProd.classList.add('bg-white', 'hover:bg-gray-50');
+            if(btnProd.classList.contains('bg-gray-100')) btnProd.classList.remove('bg-gray-100');
+        }
+        
+        if(txtProd) txtProd.innerText = '-- Klik Untuk Pilih Produk --';
 
         filtered.sort((a, b) => {
             const priceA = a.price || a.harga_final || a.buyer_price || 0;
@@ -1500,54 +1658,47 @@
             return priceA - priceB;
         });
 
-        productSelect.innerHTML = '<option value="" selected disabled>-- Pilih Produk --</option>';
         filtered.forEach(p => {
             let price = p.price || p.harga_final || p.buyer_price || 0;
             const code = p.code || p.kode_produk || p.buyer_sku_code;
             const name = p.name || p.nama_produk || p.product_name;
+            const desc = p.deskripsi || '';
             
-            if(pricingRules[code]) {
-                price += parseInt(pricingRules[code]);
-            }
+            if(pricingRules[code]) price += parseInt(pricingRules[code]);
             
             let isGangguan = false;
             if (p.gangguan === 1 || p.gangguan === '1') isGangguan = true;
             if (p.kosong === 1 || p.kosong === '1') isGangguan = true;
             if (String(p.buyer_product_status) === '0') isGangguan = true;
-            
-            const opt = document.createElement('option');
-            opt.value = code;
-            opt.text = `${name} - Rp ${window.formatRp(price)}`;
-            opt.dataset.price = price;
-            opt.dataset.name = name;
-            opt.dataset.description = p.deskripsi || '';
+
+            const div = document.createElement('div');
+            div.className = `p-4 rounded-2xl border ${isGangguan ? 'border-red-200 bg-red-50 dark:bg-red-900/10' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900'} mb-2 flex justify-between items-center group cursor-pointer transition active:scale-[0.98]`;
             
             if(isGangguan) {
-                opt.text += ' (GANGGUAN)';
-                opt.disabled = true;
-                opt.style.color = 'red';
+                div.innerHTML = `
+                    <div>
+                        <p class="text-xs font-bold text-red-500 line-through">${name}</p>
+                        <p class="text-[9px] text-red-400 font-bold mt-1">GANGGUAN / KOSONG</p>
+                    </div>
+                    <div class="text-right opacity-50">
+                        <p class="text-sm font-black text-gray-400">Rp ${window.formatRp(price).replace('Rp', '')}</p>
+                    </div>`;
+            } else {
+                div.onclick = () => window.selectProduct(code, name, price, desc, encodeURIComponent(name));
+                div.innerHTML = `
+                    <div class="flex-1 pr-2">
+                        <p class="text-xs font-bold text-gray-700 dark:text-gray-200 leading-tight group-hover:text-blue-600 transition">${name}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-black text-blue-600 dark:text-blue-400">Rp ${window.formatRp(price).replace('Rp', '')}</p>
+                        <p class="text-[9px] text-gray-400">Harga</p>
+                    </div>`;
             }
-            productSelect.appendChild(opt);
+            listContainer.appendChild(div);
         });
-
-                productSelect.onchange = function() {
-             const selectedOpt = this.options[this.selectedIndex];
-             priceDisplay.innerText = `Harga: Rp ${window.formatRp(selectedOpt.dataset.price)}`;
-             
-             const descBox = document.getElementById('productDescription');
-             if(descBox) {
-                 const rawDesc = selectedOpt.dataset.description;
-                 if(rawDesc && rawDesc !== 'undefined' && rawDesc.trim() !== '') {
-                     descBox.innerHTML = '<div class="font-bold mb-1 text-blue-600 dark:text-blue-400"><i class="fas fa-info-circle mr-1"></i>Detail Paket:</div>' + rawDesc.replace(/\r?\n/g, '<br>');
-                     descBox.classList.remove('hide');
-                 } else {
-                     descBox.classList.add('hide');
-                     descBox.innerHTML = '';
-                 }
-             }
-        };
     };
-    const priceDisplay = document.getElementById('priceDisplay');    window.toggleMultiTrx = () => {
+
+    window.toggleMultiTrx = () => {
         isMultiTrx = !isMultiTrx;
         const check = document.getElementById('multiTrxCheck');
         const icon = check.querySelector('i');
@@ -1596,7 +1747,7 @@
                         const hRef = doc(db, "users", currentUser.uid, "history", reffId);
                         t.set(hRef, { title: name + ' (Multi)', amount: price, type: 'out', date: new Date().toISOString(), status: 'Pending', api_msg: 'Batch Trx', trx_id: reffId, provider_id: (result.data && result.data.data && result.data.data.id) ? result.data.data.id : 'MANUAL' });
                      });
-                     currentBalance -= price;
+                     
                 } else { fail++; }
             } catch(e) { fail++; console.error(e); }
             await new Promise(r => setTimeout(r, 1000));
@@ -1607,14 +1758,12 @@
         window.nav('homePage');
     };
 
-    window.processFormTransaction = () => {
-        const productSelect = document.getElementById('formProduct');
-        if(!productSelect.value) return alert('Silakan pilih Produk!');
+        window.processFormTransaction = () => {
+        const code = document.getElementById('formProduct').value;
+        const name = document.getElementById('selectedProductName').value;
+        const price = parseInt(document.getElementById('selectedProductPrice').value || 0);
 
-        const selectedOpt = productSelect.options[productSelect.selectedIndex];
-        const code = productSelect.value;
-        const name = selectedOpt.dataset.name;
-        const price = parseInt(selectedOpt.dataset.price);
+        if(!code) return alert('Silakan pilih Produk!');
 
         if (code === 'CEKPLN') {
             window.checkPLN(document.getElementById('ppobNumber').value);
@@ -1656,7 +1805,7 @@
 
             if (isSuccess || isDataFound) {
                 let displayMsg = (data.message || data.sn).replace(/\//g, '\n');
-                window.customConfirm('TAGIHAN DITEMUKAN', `Detail Pelanggan:\n------------------\n${displayMsg}\n\n(Saldo aman, ini hanya pengecekan)`, () => {});
+                window.customConfirm('TAGIHAN DITEMUKAN', `Detail Pelanggan:\n------------------\n${displayMsg}\n\n(Silakan lakukan pembayaran manual)`, () => window.closeConfirm());
             } else {
                 alert('PENGGUNA TIDAK TERDAFTAR\n\nSilakan periksa kembali Nomor ID Pelanggan PLN anda.');
             }
@@ -1693,71 +1842,78 @@
     window.executeApiTransaction = async (code, dest, price, name) => {
         window.showLoader(true);
         const reffId = crypto.randomUUID();
-
-        const result = await callApi('/trx', {
-            produk: code,
-            tujuan: dest,
-            reff_id: reffId
-        });
-
-        window.showLoader(false);
-
-        if(result.ok && result.data) {
-            const d = result.data;
-            let msg = d.message || d.msg || d.sn || d.error || (d.data ? (d.data.message || d.data.msg || d.data.sn) : null) || 'Tidak ada respon server';
-            
-            if (typeof msg === 'string') {
-                if (msg.includes('#')) {
-                    msg = msg.split('#')[1];
-                }
-                if (msg.includes('@')) {
-                    msg = msg.split('@')[0];
-                }
-                msg = msg.trim();
-            }
-            
-                        const isSuccess = d.status === true || d.success === true || d.status === 'success' || (d.data && d.data.status === 'Pending') || msg.toLowerCase().includes('proses') || msg.toLowerCase().includes('akan di proses');
-
-            if(isSuccess) { 
-                const newBal = currentBalance - price;
-                updateDoc(doc(db, "users", currentUser.uid), { balance: newBal });
+        const trxRef = doc(db, "users", currentUser.uid, "history", reffId);
+        
+        // 1. ATOMIC DEDUCTION (Potong & Catat History Sekaligus)
+        // Mencegah saldo hilang tanpa jejak (Ghost Deduction)
+        try {
+            await runTransaction(db, async (t) => {
+                const uRef = doc(db, "users", currentUser.uid);
+                const uDoc = await t.get(uRef);
+                const currentBal = uDoc.data().balance || 0;
+                if(currentBal < price) throw "Saldo tidak cukup!";
                 
-                let realStatus = 'Pending';
-                if (d.status === true && !msg.toLowerCase().includes('proses')) {
-                    // Jika API lapor sukses mutlak tanpa embel-embel proses
-                    // realStatus = 'Sukses'; 
-                }
-                // Default ke Pending agar Webhook yang merubah ke Sukses
-                
-                                addDoc(collection(db, "users", currentUser.uid, "history"), {
+                t.update(uRef, { balance: currentBal - price });
+                t.set(trxRef, {
                     title: name,
                     amount: price,
                     type: 'out',
                     date: new Date().toISOString(),
-                    status: realStatus,
-                    api_msg: msg,
+                    status: 'Proses', // Status awal agar terlacak
+                    api_msg: 'Menghubungkan ke server...',
                     trx_id: reffId,
-                    provider_id: (d.data && d.data.id) ? d.data.id : ''
+                    provider_id: ''
                 });
+            });
+        } catch(e) {
+            window.showLoader(false);
+            return alert("Gagal memproses transaksi: " + e);
+        }
 
-                alert(`Transaksi Sedang Diproses!\nInfo: ${msg}`);
+        // Update UI Lokal
+        currentBalance -= price;
+        if(document.getElementById('displayBalance')) document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
+
+        // 2. CALL API
+        try {
+            const result = await callApi('/trx', { produk: code, tujuan: dest, reff_id: reffId });
+            window.showLoader(false);
+            
+            let isSuccess = false;
+            let msg = 'Tidak ada respon server';
+            let providerId = '';
+            
+            if(result.ok && result.data) {
+                 const d = result.data;
+                 msg = d.message || d.msg || d.sn || (d.data ? d.data.message : '') || msg;
+                 if(d.data && d.data.id) providerId = d.data.id;
+                 isSuccess = d.status === true || d.success === true || d.status === 'success' || (d.data && d.data.status === 'Pending') || String(msg).toLowerCase().includes('proses');
+            }
+
+            if(isSuccess) {
+                // Sukses: Update status jadi Pending
+                await updateDoc(trxRef, { status: 'Pending', api_msg: msg, provider_id: providerId });
+                alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                 window.nav('homePage');
-                        } else {
-                // MODIFIKASI: Simpan Riwayat meskipun Gagal (untuk catatan)
-                addDoc(collection(db, "users", currentUser.uid, "history"), {
-                    title: name,
-                    amount: price,
-                    type: 'out',
-                    date: new Date().toISOString(),
-                    status: 'Gagal',
-                    api_msg: msg,
-                    trx_id: reffId,
-                    provider_id: (d.data && d.data.id) ? d.data.id : ''
-                });
-                alert(`Transaksi Gagal!\nAlasan: ${msg}`);
+            } else {
+                throw msg || "Transaksi Ditolak Server";
             }
-        } else {
-            alert(`Gagal Koneksi: ${result.error}`);
+
+        } catch(e) {
+            window.showLoader(false);
+            // 3. GAGAL -> REFUND AMAN
+            await runTransaction(db, async (t) => {
+                const uRef = doc(db, "users", currentUser.uid);
+                const uDoc = await t.get(uRef);
+                // Kembalikan saldo berdasarkan data terbaru di DB (Aman dari TopUp susulan)
+                t.update(uRef, { balance: (uDoc.data().balance || 0) + price });
+                t.update(trxRef, { status: 'Gagal', api_msg: String(e) });
+            });
+            
+            currentBalance += price; 
+            if(document.getElementById('displayBalance')) document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
+            
+            alert(`Transaksi Gagal: ${e}\n\nSaldo telah dikembalikan otomatis.`);
         }
     };
 
@@ -1778,9 +1934,10 @@
             
             if(snapshot.empty) return;
             
-            snapshot.forEach(async (docSnap) => {
+            // FIX: Gunakan for...of untuk urutan eksekusi yang benar
+            for (const docSnap of snapshot.docs) {
                 const trx = docSnap.data();
-                if(trx.provider_id === 'MANUAL') return;
+                if(trx.provider_id === 'MANUAL') continue;
                 
                 try {
                     // Cek API tanpa loader (Silent)
@@ -1850,7 +2007,7 @@
                 } catch(e) {
                     console.warn(`[AutoCheck] Error ${trx.trx_id}:`, e);
                 }
-            });
+            }
         }, 5000); // Cek setiap 5 detik
     };
 
@@ -1874,9 +2031,10 @@ window.checkPendingTopUp = () => {
         if(!currentUser) return;
         const q = query(collection(db, "users", currentUser.uid, "history"), where("status", "==", "Pending"));
         const snapshot = await getDocs(q);
-        snapshot.forEach(async (docSnap) => {
+        // FIX: Loop Sequential dengan Race Condition Check
+        for (const docSnap of snapshot.docs) {
             const trx = docSnap.data();
-            if(!trx.provider_id || trx.provider_id === 'MANUAL') return;
+            if(!trx.provider_id || trx.provider_id === 'MANUAL') continue;
 
             const res = await callApi('/status', { id_trx: trx.provider_id });
             if(res.ok && res.data && res.data.data) {
@@ -1886,6 +2044,11 @@ window.checkPendingTopUp = () => {
                         updateDoc(docSnap.ref, { status: 'Sukses', api_msg: r.sn || 'Sukses' });
                     } else if(r.status === 'Gagal' || r.status === 'Error') {
                         await runTransaction(db, async (t) => {
+                            // FIX: Cek status lagi di dalam DB Transaction
+                            // Mencegah Refund Ganda jika Background Service sudah memproses duluan
+                            const freshDoc = await t.get(docSnap.ref);
+                            if(freshDoc.data().status !== 'Pending') return; 
+
                             const uRef = doc(db, "users", currentUser.uid);
                             const uDoc = await t.get(uRef);
                             t.update(uRef, { balance: (uDoc.data().balance || 0) + trx.amount });
@@ -1894,7 +2057,7 @@ window.checkPendingTopUp = () => {
                     }
                 }
             }
-        });
+        }
     };
 
     

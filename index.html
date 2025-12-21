@@ -180,7 +180,7 @@
                 </div>
 
                 <div class="mt-2">
-                    <details class="group" style="display:none!important">
+                    <details class="group">
                         <summary class="flex justify-between items-center cursor-pointer list-none p-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-[10px] font-bold text-gray-500 hover:text-blue-600 select-none">
                             <span><i class="fas fa-code mr-1"></i> Lihat Data Mentah (JSON)</span>
                             <i class="fas fa-chevron-down transition-transform group-open:rotate-180"></i>
@@ -2019,6 +2019,7 @@ window.renderTopUpHistory = () => {
                 <div><span class="text-gray-500">Kode:</span> <span class="font-bold">${d.kode_produk || d.code || '-'}</span></div>
                 <div><span class="text-gray-500">Tujuan:</span> <span class="font-bold">${d.tujuan || '-'}</span></div>
                 <div><span class="text-gray-500">Harga:</span> <span class="font-bold">${window.formatRp(d.harga || 0)}</span></div>
+                <div><span class="text-gray-500">Saldo Awal:</span> <span class="font-bold">${window.formatRp(d.saldo_awal || 0)}</span></div>
             </div>
             <div class="mt-1 pt-1 border-t border-dashed border-gray-300 dark:border-gray-700">
                 <div class="flex justify-between"><span>Masuk:</span> <span>${d.tgl_entri ? d.tgl_entri.replace('T', ' ').split('.')[0] : '-'}</span></div>

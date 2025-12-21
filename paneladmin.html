@@ -538,7 +538,10 @@
         window.updateCalc = (code, base, input) => { document.getElementById(`final-${code}`).innerText = window.formatRp(base + (parseInt(input.value) || 0)); };
         window.saveAllPrices = async () => {
             const newRules = {};
-            document.querySelectorAll('.markup-input').forEach(inp => { if(parseInt(inp.value) !== 0) newRules[inp.dataset.code] = parseInt(inp.value); });
+            document.querySelectorAll('.markup-input').forEach(inp => {
+                const val = parseInt(inp.value);
+                if (!isNaN(val)) newRules[inp.dataset.code] = val;
+            });
             await setDoc(doc(db, "settings", "pricing"), { rules: newRules }, { merge: true });
             Swal.fire('Berhasil', 'Harga diupdate', 'success');
         };

@@ -73,6 +73,9 @@
             <a onclick="switchTab('users')" id="nav-users" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
                 <i class="fas fa-users w-4 mr-3 group-hover:scale-110 transition"></i> Data User
             </a>
+            <a onclick="switchTab('livechat')" id="nav-livechat" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
+                <i class="fas fa-comments w-4 mr-3 group-hover:scale-110 transition"></i> Live Chat
+            </a>
                         <a onclick="switchTab('livechat')" id="nav-livechat" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
                 <i class="fas fa-comments w-4 mr-3 group-hover:scale-110 transition"></i> Live Chat
             </a>
@@ -108,7 +111,15 @@
 
                         <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
                 
-                <div onclick="switchTab('users')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-blue-200">
+                                <div onclick="switchTab('livechat')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-green-200">
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Chat Aktif</p>
+                        <h3 class="text-2xl font-black text-gray-800" id="statChatCount">0</h3>
+                        <p class="text-[9px] text-green-500 font-bold mt-1">Buka Chat <i class="fas fa-arrow-right ml-0.5"></i></p>
+                    </div>
+                    <div class="w-10 h-10 bg-green-50 text-green-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-comments"></i></div>
+                </div>
+<div onclick="switchTab('users')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-blue-200">
                     <div>
                         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Total User</p>
                         <h3 class="text-2xl font-black text-gray-800" id="statUserCount">...</h3>
@@ -238,7 +249,12 @@
                 
                 <div class="w-full md:w-1/3 bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col overflow-hidden">
                     <div class="p-3 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-                        <h3 class="font-bold text-gray-700">Pesan Masuk</h3>
+                        <div class="flex items-center gap-2">
+                            <button onclick="switchTab('dashboard')" class="w-7 h-7 rounded-full bg-white hover:bg-gray-200 flex items-center justify-center text-gray-600 transition border border-gray-200" title="Kembali ke Dashboard">
+                                <i class="fas fa-arrow-left text-[10px]"></i>
+                            </button>
+                            <h3 class="font-bold text-gray-700">Pesan Masuk</h3>
+                        </div>
                         <button onclick="loadChatList()" class="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition"><i class="fas fa-sync-alt"></i></button>
                     </div>
                     <div id="chatUserList" class="flex-1 overflow-y-auto custom-scroll p-2 space-y-1">
@@ -658,6 +674,11 @@
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
+                if (user.email !== 'doni888855519@gmail.com') {
+                    signOut(auth);
+                    Swal.fire('Akses Ditolak', 'Anda bukan admin!', 'error');
+                    return;
+                }
                 document.getElementById('loginOverlay').classList.add('hide');
                 loadDashboardData(); 
             } else {
@@ -676,6 +697,12 @@
             btn.disabled = true;
 
             try {
+                if (email !== 'doni888855519@gmail.com') {
+                    Swal.fire({ title: 'Gagal', text: 'Anda bukan admin!', icon: 'error', toast: true, position: 'top', timer: 3000, showConfirmButton: false });
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                    return;
+                }
                 await signInWithEmailAndPassword(auth, email, pass);
             } catch (error) {
                 Swal.fire({ title: 'Gagal', text: error.message, icon: 'error', toast: true, position: 'top', timer: 3000, showConfirmButton: false });
@@ -730,7 +757,7 @@ const activeLink = document.getElementById('nav-' + tabId);
 
                     const avatarUrl = data.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${uid}`;
 
-                    html += `
+                                        html += `
                     <tr class="hover:bg-blue-50/30 transition group border-b border-gray-50 last:border-0">
                         <td class="p-3 align-middle">
                             <img src="${avatarUrl}" class="w-8 h-8 rounded-full bg-gray-100 object-cover border border-gray-200">
@@ -742,7 +769,9 @@ const activeLink = document.getElementById('nav-' + tabId);
                         </td>
                         <td class="p-3 align-middle font-bold text-blue-600 text-[11px]">${window.formatRp(data.balance || 0)}</td>
                         <td class="p-3 text-center align-middle">
-                            <button onclick="initChat('${uid}', '${data.username || 'User'}')" class="px-2 py-1 rounded bg-white text-blue-600 hover:bg-blue-50 transition text-[10px] font-bold border border-blue-200 shadow-sm mr-1" title="Kirim Pesan"><i class="fas fa-comment-dots"></i></button>
+                            <button onclick="initChat('${uid}', '${data.username || 'User'}')" class="px-2 py-1 rounded bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition text-[10px] font-bold border border-blue-100 shadow-sm mr-1" title="Mulai Chat">
+                                <i class="fas fa-comment-alt"></i>
+                            </button>
                             <button onclick="openEditUser('${uid}')" class="px-2 py-1 rounded bg-white text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition text-[10px] font-bold border border-gray-200 shadow-sm">
                                 Edit
                             </button>
@@ -751,7 +780,11 @@ const activeLink = document.getElementById('nav-' + tabId);
                 });
 
                 document.getElementById('userTableBody').innerHTML = html;
-                document.getElementById('statUserCount').innerText = totalUsers;
+                                document.getElementById('statUserCount').innerText = totalUsers;
+                if(document.getElementById('statChatCount')) {
+                    const chatSnap = await getDocs(collection(db, "chats"));
+                    document.getElementById('statChatCount').innerText = chatSnap.size;
+                }
                 document.getElementById('statTotalBalance').innerText = window.formatRp(totalBalance);
 
                 await loadGlobalTransactions();

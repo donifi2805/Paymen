@@ -1922,13 +1922,11 @@ window.renderTopUpHistory = () => {
             btnRefresh.classList.remove('hide');
             btnRefresh.onclick = () => manualCheckTrx(trx.trx_id, trx.provider_id);
             
-            if(document.getElementById('dtRawJson')) document.getElementById('dtRawJson').innerText = "Klik tombol refresh di atas untuk menarik data mentah terbaru...";
+            if(document.getElementById('dtRawJson')) document.getElementById('dtRawJson').innerText = "Sedang mengambil data mentah terbaru dari server... (Mohon tunggu)";
             
-            // Auto check hanya jika masih pending
-            if(trx.status === 'Pending' || trx.status === 'Proses') {
-                 console.log("Auto-check triggered for:", trx.trx_id);
-                 setTimeout(() => { manualCheckTrx(trx.trx_id, trx.provider_id); }, 500);
-            }
+            // MODIFIKASI: Selalu auto-check saat dibuka (apapun statusnya) agar JSON muncul
+            console.log("Auto-fetch triggered for:", trx.trx_id);
+            setTimeout(() => { manualCheckTrx(trx.trx_id, trx.provider_id); }, 300);
         } else {
             btnRefresh.classList.add('hide');
         }

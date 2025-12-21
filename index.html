@@ -1917,18 +1917,22 @@ window.renderTopUpHistory = () => {
         const btnRefresh = document.getElementById('btnRefreshStatus');
         
         // Cek jika status Pending/Proses dan bukan transaksi manual
-                // Cek status & enable tombol refresh untuk semua trx non-manual (agar bisa cek raw data)
-        if(trx.provider_id && trx.provider_id !== 'MANUAL') {
+                        // MODIFIKASI: Cek semua transaksi kecuali MANUAL (tanpa syarat provider_id harus ada)
+        // Ini memastikan tombol refresh & auto-check muncul untuk transaksi 'Cek Promo' dll.
+        if(trx.provider_id !== 'MANUAL') {
             btnRefresh.classList.remove('hide');
-            btnRefresh.onclick = () => manualCheckTrx(trx.trx_id, trx.provider_id);
+            // Gunakan trx_id jika provider_id kosong/undefined
+            const pId = trx.provider_id || trx.trx_id;
             
-            if(document.getElementById('dtRawJson')) document.getElementById('dtRawJson').innerText = "Sedang mengambil data mentah terbaru dari server... (Mohon tunggu)";
+            btnRefresh.onclick = () => manualCheckTrx(trx.trx_id, pId);
             
-            // MODIFIKASI: Selalu auto-check saat dibuka (apapun statusnya) agar JSON muncul
+            if(document.getElementById('dtRawJson')) document.getElementById('dtRawJson').innerText = "Menghubungkan ke server... (Mengambil data mentah)";
+            
             console.log("Auto-fetch triggered for:", trx.trx_id);
-            setTimeout(() => { manualCheckTrx(trx.trx_id, trx.provider_id); }, 300);
+            setTimeout(() => { manualCheckTrx(trx.trx_id, pId); }, 300);
         } else {
             btnRefresh.classList.add('hide');
+            if(document.getElementById('dtRawJson')) document.getElementById('dtRawJson').innerText = "Transaksi Manual (Data server tidak tersedia)";
         }
 
         document.getElementById('detailTrxModal').classList.remove('hide');

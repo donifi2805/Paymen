@@ -1,0 +1,8 @@
+{
+  "name": "pandawa-digital-webhook",
+  "version": "1.0.0",
+  "main": "api/webhook.js",
+  "dependencies": {
+    "firebase-admin": "^11.0.0"
+  }
+}

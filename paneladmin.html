@@ -7,28 +7,22 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     
     <style>
-        /* TWEAK 30% LEBIH KECIL & PADAT */
-        html { font-size: 13px; /* Mengecilkan base font agar semua satuan rem mengecil */ }
+        html { font-size: 13px; }
         body { font-family: 'Segoe UI', sans-serif; background-color: #f3f4f6; letter-spacing: -0.01em; }
-        
-        /* Sidebar lebih ramping */
         .sidebar { width: 14rem; } 
-        
         .hide { display: none !important; }
         .active-nav { background-color: #1e40af; border-right: 3px solid #60a5fa; }
         .fade-in { animation: fadeIn 0.2s ease-in; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        
         .custom-scroll::-webkit-scrollbar { height: 5px; width: 5px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        
-        /* Card Hover Effect */
         .dashboard-card { transition: all 0.2s ease; cursor: pointer; }
         .dashboard-card:hover { transform: translateY(-3px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
         .dashboard-card:active { transform: scale(0.98); }
-            /* Chat Bubbles */
         .chat-bubble { padding: 8px 12px; border-radius: 12px; font-size: 11px; max-width: 75%; line-height: 1.4; position: relative; word-wrap: break-word; }
         .chat-out { background-color: #2563eb; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
         .chat-in { background-color: #e5e7eb; color: #1f2937; align-self: flex-start; border-bottom-left-radius: 2px; }
@@ -58,15 +52,15 @@
                 <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg shadow transition transform active:scale-95 text-xs">MASUK</button>
             </form>
 
-                <div class="flex items-center my-3">
-                    <div class="flex-1 border-t border-gray-200"></div>
-                    <span class="px-2 text-[9px] text-gray-400 uppercase">Atau</span>
-                    <div class="flex-1 border-t border-gray-200"></div>
-                </div>
-                <button type="button" onclick="handleGoogleLogin()" class="w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-2 rounded-lg shadow-sm transition transform active:scale-95 text-xs flex items-center justify-center gap-2">
-                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-4 h-4">
-                    MASUK DENGAN GOOGLE
-                </button>
+            <div class="flex items-center my-3">
+                <div class="flex-1 border-t border-gray-200"></div>
+                <span class="px-2 text-[9px] text-gray-400 uppercase">Atau</span>
+                <div class="flex-1 border-t border-gray-200"></div>
+            </div>
+            <button type="button" onclick="handleGoogleLogin()" class="w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-2 rounded-lg shadow-sm transition transform active:scale-95 text-xs flex items-center justify-center gap-2">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-4 h-4">
+                MASUK DENGAN GOOGLE
+            </button>
             <p class="mt-4 text-[9px] text-gray-400">Server v5.0 Compact</p>
         </div>
     </div>
@@ -84,9 +78,6 @@
                 <i class="fas fa-users w-4 mr-3 group-hover:scale-110 transition"></i> Data User
             </a>
             <a onclick="switchTab('livechat')" id="nav-livechat" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
-                <i class="fas fa-comments w-4 mr-3 group-hover:scale-110 transition"></i> Live Chat
-            </a>
-                        <a onclick="switchTab('livechat')" id="nav-livechat" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
                 <i class="fas fa-comments w-4 mr-3 group-hover:scale-110 transition"></i> Live Chat
             </a>
             <a onclick="switchTab('transactions')" id="nav-transactions" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
@@ -119,17 +110,16 @@
                 <button onclick="loadDashboardData()" class="bg-white text-gray-600 px-3 py-1.5 rounded border hover:bg-gray-50 text-[10px] font-bold transition shadow-sm flex items-center gap-2"><i class="fas fa-sync-alt"></i> Refresh</button>
             </div>
 
-                        <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
-                
-                                <div onclick="switchTab('livechat')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-green-200">
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+                <div onclick="switchTab('livechat')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-green-200">
                     <div>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Chat Aktif</p>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Pesan Terbaru</p>
                         <h3 class="text-2xl font-black text-gray-800" id="statChatCount">0</h3>
                         <p class="text-[9px] text-green-500 font-bold mt-1">Buka Chat <i class="fas fa-arrow-right ml-0.5"></i></p>
                     </div>
                     <div class="w-10 h-10 bg-green-50 text-green-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-comments"></i></div>
                 </div>
-<div onclick="switchTab('users')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-blue-200">
+                <div onclick="switchTab('users')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-blue-200">
                     <div>
                         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Total User</p>
                         <h3 class="text-2xl font-black text-gray-800" id="statUserCount">...</h3>
@@ -137,7 +127,6 @@
                     </div>
                     <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-users"></i></div>
                 </div>
-                
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
                     <div>
                         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Saldo Beredar</p>
@@ -146,7 +135,6 @@
                     </div>
                     <div class="w-10 h-10 bg-green-50 text-green-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-wallet"></i></div>
                 </div>
-
                 <div onclick="switchTab('transactions')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-purple-200">
                     <div>
                         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Transaksi</p>
@@ -155,15 +143,7 @@
                     </div>
                     <div class="w-10 h-10 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-chart-line"></i></div>
                 </div>
-                            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-                <div>
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Estimasi Profit</p>
-                    <h3 class="text-2xl font-black text-gray-800" id="statEstimatedProfit">Rp 0</h3>
-                    <p class="text-[9px] text-blue-500 font-bold mt-1">Bulan Ini</p>
-                </div>
-                <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-hand-holding-usd"></i></div>
-            </div>
-<div onclick="switchTab('pricing')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-orange-200">
+                <div onclick="switchTab('pricing')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-orange-200">
                     <div>
                         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Profit / Harga</p>
                         <h3 class="text-xl font-black text-gray-800">Setting</h3>
@@ -171,7 +151,15 @@
                     </div>
                     <div class="w-10 h-10 bg-orange-50 text-orange-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-tags"></i></div>
                 </div>
+            </div>
 
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between w-full md:w-1/4 mb-5">
+                <div>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Estimasi Profit</p>
+                    <h3 class="text-2xl font-black text-gray-800" id="statEstimatedProfit">Rp 0</h3>
+                    <p class="text-[9px] text-blue-500 font-bold mt-1">Bulan Ini</p>
+                </div>
+                <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-hand-holding-usd"></i></div>
             </div>
             
             <div class="bg-white border border-yellow-100 rounded-lg p-3 flex items-start gap-2 shadow-sm">
@@ -196,7 +184,6 @@
                 </div>
                 <button onclick="openAddUserModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-bold text-[10px] shadow transition flex items-center gap-1.5"><i class="fas fa-plus"></i> Manual</button>
             </div>
-
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="overflow-x-auto custom-scroll">
                     <table class="w-full text-left border-collapse">
@@ -227,13 +214,17 @@
                         <p class="text-[10px] text-gray-500">Global Transaksi</p>
                     </div>
                 </div>
-                <div class="flex bg-gray-50 rounded-lg p-0.5 border border-gray-200">
-                    <button onclick="filterTrx('today')" class="px-3 py-1 text-[10px] font-bold rounded-md bg-white text-blue-600 shadow-sm transition" id="btn-today">Hari Ini</button>
-                    <button onclick="filterTrx('week')" class="px-3 py-1 text-[10px] font-bold rounded-md text-gray-500 hover:bg-gray-200 transition" id="btn-week">7 Hari</button>
-                    <button onclick="filterTrx('all')" class="px-3 py-1 text-[10px] font-bold rounded-md text-gray-500 hover:bg-gray-200 transition" id="btn-all">Semua</button>
+                <div class="flex gap-2 items-center">
+                    <button onclick="downloadTrxPDF()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 text-[10px] font-bold rounded-md shadow-sm transition flex items-center gap-1">
+                        <i class="fas fa-file-pdf"></i> PDF
+                    </button>
+                    <div class="flex bg-gray-50 rounded-lg p-0.5 border border-gray-200">
+                        <button onclick="filterTrx('today')" class="px-3 py-1 text-[10px] font-bold rounded-md bg-white text-blue-600 shadow-sm transition" id="btn-today">Hari Ini</button>
+                        <button onclick="filterTrx('week')" class="px-3 py-1 text-[10px] font-bold rounded-md text-gray-500 hover:bg-gray-200 transition" id="btn-week">7 Hari</button>
+                        <button onclick="filterTrx('all')" class="px-3 py-1 text-[10px] font-bold rounded-md text-gray-500 hover:bg-gray-200 transition" id="btn-all">Semua</button>
+                    </div>
                 </div>
             </div>
-
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="overflow-x-auto custom-scroll">
                     <table class="w-full text-left">
@@ -254,9 +245,8 @@
             </div>
         </div>
 
-                    <div id="tab-livechat" class="tab-content hide fade-in h-[calc(100vh-100px)]">
+        <div id="tab-livechat" class="tab-content hide fade-in h-[calc(100vh-100px)]">
             <div class="flex h-full gap-4 md:gap-6">
-                
                 <div class="w-full md:w-1/3 bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col overflow-hidden">
                     <div class="p-3 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
                         <div class="flex items-center gap-2">
@@ -265,37 +255,36 @@
                             </button>
                             <h3 class="font-bold text-gray-700">Pesan Masuk</h3>
                         </div>
-                        <button onclick="loadChatList()" class="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition"><i class="fas fa-sync-alt"></i></button>
+                        <div class="flex gap-1">
+                            <button onclick="openNewChatModal()" class="text-green-600 hover:bg-green-50 p-1.5 rounded transition" title="Pesan Baru"><i class="fas fa-plus-circle"></i></button>
+                            <button onclick="loadChatList()" class="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition"><i class="fas fa-sync-alt"></i></button>
+                        </div>
                     </div>
                     <div id="chatUserList" class="flex-1 overflow-y-auto custom-scroll p-2 space-y-1">
                         <div class="text-center text-gray-400 mt-10 text-[10px]">Memuat daftar...</div>
                     </div>
                 </div>
 
-                
                 <div class="hidden md:flex flex-col flex-1 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden relative" id="chatBoxArea">
-                    
                     <div class="p-3 border-b border-gray-100 bg-white flex justify-between items-center z-10 shadow-sm">
                         <div class="flex items-center gap-3">
                             <button onclick="closeChatMobile()" class="md:hidden mr-3 text-gray-500 hover:bg-gray-100 w-8 h-8 flex items-center justify-center rounded-full transition"><i class="fas fa-arrow-left"></i></button>
-<div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs" id="chatHeaderInitials">?</div>
+                            <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs" id="chatHeaderInitials">?</div>
                             <div>
                                 <h3 class="font-bold text-gray-800 leading-tight" id="chatHeaderName">Pilih User</h3>
                                 <p class="text-[10px] text-gray-500 font-mono" id="chatHeaderId">-</p>
                             </div>
                         </div>
-                        
+                        <button onclick="deleteChatSession()" id="btnDeleteChat" class="hidden text-red-400 hover:text-red-600 p-2 transition" title="Hapus Percakapan">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
                     </div>
-
-                    
                     <div id="chatMessages" class="flex-1 overflow-y-auto p-4 bg-gray-50 space-y-2 custom-scroll flex flex-col">
                         <div class="flex h-full items-center justify-center flex-col opacity-40">
                             <i class="fas fa-paper-plane text-4xl mb-2 text-gray-300"></i>
                             <p class="text-xs text-gray-400">Pilih percakapan untuk melihat pesan</p>
                         </div>
                     </div>
-
-                    
                     <form onsubmit="event.preventDefault(); sendAdminMessage()" class="p-3 bg-white border-t border-gray-100 flex gap-2">
                         <input type="text" id="adminMsgInput" placeholder="Ketik balasan..." disabled class="flex-1 bg-gray-50 border border-gray-200 text-xs rounded-lg px-4 py-2.5 focus:ring-1 focus:ring-blue-500 outline-none transition">
                         <button type="submit" id="adminMsgSendBtn" disabled class="bg-blue-600 text-white rounded-lg px-4 py-2 font-bold text-xs hover:bg-blue-700 shadow-sm disabled:opacity-50 transition transform active:scale-95">
@@ -310,7 +299,7 @@
             <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100 sticky top-0 z-20">
                 <div class="flex items-center gap-3">
                     <button onclick="switchTab('dashboard')" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition"><i class="fas fa-arrow-left"></i></button>
-                    <div><h2 class="text-lg font-bold text-gray-800 leading-none">Kelola Harga</h2><p class="text-[10px] text-gray-500">Atur keuntungan per produk (Markup/Markdown)</p></div>
+                    <div><h2 class="text-lg font-bold text-gray-800 leading-none">Kelola Harga</h2><p class="text-[10px] text-gray-500">Atur keuntungan per produk</p></div>
                 </div>
                 <button onclick="saveAllPrices()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-[11px] shadow transition flex items-center gap-2"><i class="fas fa-save"></i> Simpan Perubahan</button>
             </div>
@@ -332,7 +321,7 @@
                 </div>
             </div>
         </div>
-</main>
+    </main>
 
     <div id="editUserModal" class="hide fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 fade-in">
         <div class="bg-white rounded-xl w-full max-w-xs shadow-2xl overflow-hidden transform transition-all scale-100">
@@ -340,29 +329,20 @@
                 <h3 class="text-sm font-bold text-gray-800">Edit User</h3>
                 <button onclick="document.getElementById('editUserModal').classList.add('hide')" class="text-gray-400 hover:text-red-500"><i class="fas fa-times"></i></button>
             </div>
-
             <div class="p-4">
-                <input type="hidden" id="editUid">
-                <input type="hidden" id="editEmailHidden">
-                
+                <input type="hidden" id="editUid"><input type="hidden" id="editEmailHidden">
                 <div class="mb-2">
                     <label class="text-[10px] font-bold text-gray-500 block mb-1">Username</label>
                     <input type="text" id="editUsername" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs">
                 </div>
                 <div class="mb-3">
                     <label class="text-[10px] font-bold text-gray-500 block mb-1">Saldo (Rp)</label>
-                    <div class="relative">
-                        <input type="number" id="editBalance" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold text-blue-600 text-sm">
-                    </div>
+                    <input type="number" id="editBalance" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold text-blue-600 text-sm">
                 </div>
-
-                <div class="bg-yellow-50 border border-yellow-100 rounded-lg p-2.5 mb-3">
+                <div class="bg-yellow-50 border border-yellow-100 rounded-lg p-2.5 mb-3 text-center">
                      <p class="text-[9px] text-yellow-700 leading-tight mb-2">Admin tidak bisa lihat password user.</p>
-                     <button onclick="triggerResetFromModal()" class="w-full py-1.5 rounded bg-white text-yellow-700 text-[10px] font-bold hover:bg-yellow-100 transition border border-yellow-200 shadow-sm">
-                        <i class="fas fa-key mr-1"></i> Kirim Reset Password
-                    </button>
+                     <button onclick="triggerResetFromModal()" class="w-full py-1.5 rounded bg-white text-yellow-700 text-[10px] font-bold hover:bg-yellow-100 transition border border-yellow-200 shadow-sm"><i class="fas fa-key mr-1"></i> Kirim Reset Password</button>
                 </div>
-
                 <div class="flex gap-2 mt-4 pt-3 border-t border-gray-100">
                     <button onclick="deleteUserFromModal()" class="flex-1 py-2 rounded-lg bg-red-50 text-red-600 text-[10px] font-bold hover:bg-red-100 transition">Hapus</button>
                     <button onclick="saveUserChanges()" class="flex-[2] py-2 rounded-lg bg-blue-600 text-white text-[10px] font-bold shadow hover:bg-blue-700 transition">Simpan</button>
@@ -373,55 +353,28 @@
 
     <div id="addUserModal" class="hide fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 fade-in">
         <div class="bg-white p-4 rounded-xl w-full max-w-xs shadow-2xl">
-            <div class="text-center mb-3">
-                <h3 class="text-sm font-bold text-gray-800">Tambah User Manual</h3>
-            </div>
-            
+            <h3 class="text-sm font-bold text-gray-800 text-center mb-3">Tambah User Manual</h3>
             <div class="bg-blue-50 border border-blue-100 p-2 rounded-lg mb-3">
-                <p class="text-[9px] text-blue-700 leading-snug">
-                    <b>Note:</b> Ini hanya membuat Data Profil. User harus register sendiri di aplikasi agar bisa login.
-                </p>
+                <p class="text-[9px] text-blue-700"><b>Note:</b> Ini hanya membuat Data Profil. User harus register sendiri di aplikasi agar bisa login.</p>
             </div>
-            
             <div class="space-y-2 mb-4">
-                <input type="email" id="addEmail" placeholder="Email" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none">
-                <input type="text" id="addUsername" placeholder="Username" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none">
-                <input type="number" id="addBalance" placeholder="Saldo Awal" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none">
+                <input type="email" id="addEmail" placeholder="Email" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs">
+                <input type="text" id="addUsername" placeholder="Username" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs">
+                <input type="number" id="addBalance" placeholder="Saldo Awal" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs">
             </div>
-
             <div class="flex gap-2">
-                <button onclick="document.getElementById('addUserModal').classList.add('hide')" class="flex-1 py-2 rounded-lg bg-gray-100 text-gray-600 text-[10px] font-bold hover:bg-gray-200 transition">Batal</button>
-                <button onclick="createNewUserDoc()" class="flex-1 py-2 rounded-lg bg-blue-600 text-white text-[10px] font-bold shadow hover:bg-blue-700 transition">Buat Data</button>
+                <button onclick="document.getElementById('addUserModal').classList.add('hide')" class="flex-1 py-2 rounded-lg bg-gray-100 text-[10px] font-bold">Batal</button>
+                <button onclick="createNewUserDoc()" class="flex-1 py-2 rounded-lg bg-blue-600 text-white text-[10px] font-bold">Buat Data</button>
             </div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, 
-GoogleAuthProvider, signInWithEmailAndPassword, 
-signInWithPopup, sendPasswordResetEmail, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    
-
-    window.handleGoogleLogin = async () => {
-        const provider = new GoogleAuthProvider();
-        try {
-            const result = await signInWithPopup(auth, provider);
-            const user = result.user;
-            
-            if (!ALLOWED_ADMINS.includes(user.email)) {
-                await signOut(auth);
-                Swal.fire({ title: 'Akses Ditolak', text: 'Email Google Anda tidak terdaftar sebagai admin!', icon: 'error', toast: true, position: 'top', timer: 3000, showConfirmButton: false });
-            }
-        } catch (error) {
-            console.error(error);
-            Swal.fire({ title: 'Gagal', text: 'Gagal login Google: ' + error.message, icon: 'error', toast: true, position: 'top', timer: 3000, showConfirmButton: false });
-        }
-    };
-import { getFirestore, getDoc, collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy, collectionGroup, setDoc, where, onSnapshot, limit, serverTimestamp, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup, sendPasswordResetEmail, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, getDoc, collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy, collectionGroup, setDoc, where, onSnapshot, limit, serverTimestamp, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
-
         const firebaseConfig = {
             apiKey: "AIzaSyC7vP4QUhxPM3wG_jsnA2Z8dsTYd2IJ1KA",
             authDomain: "server-ppob-xl.firebaseapp.com",
@@ -435,581 +388,265 @@ import { getFirestore, getDoc, collection, getDocs, doc, updateDoc, deleteDoc, q
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-    // --- LIVE CHAT LOGIC (PERBAIKAN) ---
-    let currentChatUid = null;
-    let chatUnsub = null;
-    let chatListUnsub = null;
-    let isRedirectFromUsers = false;
+        let currentChatUid = null, chatUnsub = null, chatListUnsub = null, isRedirectFromUsers = false;
+        let globalProducts = [], pricingRules = {}, allTransactions = [], allUsers = [];
 
-    window.loadChatList = () => {
-        const listContainer = document.getElementById('chatUserList');
-        if(!listContainer) return;
-        
-        if(chatListUnsub) chatListUnsub(); chatListUnsub = onSnapshot(query(collection(db, "chats"), orderBy("lastTimestamp", "desc")), (snapshot) => {
-            if (snapshot.empty) {
-                listContainer.innerHTML = '<div class="text-center text-gray-400 mt-10 text-[10px]">Belum ada percakapan.</div>';
-                return;
-            }
-
-            let html = '';
-            snapshot.forEach(docSnap => {
-                const d = docSnap.data();
-                const isActive = currentChatUid === docSnap.id ? 'active' : '';
-                let time = '';
-                if(d.lastTimestamp && d.lastTimestamp.toDate) {
-                    time = new Date(d.lastTimestamp.toDate()).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
-                }
-                
-                const isUnread = (d.lastSender === 'user' && !d.isRead);
-                const unreadClass = isUnread ? 'font-bold text-gray-900' : 'text-gray-500';
-                const indicator = isUnread ? '<div class="w-2 h-2 bg-red-500 rounded-full"></div>' : '';
-                const initial = (d.username && d.username.length > 0) ? d.username[0].toUpperCase() : 'U';
-
-                html += `<div onclick="openChatSession('${docSnap.id}', '${d.username || 'User'}')" class="chat-item ${isActive} p-3 border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition flex justify-between items-start gap-2">
-                    <div class="flex gap-3 overflow-hidden">
-                        <div class="w-8 h-8 rounded-full bg-blue-100 flex-shrink-0 flex items-center justify-center text-blue-600 font-bold text-xs">${initial}</div>
-                        <div class="overflow-hidden">
-                            <h4 class="text-[11px] font-bold text-gray-800 truncate">${d.username || 'User'}</h4>
-                            <p class="text-[10px] ${unreadClass} truncate w-32">${d.lastMessage || '...'}</p>
-                        </div>
-                    </div>
-                    <div class="flex flex-col items-end gap-1">
-                        <span class="text-[9px] text-gray-400">${time}</span>
-                        ${indicator}
-                    </div>
-                </div>`;
-            });
-            listContainer.innerHTML = html;
-        });
-    };
-
-    window.initChat = async (uid, username) => {
-        isRedirectFromUsers = true;
-        window.switchTab('livechat');
-        const chatDocRef = doc(db, "chats", uid);
-        const chatDoc = await getDoc(chatDocRef);
-        
-        if(!chatDoc.exists()) {
-            await setDoc(chatDocRef, {
-                username: username,
-                lastMessage: "(Percakapan Baru)",
-                lastTimestamp: serverTimestamp(),
-                lastSender: 'admin',
-                isRead: true
-            });
-        }
-        window.openChatSession(uid, username);
-    };
-
-    window.openChatSession = (uid, username) => {
-        currentChatUid = uid;
-        const nameEl = document.getElementById('chatHeaderName');
-        const idEl = document.getElementById('chatHeaderId');
-        const initEl = document.getElementById('chatHeaderInitials');
-        
-        if(nameEl) nameEl.innerText = username;
-        if(idEl) idEl.innerText = uid;
-        if(initEl) initEl.innerText = (username && username.length > 0) ? username[0].toUpperCase() : 'U';
-        
-        document.getElementById('adminMsgInput').disabled = false;
-        document.getElementById('adminMsgSendBtn').disabled = false;
-        document.getElementById('chatBoxArea').classList.remove('hidden');
-        
-        if(window.innerWidth < 768) {
-            const listParent = document.getElementById('chatUserList').parentElement;
-            if(listParent) listParent.classList.add('hidden');
-            document.getElementById('chatBoxArea').classList.remove('hidden');
-        }
-
-        window.loadChatList();
-        updateDoc(doc(db, "chats", uid), { isRead: true }).catch(err => console.log("Read status err", err));
-
-        if(chatUnsub) chatUnsub(); window.loadChatList();
-        const msgsRef = collection(db, "chats", uid, "messages");
-        
-        chatUnsub = onSnapshot(query(msgsRef, orderBy("timestamp", "asc")), (snapshot) => {
-            const container = document.getElementById('chatMessages');
-            if(!container) return;
-            container.innerHTML = '';
-            
-            if(snapshot.empty) {
-                container.innerHTML = '<div class="flex h-full items-center justify-center flex-col opacity-40"><i class="fas fa-paper-plane text-4xl mb-2 text-gray-300"></i><p class="text-xs text-gray-400">Belum ada pesan.</p></div>';
-            }
-
-            snapshot.forEach(d => {
-                const data = d.data();
-                const isMe = data.sender === 'admin';
-                let timeStr = '...';
-                if(data.timestamp && data.timestamp.toDate) {
-                    timeStr = new Date(data.timestamp.toDate()).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
-                }
-                
-                const bubble = `<div class="chat-bubble ${isMe ? 'chat-out' : 'chat-in'}">
-                    ${data.text}
-                    <div class="text-[9px] opacity-60 text-right mt-0.5">${timeStr}</div>
-                </div>`;
-                container.innerHTML += bubble;
-            });
-            container.scrollTop = container.scrollHeight;
-        });
-    };
-
-    window.sendAdminMessage = async () => {
-        const input = document.getElementById('adminMsgInput');
-        const text = input.value.trim();
-        if(!text || !currentChatUid) return;
-        
-        input.value = '';
-        try {
-            await addDoc(collection(db, "chats", currentChatUid, "messages"), {
-                text: text,
-                sender: 'admin',
-                timestamp: serverTimestamp(),
-                isRead: false
-            });
-
-            await updateDoc(doc(db, "chats", currentChatUid), {
-                lastMessage: text,
-                lastTimestamp: serverTimestamp(),
-                lastSender: 'admin',
-                isRead: false
-            });
-        } catch(e) { 
-            console.error(e); 
-            Swal.fire('Gagal kirim', e.message, 'error'); 
-        }
-    };
-
-    window.closeChatMobile = () => {
-        if(isRedirectFromUsers) {
-            if(chatUnsub) chatUnsub();
-            currentChatUid = null;
-            isRedirectFromUsers = false;
-            window.switchTab('users');
-            return;
-        }
-        document.getElementById('chatBoxArea').classList.add('hidden');
-        const listParent = document.getElementById('chatUserList').parentElement;
-        if(listParent) listParent.classList.remove('hidden');
-        currentChatUid = null;
-        if(chatUnsub) chatUnsub();
-    };
-
-    // Auto load chat list if logged in
-    onAuthStateChanged(auth, (user) => {
-        if(user) window.loadChatList();
-    });
-
-
-        const CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
-        const PROXY_LIST = [ { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' }, { name: 'CorsProxy', url: 'https://corsproxy.io/?' }, { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' } ];
-        let globalProducts = [];
-        let pricingRules = {};
-
-        async function callApi(endpoint, params = {}) {
-            params['api_key'] = CONFIG.apiKey;
-            const targetUrl = `${CONFIG.baseUrl}${endpoint}?${new URLSearchParams(params).toString()}`;
-            for (const proxy of PROXY_LIST) {
-                try {
-                    const res = await fetch(proxy.url + encodeURIComponent(targetUrl));
-                    if (res.ok) return { ok: true, data: JSON.parse(await res.text()) };
-                } catch (e) { console.log('Proxy fail', e); }
-            }
-            return { ok: false, error: 'Koneksi Gagal' };
-        }
-
-        window.loadPricingData = async () => {
-            const table = document.getElementById('pricingTableBody');
-            const provider = document.getElementById('pricingProvider').value;
-            table.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Mengambil data pusat...</td></tr>';
-            
-            try {
-                // 1. Ambil Rules dari Firebase
-                const docSnap = await getDoc(doc(db, "settings", "pricing"));
-                if (docSnap.exists()) pricingRules = docSnap.data().rules || {};
-                else pricingRules = {};
-
-                // 2. Ambil Produk API jika kosong
-                if(globalProducts.length === 0) {
-                    const res = await callApi('/list_product');
-                    if(res.ok) globalProducts = res.data.data || res.data;
-                }
-
-                                // 3. Filter Data (Fix Mapping JSON)
-                const filtered = globalProducts.filter(p => {
-                    // Mapping: Cek kode_produk dulu, baru fallback ke code/sku
-                    const code = (p.kode_produk || p.code || p.buyer_sku_code || '').toUpperCase();
-                    const brand = (p.kode_provider || p.brand || p.operator || '').toUpperCase();
-                    
-                    if(provider === 'XDA') return code.includes('XDA');
-                    if(provider === 'XLA') return (code.includes('XLA') && !code.includes('XDA'));
-                    if(provider === 'FMX') return code.includes('FMX');
-                    return brand.includes(provider) || code.includes(provider);
-                }).sort((a,b) => (a.harga_final||a.price||a.buyer_price) - (b.harga_final||b.price||b.buyer_price));
-
-                let html = '';
-                filtered.forEach(p => {
-                    // Mapping: Cek nama field API khfy-store
-                    const code = p.kode_produk || p.code || p.buyer_sku_code;
-                    const name = p.nama_produk || p.product_name || p.name;
-                    const rawPrice = p.harga_final || p.price || p.buyer_price || 0;
-                    
-                    const markup = pricingRules[code] || 0;
-                    const sellPrice = rawPrice + parseInt(markup);
-                    
-                    html += `<tr class="hover:bg-blue-50/20 transition">
-                        <td class="p-3">
-                            <div class="font-bold text-gray-700">${name}</div>
-                            <div class="text-[9px] text-gray-400 font-mono">${code}</div>
-                        </td>
-                        <td class="p-3 text-right text-gray-500">${window.formatRp(rawPrice)}</td>
-                        <td class="p-3 text-center">
-                            <input type="number" onchange="updateCalc('${code}', ${rawPrice}, this)" data-code="${code}" value="${markup}" class="markup-input w-24 px-2 py-1.5 text-center border border-gray-300 rounded-lg text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white shadow-sm" placeholder="0">
-                        </td>
-                        <td class="p-3 text-right font-black text-blue-600" id="final-${code}">${window.formatRp(sellPrice)}</td>
-                    </tr>`;
-                });
-                table.innerHTML = html || '<tr><td colspan="4" class="text-center p-6 text-gray-400">Tidak ada produk ditemukan untuk kategori ini.</td></tr>';
-
-            } catch(e) { table.innerHTML = `<tr><td colspan="4" class="text-center text-red-500 p-6">Error: ${e.message}</td></tr>`; }
-        };
-
-        window.updateCalc = (code, base, input) => {
-            const markup = parseInt(input.value) || 0;
-            document.getElementById(`final-${code}`).innerText = window.formatRp(base + markup);
-        };
-
-        window.saveAllPrices = async () => {
-            const inputs = document.querySelectorAll('.markup-input');
-            const newRules = { ...pricingRules };
-            inputs.forEach(inp => {
-                const val = parseInt(inp.value);
-                if(val !== 0) newRules[inp.dataset.code] = val;
-                else delete newRules[inp.dataset.code];
-            });
-            
-            const btn = document.querySelector('button[onclick="saveAllPrices()"]');
-            const oldHtml = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            try {
-                await setDoc(doc(db, "settings", "pricing"), { rules: newRules }, { merge: true });
-                pricingRules = newRules;
-                Swal.fire({icon: 'success', title: 'Berhasil Disimpan', text: 'Harga di aplikasi pengguna akan otomatis berubah.', toast: true, position: 'top', timer: 2500, showConfirmButton: false});
-            } catch(e) { Swal.fire('Gagal', e.message, 'error'); }
-            btn.innerHTML = oldHtml;
-        };
-
-
-        let allTransactions = [];
-        let allUsers = [];
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                if (!ALLOWED_ADMINS.includes(user.email)) {
-                    signOut(auth);
-                    Swal.fire('Akses Ditolak', 'Anda bukan admin!', 'error');
-                    return;
-                }
-                document.getElementById('loginOverlay').classList.add('hide');
+        onAuthStateChanged(auth, u => { 
+            if(u && ALLOWED_ADMINS.includes(u.email)) { 
+                document.getElementById('loginOverlay').classList.add('hide'); 
                 loadDashboardData(); 
-            } else {
-                document.getElementById('loginOverlay').classList.remove('hide');
-            }
+            } else { 
+                document.getElementById('loginOverlay').classList.remove('hide'); 
+            } 
         });
 
         window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
-
         window.handleLogin = async () => {
-            const email = document.getElementById('adminEmail').value;
-            const pass = document.getElementById('adminPass').value;
-            const btn = document.querySelector('#loginOverlay button');
-            const originalText = btn.innerText;
-            btn.innerText = "...";
-            btn.disabled = true;
-
+            const email = document.getElementById('adminEmail').value, pass = document.getElementById('adminPass').value;
+            if (!ALLOWED_ADMINS.includes(email)) return Swal.fire('Gagal', 'Anda bukan admin!', 'error');
+            try { await signInWithEmailAndPassword(auth, email, pass); } catch (e) { Swal.fire('Gagal', e.message, 'error'); }
+        };
+        window.handleGoogleLogin = async () => {
             try {
-            if (!ALLOWED_ADMINS.includes(email)) {
-                    Swal.fire({ title: 'Gagal', text: 'Anda bukan admin!', icon: 'error', toast: true, position: 'top', timer: 3000, showConfirmButton: false });
-                    btn.innerText = originalText;
-                    btn.disabled = false;
-                    return;
-                }
-                await signInWithEmailAndPassword(auth, email, pass);
-            } catch (error) {
-                Swal.fire({ title: 'Gagal', text: error.message, icon: 'error', toast: true, position: 'top', timer: 3000, showConfirmButton: false });
-                btn.innerText = originalText;
-                btn.disabled = false;
-            }
+                const result = await signInWithPopup(auth, new GoogleAuthProvider());
+                if (!ALLOWED_ADMINS.includes(result.user.email)) { await signOut(auth); Swal.fire('Ditolak', 'Bukan admin!', 'error'); }
+            } catch (e) { Swal.fire('Gagal', e.message, 'error'); }
         };
-
-        window.logout = async () => {
-            if(confirm('Keluar dari Admin Panel?')) {
-                await signOut(auth);
-                location.reload();
-            }
-        };
+        window.logout = async () => { if(confirm('Keluar?')) { await signOut(auth); location.reload(); } };
 
         window.switchTab = (tabId) => {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hide'));
             document.getElementById('tab-' + tabId).classList.remove('hide');
-            
-            document.querySelectorAll('nav a').forEach(el => {
-                el.classList.remove('active-nav', 'text-white');
-                el.classList.add('text-gray-400');
-            });
-                        if(tabId === 'pricing') loadPricingData();
-const activeLink = document.getElementById('nav-' + tabId);
-            if(activeLink) {
-                activeLink.classList.add('active-nav', 'text-white');
-                activeLink.classList.remove('text-gray-400');
-            }
+            document.querySelectorAll('nav a').forEach(el => el.classList.remove('active-nav', 'text-white'));
+            const activeLink = document.getElementById('nav-' + tabId);
+            if(activeLink) activeLink.classList.add('active-nav', 'text-white');
+            if(tabId === 'pricing') loadPricingData();
+            if(tabId === 'livechat') loadChatList();
         };
 
         window.loadDashboardData = async () => {
             try {
-                const usersRef = collection(db, "users");
-                const usersSnapshot = await getDocs(usersRef);
-                
-                let totalUsers = 0;
-                let totalBalance = 0;
-                let html = '';
-                allUsers = [];
-
-                if (usersSnapshot.empty) {
-                    html = '<tr><td colspan="4" class="p-4 text-center text-gray-400">Belum ada user.</td></tr>';
-                }
-
-                usersSnapshot.forEach((docSnap) => {
-                    const data = docSnap.data();
-                    const uid = docSnap.id;
-                    totalUsers++;
-                    totalBalance += (data.balance || 0);
+                const snap = await getDocs(collection(db, "users"));
+                let totalUsers = 0, totalBalance = 0, html = ''; allUsers = [];
+                snap.forEach(docSnap => {
+                    const data = docSnap.data(), uid = docSnap.id;
+                    totalUsers++; totalBalance += (data.balance || 0);
                     allUsers.push({ id: uid, ...data });
-
                     const avatarUrl = data.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${uid}`;
-
-                                        html += `
-                    <tr class="hover:bg-blue-50/30 transition group border-b border-gray-50 last:border-0">
-                        <td class="p-3 align-middle">
-                            <img src="${avatarUrl}" class="w-8 h-8 rounded-full bg-gray-100 object-cover border border-gray-200">
-                        </td>
-                        <td class="p-3">
-                            <div class="font-bold text-gray-800 text-[11px]">${data.username || 'Tanpa Nama'}</div>
-                            <div class="text-[10px] text-gray-500">${data.email || '-'}</div>
-                            <div class="text-[9px] text-gray-300 font-mono mt-0.5 cursor-pointer hover:text-blue-500" onclick="navigator.clipboard.writeText('${uid}')">${uid.substring(0,8)}...</div>
-                        </td>
-                        <td class="p-3 align-middle font-bold text-blue-600 text-[11px]">${window.formatRp(data.balance || 0)}</td>
-                        <td class="p-3 text-center align-middle">
-                            <button onclick="initChat('${uid}', '${data.username || 'User'}')" class="px-2 py-1 rounded bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition text-[10px] font-bold border border-blue-100 shadow-sm mr-1" title="Mulai Chat">
-                                <i class="fas fa-comment-alt"></i>
-                            </button>
-                            <button onclick="openEditUser('${uid}')" class="px-2 py-1 rounded bg-white text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition text-[10px] font-bold border border-gray-200 shadow-sm">
-                                Edit
-                            </button>
-                        </td>
-                    </tr>`;
+                    html += `<tr class="hover:bg-blue-50/30 border-b border-gray-50 last:border-0">
+                        <td class="p-3"><img src="${avatarUrl}" class="w-8 h-8 rounded-full border bg-gray-100"></td>
+                        <td class="p-3"><div class="font-bold text-gray-800">${data.username || 'User'}</div><div class="text-[9px] text-gray-400">${data.email || '-'}</div></td>
+                        <td class="p-3 font-bold text-blue-600">${window.formatRp(data.balance || 0)}</td>
+                        <td class="p-3 text-center">
+                            <button onclick="initChat('${uid}', '${data.username || 'User'}')" class="px-2 py-1 rounded bg-blue-50 text-blue-600 border border-blue-100 mr-1"><i class="fas fa-comment-alt"></i></button>
+                            <button onclick="openEditUser('${uid}')" class="px-2 py-1 rounded bg-white text-gray-600 border border-gray-200">Edit</button>
+                        </td></tr>`;
+                });
+                document.getElementById('userTableBody').innerHTML = html;
+                document.getElementById('statUserCount').innerText = totalUsers;
+                document.getElementById('statTotalBalance').innerText = window.formatRp(totalBalance);
+                
+                // UPDATE PENGHITUNG PESAN BELUM DIBACA
+                onSnapshot(query(collection(db, "chats")), (chatSnap) => {
+                    let unreadCount = 0;
+                    chatSnap.forEach(d => { if(d.data().lastSender === 'user' && !d.data().isRead) unreadCount++; });
+                    document.getElementById('statChatCount').innerText = unreadCount;
                 });
 
-                document.getElementById('userTableBody').innerHTML = html;
-                                document.getElementById('statUserCount').innerText = totalUsers;
-                if(document.getElementById('statChatCount')) {
-                    const chatSnap = await getDocs(collection(db, "chats"));
-                    document.getElementById('statChatCount').innerText = chatSnap.size;
-                }
-                document.getElementById('statTotalBalance').innerText = window.formatRp(totalBalance);
-
-                await loadGlobalTransactions();
-
-            } catch (error) {
-                console.error("LOAD ERROR:", error);
-                Swal.fire({icon: 'error', title: 'Error Load Data', text: error.message, toast: true, position: 'top-end'});
-            }
+                loadGlobalTransactions();
+            } catch (e) { console.log(e); }
         };
 
         async function loadGlobalTransactions() {
             try {
-                console.log("Mengambil data transaksi dari Firestore...");
-                const historyQuery = query(collectionGroup(db, 'history'), orderBy('date', 'desc'));
-                const querySnapshot = await getDocs(historyQuery);
-                
+                const snap = await getDocs(query(collectionGroup(db, 'history'), orderBy('date', 'desc')));
                 allTransactions = [];
-                querySnapshot.forEach((doc) => {
-                    let ownerUid = 'Unknown';
-                    if (doc.ref.parent && doc.ref.parent.parent) {
-                        ownerUid = doc.ref.parent.parent.id;
-                    }
-                    const data = doc.data();
-                    allTransactions.push({ uid: ownerUid, id: doc.id, ...data });
+                snap.forEach(d => {
+                    const parent = d.ref.parent.parent ? d.ref.parent.parent.id : 'Unk';
+                    allTransactions.push({ uid: parent, id: d.id, ...d.data() });
                 });
-
-                console.log("Transaksi ditemukan:", allTransactions.length);
-
-                let totalProfit = 0;
-                const now = new Date();
-                const currentMonth = now.getMonth();
-                const currentYear = now.getFullYear();
-
-                allTransactions.forEach(t => {
-                    if (t.status === 'Sukses' && t.type === 'out' && t.date) {
-                        const tDate = new Date(t.date);
-                        if (tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear) {
-                            totalProfit += (parseInt(t.markup) || 0);
-                        }
-                    }
-                });
-
-                document.getElementById('statEstimatedProfit').innerText = window.formatRp(totalProfit);
                 document.getElementById('statTrxCount').innerText = allTransactions.length;
-                renderTransactions(allTransactions); 
-
-            } catch(e) {
-                console.error("Error Firestore:", e);
-                let errorMsg = "Gagal memuat data.";
-                if (e.code === 'failed-precondition' || e.message.includes('index')) {
-                    errorMsg = "Error: Index Firestore diperlukan. Cek Console (F12) untuk link aktivasi.";
-                }
-                document.getElementById('trxTableBody').innerHTML = `<tr><td colspan='5' class='p-6 text-center text-red-500 font-bold text-[10px]'>${errorMsg}</td></tr>`;
-                // Tetap panggil render dengan array kosong agar status 'Menunggu' hilang
-                renderTransactions([]);
-            }
+                renderTransactions(allTransactions);
+            } catch (e) { console.log(e); }
         }
-
-        window.filterTrx = (period) => {
-            ['today', 'week', 'all'].forEach(id => {
-                const btn = document.getElementById('btn-'+id);
-                if(id === period) {
-                    btn.classList.remove('text-gray-500', 'hover:bg-gray-200');
-                    btn.classList.add('bg-white', 'text-blue-600', 'shadow-sm');
-                } else {
-                    btn.classList.add('text-gray-500', 'hover:bg-gray-200');
-                    btn.classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
-                }
-            });
-
-            const now = new Date();
-            const filtered = allTransactions.filter(t => {
-                if (!t.date) return false;
-                const tDate = new Date(t.date);
-                if (period === 'all') return true;
-                if (period === 'today') return tDate.toDateString() === now.toDateString();
-                if (period === 'week') { const d = new Date(); d.setDate(now.getDate() - 7); return tDate >= d; }
-            });
-
-            renderTransactions(filtered);
-        };
 
         function renderTransactions(data) {
             let html = '';
-            if(data.length === 0) {
-                html = '<tr><td colspan="5" class="p-4 text-center text-gray-400 text-[10px]">Tidak ada data.</td></tr>';
-            } else {
-                data.forEach(t => {
-                    const isOut = t.type === 'out';
-                    const colorClass = isOut ? 'text-red-500' : 'text-green-500';
-                    const userObj = allUsers.find(u => u.id === t.uid);
-                    const userName = userObj ? userObj.username : (t.uid ? t.uid.substring(0,6) : 'Unk');
-                    
-                    const dateObj = new Date(t.date);
-                    const dateStr = dateObj.toLocaleDateString('id-ID', {day:'numeric', month:'short'});
-                    const timeStr = dateObj.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
-
-                    html += `
-                    <tr class="hover:bg-gray-50/50 transition border-b border-gray-50 last:border-0">
-                        <td class="p-3 align-top">
-                            <div class="flex flex-col">
-                                <span class="font-bold text-gray-600 text-[10px]">${dateStr}</span>
-                                <span class="text-[9px] text-gray-400">${timeStr}</span>
-                            </div>
-                        </td>
-                        <td class="p-3">
-                            <div class="font-bold text-[11px] text-gray-800">${userName}</div>
-                            <div class="text-[9px] font-mono text-gray-400">${t.uid ? t.uid.substring(0,4) : ''}..</div>
-                        </td>
-                        <td class="p-3 align-top">
-                            <div class="font-bold text-gray-700 text-[10px] line-clamp-1">${t.title}</div>
-                            <div class="text-[9px] text-gray-400 font-mono mt-0.5">${t.api_msg || '-'}</div>
-                        </td>
-                        <td class="p-3 text-right align-top">
-                            <span class="font-bold text-[10px] ${colorClass}">${isOut?'-':'+'} ${window.formatRp(t.amount)}</span>
-                        </td>
-                        <td class="p-3 text-center align-top">
-                            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded ${t.status === 'Sukses' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}">${t.status}</span>
-                        </td>
-                    </tr>`;
-                });
-            }
-            document.getElementById('trxTableBody').innerHTML = html;
+            data.forEach(t => {
+                const isOut = t.type === 'out', user = allUsers.find(u => u.id === t.uid), date = t.date ? new Date(t.date).toLocaleDateString('id-ID', {day:'numeric', month:'short'}) : '-';
+                html += `<tr class="border-b border-gray-50">
+                    <td class="p-3"><div class="font-bold">${date}</div></td>
+                    <td class="p-3"><div class="font-bold">${user ? user.username : 'User'}</div></td>
+                    <td class="p-3"><div>${t.title}</div></td>
+                    <td class="p-3 text-right"><span class="font-bold ${isOut?'text-red-500':'text-green-500'}">${isOut?'-':'+'}${window.formatRp(t.amount)}</span></td>
+                    <td class="p-3 text-center"><span class="px-1.5 py-0.5 rounded ${t.status==='Sukses'?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}">${t.status}</span></td>
+                </tr>`;
+            });
+            document.getElementById('trxTableBody').innerHTML = html || '<tr><td colspan="5" class="p-4 text-center">Kosong</td></tr>';
         }
+
+        window.downloadTrxPDF = () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const table = document.getElementById("trxTableBody");
+            const rows = [];
+            table.querySelectorAll("tr").forEach(tr => {
+                const cols = [];
+                tr.querySelectorAll("td").forEach(td => cols.push(td.innerText.replace(/\n/g, " ").trim()));
+                if(cols.length > 1) rows.push(cols);
+            });
+            doc.text("Laporan Transaksi DompetKu", 14, 15);
+            doc.autoTable({ startY: 25, head: [['Waktu', 'User', 'Keterangan', 'Nominal', 'Status']], body: rows, theme: 'grid', styles: { fontSize: 8 } });
+            doc.save(`Transaksi_${Date.now()}.pdf`);
+        };
+
+        const API_CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
+        const PROXY_LIST = [ { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' }, { name: 'CorsProxy', url: 'https://corsproxy.io/?' }, { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' } ];
+
+        async function callApi(endpoint, params = {}) {
+            params['api_key'] = API_CONFIG.apiKey;
+            const targetUrl = `${API_CONFIG.baseUrl}${endpoint}?${new URLSearchParams(params).toString()}`;
+            for (const proxy of PROXY_LIST) {
+                try {
+                    const res = await fetch(proxy.url + encodeURIComponent(targetUrl));
+                    if (res.ok) return { ok: true, data: JSON.parse(await res.text()) };
+                } catch (e) { console.log(e); }
+            }
+            return { ok: false };
+        }
+
+        window.loadPricingData = async () => {
+            const provider = document.getElementById('pricingProvider').value, table = document.getElementById('pricingTableBody');
+            table.innerHTML = '<tr><td colspan="4" class="p-4 text-center">Loading...</td></tr>';
+            const rulesSnap = await getDoc(doc(db, "settings", "pricing"));
+            pricingRules = rulesSnap.exists() ? rulesSnap.data().rules : {};
+            if(globalProducts.length === 0) {
+                const res = await callApi('/list_product');
+                if(res.ok) globalProducts = res.data.data || res.data;
+            }
+            const filtered = globalProducts.filter(p => (p.kode_produk || p.code || '').toUpperCase().includes(provider));
+            let html = '';
+            filtered.forEach(p => {
+                const code = p.kode_produk || p.code || p.buyer_sku_code, rawPrice = p.harga_final || p.price || 0, markup = pricingRules[code] || 0;
+                html += `<tr><td class="p-3"><b>${p.nama_produk || p.name}</b><br>${code}</td><td class="p-3 text-right">${window.formatRp(rawPrice)}</td>
+                <td class="p-3 text-center"><input type="number" onchange="updateCalc('${code}', ${rawPrice}, this)" data-code="${code}" value="${markup}" class="markup-input w-20 border rounded p-1"></td>
+                <td class="p-3 text-right font-bold text-blue-600" id="final-${code}">${window.formatRp(rawPrice + parseInt(markup))}</td></tr>`;
+            });
+            table.innerHTML = html;
+        };
+
+        window.updateCalc = (code, base, input) => { document.getElementById(`final-${code}`).innerText = window.formatRp(base + (parseInt(input.value) || 0)); };
+        window.saveAllPrices = async () => {
+            const newRules = {};
+            document.querySelectorAll('.markup-input').forEach(inp => { if(parseInt(inp.value) !== 0) newRules[inp.dataset.code] = parseInt(inp.value); });
+            await setDoc(doc(db, "settings", "pricing"), { rules: newRules }, { merge: true });
+            Swal.fire('Berhasil', 'Harga diupdate', 'success');
+        };
+
+        window.loadChatList = () => {
+            const listContainer = document.getElementById('chatUserList');
+            if(!listContainer) return;
+            if(chatListUnsub) chatListUnsub(); 
+            chatListUnsub = onSnapshot(query(collection(db, "chats"), orderBy("lastTimestamp", "desc")), (snapshot) => {
+                if (snapshot.empty) { listContainer.innerHTML = '<div class="text-center text-gray-400 mt-10 text-[10px]">Belum ada pesan.</div>'; return; }
+                let html = '';
+                snapshot.forEach(docSnap => {
+                    const d = docSnap.data(), isActive = currentChatUid === docSnap.id ? 'active' : '', initial = (d.username && d.username.length > 0) ? d.username[0].toUpperCase() : 'U';
+                    const isUnread = (d.lastSender === 'user' && !d.isRead), time = d.lastTimestamp ? new Date(d.lastTimestamp.toDate()).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : '';
+                    html += `<div onclick="openChatSession('${docSnap.id}', '${d.username || 'User'}')" class="chat-item ${isActive} p-3 border-b border-gray-50 hover:bg-gray-50 cursor-pointer flex justify-between items-start gap-2">
+                        <div class="flex gap-3 overflow-hidden">
+                            <div class="w-8 h-8 rounded-full bg-blue-100 flex-shrink-0 flex items-center justify-center text-blue-600 font-bold">${initial}</div>
+                            <div class="overflow-hidden">
+                                <h4 class="text-[11px] font-bold text-gray-800 truncate">${d.username || 'User'}</h4>
+                                <p class="text-[10px] ${isUnread?'font-bold text-gray-900':'text-gray-500'} truncate w-32">${d.lastMessage || '...'}</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end gap-1"><span class="text-[9px] text-gray-400">${time}</span>${isUnread?'<div class="w-2 h-2 bg-red-500 rounded-full"></div>':''}</div>
+                    </div>`;
+                });
+                listContainer.innerHTML = html;
+            });
+        };
+
+        window.openChatSession = (uid, username) => {
+            currentChatUid = uid;
+            document.getElementById('chatHeaderName').innerText = username;
+            document.getElementById('chatHeaderId').innerText = uid;
+            document.getElementById('chatHeaderInitials').innerText = (username && username.length > 0) ? username[0].toUpperCase() : 'U';
+            document.getElementById('adminMsgInput').disabled = false;
+            document.getElementById('adminMsgSendBtn').disabled = false;
+            document.getElementById('chatBoxArea').classList.remove('hidden');
+            document.getElementById('btnDeleteChat').classList.remove('hidden');
+            if(window.innerWidth < 768) document.getElementById('chatUserList').parentElement.classList.add('hidden');
+            updateDoc(doc(db, "chats", uid), { isRead: true }).catch(e => console.log(e));
+            if(chatUnsub) chatUnsub();
+            chatUnsub = onSnapshot(query(collection(db, "chats", uid, "messages"), orderBy("timestamp", "asc")), (snapshot) => {
+                const container = document.getElementById('chatMessages'); container.innerHTML = '';
+                snapshot.forEach(d => {
+                    const data = d.data(), isMe = data.sender === 'admin', time = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : '...';
+                    container.innerHTML += `<div class="chat-bubble ${isMe ? 'chat-out' : 'chat-in'}">${data.text}<div class="text-[9px] opacity-60 text-right mt-0.5">${time}</div></div>`;
+                });
+                container.scrollTop = container.scrollHeight;
+            });
+        };
+
+        window.sendAdminMessage = async () => {
+            const input = document.getElementById('adminMsgInput'), text = input.value.trim();
+            if(!text || !currentChatUid) return; input.value = '';
+            try {
+                await addDoc(collection(db, "chats", currentChatUid, "messages"), { text: text, sender: 'admin', timestamp: serverTimestamp() });
+                await updateDoc(doc(db, "chats", currentChatUid), { lastMessage: text, lastTimestamp: serverTimestamp(), lastSender: 'admin', isRead: false });
+            } catch(e) { Swal.fire('Gagal', e.message, 'error'); }
+        };
+
+        window.deleteChatSession = async () => {
+            if(!currentChatUid) return;
+            const res = await Swal.fire({ title: 'Hapus Chat?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Hapus' });
+            if(res.isConfirmed) {
+                const msgs = await getDocs(collection(db, "chats", currentChatUid, "messages"));
+                for (const m of msgs.docs) { await deleteDoc(m.ref); }
+                await deleteDoc(doc(db, "chats", currentChatUid));
+                currentChatUid = null; document.getElementById('chatBoxArea').classList.add('hidden');
+            }
+        };
+
+        window.initChat = async (uid, username) => {
+            isRedirectFromUsers = true; window.switchTab('livechat');
+            const ref = doc(db, "chats", uid), chat = await getDoc(ref);
+            if(!chat.exists()) await setDoc(ref, { username, lastMessage: "(Baru)", lastTimestamp: serverTimestamp(), lastSender: 'admin', isRead: true });
+            window.openChatSession(uid, username);
+        };
+
+        window.closeChatMobile = () => {
+            if(isRedirectFromUsers) { window.switchTab('users'); isRedirectFromUsers = false; return; }
+            document.getElementById('chatBoxArea').classList.add('hidden');
+            document.getElementById('chatUserList').parentElement.classList.remove('hidden');
+            currentChatUid = null; if(chatUnsub) chatUnsub();
+        };
+
+        window.openNewChatModal = async () => {
+            const { value: selectedUid } = await Swal.fire({ title: 'Chat Baru', input: 'select', inputOptions: Object.fromEntries(allUsers.map(u => [u.id, u.username || u.email])), inputPlaceholder: 'Pilih User', showCancelButton: true });
+            if (selectedUid) window.initChat(selectedUid, allUsers.find(u => u.id === selectedUid).username);
+        };
 
         window.openEditUser = (uid) => {
-            const user = allUsers.find(u => u.id === uid);
-            if(user) {
-                document.getElementById('editUid').value = uid;
-                document.getElementById('editUsername').value = user.username || '';
-                document.getElementById('editBalance').value = user.balance || 0;
-                document.getElementById('editEmailHidden').value = user.email || ''; 
-                document.getElementById('editUserModal').classList.remove('hide');
-            }
+            const u = allUsers.find(x => x.id === uid);
+            if(u) { document.getElementById('editUid').value = uid; document.getElementById('editUsername').value = u.username || ''; document.getElementById('editBalance').value = u.balance || 0; document.getElementById('editEmailHidden').value = u.email || ''; document.getElementById('editUserModal').classList.remove('hide'); }
         };
-
         window.saveUserChanges = async () => {
             const uid = document.getElementById('editUid').value;
-            const newName = document.getElementById('editUsername').value;
-            const newBal = parseInt(document.getElementById('editBalance').value);
-            const btn = document.querySelector('#editUserModal button:last-child');
-            const originalText = btn.innerText;
-            btn.innerText = "...";
-
-            try {
-                await updateDoc(doc(db, "users", uid), { username: newName, balance: newBal });
-                document.getElementById('editUserModal').classList.add('hide');
-                btn.innerText = originalText;
-                Swal.fire({ title: 'Tersimpan', icon: 'success', toast: true, position: 'top', timer: 1500, showConfirmButton: false });
-                loadDashboardData(); 
-            } catch(e) {
-                Swal.fire('Gagal', e.message, 'error');
-                btn.innerText = originalText;
-            }
+            await updateDoc(doc(db, "users", uid), { username: document.getElementById('editUsername').value, balance: parseInt(document.getElementById('editBalance').value) });
+            document.getElementById('editUserModal').classList.add('hide'); loadDashboardData();
         };
-
-        window.triggerResetFromModal = async () => {
-            const email = document.getElementById('editEmailHidden').value;
-            if(!email || !email.includes('@')) return Swal.fire('Error', 'Email tidak valid', 'error');
-            
-            if(confirm(`Kirim reset password ke ${email}?`)) {
-                try {
-                    await sendPasswordResetEmail(auth, email);
-                    alert('Email terkirim!');
-                } catch(e) { alert(e.message); }
-            }
-        };
-
-        window.deleteUserFromModal = async () => {
-            const uid = document.getElementById('editUid').value;
-            if(confirm('Hapus user ini permanen?')) {
-                await deleteDoc(doc(db, "users", uid));
-                document.getElementById('editUserModal').classList.add('hide');
-                loadDashboardData();
-            }
-        }
-
+        window.deleteUserFromModal = async () => { if(confirm('Hapus permanen?')) { await deleteDoc(doc(db, "users", document.getElementById('editUid').value)); document.getElementById('editUserModal').classList.add('hide'); loadDashboardData(); } };
         window.openAddUserModal = () => document.getElementById('addUserModal').classList.remove('hide');
         window.createNewUserDoc = async () => {
-            const email = document.getElementById('addEmail').value;
-            const username = document.getElementById('addUsername').value;
-            const balance = parseInt(document.getElementById('addBalance').value) || 0;
-            if(!email) return alert('Email wajib diisi');
-
-            try {
-                const tempUid = 'manual_' + Date.now();
-                await setDoc(doc(db, "users", tempUid), {
-                    email: email, username: username, balance: balance,
-                    created_at: new Date().toISOString(), note: 'Via Admin'
-                });
-                document.getElementById('addUserModal').classList.add('hide');
-                loadDashboardData();
-            } catch(e) { alert(e.message); }
+            const email = document.getElementById('addEmail').value, username = document.getElementById('addUsername').value, balance = parseInt(document.getElementById('addBalance').value) || 0;
+            if(!email) return alert('Email wajib');
+            await setDoc(doc(db, "users", 'manual_'+Date.now()), { email, username, balance, created_at: new Date().toISOString() });
+            document.getElementById('addUserModal').classList.add('hide'); loadDashboardData();
         };
+        window.triggerResetFromModal = async () => { try { await sendPasswordResetEmail(auth, document.getElementById('editEmailHidden').value); alert('Email terkirim'); } catch(e) { alert(e.message); } };
 
     </script>
 </body>

@@ -1992,7 +1992,86 @@ window.renderTopUpHistory = () => {
         }
     };
     window.closeStockModal = () => document.getElementById('stockModal').classList.add('hide');
-                                window.openTrxDetail = (trxId) => {
+                                    // FUNGSI BANTUAN: Format Tampilan Detail
+    window.formatDetailInfo = (json) => {
+        let d = json.data || json;
+        if (Array.isArray(d) && d.length > 0) d = d[0];
+        if (!d) return '-';
+
+        return `
+        <div class="space-y-1 text-[10px] font-mono">
+            <div class="border-b border-blue-200 dark:border-blue-800 pb-1 mb-1">
+                <span class="block font-bold text-blue-700 dark:text-blue-300">SN / Token:</span>
+                <span class="break-all">${d.sn || d.message || '-'}</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <div><span class="text-gray-500">Kode:</span> <span class="font-bold">${d.kode_produk || d.code || '-'}</span></div>
+                <div><span class="text-gray-500">Tujuan:</span> <span class="font-bold">${d.tujuan || '-'}</span></div>
+                <div><span class="text-gray-500">Harga:</span> <span class="font-bold">${window.formatRp(d.harga || 0)}</span></div>
+                <div><span class="text-gray-500">Saldo Awal:</span> <span class="font-bold">${window.formatRp(d.saldo_awal || 0)}</span></div>
+            </div>
+            <div class="mt-1 pt-1 border-t border-dashed border-gray-300 dark:border-gray-700">
+                <div class="flex justify-between"><span>Masuk:</span> <span>${d.tgl_entri ? d.tgl_entri.replace('T', ' ').split('.')[0] : '-'}</span></div>
+                <div class="flex justify-between"><span>Update:</span> <span>${d.tgl_status ? d.tgl_status.replace('T', ' ').split('.')[0] : '-'}</span></div>
+            </div>
+            ${d.keterangan ? `<div class="mt-1 text-gray-500 italic">Ket: ${d.keterangan}</div>` : ''}
+        </div>`;
+    };
+
+    window.openTrxDetail = (trxId) => {
+        const trx = transactions.find(t => t.trx_id === trxId);
+        if(!trx) return;
+
+        document.getElementById('dtTitle').innerText = trx.title;
+        document.getElementById('dtAmount').innerText = window.formatRp(trx.amount);
+        document.getElementById('dtDate').innerText = new Date(trx.date).toLocaleString('id-ID');
+        
+        const statusEl = document.getElementById('dtStatus');
+        statusEl.innerText = trx.status;
+        statusEl.className = 'text-xs font-bold ' + (trx.status === 'Sukses' ? 'text-green-600' : (trx.status === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
+        
+        const btnRefresh = document.getElementById('btnRefreshStatus');
+        const rawJsonEl = document.getElementById('dtRawJson');
+        const infoEl = document.getElementById('dtSn');
+
+        // Default Tampilan Awal
+        infoEl.innerText = trx.api_msg || '-';
+        rawJsonEl.innerText = "Data tidak tersedia / Menunggu server...";
+
+        // LOGIKA BARU: Cek Status
+        if(trx.status === 'Pending' || trx.status === 'Proses') {
+            // 1. Jika PENDING -> Auto Refresh Jalan
+            if(trx.provider_id !== 'MANUAL') {
+                btnRefresh.classList.remove('hide');
+                rawJsonEl.innerText = "Sedang mengambil data terbaru... (Auto Refresh)";
+                btnRefresh.onclick = () => manualCheckTrx(trx.trx_id, trx.provider_id || trx.trx_id);
+                setTimeout(() => { manualCheckTrx(trx.trx_id, trx.provider_id || trx.trx_id); }, 300);
+            } else {
+                 btnRefresh.classList.add('hide');
+                 rawJsonEl.innerText = "Transaksi Manual (Menunggu Admin)";
+            }
+        } else {
+            // 2. Jika SUKSES/GAGAL -> Matikan Auto Refresh & Ambil Data Firebase
+            btnRefresh.classList.add('hide');
+            
+            if (trx.raw_json) {
+                try {
+                    const json = JSON.parse(trx.raw_json);
+                    // Tampilkan JSON Mentah Lengkap
+                    rawJsonEl.innerText = JSON.stringify(json, null, 2);
+                    // Tampilkan Info Detail (SN, Harga, Tgl, dll)
+                    infoEl.innerHTML = window.formatDetailInfo(json);
+                } catch (e) {
+                    rawJsonEl.innerText = "Gagal memproses data tersimpan.";
+                }
+            } else {
+                 rawJsonEl.innerText = "Data detail JSON tidak ditemukan di riwayat lama.";
+            }
+        }
+
+        document.getElementById('detailTrxModal').classList.remove('hide');
+    };
+
         const trx = transactions.find(t => t.trx_id === trxId);
         if(!trx) return;
 
@@ -2098,21 +2177,20 @@ window.renderTopUpHistory = () => {
             }
             // ----------------------------------
 
-            // Update UI
+                        // Update UI
             const statusEl = document.getElementById('dtStatus');
             statusEl.innerText = freshStatus;
             statusEl.className = 'text-xs font-bold ' + (freshStatus === 'Sukses' ? 'text-green-600' : (freshStatus === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
             
-            // Rapikan format koma (misal: "10GB,15GB" jadi "10GB, 15GB")
-            if(displaySn.includes(',') && !displaySn.includes(', ')) {
-                 displaySn = displaySn.replace(/,/g, ', ');
-            }
-            document.getElementById('dtSn').innerText = displaySn;
+            // Update Info Detail Menggunakan Helper Baru
+            document.getElementById('dtSn').innerHTML = window.formatDetailInfo(root);
 
             // Simpan ke Database Firestore
             await updateDoc(doc(db, "users", currentUser.uid, "history", docId), {
                 status: freshStatus,
-                api_msg: displaySn
+                api_msg: displaySn,
+                // PERBAIKAN: Simpan JSON mentah agar detail tetap bisa dibuka nanti
+                raw_json: JSON.stringify(root, null, 2)
             });
             
             if(freshStatus !== 'Pending') {

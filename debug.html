@@ -143,14 +143,23 @@
                     </div>
                     <div class="w-10 h-10 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-chart-line"></i></div>
                 </div>
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+                <div onclick="switchTab('pricing')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-orange-200">
                     <div>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Estimasi Profit</p>
-                        <h3 class="text-2xl font-black text-gray-800" id="statEstimatedProfit">Rp 0</h3>
-                        <p class="text-[9px] text-blue-500 font-bold mt-1">Bulan Ini</p>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Profit / Harga</p>
+                        <h3 class="text-xl font-black text-gray-800">Setting</h3>
+                        <p class="text-[9px] text-orange-500 font-bold mt-1">Kelola <i class="fas fa-arrow-right ml-0.5"></i></p>
                     </div>
-                    <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-hand-holding-usd"></i></div>
+                    <div class="w-10 h-10 bg-orange-50 text-orange-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-tags"></i></div>
                 </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between w-full md:w-1/4 mb-5">
+                <div>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Estimasi Profit</p>
+                    <h3 class="text-2xl font-black text-gray-800" id="statEstimatedProfit">Rp 0</h3>
+                    <p class="text-[9px] text-blue-500 font-bold mt-1">Bulan Ini</p>
+                </div>
+                <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-hand-holding-usd"></i></div>
             </div>
             
             <div class="bg-white border border-yellow-100 rounded-lg p-3 flex items-start gap-2 shadow-sm">
@@ -290,7 +299,7 @@
             <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100 sticky top-0 z-20">
                 <div class="flex items-center gap-3">
                     <button onclick="switchTab('dashboard')" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition"><i class="fas fa-arrow-left"></i></button>
-                    <div><h2 class="text-lg font-bold text-gray-800 leading-none">Kelola Harga</h2><p class="text-[10px] text-gray-500">Atur keuntungan per produk</p></div>
+                    <div><h2 class="text-lg font-bold text-gray-800 leading-none">Kelola Harga</h2><p class="text-[10px] text-gray-500">Atur keuntungan per produk (Markup/Markdown)</p></div>
                 </div>
                 <button onclick="saveAllPrices()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-[11px] shadow transition flex items-center gap-2"><i class="fas fa-save"></i> Simpan Perubahan</button>
             </div>
@@ -312,7 +321,7 @@
                 </div>
             </div>
         </div>
-    </main>
+</main>
 
     <div id="editUserModal" class="hide fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 fade-in">
         <div class="bg-white rounded-xl w-full max-w-xs shadow-2xl overflow-hidden transform transition-all scale-100">
@@ -379,210 +388,31 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- LIVE CHAT LOGIC ---
-        let currentChatUid = null;
-        let chatUnsub = null;
-        let chatListUnsub = null;
-        let isRedirectFromUsers = false;
-
-        window.loadChatList = () => {
-            const listContainer = document.getElementById('chatUserList');
-            if(!listContainer) return;
-            
-            if(chatListUnsub) chatListUnsub(); 
-            chatListUnsub = onSnapshot(query(collection(db, "chats"), orderBy("lastTimestamp", "desc")), (snapshot) => {
-                if (snapshot.empty) {
-                    listContainer.innerHTML = '<div class="text-center text-gray-400 mt-10 text-[10px]">Belum ada percakapan.</div>';
-                    return;
-                }
-
-                let html = '';
-                snapshot.forEach(docSnap => {
-                    const d = docSnap.data();
-                    const isActive = currentChatUid === docSnap.id ? 'active' : '';
-                    let time = '';
-                    if(d.lastTimestamp && d.lastTimestamp.toDate) {
-                        time = new Date(d.lastTimestamp.toDate()).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
-                    }
-                    
-                    const isUnread = (d.lastSender === 'user' && !d.isRead);
-                    const unreadClass = isUnread ? 'font-bold text-gray-900' : 'text-gray-500';
-                    const indicator = isUnread ? '<div class="w-2 h-2 bg-red-500 rounded-full"></div>' : '';
-                    const initial = (d.username && d.username.length > 0) ? d.username[0].toUpperCase() : 'U';
-
-                    html += `<div onclick="openChatSession('${docSnap.id}', '${d.username || 'User'}')" class="chat-item ${isActive} p-3 border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition flex justify-between items-start gap-2">
-                        <div class="flex gap-3 overflow-hidden">
-                            <div class="w-8 h-8 rounded-full bg-blue-100 flex-shrink-0 flex items-center justify-center text-blue-600 font-bold text-xs">${initial}</div>
-                            <div class="overflow-hidden">
-                                <h4 class="text-[11px] font-bold text-gray-800 truncate">${d.username || 'User'}</h4>
-                                <p class="text-[10px] ${unreadClass} truncate w-32">${d.lastMessage || '...'}</p>
-                            </div>
-                        </div>
-                        <div class="flex flex-col items-end gap-1">
-                            <span class="text-[9px] text-gray-400">${time}</span>
-                            ${indicator}
-                        </div>
-                    </div>`;
-                });
-                listContainer.innerHTML = html;
-            });
-        };
-
-        window.initChat = async (uid, username) => {
-            isRedirectFromUsers = true;
-            window.switchTab('livechat');
-            const chatDocRef = doc(db, "chats", uid);
-            const chatDoc = await getDoc(chatDocRef);
-            
-            if(!chatDoc.exists()) {
-                await setDoc(chatDocRef, {
-                    username: username,
-                    lastMessage: "(Percakapan Baru)",
-                    lastTimestamp: serverTimestamp(),
-                    lastSender: 'admin',
-                    isRead: true
-                });
-            }
-            window.openChatSession(uid, username);
-        };
-
-        window.openChatSession = (uid, username) => {
-            currentChatUid = uid;
-            document.getElementById('chatHeaderName').innerText = username;
-            document.getElementById('chatHeaderId').innerText = uid;
-            document.getElementById('chatHeaderInitials').innerText = (username && username.length > 0) ? username[0].toUpperCase() : 'U';
-            
-            document.getElementById('adminMsgInput').disabled = false;
-            document.getElementById('adminMsgSendBtn').disabled = false;
-            document.getElementById('chatBoxArea').classList.remove('hidden');
-            document.getElementById('btnDeleteChat').classList.remove('hidden');
-            
-            if(window.innerWidth < 768) {
-                document.getElementById('chatUserList').parentElement.classList.add('hidden');
-            }
-
-            updateDoc(doc(db, "chats", uid), { isRead: true }).catch(err => console.log(err));
-
-            if(chatUnsub) chatUnsub();
-            chatUnsub = onSnapshot(query(collection(db, "chats", uid, "messages"), orderBy("timestamp", "asc")), (snapshot) => {
-                const container = document.getElementById('chatMessages');
-                container.innerHTML = '';
-                
-                if(snapshot.empty) {
-                    container.innerHTML = '<div class="flex h-full items-center justify-center flex-col opacity-40"><i class="fas fa-paper-plane text-4xl mb-2 text-gray-300"></i><p class="text-xs text-gray-400">Belum ada pesan.</p></div>';
-                }
-
-                snapshot.forEach(d => {
-                    const data = d.data();
-                    const isMe = data.sender === 'admin';
-                    let timeStr = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : '...';
-                    
-                    container.innerHTML += `<div class="chat-bubble ${isMe ? 'chat-out' : 'chat-in'}">
-                        ${data.text}<div class="text-[9px] opacity-60 text-right mt-0.5">${timeStr}</div>
-                    </div>`;
-                });
-                container.scrollTop = container.scrollHeight;
-            });
-        };
-
-        window.sendAdminMessage = async () => {
-            const input = document.getElementById('adminMsgInput');
-            const text = input.value.trim();
-            if(!text || !currentChatUid) return;
-            input.value = '';
-            try {
-                await addDoc(collection(db, "chats", currentChatUid, "messages"), { text: text, sender: 'admin', timestamp: serverTimestamp() });
-                await updateDoc(doc(db, "chats", currentChatUid), { lastMessage: text, lastTimestamp: serverTimestamp(), lastSender: 'admin', isRead: false });
-            } catch(e) { Swal.fire('Gagal', e.message, 'error'); }
-        };
-
-        window.deleteChatSession = async () => {
-            if(!currentChatUid) return;
-            const res = await Swal.fire({ title: 'Hapus Chat?', text: "Pesan akan hilang permanen!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Hapus' });
-            if(res.isConfirmed) {
-                try {
-                    const msgs = await getDocs(collection(db, "chats", currentChatUid, "messages"));
-                    for (const m of msgs.docs) { await deleteDoc(m.ref); }
-                    await deleteDoc(doc(db, "chats", currentChatUid));
-                    Swal.fire('Terhapus', '', 'success');
-                    currentChatUid = null;
-                    document.getElementById('chatBoxArea').classList.add('hidden');
-                    document.getElementById('btnDeleteChat').classList.add('hidden');
-                } catch(e) { Swal.fire('Gagal', e.message, 'error'); }
-            }
-        };
-
-        window.openNewChatModal = async () => {
-            const { value: selectedUid } = await Swal.fire({
-                title: 'Mulai Chat Baru',
-                input: 'select',
-                inputOptions: Object.fromEntries(allUsers.map(u => [u.id, u.username || u.email])),
-                inputPlaceholder: 'Pilih User',
-                showCancelButton: true
-            });
-            if (selectedUid) {
-                const user = allUsers.find(u => u.id === selectedUid);
-                window.initChat(selectedUid, user.username || 'User');
-            }
-        };
-
-        window.closeChatMobile = () => {
-            if(isRedirectFromUsers) { window.switchTab('users'); isRedirectFromUsers = false; return; }
-            document.getElementById('chatBoxArea').classList.add('hidden');
-            document.getElementById('chatUserList').parentElement.classList.remove('hidden');
-            currentChatUid = null;
-            if(chatUnsub) chatUnsub();
-        };
-
-        // --- PDF LOGIC ---
-        window.downloadTrxPDF = () => {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            const table = document.getElementById("trxTableBody");
-            const rows = [];
-            table.querySelectorAll("tr").forEach(tr => {
-                const cols = [];
-                tr.querySelectorAll("td").forEach(td => cols.push(td.innerText.replace(/\n/g, " ").trim()));
-                if(cols.length > 1) rows.push(cols);
-            });
-            doc.text("Laporan Transaksi DompetKu", 14, 15);
-            doc.autoTable({ startY: 25, head: [['Waktu', 'User', 'Keterangan', 'Nominal', 'Status']], body: rows, theme: 'grid', styles: { fontSize: 8 } });
-            doc.save(`Transaksi_${Date.now()}.pdf`);
-        };
-
-        // --- SISA LOGIC DARI FILE 13 (TIDAK BERUBAH) ---
-        const CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
-        const PROXY_LIST = [ { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' }, { name: 'CorsProxy', url: 'https://corsproxy.io/?' }, { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' } ];
+        let currentChatUid = null, chatUnsub = null, chatListUnsub = null, isRedirectFromUsers = false;
         let globalProducts = [], pricingRules = {}, allTransactions = [], allUsers = [];
 
-        async function callApi(endpoint, params = {}) {
-            params['api_key'] = CONFIG.apiKey;
-            const targetUrl = `${CONFIG.baseUrl}${endpoint}?${new URLSearchParams(params).toString()}`;
-            for (const proxy of PROXY_LIST) {
-                try {
-                    const res = await fetch(proxy.url + encodeURIComponent(targetUrl));
-                    if (res.ok) return { ok: true, data: JSON.parse(await res.text()) };
-                } catch (e) { console.log(e); }
-            }
-            return { ok: false };
-        }
+        // --- AUTH & CORE LOGIC ---
+        onAuthStateChanged(auth, u => { 
+            if(u && ALLOWED_ADMINS.includes(u.email)) { 
+                document.getElementById('loginOverlay').classList.add('hide'); 
+                loadDashboardData(); 
+            } else { 
+                document.getElementById('loginOverlay').classList.remove('hide'); 
+            } 
+        });
 
         window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
-        
         window.handleLogin = async () => {
-            const email = document.getElementById('adminEmail').value;
-            const pass = document.getElementById('adminPass').value;
+            const email = document.getElementById('adminEmail').value, pass = document.getElementById('adminPass').value;
             if (!ALLOWED_ADMINS.includes(email)) return Swal.fire('Gagal', 'Anda bukan admin!', 'error');
             try { await signInWithEmailAndPassword(auth, email, pass); } catch (e) { Swal.fire('Gagal', e.message, 'error'); }
         };
-
         window.handleGoogleLogin = async () => {
             try {
                 const result = await signInWithPopup(auth, new GoogleAuthProvider());
                 if (!ALLOWED_ADMINS.includes(result.user.email)) { await signOut(auth); Swal.fire('Ditolak', 'Bukan admin!', 'error'); }
             } catch (e) { Swal.fire('Gagal', e.message, 'error'); }
         };
-
         window.logout = async () => { if(confirm('Keluar?')) { await signOut(auth); location.reload(); } };
 
         window.switchTab = (tabId) => {
@@ -595,17 +425,22 @@
             if(tabId === 'livechat') loadChatList();
         };
 
+        // --- DASHBOARD & USER LOGIC ---
         window.loadDashboardData = async () => {
             try {
                 const snap = await getDocs(collection(db, "users"));
                 let totalUsers = 0, totalBalance = 0, html = ''; allUsers = [];
                 snap.forEach(docSnap => {
-                    const data = docSnap.data(); const uid = docSnap.id;
+                    const data = docSnap.data(), uid = docSnap.id;
                     totalUsers++; totalBalance += (data.balance || 0);
                     allUsers.push({ id: uid, ...data });
+                    
+                    // KEMBALIKAN FOTO PROFIL DICEBEAR
+                    const avatarUrl = data.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${uid}`;
+                    
                     html += `<tr class="hover:bg-blue-50/30 border-b border-gray-50 last:border-0">
-                        <td class="p-3"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=${uid}" class="w-8 h-8 rounded-full border"></td>
-                        <td class="p-3"><div class="font-bold text-gray-800">${data.username || 'User'}</div><div class="text-[9px] text-gray-400">${data.email}</div></td>
+                        <td class="p-3"><img src="${avatarUrl}" class="w-8 h-8 rounded-full border bg-gray-100"></td>
+                        <td class="p-3"><div class="font-bold text-gray-800">${data.username || 'User'}</div><div class="text-[9px] text-gray-400">${data.email || '-'}</div></td>
                         <td class="p-3 font-bold text-blue-600">${window.formatRp(data.balance || 0)}</td>
                         <td class="p-3 text-center">
                             <button onclick="initChat('${uid}', '${data.username || 'User'}')" class="px-2 py-1 rounded bg-blue-50 text-blue-600 border border-blue-100 mr-1"><i class="fas fa-comment-alt"></i></button>
@@ -619,6 +454,7 @@
             } catch (e) { console.log(e); }
         };
 
+        // --- TRANSACTION LOGIC ---
         async function loadGlobalTransactions() {
             try {
                 const snap = await getDocs(query(collectionGroup(db, 'history'), orderBy('date', 'desc')));
@@ -649,9 +485,39 @@
             document.getElementById('trxTableBody').innerHTML = html || '<tr><td colspan="5" class="p-4 text-center">Kosong</td></tr>';
         }
 
+        window.downloadTrxPDF = () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const table = document.getElementById("trxTableBody");
+            const rows = [];
+            table.querySelectorAll("tr").forEach(tr => {
+                const cols = [];
+                tr.querySelectorAll("td").forEach(td => cols.push(td.innerText.replace(/\n/g, " ").trim()));
+                if(cols.length > 1) rows.push(cols);
+            });
+            doc.text("Laporan Transaksi DompetKu", 14, 15);
+            doc.autoTable({ startY: 25, head: [['Waktu', 'User', 'Keterangan', 'Nominal', 'Status']], body: rows, theme: 'grid', styles: { fontSize: 8 } });
+            doc.save(`Transaksi_${Date.now()}.pdf`);
+        };
+
+        // --- PRICING LOGIC ---
+        const API_CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
+        const PROXY_LIST = [ { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' }, { name: 'CorsProxy', url: 'https://corsproxy.io/?' }, { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' } ];
+
+        async function callApi(endpoint, params = {}) {
+            params['api_key'] = API_CONFIG.apiKey;
+            const targetUrl = `${API_CONFIG.baseUrl}${endpoint}?${new URLSearchParams(params).toString()}`;
+            for (const proxy of PROXY_LIST) {
+                try {
+                    const res = await fetch(proxy.url + encodeURIComponent(targetUrl));
+                    if (res.ok) return { ok: true, data: JSON.parse(await res.text()) };
+                } catch (e) { console.log(e); }
+            }
+            return { ok: false };
+        }
+
         window.loadPricingData = async () => {
-            const provider = document.getElementById('pricingProvider').value;
-            const table = document.getElementById('pricingTableBody');
+            const provider = document.getElementById('pricingProvider').value, table = document.getElementById('pricingTableBody');
             table.innerHTML = '<tr><td colspan="4" class="p-4 text-center">Loading...</td></tr>';
             const rulesSnap = await getDoc(doc(db, "settings", "pricing"));
             pricingRules = rulesSnap.exists() ? rulesSnap.data().rules : {};
@@ -662,9 +528,7 @@
             const filtered = globalProducts.filter(p => (p.kode_produk || p.code || '').toUpperCase().includes(provider));
             let html = '';
             filtered.forEach(p => {
-                const code = p.kode_produk || p.code || p.buyer_sku_code;
-                const rawPrice = p.harga_final || p.price || 0;
-                const markup = pricingRules[code] || 0;
+                const code = p.kode_produk || p.code || p.buyer_sku_code, rawPrice = p.harga_final || p.price || 0, markup = pricingRules[code] || 0;
                 html += `<tr><td class="p-3"><b>${p.nama_produk || p.name}</b><br>${code}</td><td class="p-3 text-right">${window.formatRp(rawPrice)}</td>
                 <td class="p-3 text-center"><input type="number" onchange="updateCalc('${code}', ${rawPrice}, this)" data-code="${code}" value="${markup}" class="markup-input w-20 border rounded p-1"></td>
                 <td class="p-3 text-right font-bold text-blue-600" id="final-${code}">${window.formatRp(rawPrice + parseInt(markup))}</td></tr>`;
@@ -680,6 +544,94 @@
             Swal.fire('Berhasil', 'Harga diupdate', 'success');
         };
 
+        // --- LIVE CHAT LOGIC ---
+        window.loadChatList = () => {
+            const listContainer = document.getElementById('chatUserList');
+            if(!listContainer) return;
+            if(chatListUnsub) chatListUnsub(); 
+            chatListUnsub = onSnapshot(query(collection(db, "chats"), orderBy("lastTimestamp", "desc")), (snapshot) => {
+                if (snapshot.empty) { listContainer.innerHTML = '<div class="text-center text-gray-400 mt-10 text-[10px]">Belum ada pesan.</div>'; return; }
+                let html = '';
+                snapshot.forEach(docSnap => {
+                    const d = docSnap.data(), isActive = currentChatUid === docSnap.id ? 'active' : '', initial = (d.username && d.username.length > 0) ? d.username[0].toUpperCase() : 'U';
+                    const isUnread = (d.lastSender === 'user' && !d.isRead), time = d.lastTimestamp ? new Date(d.lastTimestamp.toDate()).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : '';
+                    html += `<div onclick="openChatSession('${docSnap.id}', '${d.username || 'User'}')" class="chat-item ${isActive} p-3 border-b border-gray-50 hover:bg-gray-50 cursor-pointer flex justify-between items-start gap-2">
+                        <div class="flex gap-3 overflow-hidden">
+                            <div class="w-8 h-8 rounded-full bg-blue-100 flex-shrink-0 flex items-center justify-center text-blue-600 font-bold">${initial}</div>
+                            <div class="overflow-hidden">
+                                <h4 class="text-[11px] font-bold text-gray-800 truncate">${d.username || 'User'}</h4>
+                                <p class="text-[10px] ${isUnread?'font-bold text-gray-900':'text-gray-500'} truncate w-32">${d.lastMessage || '...'}</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end gap-1"><span class="text-[9px] text-gray-400">${time}</span>${isUnread?'<div class="w-2 h-2 bg-red-500 rounded-full"></div>':''}</div>
+                    </div>`;
+                });
+                listContainer.innerHTML = html;
+            });
+        };
+
+        window.openChatSession = (uid, username) => {
+            currentChatUid = uid;
+            document.getElementById('chatHeaderName').innerText = username;
+            document.getElementById('chatHeaderId').innerText = uid;
+            document.getElementById('chatHeaderInitials').innerText = (username && username.length > 0) ? username[0].toUpperCase() : 'U';
+            document.getElementById('adminMsgInput').disabled = false;
+            document.getElementById('adminMsgSendBtn').disabled = false;
+            document.getElementById('chatBoxArea').classList.remove('hidden');
+            document.getElementById('btnDeleteChat').classList.remove('hidden');
+            if(window.innerWidth < 768) document.getElementById('chatUserList').parentElement.classList.add('hidden');
+            updateDoc(doc(db, "chats", uid), { isRead: true }).catch(e => console.log(e));
+            if(chatUnsub) chatUnsub();
+            chatUnsub = onSnapshot(query(collection(db, "chats", uid, "messages"), orderBy("timestamp", "asc")), (snapshot) => {
+                const container = document.getElementById('chatMessages'); container.innerHTML = '';
+                snapshot.forEach(d => {
+                    const data = d.data(), isMe = data.sender === 'admin', time = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : '...';
+                    container.innerHTML += `<div class="chat-bubble ${isMe ? 'chat-out' : 'chat-in'}">${data.text}<div class="text-[9px] opacity-60 text-right mt-0.5">${time}</div></div>`;
+                });
+                container.scrollTop = container.scrollHeight;
+            });
+        };
+
+        window.sendAdminMessage = async () => {
+            const input = document.getElementById('adminMsgInput'), text = input.value.trim();
+            if(!text || !currentChatUid) return; input.value = '';
+            try {
+                await addDoc(collection(db, "chats", currentChatUid, "messages"), { text: text, sender: 'admin', timestamp: serverTimestamp() });
+                await updateDoc(doc(db, "chats", currentChatUid), { lastMessage: text, lastTimestamp: serverTimestamp(), lastSender: 'admin', isRead: false });
+            } catch(e) { Swal.fire('Gagal', e.message, 'error'); }
+        };
+
+        window.deleteChatSession = async () => {
+            if(!currentChatUid) return;
+            const res = await Swal.fire({ title: 'Hapus Chat?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Hapus' });
+            if(res.isConfirmed) {
+                const msgs = await getDocs(collection(db, "chats", currentChatUid, "messages"));
+                for (const m of msgs.docs) { await deleteDoc(m.ref); }
+                await deleteDoc(doc(db, "chats", currentChatUid));
+                currentChatUid = null; document.getElementById('chatBoxArea').classList.add('hidden');
+            }
+        };
+
+        window.initChat = async (uid, username) => {
+            isRedirectFromUsers = true; window.switchTab('livechat');
+            const ref = doc(db, "chats", uid), chat = await getDoc(ref);
+            if(!chat.exists()) await setDoc(ref, { username, lastMessage: "(Baru)", lastTimestamp: serverTimestamp(), lastSender: 'admin', isRead: true });
+            window.openChatSession(uid, username);
+        };
+
+        window.closeChatMobile = () => {
+            if(isRedirectFromUsers) { window.switchTab('users'); isRedirectFromUsers = false; return; }
+            document.getElementById('chatBoxArea').classList.add('hidden');
+            document.getElementById('chatUserList').parentElement.classList.remove('hidden');
+            currentChatUid = null; if(chatUnsub) chatUnsub();
+        };
+
+        window.openNewChatModal = async () => {
+            const { value: selectedUid } = await Swal.fire({ title: 'Chat Baru', input: 'select', inputOptions: Object.fromEntries(allUsers.map(u => [u.id, u.username || u.email])), inputPlaceholder: 'Pilih User', showCancelButton: true });
+            if (selectedUid) window.initChat(selectedUid, allUsers.find(u => u.id === selectedUid).username);
+        };
+
+        // --- USER MGMT LOGIC ---
         window.openEditUser = (uid) => {
             const u = allUsers.find(x => x.id === uid);
             if(u) { document.getElementById('editUid').value = uid; document.getElementById('editUsername').value = u.username || ''; document.getElementById('editBalance').value = u.balance || 0; document.getElementById('editEmailHidden').value = u.email || ''; document.getElementById('editUserModal').classList.remove('hide'); }
@@ -689,8 +641,16 @@
             await updateDoc(doc(db, "users", uid), { username: document.getElementById('editUsername').value, balance: parseInt(document.getElementById('editBalance').value) });
             document.getElementById('editUserModal').classList.add('hide'); loadDashboardData();
         };
+        window.deleteUserFromModal = async () => { if(confirm('Hapus permanen?')) { await deleteDoc(doc(db, "users", document.getElementById('editUid').value)); document.getElementById('editUserModal').classList.add('hide'); loadDashboardData(); } };
+        window.openAddUserModal = () => document.getElementById('addUserModal').classList.remove('hide');
+        window.createNewUserDoc = async () => {
+            const email = document.getElementById('addEmail').value, username = document.getElementById('addUsername').value, balance = parseInt(document.getElementById('addBalance').value) || 0;
+            if(!email) return alert('Email wajib');
+            await setDoc(doc(db, "users", 'manual_'+Date.now()), { email, username, balance, created_at: new Date().toISOString() });
+            document.getElementById('addUserModal').classList.add('hide'); loadDashboardData();
+        };
+        window.triggerResetFromModal = async () => { try { await sendPasswordResetEmail(auth, document.getElementById('editEmailHidden').value); alert('Email terkirim'); } catch(e) { alert(e.message); } };
 
-        onAuthStateChanged(auth, u => { if(u && ALLOWED_ADMINS.includes(u.email)) { document.getElementById('loginOverlay').classList.add('hide'); loadDashboardData(); } else { document.getElementById('loginOverlay').classList.remove('hide'); } });
     </script>
 </body>
 </html>

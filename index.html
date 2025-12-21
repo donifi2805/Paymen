@@ -1854,47 +1854,83 @@ window.renderTopUpHistory = () => {
     };
 
 
-    window.manualCheckTrx = async (docId, providerId) => {
+        window.manualCheckTrx = async (docId, providerId) => {
         const btn = document.getElementById('btnRefreshStatus');
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         
         console.log("[CheckTrx] Checking refid:", docId);
+        // Panggil API
         const res = await callApi('/history', { refid: docId });
         
-        const r = (res.ok && res.data) ? (res.data.data || res.data) : null;
+        // Ambil root data (karena field 'msg' ada di root, bukan selalu di data.data)
+        const root = res.data || {};
+        const inner = root.data || {};
         
-        if(r) {
-            console.log("[CheckTrx] Result:", r);
+        if(res.ok || root) {
+            console.log("[CheckTrx] Result:", root);
+            
             let freshStatus = 'Pending';
-            const rawStatus = String(r.status || r.status_text || r.result || '').toLowerCase();
-            const sn = r.sn || r.keterangan || r.message || 'Tidak ada pesan server';
+            
+            // 1. Ambil Pesan Mentah (Cari di semua kemungkinan field)
+            // Prioritas: msg (root) -> message -> sn -> data.sn
+            let rawMsg = root.msg || root.message || root.sn || inner.sn || inner.message || 'Tidak ada pesan';
+            if (typeof rawMsg !== 'string') rawMsg = JSON.stringify(rawMsg);
 
-            if (rawStatus.includes('sukses') || rawStatus.includes('success') || rawStatus === '0') {
+            // --- SMART PARSER (LOGIKA BARU) ---
+            const lowerMsg = rawMsg.toLowerCase();
+            const rawStatusField = String(root.status || inner.status || root.result || '').toLowerCase();
+
+            // A. Deteksi Status
+            // Cek apakah ada kata "status sukses" di pesan ATAU status field = true/0
+            if (lowerMsg.includes('status sukses') || rawStatusField.includes('sukses') || rawStatusField === '0' || rawStatusField === 'true') {
                 freshStatus = 'Sukses';
-            } else if (rawStatus.includes('gagal') || rawStatus.includes('batal') || rawStatus === '1') {
+            } else if (lowerMsg.includes('gagal') || rawStatusField.includes('gagal') || rawStatusField === '1') {
                 freshStatus = 'Gagal';
             }
 
+            // B. Ekstrak Detail Pesan (SN)
+            // Format: "... SN:varian tersedia: 10GB... @..."
+            let displaySn = rawMsg;
+            if (rawMsg.includes('SN:')) {
+                const parts = rawMsg.split('SN:');
+                if (parts.length > 1) {
+                    // Ambil teks setelah 'SN:'
+                    let snContent = parts.slice(1).join('SN:'); 
+                    // Buang bagian tanggal (setelah tanda @)
+                    if (snContent.includes('@')) {
+                        snContent = snContent.split('@')[0];
+                    }
+                    displaySn = snContent.trim();
+                }
+            }
+            // ----------------------------------
+
+            // Update UI
             const statusEl = document.getElementById('dtStatus');
             statusEl.innerText = freshStatus;
             statusEl.className = 'text-xs font-bold ' + (freshStatus === 'Sukses' ? 'text-green-600' : (freshStatus === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
-            document.getElementById('dtSn').innerText = sn.replace(/,/g, ', ');
+            
+            // Rapikan format koma (misal: "10GB,15GB" jadi "10GB, 15GB")
+            if(displaySn.includes(',') && !displaySn.includes(', ')) {
+                 displaySn = displaySn.replace(/,/g, ', ');
+            }
+            document.getElementById('dtSn').innerText = displaySn;
 
+            // Simpan ke Database Firestore
             await updateDoc(doc(db, "users", currentUser.uid, "history", docId), {
                 status: freshStatus,
-                api_msg: sn
+                api_msg: displaySn
             });
             
             if(freshStatus !== 'Pending') {
                 btn.classList.add('hide');
-                alert('Status Berhasil Diperbarui: ' + freshStatus + '\n' + sn);
             } else {
                 btn.innerHTML = '<i class="fas fa-sync-alt"></i>';
-                alert('Status masih Pending di server Khfy.');
+                // alert('Status masih Pending di server Khfy.');
             }
         } else {
             console.error("[CheckTrx] API Error:", res);
-            alert('Gagal cek status. Response server kosong/error.');
+            alert('Gagal cek status. Tidak ada respon valid.');
             btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
         }
     };

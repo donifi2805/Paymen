@@ -709,12 +709,14 @@
             console.log("Logged In:", user.uid);
             setupUserData(user);
             window.nav('homePage');
-            setupRequestListener(user);
+                        setupRequestListener(user);
+            startBackgroundService();
         } else {
             currentUser = null;
             console.log("Logged Out");
             window.nav('loginPage');
-            window.showLoader(false);
+                        window.showLoader(false);
+            if(window.autoCheckInterval) clearInterval(window.autoCheckInterval);
         }
     });
 
@@ -1749,7 +1751,100 @@
     };
 
     // --- TOP UP LOGIC & SMART BADGE ---
-    window.checkPendingTopUp = () => {
+        // --- BACKGROUND SERVICE (AUTO CHECK 5 Detik) ---
+    window.autoCheckInterval = null;
+
+    window.startBackgroundService = () => {
+        if(window.autoCheckInterval) clearInterval(window.autoCheckInterval);
+        console.log("Background Service Started (5s Interval)");
+        
+        window.autoCheckInterval = setInterval(async () => {
+            if(!currentUser) return;
+            
+            // Hanya ambil transaksi yang PENDING
+            const q = query(collection(db, "users", currentUser.uid, "history"), where("status", "==", "Pending"));
+            const snapshot = await getDocs(q);
+            
+            if(snapshot.empty) return;
+            
+            snapshot.forEach(async (docSnap) => {
+                const trx = docSnap.data();
+                if(trx.provider_id === 'MANUAL') return;
+                
+                try {
+                    // Cek API tanpa loader (Silent)
+                    const res = await callApi('/history', { refid: trx.trx_id });
+                    
+                    const root = res.data || {};
+                    let inner = root.data || {};
+                    if (Array.isArray(inner) && inner.length > 0) inner = inner[0];
+                    
+                    if(res.ok || root) {
+                        let freshStatus = 'Pending';
+                        let rawMsg = root.msg || root.message || root.sn || inner.sn || inner.message || 'Tidak ada pesan';
+                        if (typeof rawMsg !== 'string') rawMsg = JSON.stringify(rawMsg);
+                        
+                        const lowerMsg = rawMsg.toLowerCase();
+                        const rawStatusField = String(root.status || inner.status || root.result || '').toLowerCase();
+                        const statusText = String(root.status_text || inner.status_text || '').toUpperCase();
+
+                        if (lowerMsg.includes('status sukses') || rawStatusField.includes('sukses') || rawStatusField === '0' || rawStatusField === 'true' || statusText === 'SUKSES') {
+                            freshStatus = 'Sukses';
+                        } else if (lowerMsg.includes('gagal') || rawStatusField.includes('gagal') || rawStatusField === '1' || statusText === 'GAGAL') {
+                            freshStatus = 'Gagal';
+                        }
+                        
+                        // Bersihkan Pesan SN
+                        let displaySn = rawMsg;
+                        if (rawMsg.includes('SN:')) {
+                            const parts = rawMsg.split('SN:');
+                            if (parts.length > 1) {
+                                let snContent = parts.slice(1).join('SN:'); 
+                                if (snContent.includes('@')) snContent = snContent.split('@')[0];
+                                displaySn = snContent.trim();
+                            }
+                        }
+                        if(displaySn.includes(',') && !displaySn.includes(', ')) displaySn = displaySn.replace(/,/g, ', ');
+                        
+                        // UPDATE KE DB (Gunakan Transaction agar aman saat refund)
+                        await runTransaction(db, async (t) => {
+                            const docRef = doc(db, "users", currentUser.uid, "history", docSnap.id);
+                            const currentDoc = await t.get(docRef);
+                            if(!currentDoc.exists()) return;
+                            
+                            // Cek lagi status di DB (cegah double refund)
+                            if(currentDoc.data().status !== 'Pending') return;
+                            
+                            const updateData = {
+                                api_msg: displaySn,
+                                raw_json: JSON.stringify(root, null, 2)
+                            };
+                            
+                            if(freshStatus !== 'Pending') {
+                                updateData.status = freshStatus;
+                                
+                                // LOGIKA REFUND OTOMATIS JIKA GAGAL
+                                if(freshStatus === 'Gagal') {
+                                    const userRef = doc(db, "users", currentUser.uid);
+                                    const userDoc = await t.get(userRef);
+                                    const newBal = (userDoc.data().balance || 0) + trx.amount;
+                                    t.update(userRef, { balance: newBal });
+                                }
+                            }
+                            
+                            t.update(docRef, updateData);
+                        });
+                        console.log(`[AutoCheck] ${trx.trx_id} -> ${freshStatus}`);
+                    }
+                } catch(e) {
+                    console.warn(`[AutoCheck] Error ${trx.trx_id}:`, e);
+                }
+            });
+        }, 5000); // Cek setiap 5 detik
+    };
+
+
+window.checkPendingTopUp = () => {
         if(!currentUser) return false;
         const savedData = localStorage.getItem('qios_trx_' + currentUser.uid);
         if (savedData) {

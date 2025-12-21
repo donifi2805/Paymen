@@ -1344,15 +1344,18 @@
              return;
         }
 
-        const filtered = globalProducts.filter(p => {
+                const filtered = globalProducts.filter(p => {
             const code = (p.code || p.kode_produk || p.buyer_sku_code || '').toUpperCase();
             const name = (p.name || p.nama_produk || p.product_name || '').toUpperCase();
             const brand = (p.brand || p.kode_provider || p.operator || '').toUpperCase();
             
-            if (providerCode === 'XDA') return code.includes('XDA') || name.includes('XDA') || (name.includes('AKRAB') && name.includes('XTRA'));
-            if (providerCode === 'XLA') return (code.includes('XLA') || name.includes('XLA') || (name.includes('AKRAB') && !name.includes('XTRA'))) && !name.toUpperCase().includes('HARI');
-            if (providerCode === 'FMX') return code.includes('FMX') || name.includes('FLEX') || name.includes('UNLIMITED');
-            if (providerCode === 'XLR') return brand.includes('XLREGULER') || name.includes('REGULER');
+            // Filter Ketat (Strict) Sesuai Request
+            if (providerCode === 'XDA') return code.startsWith('XDA');
+            if (providerCode === 'XLA') return code.startsWith('XLA');
+            if (providerCode === 'FMX') return code.startsWith('FMX') && brand === 'FMAX';
+            if (providerCode === 'XLR') return brand === 'XLREGULER';
+            
+            // Filter Tambahan
             if (providerCode === 'PLN') return brand.includes('PLN') || code.includes('PLN') || name.includes('TOKEN');
 
             return brand.includes(providerCode) || name.includes(providerCode) || code.includes(providerCode);
@@ -1417,15 +1420,69 @@
              }
         };
     };
-    const priceDisplay = document.getElementById('priceDisplay');
+    const priceDisplay = document.getElementById('priceDisplay');    window.toggleMultiTrx = () => {
+        isMultiTrx = !isMultiTrx;
+        const check = document.getElementById('multiTrxCheck');
+        const icon = check.querySelector('i');
+        const single = document.getElementById('singleNumContainer');
+        const multi = document.getElementById('multiNumContainer');
+        const btnAdd = document.getElementById('btnAddNum');
         
+        if(isMultiTrx) {
+            check.className = "w-5 h-5 rounded border border-blue-600 bg-blue-600 flex items-center justify-center text-white transition-colors";
+            icon.classList.remove('opacity-0');
+            single.classList.add('hide');
+            multi.classList.remove('hide');
+            btnAdd.classList.remove('hide');
+            if(multi.children.length === 0) window.addMultiInput();
+        } else {
+            check.className = "w-5 h-5 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-white transition-colors";
+            icon.classList.add('opacity-0');
+            single.classList.remove('hide');
+            multi.classList.add('hide');
+            btnAdd.classList.add('hide');
+        }
+    };
+
+    window.addMultiInput = () => {
+        const container = document.getElementById('multiNumContainer');
+        const div = document.createElement('div');
+        div.className = "flex gap-2 animate-fade-in-down";
+        div.innerHTML = '<input type="tel" placeholder="Nomor Tujuan..." class="flex-1 h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"><button onclick="this.parentElement.remove()" class="w-12 h-12 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-xl hover:bg-red-100 transition flex items-center justify-center"><i class="fas fa-trash-alt"></i></button>';
+        container.appendChild(div);
+    };
+
+    window.executeMultiBatch = async (code, numbers, price, name) => {
+        window.showLoader(true);
+        let success = 0; let fail = 0;
+        for (const num of numbers) {
+            try {
+                const reffId = crypto.randomUUID();
+                const result = await callApi('/trx', { produk: code, tujuan: num, reff_id: reffId });
+                if (result.ok && result.data && (result.data.status === true || result.data.success === true || result.data.status === 'success' || (result.data.data && result.data.data.status === 'Pending'))) {
+                     success++;
+                     await runTransaction(db, async (t) => {
+                        const userRef = doc(db, "users", currentUser.uid);
+                        const uDoc = await t.get(userRef);
+                        const newBal = (uDoc.data().balance || 0) - price;
+                        t.update(userRef, { balance: newBal });
+                        const hRef = doc(db, "users", currentUser.uid, "history", reffId);
+                        t.set(hRef, { title: name + ' (Multi)', amount: price, type: 'out', date: new Date().toISOString(), status: 'Sukses', api_msg: 'Batch Trx', trx_id: reffId });
+                     });
+                     currentBalance -= price;
+                } else { fail++; }
+            } catch(e) { fail++; console.error(e); }
+            await new Promise(r => setTimeout(r, 1000));
+        }
+        window.showLoader(false);
+        if(document.getElementById('displayBalance')) document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
+        alert(`Transaksi Selesai!\nSukses: ${success}\nGagal: ${fail}`);
+        window.nav('homePage');
+    };
 
     window.processFormTransaction = () => {
         const productSelect = document.getElementById('formProduct');
-        const destNum = document.getElementById('ppobNumber').value;
-
         if(!productSelect.value) return alert('Silakan pilih Produk!');
-        if(destNum.length < 5) return alert('Masukkan Nomor Tujuan yang valid!');
 
         const selectedOpt = productSelect.options[productSelect.selectedIndex];
         const code = productSelect.value;
@@ -1433,11 +1490,27 @@
         const price = parseInt(selectedOpt.dataset.price);
 
         if (code === 'CEKPLN') {
-            window.checkPLN(destNum);
+            window.checkPLN(document.getElementById('ppobNumber').value);
             return;
         }
 
-        window.confirmTransaction(code, name, price);
+        if (isMultiTrx) {
+            const inputs = document.querySelectorAll('#multiNumContainer input');
+            const numbers = [];
+            inputs.forEach(i => { if(i.value.length > 5) numbers.push(i.value); });
+            
+            if(numbers.length === 0) return alert("Masukkan minimal 1 nomor tujuan valid!");
+            const total = numbers.length * price;
+            if (currentBalance < total) return alert(`Saldo kurang! Butuh Rp ${window.formatRp(total)}`);
+            
+            window.customConfirm('Multi Transaksi', `Proses ${numbers.length} nomor?\nTotal: Rp ${window.formatRp(total)}`, () => {
+                window.executeMultiBatch(code, numbers, price, name);
+            });
+        } else {
+            const destNum = document.getElementById('ppobNumber').value;
+            if(destNum.length < 5) return alert('Masukkan Nomor Tujuan yang valid!');
+            window.confirmTransaction(code, name, price);
+        }
     };
 
     window.checkPLN = async (num) => {

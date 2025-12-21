@@ -911,7 +911,7 @@
                     amount: amount,
                     type: 'out',
                     date: new Date().toISOString(),
-                    status: 'Sukses',
+                    status: 'Pending',
                     api_msg: 'Transfer Sesama',
                     trx_id: trxId
                 });
@@ -1270,6 +1270,7 @@
             document.getElementById('miniHistory').innerHTML = miniHtml;
         }
         if(window.renderTopUpHistory) window.renderTopUpHistory();
+if(window.checkPendingTrx) window.checkPendingTrx();
     }
 
     // PPOB Logic
@@ -1467,7 +1468,7 @@
                         const newBal = (uDoc.data().balance || 0) - price;
                         t.update(userRef, { balance: newBal });
                         const hRef = doc(db, "users", currentUser.uid, "history", reffId);
-                        t.set(hRef, { title: name + ' (Multi)', amount: price, type: 'out', date: new Date().toISOString(), status: 'Sukses', api_msg: 'Batch Trx', trx_id: reffId });
+                        t.set(hRef, { title: name + ' (Multi)', amount: price, type: 'out', date: new Date().toISOString(), status: 'Pending', api_msg: 'Batch Trx', trx_id: reffId, provider_id: (result.data && result.data.data && result.data.data.id) ? result.data.data.id : 'MANUAL' });
                      });
                      currentBalance -= price;
                 } else { fail++; }
@@ -1589,23 +1590,31 @@
                 msg = msg.trim();
             }
             
-            const isSuccess = d.status === true || d.success === true || d.status === 'success' || (d.data && d.data.status === 'Pending');
+            const isSuccess = d.status === true || d.success === true || d.status === 'success' || (d.data && d.data.status === 'Pending') || msg.toLowerCase().includes('proses') || msg.toLowerCase().includes('akan di proses');
 
             if(isSuccess) { 
                 const newBal = currentBalance - price;
                 updateDoc(doc(db, "users", currentUser.uid), { balance: newBal });
+                
+                let realStatus = 'Pending';
+                if (d.status === true && !msg.toLowerCase().includes('proses')) {
+                    // Jika API lapor sukses mutlak tanpa embel-embel proses
+                    // realStatus = 'Sukses'; 
+                }
+                // Default ke Pending agar Webhook yang merubah ke Sukses
                 
                 addDoc(collection(db, "users", currentUser.uid, "history"), {
                     title: name,
                     amount: price,
                     type: 'out',
                     date: new Date().toISOString(),
-                    status: 'Sukses',
+                    status: realStatus,
                     api_msg: msg,
-                    trx_id: reffId
+                    trx_id: reffId,
+                    provider_id: (d.data && d.data.id) ? d.data.id : ''
                 });
 
-                alert(`Sukses!\nInfo: ${msg}`);
+                alert(`Transaksi Sedang Diproses!\nInfo: ${msg}`);
                 window.nav('homePage');
             } else {
                 alert(`Transaksi Gagal!\nAlasan: ${msg}`);
@@ -1631,7 +1640,35 @@
 
     window.setTopUpAmount = (amount) => { document.getElementById('qiosInputAmount').value = amount; };
 
-    window.renderTopUpHistory = () => {
+    window.checkPendingTrx = async () => {
+        if(!currentUser) return;
+        const q = query(collection(db, "users", currentUser.uid, "history"), where("status", "==", "Pending"));
+        const snapshot = await getDocs(q);
+        snapshot.forEach(async (docSnap) => {
+            const trx = docSnap.data();
+            if(!trx.provider_id || trx.provider_id === 'MANUAL') return;
+
+            const res = await callApi('/status', { id_trx: trx.provider_id });
+            if(res.ok && res.data && res.data.data) {
+                const r = res.data.data;
+                if(r.status !== 'Pending') {
+                    if(r.status === 'Success') {
+                        updateDoc(docSnap.ref, { status: 'Sukses', api_msg: r.sn || 'Sukses' });
+                    } else if(r.status === 'Gagal' || r.status === 'Error') {
+                        await runTransaction(db, async (t) => {
+                            const uRef = doc(db, "users", currentUser.uid);
+                            const uDoc = await t.get(uRef);
+                            t.update(uRef, { balance: (uDoc.data().balance || 0) + trx.amount });
+                            t.update(docSnap.ref, { status: 'Gagal', api_msg: 'Refund: ' + (r.message || 'Gagal') });
+                        });
+                    }
+                }
+            }
+        });
+    };
+
+    
+window.renderTopUpHistory = () => {
         const container = document.getElementById('qiosMiniHistory');
         if(!container) return;
         

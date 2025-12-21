@@ -1972,12 +1972,13 @@ window.renderTopUpHistory = () => {
             // --- SMART PARSER (LOGIKA BARU) ---
             const lowerMsg = rawMsg.toLowerCase();
             const rawStatusField = String(root.status || inner.status || root.result || '').toLowerCase();
+            const statusText = String(root.status_text || inner.status_text || '').toUpperCase();
 
             // A. Deteksi Status
-            // Cek apakah ada kata "status sukses" di pesan ATAU status field = true/0
-            if (lowerMsg.includes('status sukses') || rawStatusField.includes('sukses') || rawStatusField === '0' || rawStatusField === 'true') {
+            // Cek: 'status sukses' di pesan ATAU status field = true/0 ATAU status_text = SUKSES
+            if (lowerMsg.includes('status sukses') || rawStatusField.includes('sukses') || rawStatusField === '0' || rawStatusField === 'true' || statusText === 'SUKSES') {
                 freshStatus = 'Sukses';
-            } else if (lowerMsg.includes('gagal') || rawStatusField.includes('gagal') || rawStatusField === '1') {
+            } else if (lowerMsg.includes('gagal') || rawStatusField.includes('gagal') || rawStatusField === '1' || statusText === 'GAGAL') {
                 freshStatus = 'Gagal';
             }
 

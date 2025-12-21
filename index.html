@@ -2072,45 +2072,7 @@ window.renderTopUpHistory = () => {
         document.getElementById('detailTrxModal').classList.remove('hide');
     };
 
-        const trx = transactions.find(t => t.trx_id === trxId);
-        if(!trx) return;
 
-        document.getElementById('dtTitle').innerText = trx.title;
-        document.getElementById('dtAmount').innerText = window.formatRp(trx.amount);
-        document.getElementById('dtDate').innerText = new Date(trx.date).toLocaleString('id-ID');
-        
-        const statusEl = document.getElementById('dtStatus');
-        statusEl.innerText = trx.status;
-        statusEl.className = 'text-xs font-bold ' + (trx.status === 'Sukses' ? 'text-green-600' : (trx.status === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
-        
-        let msg = trx.api_msg || trx.desc || '-';
-        if(msg.includes(',')) msg = msg.replace(/,/g, ', ');
-        document.getElementById('dtSn').innerText = msg;
-
-        // Logika Tombol Refresh & Auto Check
-        const btnRefresh = document.getElementById('btnRefreshStatus');
-        
-        // Cek jika status Pending/Proses dan bukan transaksi manual
-                        // MODIFIKASI: Cek semua transaksi kecuali MANUAL (tanpa syarat provider_id harus ada)
-        // Ini memastikan tombol refresh & auto-check muncul untuk transaksi 'Cek Promo' dll.
-        if(trx.provider_id !== 'MANUAL') {
-            btnRefresh.classList.remove('hide');
-            // Gunakan trx_id jika provider_id kosong/undefined
-            const pId = trx.provider_id || trx.trx_id;
-            
-            btnRefresh.onclick = () => manualCheckTrx(trx.trx_id, pId);
-            
-            if(document.getElementById('dtRawJson')) document.getElementById('dtRawJson').innerText = "Menghubungkan ke server... (Mengambil data mentah)";
-            
-            console.log("Auto-fetch triggered for:", trx.trx_id);
-            setTimeout(() => { manualCheckTrx(trx.trx_id, pId); }, 300);
-        } else {
-            btnRefresh.classList.add('hide');
-            if(document.getElementById('dtRawJson')) document.getElementById('dtRawJson').innerText = "Transaksi Manual (Data server tidak tersedia)";
-        }
-
-        document.getElementById('detailTrxModal').classList.remove('hide');
-    };
 
 
         window.manualCheckTrx = async (docId, providerId) => {

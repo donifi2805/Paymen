@@ -149,6 +149,7 @@
         const rawStatus = String(d.status || d.status_text || d.result || 'Unknown').toLowerCase();
         let appStatus = 'Pending';
         
+        // SIMULASI LOGIKA APLIKASI
         if (rawStatus.includes('sukses') || rawStatus.includes('success') || rawStatus === '0') appStatus = 'Sukses';
         else if (rawStatus.includes('gagal') || rawStatus.includes('batal') || rawStatus === '1') appStatus = 'Gagal';
 
@@ -168,8 +169,8 @@
             </div>`;
             html += `<p class="text-xs text-yellow-500 mt-3 font-bold">Kenapa di Aplikasi Masih Pending?</p>
             <ul class="list-disc list-inside text-xs text-gray-400 mt-1">
-                <li>Apakah RefID yang dimasukkan (<code>${document.getElementById('refId').value}</code>) SAMA PERSIS dengan yang ada di aplikasi?</li>
-                <li>Mungkin fitur "Auto-Check" di aplikasi gagal menyimpan ke database Firestore (Izin Write/Internet user terputus saat update).</li>
+                <li>Apakah RefID yang dimasukkan SAMA PERSIS dengan yang ada di aplikasi?</li>
+                <li>Mungkin fitur "Auto-Check" di aplikasi gagal menyimpan ke database Firestore.</li>
             </ul>`;
 
         } else if (appStatus === 'Gagal') {
@@ -177,7 +178,8 @@
             html += `<p class="text-xs text-gray-300">Transaksi memang gagal di server pusat.</p>`;
         } else {
             html += `<div class="text-orange-400 font-bold text-lg mb-2"><i class="fas fa-clock"></i> STATUS SERVER: PENDING</div>`;
-            html += `<p class="text-xs text-gray-300">Server Khfy memang belum memproses transaksi ini (atau sedang proses).</p>`;
+            html += `<p class="text-xs text-gray-300">Server Khfy memberikan status: <b>${rawStatus}</b>.</p>`;
+            html += `<p class="text-xs text-gray-400">Logika aplikasi saat ini hanya menganggap sukses jika status mengandung: "sukses", "success", atau "0".</p>`;
         }
 
         logAnl.innerHTML = html;

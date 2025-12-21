@@ -3,64 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pandawa Debugger Tool</title>
+    <title>Pandawa TRX Debugger</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background-color: #111827; color: #e5e7eb; font-family: monospace; }
-        .log-box { background: #1f2937; padding: 15px; border-radius: 8px; border: 1px solid #374151; margin-bottom: 10px; white-space: pre-wrap; word-break: break-all; font-size: 11px; max-height: 300px; overflow-y: auto; }
+        body { background-color: #0f172a; color: #e2e8f0; font-family: 'Courier New', monospace; }
+        .log-box { background: #1e293b; padding: 15px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 10px; white-space: pre-wrap; word-break: break-all; font-size: 11px; max-height: 300px; overflow-y: auto; }
+        .input-dark { background: #1e293b; border: 1px solid #334155; color: white; padding: 10px; border-radius: 8px; width: 100%; outline: none; transition: 0.3s; }
+        .input-dark:focus { border-color: #3b82f6; ring: 2px solid #3b82f6; }
+        .btn-primary { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; font-weight: bold; padding: 12px; border-radius: 10px; width: 100%; transition: transform 0.1s; }
+        .btn-primary:active { transform: scale(0.98); }
         .success { color: #34d399; }
         .error { color: #f87171; }
         .warning { color: #fbbf24; }
-        .info { color: #60a5fa; }
     </style>
 </head>
-<body class="p-6 max-w-2xl mx-auto">
+<body class="p-4 max-w-lg mx-auto min-h-screen flex flex-col justify-center">
 
-    <div class="mb-8 text-center">
-        <h1 class="text-2xl font-bold text-white mb-2"><i class="fas fa-bug text-red-500 mr-2"></i>Pandawa Debugger</h1>
-        <p class="text-gray-400 text-sm">Alat cek jalur API & Respon Khfy</p>
+    <div class="mb-6 text-center">
+        <h1 class="text-xl font-bold text-white mb-1"><i class="fas fa-shopping-cart text-blue-500 mr-2"></i>Simulasi Pembelian</h1>
+        <p class="text-xs text-gray-400">Meniru logika <code>index.html</code> (Proxy & Handler)</p>
     </div>
 
-    <div class="bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-700 mb-6">
-        <div class="mb-4">
-            <label class="block text-xs font-bold text-gray-400 mb-1">API KEY (Khfy)</label>
-            <input type="text" id="apiKey" value="8F1199C1-483A-4C96-825E-F5EBD33AC60A" class="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white text-xs focus:border-blue-500 outline-none">
+    <div class="bg-slate-800 p-6 rounded-2xl shadow-2xl border border-slate-700 mb-6 space-y-4">
+        <div>
+            <label class="text-[10px] uppercase font-bold text-gray-500 tracking-wider">API Key</label>
+            <input type="text" id="apiKey" value="8F1199C1-483A-4C96-825E-F5EBD33AC60A" class="input-dark text-xs text-gray-400">
         </div>
-        <div class="mb-4">
-            <label class="block text-xs font-bold text-gray-400 mb-1">REF ID / TRX ID (UUID)</label>
-            <input type="text" id="refId" placeholder="Contoh: 751d2003-..." class="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white text-xs focus:border-blue-500 outline-none">
-            <p class="text-[10px] text-gray-500 mt-1">*Ambil ID ini dari Database Firestore (field: trx_id) atau riwayat aplikasi.</p>
+        
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Kode Produk</label>
+                <input type="text" id="productCode" placeholder="Cth: CEKPLN / XDA" class="input-dark text-yellow-400 font-bold uppercase">
+            </div>
+            <div>
+                <label class="text-[10px] uppercase font-bold text-gray-500 tracking-wider">No. Tujuan</label>
+                <input type="text" id="destNum" placeholder="08xxx / ID Pel" class="input-dark font-bold">
+            </div>
         </div>
-        <button onclick="startDebug()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition shadow-lg">
-            MULAI DIAGNOSA
+
+        <div>
+            <label class="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Reff ID (Auto UUID)</label>
+            <div class="flex gap-2">
+                <input type="text" id="reffId" class="input-dark text-xs text-gray-400" readonly>
+                <button onclick="genUuid()" class="bg-slate-700 px-3 rounded-lg hover:bg-slate-600"><i class="fas fa-sync-alt text-xs"></i></button>
+            </div>
+        </div>
+
+        <button onclick="startSimulation()" id="btnSim" class="btn-primary shadow-lg shadow-blue-900/50">
+            SIMULASI TRANSAKSI
         </button>
     </div>
 
-    <div id="resultArea" class="hidden">
-        <h3 class="font-bold text-white mb-2">Logs & Analisa:</h3>
+    <div id="resultArea" class="hidden animate-fade-in-up">
+        <h3 class="font-bold text-white text-sm mb-2"><i class="fas fa-terminal mr-2"></i>Logs Eksekusi:</h3>
         
-        <div class="mb-4">
-            <p class="text-xs font-bold text-gray-400 mb-1">1. Cek Koneksi & Proxy</p>
-            <div id="logConnection" class="log-box text-gray-500">Menunggu...</div>
+        <div class="mb-3">
+            <p class="text-[10px] font-bold text-gray-400 mb-1">1. PROSES KONEKSI (PROXY)</p>
+            <div id="logConnection" class="log-box text-gray-400 font-mono">...</div>
         </div>
 
-        <div class="mb-4">
-            <p class="text-xs font-bold text-gray-400 mb-1">2. Respon Mentah (Raw JSON)</p>
-            <div id="logRaw" class="log-box text-purple-300">Menunggu...</div>
+        <div class="mb-3">
+            <p class="text-[10px] font-bold text-gray-400 mb-1">2. DATA DITERIMA (RAW JSON)</p>
+            <div id="logRaw" class="log-box text-purple-300 font-mono">...</div>
         </div>
 
-        <div class="mb-4">
-            <p class="text-xs font-bold text-gray-400 mb-1">3. Kesimpulan Diagnosa</p>
-            <div id="logAnalysis" class="bg-gray-800 p-4 rounded-xl border border-gray-600">
-                Menunggu hasil...
+        <div class="mb-3">
+            <p class="text-[10px] font-bold text-gray-400 mb-1">3. ANALISA APLIKASI (LOGIKA CODE)</p>
+            <div id="logAnalysis" class="bg-slate-900 p-4 rounded-xl border border-slate-700 text-xs">
+                ...
             </div>
         </div>
     </div>
 
 <script>
-    // KONFIGURASI SAMA PERSIS DENGAN APLIKASI UTAMA
+    // --- SETUP DARI INDEX.HTML ---
     const BASE_URL = "https://panel.khfy-store.com/api_v2";
+    
+    // Proxy list sama persis dengan index.html
     const PROXY_LIST = [
         { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
         { name: 'CorsProxy', url: 'https://corsproxy.io/?' },
@@ -69,35 +89,57 @@
         { name: 'Direct', url: '' }
     ];
 
-    async function startDebug() {
-        const apiKey = document.getElementById('apiKey').value.trim();
-        const refId = document.getElementById('refId').value.trim();
-        const resArea = document.getElementById('resultArea');
+    function genUuid() {
+        document.getElementById('reffId').value = crypto.randomUUID();
+    }
+    genUuid(); // Init
+
+    async function startSimulation() {
+        const apiKey = document.getElementById('apiKey').value;
+        const code = document.getElementById('productCode').value.trim();
+        const dest = document.getElementById('destNum').value.trim();
+        const reffId = document.getElementById('reffId').value;
+        const btn = document.getElementById('btnSim');
+
+        if(!code || !dest) return alert("Kode Produk & Nomor Tujuan wajib diisi!");
+
+        // UI Reset
+        document.getElementById('resultArea').classList.remove('hidden');
         const logCon = document.getElementById('logConnection');
         const logRaw = document.getElementById('logRaw');
         const logAnl = document.getElementById('logAnalysis');
-
-        if(!refId) return alert("Masukkan REF ID Transaksi!");
-
-        resArea.classList.remove('hidden');
-        logCon.innerHTML = "Memulai tes koneksi...\n";
-        logRaw.innerHTML = "-";
-        logAnl.innerHTML = '<p class="text-gray-400 text-xs animate-pulse">Sedang menganalisa...</p>';
-
-        const targetUrl = `${BASE_URL}/history?api_key=${apiKey}&refid=${refId}`;
         
-        let finalData = null;
-        let usedProxy = null;
+        logCon.innerHTML = "Memulai request /trx...\n";
+        logRaw.innerHTML = "Menunggu respon...";
+        logAnl.innerHTML = "Menganalisa...";
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> MEMPROSES...';
 
-        // SIMULASI FETCHING SEPERTI DI INDEX.HTML
+        // Persiapan Data
+        const params = {
+            produk: code,
+            tujuan: dest,
+            reff_id: reffId,
+            api_key: apiKey
+        };
+
+        // Query String
+        const queryString = new URLSearchParams(params).toString();
+        const targetUrl = `${BASE_URL}/trx?${queryString}`; // Endpoint /trx
+
+        let finalJson = null;
+        let successProxy = null;
+
+        // --- SIMULASI LOOP PROXY (Sama dengan callApi di index) ---
         for (const proxy of PROXY_LIST) {
-            logCon.innerHTML += `> Mencoba jalur: ${proxy.name || 'Direct'}... `;
+            logCon.innerHTML += `> Coba jalur: <b>${proxy.name || 'Direct'}</b>... `;
+            
             const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
-
+            
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 Detik
-                
+                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
                 const startT = Date.now();
                 const response = await fetch(fullUrl, { signal: controller.signal });
                 clearTimeout(timeoutId);
@@ -107,79 +149,83 @@
                     const text = await response.text();
                     try {
                         const json = JSON.parse(text);
-                        logCon.innerHTML += `<span class="success">BERHASIL (${ping}ms)</span>\n`;
-                        finalData = json;
-                        usedProxy = proxy.name;
-                        break; // Stop jika berhasil
+                        // Cek apakah JSON valid & bukan error proxy
+                        if (json) {
+                            logCon.innerHTML += `<span class="success">OK (${ping}ms)</span>\n`;
+                            finalJson = json;
+                            successProxy = proxy.name;
+                            break; // BERHASIL, STOP LOOP
+                        }
                     } catch (e) {
-                        logCon.innerHTML += `<span class="warning">Bukan JSON</span>\n`;
+                        logCon.innerHTML += `<span class="warning">Respon bukan JSON</span>\n`;
                     }
                 } else {
                     logCon.innerHTML += `<span class="error">HTTP ${response.status}</span>\n`;
                 }
             } catch (error) {
-                logCon.innerHTML += `<span class="error">GAGAL (${error.message})</span>\n`;
+                logCon.innerHTML += `<span class="error">Error: ${error.message}</span>\n`;
             }
         }
 
-        // TAMPILKAN HASIL RAW
-        if (finalData) {
-            logRaw.innerText = JSON.stringify(finalData, null, 2);
-            analyzeResult(finalData, usedProxy);
+        // --- TAMPILKAN HASIL ---
+        if (finalJson) {
+            logRaw.innerText = JSON.stringify(finalJson, null, 2);
+            analyzeLogic(finalJson);
         } else {
-            logRaw.innerHTML = '<span class="error">TIDAK ADA RESPON DARI SERVER MANAPUN.</span>';
-            logAnl.innerHTML = `
-                <div class="text-red-400 font-bold text-sm mb-2"><i class="fas fa-times-circle"></i> KESIMPULAN: BLOKIR JARINGAN</div>
-                <p class="text-xs text-gray-300">Aplikasi tidak bisa menghubungi Khfy sama sekali.</p>
-                <ul class="list-disc list-inside text-xs text-gray-400 mt-2">
-                    <li>Coba ganti jaringan (WiFi ke Data atau sebaliknya).</li>
-                    <li>IP Server Hosting/HP mungkin diblokir sementara oleh proxy publik.</li>
-                </ul>
-            `;
+            logRaw.innerHTML = '<span class="error">GAGAL TOTAL: Tidak ada respon dari semua jalur proxy.</span>';
+            logAnl.innerHTML = '<div class="text-red-400 font-bold">KONEKSI GAGAL</div><p class="text-gray-400">Cek koneksi internet atau IP anda mungkin diblokir sementara.</p>';
         }
+
+        btn.disabled = false;
+        btn.innerHTML = 'SIMULASI TRANSAKSI';
     }
 
-    function analyzeResult(data, proxy) {
+    // --- LOGIKA ANALISA (MENGCOPY LOGIKA DARI INDEX.HTML) ---
+    function analyzeLogic(response) {
+        const d = response.data || response; // Handle struktur data
         const logAnl = document.getElementById('logAnalysis');
-        
-        // NORMALISASI DATA (Sesuai logika index.html)
-        const d = (data.data && data.data.trxid) ? data.data : (data.data || data); 
-        
-        // Cek Status
-        const rawStatus = String(d.status || d.status_text || d.result || 'Unknown').toLowerCase();
-        let appStatus = 'Pending';
-        
-        // SIMULASI LOGIKA APLIKASI
-        if (rawStatus.includes('sukses') || rawStatus.includes('success') || rawStatus === '0') appStatus = 'Sukses';
-        else if (rawStatus.includes('gagal') || rawStatus.includes('batal') || rawStatus === '1') appStatus = 'Gagal';
 
-        // Cek Pesan SN
-        const sn = d.sn || d.keterangan || d.message || '-';
+        // 1. Ambil Pesan (Logika index.html)
+        let msg = d.message || d.msg || d.sn || d.error || (d.data ? (d.data.message || d.data.msg || d.data.sn) : null) || 'Tidak ada respon server';
+        
+        // Pembersihan pesan (Sama dengan index)
+        if (typeof msg === 'string') {
+            if (msg.includes('#')) msg = msg.split('#')[1];
+            if (msg.includes('@')) msg = msg.split('@')[0];
+            msg = msg.trim();
+        }
 
+        // 2. Tentukan Status Sukses/Gagal (Logika index.html)
+        // isSuccess = d.status === true || d.success === true || d.status === 'success' || (d.data && d.data.status === 'Pending') || msg.includes('proses')...
+        const isTrue = d.status === true;
+        const isSuccessStr = d.status === 'success';
+        const isSuccessBool = d.success === true;
+        const isPendingData = (d.data && d.data.status === 'Pending');
+        const isMsgProses = msg.toLowerCase().includes('proses') || msg.toLowerCase().includes('akan di proses');
+
+        const isSuccess = isTrue || isSuccessStr || isSuccessBool || isPendingData || isMsgProses;
+
+        // Render Analisa
         let html = '';
-
-        if (appStatus === 'Sukses') {
-            html += `<div class="text-green-400 font-bold text-lg mb-2"><i class="fas fa-check-circle"></i> STATUS SERVER: SUKSES</div>`;
-            html += `<p class="text-xs text-gray-300 mb-2">Aplikasi seharusnya menampilkan <b>SUKSES</b>.</p>`;
-            html += `<div class="bg-gray-900 p-2 rounded text-xs text-gray-400 border border-gray-700">
-                <b>Data Terbaca:</b><br>
-                Status Asli: <span class="text-white">${rawStatus}</span><br>
-                Status App: <span class="text-green-400">${appStatus}</span><br>
-                SN/Pesan: <span class="text-white">${sn}</span>
+        if (isSuccess) {
+            html += `<div class="bg-green-900/30 border border-green-500/50 p-3 rounded mb-2">
+                <h4 class="text-green-400 font-bold"><i class="fas fa-check-circle"></i> TRANSAKSI DIANGGAP SUKSES/DIPROSES</h4>
             </div>`;
-            html += `<p class="text-xs text-yellow-500 mt-3 font-bold">Kenapa di Aplikasi Masih Pending?</p>
-            <ul class="list-disc list-inside text-xs text-gray-400 mt-1">
-                <li>Apakah RefID yang dimasukkan SAMA PERSIS dengan yang ada di aplikasi?</li>
-                <li>Mungkin fitur "Auto-Check" di aplikasi gagal menyimpan ke database Firestore.</li>
-            </ul>`;
-
-        } else if (appStatus === 'Gagal') {
-            html += `<div class="text-red-400 font-bold text-lg mb-2"><i class="fas fa-times-circle"></i> STATUS SERVER: GAGAL</div>`;
-            html += `<p class="text-xs text-gray-300">Transaksi memang gagal di server pusat.</p>`;
         } else {
-            html += `<div class="text-orange-400 font-bold text-lg mb-2"><i class="fas fa-clock"></i> STATUS SERVER: PENDING</div>`;
-            html += `<p class="text-xs text-gray-300">Server Khfy memberikan status: <b>${rawStatus}</b>.</p>`;
-            html += `<p class="text-xs text-gray-400">Logika aplikasi saat ini hanya menganggap sukses jika status mengandung: "sukses", "success", atau "0".</p>`;
+            html += `<div class="bg-red-900/30 border border-red-500/50 p-3 rounded mb-2">
+                <h4 class="text-red-400 font-bold"><i class="fas fa-times-circle"></i> TRANSAKSI DIANGGAP GAGAL</h4>
+            </div>`;
+        }
+
+        html += `<ul class="list-disc list-inside text-gray-400 mt-2 space-y-1">
+            <li><b>Status API:</b> <span class="text-white">${d.status}</span></li>
+            <li><b>Pesan (Clean):</b> <span class="text-white">${msg}</span></li>
+            <li><b>Deteksi 'Proses' di pesan:</b> ${isMsgProses ? '<span class="success">YA</span>' : '<span class="error">TIDAK</span>'}</li>
+        </ul>`;
+        
+        // Peringatan Khusus
+        if (isSuccess && !d.data) {
+             html += `<p class="mt-2 text-yellow-500 text-[10px]"><i class="fas fa-exclamation-triangle"></i> PERINGATAN: Transaksi dianggap sukses karena pesan mengandung kata 'Proses', tapi API tidak mengembalikan objek 'data' transaksi. Ini mungkin membuat REF ID tidak tersimpan dengan benar jika logika aplikasi bergantung pada <code>d.data.id</code>.</p>`;
         }
 
         logAnl.innerHTML = html;

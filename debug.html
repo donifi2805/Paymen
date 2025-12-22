@@ -803,8 +803,10 @@
 
     // 1. PROXY LIST (Global)
         // 1. PROXY LIST (Global) - Prioritaskan CorsProxyIO untuk POST Request
+        // 1. PROXY LIST (Global) - Update dengan CodeTabs sebagai cadangan handal
     const PROXY_LIST = [
         { name: 'CorsProxyIO', url: 'https://corsproxy.io/?' },
+        { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
         { name: 'ThingProxy', url: 'https://thingproxy.freeboard.io/fetch/' },
         { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
         { name: 'Direct', url: '' }
@@ -842,38 +844,56 @@ window.openAkrabV2 = () => {
         window.initAkrabV2Data();
     };
 
-            async function callIcsApi(action, params = {}, method = 'GET') {
-        // FIX: Selalu tempel API Key di URL (Query String) agar aman dari Proxy yang menghapus Header
+                async function callIcsApi(action, params = {}, method = 'GET') {
+        // FIX: HANYA gunakan API Key di URL. Jangan gunakan Header X-API-Key karena sering dihapus Proxy.
         let targetUrl = `${ICS_CONFIG.baseUrl}/?action=${action}&apikey=${ICS_CONFIG.apiKey}`;
 
         let options = { 
             method: method,
-            headers: {}
+            headers: {
+                'Content-Type': 'application/json' // Standar JSON
+            }
         };
 
         if (method === 'GET') {
             const qs = new URLSearchParams(params).toString();
             if(qs) targetUrl += `&${qs}`;
         } else if (method === 'POST') {
-             options.headers['Content-Type'] = 'application/json';
-             // Header tetap dikirim sebagai cadangan
-             options.headers['X-API-Key'] = ICS_CONFIG.apiKey;
+             // Kirim Body JSON polos tanpa header auth tambahan
              options.body = JSON.stringify(params);
         }
 
         for (const proxy of PROXY_LIST) {
             try {
-                // Encode URL tujuan agar karakter khusus (&, ?, =) tidak merusak format Proxy
+                // Encode URL agar karakter & dan ? tidak merusak format Proxy
                 const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
                 
-                const res = await fetch(fullUrl, options);
+                // Timeout controller untuk skip proxy macet (10 detik)
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+                const res = await fetch(fullUrl, { ...options, signal: controller.signal });
+                clearTimeout(timeoutId);
+
                 if (res.ok) {
                     const text = await res.text();
-                    try { return JSON.parse(text); } catch (e) { console.warn('ICS JSON Parse Error', e); }
+                    // Coba parsing JSON
+                    try { 
+                        let data = JSON.parse(text); 
+                        // Handle jika proxy membungkus response (contoh: AllOrigins kadang membungkus di 'contents')
+                        if (data.contents) {
+                             try { data = JSON.parse(data.contents); } catch(e) { data = data.contents; }
+                        }
+                        return data;
+                    } catch (e) { 
+                        console.warn('ICS JSON Parse Error via ' + proxy.name, e); 
+                    }
                 }
-            } catch (e) { console.warn('ICS Proxy Error', e); }
+            } catch (e) { 
+                console.warn('ICS Proxy Error via ' + proxy.name, e); 
+            }
         }
-        return { success: false, message: 'Gagal koneksi ke server ICS (Cek Proxy/Internet)' };
+        return { success: false, message: 'Gagal koneksi ke server ICS (Semua Proxy Gagal)' };
     }
 
 

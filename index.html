@@ -711,12 +711,12 @@
         </div>
         <div class="space-y-2 max-h-[60vh] overflow-y-auto no-scrollbar pb-8">
             
-            <div onclick="selectProvider('ICS_XDA', 'Akrab Fresh (ICS)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
-                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Akrab Fresh (ICS)</span>
+            <div onclick="selectProvider('ICS_XDA', 'Akrab Fresh (XDA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Akrab Fresh (XDA)</span>
                 <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
             </div>
-            <div onclick="selectProvider('ICS_CIRCLE', 'XL Circle (ICS)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
-                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">XL Circle (ICS)</span>
+            <div onclick="selectProvider('ICS_CIRCLE', 'XL Circle')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">XL Circle</span>
                 <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
             </div>
             
@@ -1978,7 +1978,7 @@ window.openAkrabV2 = () => {
 
         // --- LOGIKA BARU: ICS HANDLER ---
         if (providerCode.startsWith('ICS_')) {
-             if(txtProd) txtProd.innerText = 'Memuat dari Server ICS...';
+             if(txtProd) txtProd.innerText = 'Memuat Dari Server';
              if(btnProd) btnProd.classList.add('cursor-not-allowed', 'opacity-50');
 
              let icsType = 'xda';

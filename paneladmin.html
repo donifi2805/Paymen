@@ -100,8 +100,31 @@
     <main class="md:ml-[14rem] w-full p-4 md:p-6 transition-all duration-300 h-screen overflow-y-auto custom-scroll bg-gray-100">
         
         <div class="md:hidden flex justify-between items-center mb-4 bg-white p-3 rounded-lg shadow-sm">
-            <h1 class="text-sm font-bold text-gray-800">Admin Panel</h1>
+            <div class="flex items-center gap-3">
+                <button onclick="toggleMobileMenu()" class="text-gray-600 focus:outline-none">
+                    <i class="fas fa-bars text-lg"></i>
+                </button>
+                <h1 class="text-sm font-bold text-gray-800">Admin Panel</h1>
+            </div>
             <button onclick="logout()" class="text-red-500 font-bold text-[10px]">Keluar</button>
+        </div>
+
+        
+        <div id="mobileMenu" class="fixed inset-0 z-[150] bg-slate-900/50 backdrop-blur-sm hidden">
+            <div class="w-64 bg-slate-900 h-full shadow-xl fade-in flex flex-col">
+                <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+                    <h1 class="text-lg font-bold text-white"><span class="text-blue-500">Dompet</span>Ku</h1>
+                    <button onclick="toggleMobileMenu()" class="text-gray-400"><i class="fas fa-times"></i></button>
+                </div>
+                <nav class="mt-2 flex-1 overflow-y-auto">
+                    <a onclick="switchTab('dashboard'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-chart-pie w-4 mr-3"></i> Dashboard </a>
+                    <a onclick="switchTab('pending-trx'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-exclamation-circle w-4 mr-3"></i> Pending Trx </a>
+                    <a onclick="switchTab('users'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-users w-4 mr-3"></i> Data User </a>
+                    <a onclick="switchTab('livechat'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-comments w-4 mr-3"></i> Live Chat </a>
+                    <a onclick="switchTab('transactions'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-receipt w-4 mr-3"></i> Transaksi </a>
+                    <a onclick="switchTab('pricing'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-tags w-4 mr-3"></i> Kelola Harga </a>
+                </nav>
+            </div>
         </div>
 
         <div id="tab-dashboard" class="tab-content fade-in pb-10">
@@ -564,6 +587,11 @@
                 const result = await signInWithPopup(auth, new GoogleAuthProvider());
                 if (!ALLOWED_ADMINS.includes(result.user.email)) { await signOut(auth); Swal.fire('Ditolak', 'Bukan admin!', 'error'); }
             } catch (e) { Swal.fire('Gagal', e.message, 'error'); }
+        };
+
+        window.toggleMobileMenu = () => {
+            const menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('hidden');
         };
 
         window.logout = async () => { if(confirm('Keluar?')) { await signOut(auth); location.reload(); } };

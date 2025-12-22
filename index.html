@@ -704,6 +704,27 @@
     } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, onSnapshot, query, orderBy, where, getDocs, runTransaction, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+    const TELEGRAM_BOT = {
+        token: "7507761189:AAGUCYltzj_IMuDRgjUzUPiZDz4nbVXvOME",
+        chatId: "-1002297407612" // ID Grup dengan prefix -100
+    };
+
+    async function sendTelegramNotify(text) {
+        try {
+            const url = `https://api.telegram.org/bot${TELEGRAM_BOT.token}/sendMessage`;
+            await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: TELEGRAM_BOT.chatId,
+                    text: text,
+                    parse_mode: 'HTML'
+                })
+            });
+        } catch (e) { console.error("Gagal kirim Telegram", e); }
+    }
+
+    const firebaseConfig = {
     const firebaseConfig = {
         apiKey: "AIzaSyC7vP4QUhxPM3wG_jsnA2Z8dsTYd2IJ1KA",
         authDomain: "server-ppob-xl.firebaseapp.com",
@@ -1909,6 +1930,13 @@
             if(isSuccess) {
                 // Sukses: Update status jadi Pending
                 await updateDoc(trxRef, { status: 'Pending', api_msg: msg, provider_id: providerId });
+                
+                // KIRIM NOTIFIKASI TELEGRAM
+                const now = new Date();
+                const dateStr = now.toLocaleDateString('id-ID') + ' ' + now.toLocaleTimeString('id-ID');
+                const msgTrx = `✅ <b>TRANSAKSI BERHASIL</b>\n━━━━━━━━━━━━━━━━━━\n📦 <b>Produk</b> : ${name}\n🆔 <b>Reff ID</b> : ${reffId}\n💰 <b>Harga</b> : ${window.formatRp(price)}\n👤 <b>User</b> : ${currentUsername}\n📅 <b>Tanggal</b> : ${dateStr}\n━━━━━━━━━━━━━━━━━━\n🏢 <b>PANDAWA SYSTEM</b>\n✨ Terima kasih telah bertransaksi`;
+                sendTelegramNotify(msgTrx);
+
                 alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                 window.nav('homePage');
             } else {
@@ -2580,6 +2608,13 @@ window.renderTopUpHistory = () => {
                 });
 
                 alert(`SUKSES! Saldo Rp ${targetAmount.toLocaleString()} telah masuk ke akun Anda.`);
+                
+                // KIRIM NOTIFIKASI TELEGRAM TOPUP
+                const now = new Date();
+                const timeStr = now.toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'}) + ' | ' + now.toLocaleTimeString('id-ID');
+                const msgDepo = `✅ <b>DEPOSIT BERHASIL</b>\n━━━━━━━━━━━━━━━━━━\n💳 <b>Jumlah</b> : ${window.formatRp(targetAmount)}\n🕒 <b>Waktu</b> : ${timeStr}\n👤 <b>User ID</b> : ${currentUsername}\n📌 <b>Status</b> : BERHASIL\n🆔 <b>ID Transaksi</b> : QP-${qiosTicket.created}\n━━━━━━━━━━━━━━━━━━\n🏢 <b>PANDAWA SYSTEM</b>\n✨ Terima kasih atas kepercayaan Anda`;
+                sendTelegramNotify(msgDepo);
+
                 localStorage.removeItem('qios_trx_' + currentUser.uid);
                 window.closeQios();
                 window.nav('homePage');

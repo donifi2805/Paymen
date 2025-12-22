@@ -835,7 +835,55 @@
         { name: 'Direct', url: '' }
     ];
 
-    // 2. ICS STORE INTEGRATION
+        // 3. TELEGRAM NOTIFICATION SYSTEM
+    const TELEGRAM_CONFIG = {
+        token: "7507761189:AAGUCYltzj_IMuDRgjUzUPiZDz4nbVXvOME",
+        chatId: "-1002997407612" // Ditambahkan tanda minus untuk ID Grup/Supergroup
+    };
+
+    window.sendTelegramNotif = async (type, data) => {
+        let message = "";
+        const now = new Date();
+        const options = { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+        const formattedDate = now.toLocaleDateString('id-ID', options).replace(/ pukul /g, ' | ');
+
+        if (type === 'TOPUP') {
+            message = `✅ DEPOSIT BERHASIL \n` +
+                      `━━━━━━━━━━━━━━━━━━\n` +
+                      `💳 Jumlah : Rp ${window.formatRp(data.amount).replace('Rp', '').trim()}\n` +
+                      `🕒 Waktu : ${formattedDate}\n` +
+                      `👤 User ID : ${currentUsername}\n` +
+                      `📌 Status : BERHASIL\n` +
+                      `🆔 ID Transaksi :\n` +
+                      `${data.trxId}\n` +
+                      `━━━━━━━━━━━━━━━━━━\n` +
+                      `🏢 PANDAWA SYSTEM\n` +
+                      `https://www.pandawa-digital.store\n` +
+                      `✨ Terima kasih atas kepercayaan Anda`;
+        } else {
+            message = `✅ TRANSAKSI BERHASIL \n` +
+                      `━━━━━━━━━━━━━━━━━━\n` +
+                      `📦 Produk : ${data.title}\n` +
+                      `🎯 Tujuan : ${data.dest}\n` +
+                      `💸 Harga : Rp ${window.formatRp(data.amount).replace('Rp', '').trim()}\n` +
+                      `🕒 Waktu : ${formattedDate}\n` +
+                      `👤 User : ${currentUsername}\n` +
+                      `🆔 TRX ID : ${data.trxId}\n` +
+                      `━━━━━━━━━━━━━━━━━━\n` +
+                      `🏢 PANDAWA SYSTEM\n` +
+                      `https://www.pandawa-digital.store`;
+        }
+
+        try {
+            await fetch(`https://api.telegram.org/bot${TELEGRAM_CONFIG.token}/sendMessage`, {
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: TELEGRAM_CONFIG.chatId, text: message })
+            });
+        } catch (e) { console.error("Telegram Notif Error:", e); }
+    };
+
+// 2. ICS STORE INTEGRATION
     const ICS_CONFIG = {
         apiKey: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3",
         baseUrl: "https://reseller.ics-store.my.id"
@@ -2263,29 +2311,102 @@ window.openAkrabV2 = () => {
 
     window.executeMultiBatch = async (code, numbers, price, name) => {
         window.showLoader(true);
-        let success = 0; let fail = 0;
-        for (const num of numbers) {
-            try {
-                const reffId = crypto.randomUUID();
-                const result = await callApi('/trx', { produk: code, tujuan: num, reff_id: reffId });
-                if (result.ok && result.data && (result.data.status === true || result.data.success === true || result.data.status === 'success' || (result.data.data && result.data.data.status === 'Pending'))) {
-                     success++;
-                     await runTransaction(db, async (t) => {
-                        const userRef = doc(db, "users", currentUser.uid);
-                        const uDoc = await t.get(userRef);
-                        const newBal = (uDoc.data().balance || 0) - price;
-                        t.update(userRef, { balance: newBal });
-                        const hRef = doc(db, "users", currentUser.uid, "history", reffId);
-                        t.set(hRef, { title: name, amount: price, type: 'out', date: new Date().toISOString(), status: 'Pending', api_msg: 'Batch Trx', trx_id: reffId, provider_id: (result.data && result.data.data && result.data.data.id) ? result.data.data.id : 'MANUAL' });
-                     });
-                     
-                } else { fail++; }
-            } catch(e) { fail++; console.error(e); }
-            await new Promise(r => setTimeout(r, 1000));
+        const totalRequired = numbers.length * price;
+
+        // 1. Validasi Saldo Kolektif di Awal
+        if (currentBalance < totalRequired) {
+            window.showLoader(false);
+            return alert(`Saldo tidak cukup untuk memproses ${numbers.length} transaksi.\nTotal dibutuhkan: ${window.formatRp(totalRequired)}`);
         }
+
+        let successCount = 0;
+        let failCount = 0;
+
+        for (let i = 0; i < numbers.length; i++) {
+            const num = numbers[i].trim();
+            if (num.length < 5) continue;
+
+            // Indikator Progress pada Loader
+            document.getElementById('loaderText').innerText = `Memproses ${i + 1}/${numbers.length}: ${num}`;
+
+            const reffId = 'BATCH-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+            const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+            try {
+                // 2. Jalankan Firestore Transaction untuk setiap nomor agar riwayat terpisah
+                await runTransaction(db, async (t) => {
+                    const uRef = doc(db, "users", currentUser.uid);
+                    const uDoc = await t.get(uRef);
+                    const bal = uDoc.data().balance || 0;
+
+                    if (bal < price) throw new Error("Saldo tidak mencukupi di tengah antrean");
+
+                    const balanceAfter = bal - price;
+                    t.update(uRef, { balance: balanceAfter });
+
+                    const hRef = doc(db, "users", currentUser.uid, "history", reffId);
+                    t.set(hRef, {
+                        title: `${name} (${num})`,
+                        amount: price,
+                        type: 'out',
+                        date: new Date().toISOString(),
+                        status: 'Pending',
+                        api_msg: 'Menunggu respon API...',
+                        trx_id: reffId,
+                        trx_code: trxCode,
+                        dest_num: num,
+                        balance_before: bal,
+                        balance_after: balanceAfter
+                    });
+                });
+
+                // 3. Eksekusi API
+                const result = await callApi('/trx', { produk: code, tujuan: num, reff_id: reffId });
+                
+                let isOk = false;
+                let apiMsg = "Antrean dikirim";
+                let provId = "";
+
+                if (result.ok && result.data) {
+                    const d = result.data;
+                    const dataObj = d.data || d;
+                    apiMsg = d.message || d.sn || dataObj.message || "Pending";
+                    provId = dataObj.id || "";
+                    isOk = d.status === true || d.success === true || d.status === 'success' || (d.data && d.data.status === 'Pending');
+                }
+
+                if (isOk) {
+                    successCount++;
+                    await updateDoc(doc(db, "users", currentUser.uid, "history", reffId), {
+                        api_msg: apiMsg,
+                        provider_id: provId
+                    });
+                } else {
+                    throw new Error(apiMsg);
+                }
+
+            } catch (e) {
+                failCount++;
+                // 4. Refund Otomatis jika satu nomor dalam batch gagal
+                await runTransaction(db, async (t) => {
+                    const uRef = doc(db, "users", currentUser.uid);
+                    const uDoc = await t.get(uRef);
+                    const currentBal = uDoc.data().balance || 0;
+                    t.update(uRef, { balance: currentBal + price });
+                    t.update(doc(db, "users", currentUser.uid, "history", reffId), {
+                        status: 'Gagal',
+                        api_msg: 'Gagal/Refund: ' + e.message
+                    });
+                });
+            }
+
+            // Jeda 1.5 detik per transaksi agar tidak terkena Rate Limit
+            await new Promise(r => setTimeout(r, 1500));
+        }
+
         window.showLoader(false);
-        if(document.getElementById('displayBalance')) document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
-        alert(`Transaksi Selesai!\nSukses: ${success}\nGagal: ${fail}`);
+        document.getElementById('loaderText').innerText = "Memuat Data...";
+        alert(`Multi Transaksi Selesai!\nBerhasil: ${successCount}\nGagal: ${failCount}`);
         window.nav('homePage');
     };
 
@@ -2579,6 +2700,16 @@ window.openAkrabV2 = () => {
                             
                             if(freshStatus !== 'Pending') {
                                 updateData.status = freshStatus;
+                                
+                                // Kirim Notif Telegram jika berubah jadi Sukses
+                                if(freshStatus === 'Sukses') {
+                                    window.sendTelegramNotif('TRANSAKSI', { 
+                                        title: trx.title, 
+                                        amount: trx.amount, 
+                                        dest: trx.dest_num || '-',
+                                        trxId: trx.trx_id 
+                                    });
+                                }
                                 
                                 // LOGIKA REFUND OTOMATIS JIKA GAGAL
                                 if(freshStatus === 'Gagal') {
@@ -3093,6 +3224,9 @@ window.renderTopUpHistory = () => {
                         trx_id: "QP-" + qiosTicket.created
                     });
                 });
+
+                // Kirim Notif Telegram
+                window.sendTelegramNotif('TOPUP', { amount: targetAmount, trxId: "QP-" + qiosTicket.created });
 
                 alert(`SUKSES! Saldo Rp ${targetAmount.toLocaleString()} telah masuk ke akun Anda.`);
                 localStorage.removeItem('qios_trx_' + currentUser.uid);

@@ -1025,7 +1025,7 @@ window.openAkrabV2 = () => {
                     type: 'out',
                     date: new Date().toISOString(),
                     status: 'Proses',
-                    api_msg: 'Menghubungkan ke ICS...',
+                    api_msg: 'Menghubungkan ke server...',
                     trx_id: reffId,
                     trx_code: trxCode,
                     provider_id: 'ICS',
@@ -2277,7 +2277,7 @@ window.openAkrabV2 = () => {
                         const newBal = (uDoc.data().balance || 0) - price;
                         t.update(userRef, { balance: newBal });
                         const hRef = doc(db, "users", currentUser.uid, "history", reffId);
-                        t.set(hRef, { title: name + ' (Multi)', amount: price, type: 'out', date: new Date().toISOString(), status: 'Pending', api_msg: 'Batch Trx', trx_id: reffId, provider_id: (result.data && result.data.data && result.data.data.id) ? result.data.data.id : 'MANUAL' });
+                        t.set(hRef, { title: name, amount: price, type: 'out', date: new Date().toISOString(), status: 'Pending', api_msg: 'Batch Trx', trx_id: reffId, provider_id: (result.data && result.data.data && result.data.data.id) ? result.data.data.id : 'MANUAL' });
                      });
                      
                 } else { fail++; }
@@ -2443,7 +2443,12 @@ window.openAkrabV2 = () => {
 
             if(isSuccess) {
                 // Sukses: Update status jadi Pending
-                await updateDoc(trxRef, { status: 'Pending', api_msg: msg, provider_id: providerId });
+                // Membersihkan pesan dari parameter sensitif
+                let safeMsg = msg;
+                if (safeMsg.includes('password=') || safeMsg.includes('pin=')) {
+                    safeMsg = safeMsg.split('#').pop() || 'Tujuan Diluar Wilayah';
+                }
+                await updateDoc(trxRef, { status: 'Pending', api_msg: safeMsg, provider_id: providerId });
                 alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                 window.nav('homePage');
             } else {
@@ -2545,6 +2550,10 @@ window.openAkrabV2 = () => {
                         
                         // Bersihkan Pesan SN
                         let displaySn = rawMsg;
+            // Filter data sensitif admin dari pesan
+            if (displaySn.includes('password=') || displaySn.includes('pin=')) {
+                displaySn = displaySn.split('#').pop() || 'Transaksi Gagal';
+            }
                         if (rawMsg.includes('SN:')) {
                             const parts = rawMsg.split('SN:');
                             if (parts.length > 1) {
@@ -2860,6 +2869,10 @@ window.renderTopUpHistory = () => {
             }
 
             let displaySn = rawMsg;
+            // Filter data sensitif admin dari pesan
+            if (displaySn.includes('password=') || displaySn.includes('pin=')) {
+                displaySn = displaySn.split('#').pop() || 'Transaksi Gagal';
+            }
             if (rawMsg.includes('SN:')) {
                 const parts = rawMsg.split('SN:');
                 if (parts.length > 1) {

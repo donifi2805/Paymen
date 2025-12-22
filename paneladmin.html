@@ -377,13 +377,20 @@
                 <button onclick="saveAllPrices()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-[11px] shadow transition flex items-center gap-2"><i class="fas fa-save"></i> Simpan Perubahan</button>
             </div>
             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4">
-                <label class="text-[10px] font-bold text-gray-500 block mb-1">Filter Kategori / Provider</label>
+                                <label class="text-[10px] font-bold text-gray-500 block mb-1">Filter Kategori / Provider</label>
                 <select id="pricingProvider" onchange="loadPricingData()" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs font-bold focus:ring-1 focus:ring-blue-500 outline-none">
-                    <option value="XDA">Akrab Fresh (XDA)</option>
-                    <option value="XLA">Akrab Fresh (XLA)</option>
-                    <option value="FMX">FlexMax (FMX)</option>
-                    <option value="XLR">XL Reguler (XLR)</option>
-                    <option value="PLN">PLN Pascabayar</option>
+                    <optgroup label="Server ICS (Jalur Prioritas)">
+                        <option value="ICS_XDA">ICS - Akrab Fresh (XDA)</option>
+                        <option value="ICS_CIRCLE">ICS - XL Circle</option>
+                        <option value="ICS_FMAX">ICS - FlexMax</option>
+                        <option value="ICS_BPA">ICS - Bagi Pulsa</option>
+                    </optgroup>
+                    <optgroup label="Server Khfy (Cadangan)">
+                        <option value="FMX">Khfy - FlexMax (FMX)</option>
+                        <option value="XLR">Khfy - XL Reguler</option>
+                        <option value="PLN">Khfy - PLN Token</option>
+                        <option value="XDA">Khfy - Akrab (Legacy)</option>
+                    </optgroup>
                 </select>
             </div>
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -902,7 +909,36 @@
         };
 
         const API_CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
-        const PROXY_LIST = [ { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' }, { name: 'CorsProxy', url: 'https://corsproxy.io/?' }, { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' } ];
+        const ICS_CONFIG = { apiKey: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3", baseUrl: "https://reseller.ics-store.my.id" };
+        
+        const PROXY_LIST = [
+            { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
+            { name: 'CorsProxyIO', url: 'https://corsproxy.io/?' },
+            { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
+            { name: 'Direct', url: '' }
+        ];
+
+        async function callIcsApi(action, params = {}) {
+            let targetUrl = `${ICS_CONFIG.baseUrl}/?action=${action}&apikey=${ICS_CONFIG.apiKey}&_t=${Date.now()}`;
+            const qs = new URLSearchParams(params).toString();
+            if(qs) targetUrl += `&${qs}`;
+
+            for (const proxy of PROXY_LIST) {
+                try {
+                    const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
+                    const res = await fetch(fullUrl);
+                    if (res.ok) {
+                        const text = await res.text();
+                        try { 
+                            let data = JSON.parse(text); 
+                            if (data.contents) { try { data = JSON.parse(data.contents); } catch(e) { data = data.contents; } }
+                            return data;
+                        } catch (e) { console.warn('ICS Parse Error', e); }
+                    }
+                } catch (e) { console.warn('ICS Proxy Error', e); }
+            }
+            return { success: false, message: 'Gagal koneksi ICS' };
+        }
 
         async function callApi(endpoint, params = {}) {
             params['api_key'] = API_CONFIG.apiKey;
@@ -916,28 +952,89 @@
             return { ok: false };
         }
 
-        window.loadPricingData = async () => {
-            const provider = document.getElementById('pricingProvider').value, table = document.getElementById('pricingTableBody');
-            table.innerHTML = '<tr><td colspan="4" class="p-4 text-center">Loading...</td></tr>';
+                window.loadPricingData = async () => {
+            const provider = document.getElementById('pricingProvider').value;
+            const table = document.getElementById('pricingTableBody');
+            table.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Mengambil data produk...</td></tr>';
+            
+            // 1. Ambil Rules dari Firebase
             const rulesSnap = await getDoc(doc(db, "settings", "pricing"));
             pricingRules = rulesSnap.exists() ? rulesSnap.data().rules : {};
-            if(globalProducts.length === 0) {
-                const res = await callApi('/list_product');
-                if(res.ok) globalProducts = res.data.data || res.data;
-            }
-            const filtered = globalProducts.filter(p => {
-                const code = (p.kode_produk || p.code || p.buyer_sku_code || '').toUpperCase();
-                const brand = (p.brand || p.kode_provider || p.operator || '').toUpperCase();
+            
+            let productsToRender = [];
+
+            // 2. Cek Sumber Data (ICS vs Khfy)
+            if (provider.startsWith('ICS_')) {
+                // --- LOGIKA ICS ---
+                let icsType = 'xda'; // Default
+                if (provider === 'ICS_CIRCLE') icsType = 'circle';
+                else if (provider === 'ICS_FMAX') icsType = 'fmax';
+                else if (provider === 'ICS_BPA') icsType = 'bpa';
+
+                const res = await callIcsApi('listProducts', { type: icsType });
+                if (res.success && res.data) {
+                    const ready = res.data.ready || [];
+                    const empty = res.data.empty || [];
+                    productsToRender = [...ready, ...empty];
+                } else {
+                    table.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-red-500">Gagal mengambil data ICS: ${res.message}</td></tr>`;
+                    return;
+                }
+
+            } else {
+                // --- LOGIKA KHFY ---
+                if(globalProducts.length === 0) {
+                    const res = await callApi('/list_product');
+                    if(res.ok) globalProducts = res.data.data || res.data;
+                }
                 
-                if (provider === 'XLR') return brand === 'XLREGULER' || code.startsWith('XLR');
-                return code.includes(provider) || brand.includes(provider);
+                productsToRender = globalProducts.filter(p => {
+                    const code = (p.kode_produk || p.code || p.buyer_sku_code || '').toUpperCase();
+                    const brand = (p.brand || p.kode_provider || p.operator || '').toUpperCase();
+                    if (provider === 'XLR') return brand === 'XLREGULER' || code.startsWith('XLR');
+                    return code.includes(provider) || brand.includes(provider);
+                });
+            }
+
+            // 3. Render Tabel
+            if (productsToRender.length === 0) {
+                 table.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-gray-400">Tidak ada produk ditemukan.</td></tr>';
+                 return;
+            }
+
+            // Sort Harga Termurah
+            productsToRender.sort((a, b) => {
+                const priceA = parseInt(a.harga || a.price || a.harga_final || 0);
+                const priceB = parseInt(b.harga || b.price || b.harga_final || 0);
+                return priceA - priceB;
             });
+
             let html = '';
-            filtered.forEach(p => {
-                const code = p.kode_produk || p.code || p.buyer_sku_code, rawPrice = p.harga_final || p.price || 0, markup = pricingRules[code] || 0;
-                html += `<tr><td class="p-3"><b>${p.nama_produk || p.name}</b><br>${code}</td><td class="p-3 text-right">${window.formatRp(rawPrice)}</td>
-                <td class="p-3 text-center"><input type="number" onchange="updateCalc('${code}', ${rawPrice}, this)" data-code="${code}" value="${markup}" class="markup-input w-20 border rounded p-1"></td>
-                <td class="p-3 text-right font-bold text-blue-600" id=\"final-${code}\">${window.formatRp(rawPrice + parseInt(markup))}</td></tr>`;
+            productsToRender.forEach(p => {
+                // Normalisasi Field (Mapping field ICS & Khfy agar sama)
+                const code = p.kode_produk || p.code || p.buyer_sku_code;
+                const name = p.nama_produk || p.product_name || p.name;
+                const rawPrice = parseInt(p.harga || p.price || p.harga_final || 0);
+                const markup = pricingRules[code] || 0;
+                const sellPrice = rawPrice + parseInt(markup);
+                const isGangguan = (p.stok === 0 || p.stok === '0' || p.gangguan == 1);
+
+                html += `<tr>
+                    <td class="p-3">
+                        <b class="text-gray-800">${name}</b>
+                        <div class="text-[10px] text-gray-400 font-mono">${code}</div>
+                        ${isGangguan ? '<span class="text-[9px] text-red-500 font-bold">STOK HABIS / GANGGUAN</span>' : ''}
+                    </td>
+                    <td class="p-3 text-right text-gray-500">${window.formatRp(rawPrice)}</td>
+                    <td class="p-3 text-center">
+                        <input type="number" 
+                               onchange="updateCalc('${code}', ${rawPrice}, this)" 
+                               data-code="${code}" 
+                               value="${markup}" 
+                               class="markup-input w-24 border border-gray-300 rounded-lg p-1.5 text-center font-bold focus:ring-2 focus:ring-blue-500 outline-none">
+                    </td>
+                    <td class="p-3 text-right font-black text-blue-600" id="final-${code}">${window.formatRp(sellPrice)}</td>
+                </tr>`;
             });
             table.innerHTML = html;
         };

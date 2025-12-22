@@ -1896,7 +1896,20 @@
                 alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                 window.nav('homePage');
             } else {
-                throw msg || "Transaksi Ditolak Server";
+                // GAGAL DARI RESPON API -> LAKUKAN REFUND OTOMATIS
+                await runTransaction(db, async (t) => {
+                    const uRef = doc(db, "users", currentUser.uid);
+                    const uDoc = await t.get(uRef);
+                    const currentBal = uDoc.data().balance || 0;
+                    t.update(uRef, { balance: currentBal + price });
+                    t.update(trxRef, { status: 'Gagal', api_msg: 'Refund Otomatis: ' + msg });
+                });
+                
+                currentBalance += price;
+                if(document.getElementById('displayBalance')) document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
+                
+                alert(`Transaksi Gagal: ${msg}\n\nSaldo telah dikembalikan otomatis ke akun Anda.`);
+                window.nav('homePage');
             }
 
         } catch(e) {

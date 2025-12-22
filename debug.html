@@ -802,10 +802,11 @@
     const app = initializeApp(firebaseConfig);
 
     // 1. PROXY LIST (Global)
+        // 1. PROXY LIST (Global) - Prioritaskan CorsProxyIO untuk POST Request
     const PROXY_LIST = [
-        { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
         { name: 'CorsProxyIO', url: 'https://corsproxy.io/?' },
         { name: 'ThingProxy', url: 'https://thingproxy.freeboard.io/fetch/' },
+        { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
         { name: 'Direct', url: '' }
     ];
 
@@ -841,21 +842,30 @@ window.openAkrabV2 = () => {
         window.initAkrabV2Data();
     };
 
-    async function callIcsApi(action, params = {}, method = 'GET') {
+            async function callIcsApi(action, params = {}, method = 'GET') {
+        // FIX: Selalu tempel API Key di URL (Query String) agar aman dari Proxy yang menghapus Header
         let targetUrl = `${ICS_CONFIG.baseUrl}/?action=${action}&apikey=${ICS_CONFIG.apiKey}`;
-        let options = { method: method };
+
+        let options = { 
+            method: method,
+            headers: {}
+        };
 
         if (method === 'GET') {
             const qs = new URLSearchParams(params).toString();
             if(qs) targetUrl += `&${qs}`;
         } else if (method === 'POST') {
-             options.headers = { 'Content-Type': 'application/json' };
+             options.headers['Content-Type'] = 'application/json';
+             // Header tetap dikirim sebagai cadangan
+             options.headers['X-API-Key'] = ICS_CONFIG.apiKey;
              options.body = JSON.stringify(params);
         }
 
         for (const proxy of PROXY_LIST) {
             try {
+                // Encode URL tujuan agar karakter khusus (&, ?, =) tidak merusak format Proxy
                 const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
+                
                 const res = await fetch(fullUrl, options);
                 if (res.ok) {
                     const text = await res.text();
@@ -863,8 +873,10 @@ window.openAkrabV2 = () => {
                 }
             } catch (e) { console.warn('ICS Proxy Error', e); }
         }
-        return { success: false, message: 'Gagal koneksi ke server ICS' };
+        return { success: false, message: 'Gagal koneksi ke server ICS (Cek Proxy/Internet)' };
     }
+
+
 
         window.initAkrabV2Data = async () => {
         const select = document.getElementById('icsProductSelect');
@@ -931,7 +943,7 @@ window.openAkrabV2 = () => {
         }
     };
 
-    window.processAkrabV2Transaction = async () => {
+        window.processAkrabV2Transaction = async () => {
         const select = document.getElementById('icsProductSelect');
         const number = document.getElementById('icsNumberInput').value;
         
@@ -948,7 +960,9 @@ window.openAkrabV2 = () => {
         window.customConfirm('Beli Akrab V2', `Produk: ${name}\nNomor: ${number}\nHarga: ${window.formatRp(price)}`, async () => {
             window.showLoader(true);
             const reffId = 'ICS-' + Date.now();
+            const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
             
+            // 1. Potong Saldo Lokal & DB
             try {
                 await runTransaction(db, async (t) => {
                     const uRef = doc(db, "users", currentUser.uid);
@@ -956,7 +970,9 @@ window.openAkrabV2 = () => {
                     const bal = uDoc.data().balance || 0;
                     if(bal < price) throw "Saldo kurang";
                     
-                    t.update(uRef, { balance: bal - price });
+                    const balanceAfter = bal - price;
+                    t.update(uRef, { balance: balanceAfter });
+                    
                     const hRef = doc(db, "users", currentUser.uid, "history", reffId);
                     t.set(hRef, {
                         title: name,
@@ -966,9 +982,12 @@ window.openAkrabV2 = () => {
                         status: 'Proses',
                         api_msg: 'Menghubungkan ke ICS...',
                         trx_id: reffId,
-                        provider_id: 'ICS', 
+                        trx_code: trxCode,
+                        provider_id: 'ICS',
                         raw_code: code,
-                        dest_num: number
+                        dest_num: number,
+                        balance_before: bal,
+                        balance_after: balanceAfter
                     });
                 });
             } catch(e) {
@@ -976,6 +995,7 @@ window.openAkrabV2 = () => {
                 return alert("Gagal proses database: " + e);
             }
             
+            // 2. Panggil API ICS
             const apiRes = await callIcsApi('createTransaction', {
                 kode_produk: code,
                 nomor_tujuan: number,
@@ -985,27 +1005,32 @@ window.openAkrabV2 = () => {
             window.showLoader(false);
 
             if(apiRes.success) {
+                // Sukses Pending
                 await updateDoc(doc(db, "users", currentUser.uid, "history", reffId), {
                     status: 'Pending',
                     api_msg: apiRes.message || 'Sedang diproses',
                     supplier_id: apiRes.supplier_trxid || '-'
                 });
-                alert("Transaksi Berhasil Dikirim! Status: Pending.");
+                alert("Transaksi Berhasil Dikirim!\nKode Trx: " + trxCode + "\nStatus: Pending.");
                 window.nav('homePage');
             } else {
+                // Gagal -> Refund Otomatis
                 await runTransaction(db, async (t) => {
                     const uRef = doc(db, "users", currentUser.uid);
                     const uDoc = await t.get(uRef);
-                    t.update(uRef, { balance: (uDoc.data().balance || 0) + price });
+                    const balNow = uDoc.data().balance || 0;
+                    t.update(uRef, { balance: balNow + price });
                     t.update(doc(db, "users", currentUser.uid, "history", reffId), {
                         status: 'Gagal',
-                        api_msg: 'Refund: ' + (apiRes.error || apiRes.message || 'Gagal dari pusat')
+                        api_msg: 'Refund: ' + (apiRes.error || apiRes.message || 'Gagal dari pusat'),
+                        balance_final: balNow + price
                     });
                 });
                 alert("Transaksi Gagal: " + (apiRes.error || apiRes.message || "Unknown") + "\nSaldo dikembalikan.");
             }
         });
     };
+
 
     async function checkIcsStatus(trx, docSnap) {
         const res = await callIcsApi('checkTransaction', { refid: trx.trx_id });

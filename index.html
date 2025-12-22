@@ -408,40 +408,6 @@
             </div>
         </div>
     </section>
-    <section id="akrabV2Page" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen z-40 absolute top-0 w-full max-w-[480px]">
-        <div class="p-4 bg-white dark:bg-gray-900 sticky top-0 z-20 shadow-sm flex items-center gap-4">
-            <button onclick="nav('homePage')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"><i class="fas fa-arrow-left text-gray-800 dark:text-white"></i></button>
-            <h2 class="font-bold text-lg text-gray-800 dark:text-white">Akrab v2 (ICS)</h2>
-        </div>
-        <div class="p-4 pb-24">
-            <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-800">
-            <div class="mb-4">
-                    <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Kategori / Provider</label>
-                    <div onclick="openIcsSheet()" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white text-sm rounded-xl px-4 py-3 font-bold flex justify-between items-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-                        <span id="icsProviderDisplay">XL Akrab (XLA)</span>
-                        <i class="fas fa-chevron-down text-gray-400"></i>
-                    </div>
-                </div>
-                <div class="mb-4">
-                    <div class="flex justify-between items-center mb-1"><label class="block text-xs font-bold text-gray-500 ml-1">Pilih Paket</label><button onclick="initAkrabV2Data()" class="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded-md hover:bg-blue-100"><i class="fas fa-sync-alt mr-1"></i> Refresh</button></div>
-                    <select id="icsProductSelect" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 px-3 text-sm font-bold dark:text-white" onchange="updateIcsPriceDisplay()">
-                        <option value="" disabled selected>-- Memuat Data... --</option>
-                    </select>
-                    <p class="text-[10px] text-blue-500 mt-1 text-right font-bold" id="icsPriceDisplay">Harga: -</p>
-                </div>
-                <div class="mb-6">
-                    <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Nomor Tujuan</label>
-                    <div class="input-group">
-                        <input type="tel" id="icsNumberInput" placeholder="Nomor HP" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-800 text-gray-800 dark:text-white text-sm font-bold pl-11">
-                        <i class="fas fa-address-book text-gray-400 absolute left-4 top-1/2 -translate-y-1/2 z-10"></i>
-                    </div>
-                </div>
-                <button onclick="processAkrabV2Transaction()" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-cyan-500/30 active:scale-95 transition-transform flex justify-center items-center gap-2"><span>Beli Paket</span><i class="fas fa-arrow-right"></i></button>
-                <p class="text-[10px] text-gray-400 mt-4 text-center">Powered by ICS Store API</p>
-            </div>
-        </div>
-    </section>
-
 
     <section id="homePage" class="page hide bg-gray-50/50 dark:bg-gray-950">
         <div class="bg-gradient-brand text-white pt-8 pb-24 px-6 rounded-b-[40px] shadow-lg relative overflow-hidden">
@@ -478,7 +444,7 @@
             <div class="grid grid-cols-4 gap-4">
                 <div class="text-center group cursor-pointer" onclick="openPPOB('akrab')"><div class="bg-blue-100 dark:bg-blue-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-globe text-blue-600 dark:text-blue-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Data</span></div>
                 <div class="text-center group cursor-pointer" onclick="alert('Menu Paket OTP Segera Hadir')"><div class="bg-emerald-100 dark:bg-emerald-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-key text-emerald-600 dark:text-emerald-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Paket OTP</span></div>
-                <div class="text-center group cursor-pointer" onclick="alert('Menu Pre-Order Segera Hadir')"><div class="bg-purple-100 dark:bg-purple-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-clock text-purple-600 dark:text-purple-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Pre-Order</span></div><div class="text-center group cursor-pointer" onclick="openAkrabV2()"><div class="bg-cyan-100 dark:bg-cyan-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-users-cog text-cyan-600 dark:text-cyan-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Akrab v2</span></div>
+                <div class="text-center group cursor-pointer" onclick="alert('Menu Pre-Order Segera Hadir')"><div class="bg-purple-100 dark:bg-purple-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-clock text-purple-600 dark:text-purple-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Pre-Order</span></div>
                 <div class="text-center group cursor-pointer" onclick="checkAkrabStock()"><div class="bg-orange-100 dark:bg-orange-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-cubes text-orange-600 dark:text-orange-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Stok Akrab</span></div>
                 <div class="text-center group cursor-pointer" onclick="alert('Menu Login OTP Segera Hadir')"><div class="bg-rose-100 dark:bg-rose-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-lock text-rose-600 dark:text-rose-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Login OTP</span></div>
                 <div class="text-center group cursor-pointer" onclick="nav('historyPage')"><div class="bg-indigo-100 dark:bg-indigo-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-history text-indigo-600 dark:text-indigo-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Riwayat</span></div>
@@ -589,33 +555,6 @@
                         <span class="text-xs font-bold text-gray-500 dark:text-gray-400 select-none">Aktifkan Multi Transaksi (Banyak Nomor)</span>
                     </div>
                 </div>
-            </div>
-        </div>
-    </section>
-
-    <section id="akrabV2Page" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen z-40 absolute top-0 w-full max-w-[480px]">
-        <div class="p-4 bg-white dark:bg-gray-900 sticky top-0 z-20 shadow-sm flex items-center gap-4">
-            <button onclick="nav('homePage')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"><i class="fas fa-arrow-left text-gray-800 dark:text-white"></i></button>
-            <h2 class="font-bold text-lg text-gray-800 dark:text-white">Akrab v2 (ICS)</h2>
-        </div>
-        <div class="p-4 pb-24">
-            <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-800">
-                <div class="mb-4">
-                    <div class="flex justify-between items-center mb-1"><label class="block text-xs font-bold text-gray-500 ml-1">Pilih Paket</label><button onclick="initAkrabV2Data()" class="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded-md hover:bg-blue-100"><i class="fas fa-sync-alt mr-1"></i> Refresh</button></div>
-                    <select id="icsProductSelect" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 px-3 text-sm font-bold dark:text-white" onchange="updateIcsPriceDisplay()">
-                        <option value="" disabled selected>-- Memuat Data... --</option>
-                    </select>
-                    <p class="text-[10px] text-blue-500 mt-1 text-right font-bold" id="icsPriceDisplay">Harga: -</p>
-                </div>
-                <div class="mb-6">
-                    <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Nomor Tujuan</label>
-                    <div class="input-group">
-                        <input type="tel" id="icsNumberInput" placeholder="Nomor HP" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-800 text-gray-800 dark:text-white text-sm font-bold pl-11">
-                        <i class="fas fa-address-book text-gray-400 absolute left-4 top-1/2 -translate-y-1/2 z-10"></i>
-                    </div>
-                </div>
-                <button onclick="processAkrabV2Transaction()" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-cyan-500/30 active:scale-95 transition-transform flex justify-center items-center gap-2"><span>Beli Paket</span><i class="fas fa-arrow-right"></i></button>
-                <p class="text-[10px] text-gray-400 mt-4 text-center">Powered by ICS Store API</p>
             </div>
         </div>
     </section>
@@ -734,30 +673,6 @@
     </div>
 
     
-    <div id="sheetIcsProvider" class="hide fixed bottom-0 left-0 right-0 z-[70] bg-white dark:bg-gray-900 rounded-t-[2rem] p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.3)] max-w-[480px] mx-auto transition-transform duration-300 transform translate-y-0">
-        <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-6"></div>
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Pilih Kategori</h3>
-            <button onclick="closeIcsSheet()" class="text-gray-400 hover:text-red-500"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="space-y-2 max-h-[60vh] overflow-y-auto no-scrollbar pb-8">
-            <div onclick="setIcsProvider('xla', 'XL Akrab (XLA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
-                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">XL Akrab (XLA)</span><i class="fas fa-chevron-right text-gray-300 text-xs"></i>
-            </div>
-            <div onclick="setIcsProvider('xda', 'Akrab Fresh/Data (XDA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
-                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Akrab Fresh (XDA)</span><i class="fas fa-chevron-right text-gray-300 text-xs"></i>
-            </div>
-            <div onclick="setIcsProvider('fmax', 'FlexMax (FMAX)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
-                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">FlexMax (FMAX)</span><i class="fas fa-chevron-right text-gray-300 text-xs"></i>
-            </div>
-            <div onclick="setIcsProvider('circle', 'XL Circle')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
-                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">XL Circle</span><i class="fas fa-chevron-right text-gray-300 text-xs"></i>
-            </div>
-            <div onclick="setIcsProvider('bpa', 'Bagi Pulsa (BPA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
-                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Bagi Pulsa (BPA)</span><i class="fas fa-chevron-right text-gray-300 text-xs"></i>
-            </div>
-        </div>
-    </div>
     <div id="sheetProduct" class="hide fixed bottom-0 left-0 right-0 z-[70] bg-white dark:bg-gray-900 rounded-t-[2rem] p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.3)] max-w-[480px] mx-auto transition-transform duration-300">
         <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-6"></div>
         <div class="flex justify-between items-center mb-4">
@@ -800,282 +715,6 @@
     };
 
     const app = initializeApp(firebaseConfig);
-
-    // 1. PROXY LIST (Global)
-        // 1. PROXY LIST (Global) - Prioritaskan CorsProxyIO untuk POST Request
-        // 1. PROXY LIST (Global) - Update dengan CodeTabs sebagai cadangan handal
-        // 1. PROXY LIST (Global) - Update dengan CodeTabs (Paling Stabil)
-    const PROXY_LIST = [
-        { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
-        { name: 'CorsProxyIO', url: 'https://corsproxy.io/?' },
-        { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
-        { name: 'Direct', url: '' }
-    ];
-
-    // 2. ICS STORE INTEGRATION
-    const ICS_CONFIG = {
-        apiKey: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3",
-        baseUrl: "https://reseller.ics-store.my.id"
-    };
-
-        let currentIcsType = 'xla';
-
-    window.openIcsSheet = () => {
-        document.getElementById('sheetIcsProvider').classList.remove('hide');
-        document.getElementById('sheetOverlay').classList.remove('hide');
-        document.body.style.overflow = 'hidden';
-    };
-
-    window.closeIcsSheet = () => {
-        document.getElementById('sheetIcsProvider').classList.add('hide');
-        document.getElementById('sheetOverlay').classList.add('hide');
-        document.body.style.overflow = '';
-    };
-
-    window.setIcsProvider = (type, name) => {
-        currentIcsType = type;
-        document.getElementById('icsProviderDisplay').innerText = name;
-        window.closeIcsSheet();
-        window.initAkrabV2Data();
-    };
-
-window.openAkrabV2 = () => {
-        window.nav('akrabV2Page');
-        window.initAkrabV2Data();
-    };
-
-                    async function callIcsApi(action, params = {}, method = 'GET') {
-        // FIX: Gunakan API Key di URL. Header sering dihapus oleh Proxy publik.
-                // FIX: Tambahkan timestamp (_t) untuk bypass Cache Proxy yang membandel
-        let targetUrl = `${ICS_CONFIG.baseUrl}/?action=${action}&apikey=${ICS_CONFIG.apiKey}&_t=${Date.now()}`;
-        let options = { method: method };
-
-                        if (method === 'GET') {
-            const qs = new URLSearchParams(params).toString();
-            if(qs) targetUrl += `&${qs}`;
-        } else if (method === 'POST') {
-             // FIX: Strategi Double-Send (URL + Body) agar kebal terhadap Proxy yang membuang Body
-             const qs = new URLSearchParams(params).toString();
-             if(qs) targetUrl += `&${qs}`; // Tempel juga di URL sebagai cadangan
-             
-             options.body = new URLSearchParams(params);
-             options.headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
-        }
-
-        for (const proxy of PROXY_LIST) {
-            try {
-                // Encode URL target agar aman saat melewati URL proxy
-                const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
-                
-                // Timeout 15 detik
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-                const res = await fetch(fullUrl, { ...options, signal: controller.signal });
-                clearTimeout(timeoutId);
-
-                if (res.ok) {
-                    const text = await res.text();
-                    // Coba parsing JSON
-                    try { 
-                        let data = JSON.parse(text); 
-                        // Handle jika proxy membungkus response di dalam field 'contents'
-                        if (data.contents) {
-                             try { data = JSON.parse(data.contents); } catch(e) { data = data.contents; }
-                        }
-                        return data;
-                    } catch (e) { 
-                        console.warn('ICS JSON Parse Error via ' + proxy.name, e); 
-                    }
-                }
-            } catch (e) { 
-                console.warn('ICS Proxy Error via ' + proxy.name, e); 
-            }
-        }
-        return { success: false, message: 'Gagal koneksi ke server ICS (Semua Proxy Gagal)' };
-    }
-
-
-
-        window.initAkrabV2Data = async () => {
-        const select = document.getElementById('icsProductSelect');
-        select.innerHTML = '<option>Memuat...</option>';
-        
-        const res = await callIcsApi('listProducts', { type: currentIcsType });
-        select.innerHTML = '';
-
-        // PERBAIKAN: Handle Respon Sukses (Gabung Ready + Empty)
-        if (res.success && res.data) {
-            const readyItems = res.data.ready || [];
-            const emptyItems = res.data.empty || [];
-            // 1. Gabungkan kedua array
-            const allProducts = [...readyItems, ...emptyItems];
-
-            if(allProducts.length === 0) {
-                 select.innerHTML = '<option value="" disabled>Produk Kosong</option>';
-                 return;
-            }
-
-            // 2. Urutkan dari harga termurah
-            allProducts.sort((a, b) => a.harga - b.harga);
-
-            select.innerHTML = '<option value="" disabled selected>-- Pilih Produk --</option>';
-            
-            allProducts.forEach(p => {
-                // Markup Profit Rp 2000
-                const sellPrice = p.harga + 2000;
-                
-                // Cek apakah produk ini berasal dari list 'empty' atau stoknya 0
-                // Kita cek referensi objeknya langsung
-                const isHabis = p.stok === 0 || p.stok === '0' || emptyItems.includes(p);
-
-                const opt = document.createElement('option');
-                opt.value = p.kode_produk;
-                opt.dataset.name = p.nama_produk;
-                opt.dataset.price = sellPrice;
-                opt.dataset.rawPrice = p.harga;
-                
-                if (isHabis) {
-                    // Tampilkan Tanda Silang & Disable jika stok habis
-                    opt.innerHTML = `❌ ${p.nama_produk} (Habis) - Rp ${window.formatRp(sellPrice)}`;
-                    opt.disabled = true;
-                    opt.style.color = '#ef4444'; // Warna Merah
-                } else {
-                    opt.innerHTML = `${p.nama_produk} - Rp ${window.formatRp(sellPrice)}`;
-                }
-                
-                select.appendChild(opt);
-            });
-        } else {
-            select.innerHTML = '<option value="" disabled>Gagal Memuat</option>';
-            alert('Gagal memuat produk ICS: ' + (res.message || 'Unknown Error'));
-        }
-    };
-
-
-
-    window.updateIcsPriceDisplay = () => {
-        const select = document.getElementById('icsProductSelect');
-        const opt = select.options[select.selectedIndex];
-        if(opt && opt.dataset.price) {
-            document.getElementById('icsPriceDisplay').innerText = `Harga: ${window.formatRp(parseInt(opt.dataset.price))}`;
-        }
-    };
-
-        window.processAkrabV2Transaction = async () => {
-        const select = document.getElementById('icsProductSelect');
-        const number = document.getElementById('icsNumberInput').value;
-        
-        if (select.selectedIndex < 1) return alert("Pilih produk dulu!");
-        if (!number || number.length < 9) return alert("Nomor HP tidak valid!");
-
-        const opt = select.options[select.selectedIndex];
-        const code = select.value;
-        const name = opt.dataset.name;
-        const price = parseInt(opt.dataset.price);
-
-        if (currentBalance < price) return alert("Saldo tidak cukup!");
-
-        window.customConfirm('Beli Akrab V2', `Produk: ${name}\nNomor: ${number}\nHarga: ${window.formatRp(price)}`, async () => {
-            window.showLoader(true);
-            const reffId = 'ICS-' + Date.now();
-            const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
-            
-            // 1. Potong Saldo Lokal & DB
-            try {
-                await runTransaction(db, async (t) => {
-                    const uRef = doc(db, "users", currentUser.uid);
-                    const uDoc = await t.get(uRef);
-                    const bal = uDoc.data().balance || 0;
-                    if(bal < price) throw "Saldo kurang";
-                    
-                    const balanceAfter = bal - price;
-                    t.update(uRef, { balance: balanceAfter });
-                    
-                    const hRef = doc(db, "users", currentUser.uid, "history", reffId);
-                    t.set(hRef, {
-                        title: name,
-                        amount: price,
-                        type: 'out',
-                        date: new Date().toISOString(),
-                        status: 'Proses',
-                        api_msg: 'Menghubungkan ke ICS...',
-                        trx_id: reffId,
-                        trx_code: trxCode,
-                        provider_id: 'ICS',
-                        raw_code: code,
-                        dest_num: number,
-                        balance_before: bal,
-                        balance_after: balanceAfter
-                    });
-                });
-            } catch(e) {
-                window.showLoader(false);
-                return alert("Gagal proses database: " + e);
-            }
-            
-            // 2. Panggil API ICS
-                        const apiRes = await callIcsApi('createTransaction', {
-                kode_produk: code,
-                nomor_tujuan: number,
-                refid: reffId
-            }, 'GET'); // FIX: Gunakan GET agar data 100% aman lewat Proxy
-
-            window.showLoader(false);
-
-            if(apiRes.success) {
-                // Sukses Pending
-                await updateDoc(doc(db, "users", currentUser.uid, "history", reffId), {
-                    status: 'Pending',
-                    api_msg: apiRes.message || 'Sedang diproses',
-                    supplier_id: apiRes.supplier_trxid || '-'
-                });
-                alert("Transaksi Berhasil Dikirim!\nKode Trx: " + trxCode + "\nStatus: Pending.");
-                window.nav('homePage');
-            } else {
-                // Gagal -> Refund Otomatis
-                await runTransaction(db, async (t) => {
-                    const uRef = doc(db, "users", currentUser.uid);
-                    const uDoc = await t.get(uRef);
-                    const balNow = uDoc.data().balance || 0;
-                    t.update(uRef, { balance: balNow + price });
-                    t.update(doc(db, "users", currentUser.uid, "history", reffId), {
-                        status: 'Gagal',
-                        api_msg: 'Refund: ' + (apiRes.error || apiRes.message || 'Gagal dari pusat'),
-                        balance_final: balNow + price
-                    });
-                });
-                alert("Transaksi Gagal: " + (apiRes.error || apiRes.message || "Unknown") + "\nSaldo dikembalikan.");
-            }
-        });
-    };
-
-
-    async function checkIcsStatus(trx, docSnap) {
-        const res = await callIcsApi('checkTransaction', { refid: trx.trx_id });
-        if(res.success) {
-            let newStatus = 'Pending';
-            const statusRaw = (res.status || '').toLowerCase();
-            if(statusRaw === 'success') newStatus = 'Sukses';
-            else if(statusRaw === 'failed' || statusRaw === 'error' || statusRaw === 'unpaid') newStatus = 'Gagal';
-            
-            if(newStatus !== 'Pending') {
-                await runTransaction(db, async (t) => {
-                    const freshDoc = await t.get(docSnap.ref);
-                    if(freshDoc.data().status !== 'Pending') return;
-
-                    if(newStatus === 'Gagal') {
-                        const uRef = doc(db, "users", currentUser.uid);
-                        const uDoc = await t.get(uRef);
-                        t.update(uRef, { balance: (uDoc.data().balance || 0) + trx.amount });
-                        t.update(docSnap.ref, { status: 'Gagal', api_msg: 'Refund: ' + (res.message || 'Gagal') });
-                    } else {
-                        t.update(docSnap.ref, { status: 'Sukses', api_msg: res.message || res.sn || 'Sukses' });
-                    }
-                });
-            }
-        }
-    }
     const auth = getAuth(app);
     const db = getFirestore(app);
     auth.languageCode = 'id';
@@ -1147,6 +786,12 @@ window.openAkrabV2 = () => {
     let qiosTicket = null;
 
     const CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
+    const PROXY_LIST = [
+        { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
+        { name: 'CorsProxyIO', url: 'https://corsproxy.io/?' },
+        { name: 'ThingProxy', url: 'https://thingproxy.freeboard.io/fetch/' },
+        { name: 'Direct', url: '' }
+    ];
 
     // AUTH & DATA
     onAuthStateChanged(auth, (user) => {
@@ -1895,7 +1540,6 @@ window.openAkrabV2 = () => {
     window.closeAllSheets = () => {
         document.getElementById('sheetProvider').classList.add('hide');
         document.getElementById('sheetProduct').classList.add('hide');
-        if(document.getElementById('sheetIcsProvider')) document.getElementById('sheetIcsProvider').classList.add('hide');
         document.getElementById('sheetOverlay').classList.add('hide');
         document.body.style.overflow = '';
     };
@@ -2033,17 +1677,13 @@ window.openAkrabV2 = () => {
             
             if(pricingRules[code]) price += parseInt(pricingRules[code]);
             
-                        let isGangguan = false;
-            // FIX: Deteksi Status Khfy Lebih Lengkap (Boolean/Int/String)
-            if (p.gangguan == 1) isGangguan = true;
-            if (p.kosong == 1) isGangguan = true;
-            if (p.buyer_product_status === false || p.buyer_product_status == 0) isGangguan = true;
-            if (p.seller_product_status === false || p.seller_product_status == 0) isGangguan = true;
-            if (p.stock == 0 && p.unlimited_stock === false) isGangguan = true;
+            let isGangguan = false;
+            if (p.gangguan === 1 || p.gangguan === '1') isGangguan = true;
+            if (p.kosong === 1 || p.kosong === '1') isGangguan = true;
+            if (String(p.buyer_product_status) === '0') isGangguan = true;
 
-            // FIX: Hapus cursor-pointer dan active:scale jika gangguan agar tidak terkesan bisa ditekan
             const div = document.createElement('div');
-            div.className = `p-4 rounded-2xl border ${isGangguan ? 'border-red-200 bg-red-50 dark:bg-red-900/10 cursor-not-allowed opacity-70' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 cursor-pointer transition active:scale-[0.98]'} mb-2 flex justify-between items-center group`;
+            div.className = `p-4 rounded-2xl border ${isGangguan ? 'border-red-200 bg-red-50 dark:bg-red-900/10' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900'} mb-2 flex justify-between items-center group cursor-pointer transition active:scale-[0.98]`;
             
             if(isGangguan) {
                 div.innerHTML = `
@@ -2346,7 +1986,6 @@ window.openAkrabV2 = () => {
             for (const docSnap of snapshot.docs) {
                 const trx = docSnap.data();
                 if(trx.provider_id === 'MANUAL') continue;
-                                if(trx.provider_id === 'ICS') { await checkIcsStatus(trx, docSnap); continue; }
                 
                 try {
                     // Cek API tanpa loader (Silent)

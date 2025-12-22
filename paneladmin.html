@@ -114,7 +114,15 @@
             </div>
 
             <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
-                <div onclick="switchTab('pending-trx')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-yellow-400">
+                                <div onclick="openSearchTrxModal()" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-orange-400">
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Cek Transaksi</p>
+                        <h3 class="text-2xl font-black text-orange-600"><i class="fas fa-search"></i></h3>
+                        <p class="text-[9px] text-orange-500 font-bold mt-1">Cari Kode 6 Digit <i class="fas fa-arrow-right ml-0.5"></i></p>
+                    </div>
+                    <div class="w-10 h-10 bg-orange-50 text-orange-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-receipt"></i></div>
+                </div>
+<div onclick="switchTab('pending-trx')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-yellow-400">
                     <div>
                         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Trx Pending</p>
                         <h3 class="text-2xl font-black text-yellow-600" id="statPendingCount">0</h3>
@@ -496,6 +504,71 @@
         };
 
         window.logout = async () => { if(confirm('Keluar?')) { await signOut(auth); location.reload(); } };
+        window.openSearchTrxModal = () => {
+            document.getElementById('searchTrxCode').value = '';
+            document.getElementById('searchTrxResult').classList.add('hide');
+            document.getElementById('searchTrxModal').classList.remove('hide');
+        };
+
+        window.findTransactionByCode = async () => {
+            const code = document.getElementById('searchTrxCode').value;
+            const resultArea = document.getElementById('searchTrxResult');
+            if(code.length < 5) return Swal.fire('Error', 'Masukkan kode transaksi yang valid', 'warning');
+
+            Swal.showLoading();
+            try {
+                const q = query(collectionGroup(db, 'history'), where("trx_code", "==", code.toString()));
+                const snap = await getDocs(q);
+                
+                if(snap.empty) {
+                    Swal.close();
+                    return Swal.fire('Tidak Ditemukan', 'Kode transaksi tidak ada di database.', 'info');
+                }
+
+                const trx = snap.docs[0].data();
+                const parentUid = snap.docs[0].ref.parent.parent.id;
+                const userRef = doc(db, "users", parentUid);
+                const userSnap = await getDoc(userRef);
+                const userData = userSnap.data();
+
+                resultArea.innerHTML = `
+                    <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="text-[10px] font-bold text-gray-400 uppercase">Informasi User</span>
+                            <span class="text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-bold">UID: ${parentUid}</span>
+                        </div>
+                        <p class="text-sm font-black text-gray-800">${userData.username} (${userData.email})</p>
+                        <div class="mt-4 grid grid-cols-2 gap-3">
+                            <div class="p-2 bg-white rounded-lg border"> <p class="text-[9px] text-gray-400">Saldo Saat Ini</p> <p class="font-bold text-blue-600">${window.formatRp(userData.balance)}</p> </div>
+                            <div class="p-2 bg-white rounded-lg border"> <p class="text-[9px] text-gray-400">Aksi Cepat</p> <button onclick="openEditUser('${parentUid}')" class="text-[10px] text-orange-500 font-bold underline">Ubah Saldo</button> </div>
+                        </div>
+                    </div>
+
+                    <div class="p-4 border border-gray-100 rounded-2xl">
+                         <div class="flex justify-between mb-4">
+                            <div><p class="text-[9px] text-gray-400">Produk</p><p class="font-bold">${trx.title}</p></div>
+                            <div class="text-right"><p class="text-[9px] text-gray-400">Status</p><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${trx.status === 'Sukses' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${trx.status}</span></div>
+                         </div>
+                         <div class="space-y-2 text-[11px] bg-blue-50/50 p-3 rounded-xl">
+                            <div class="flex justify-between"><span>Saldo Awal (User):</span><span class="font-bold">${window.formatRp(trx.balance_before || 0)}</span></div>
+                            <div class="flex justify-between"><span>Biaya:</span><span class="font-bold text-red-500">- ${window.formatRp(trx.amount)}</span></div>
+                            <div class="flex justify-between"><span>Saldo Akhir (User):</span><span class="font-bold text-green-600">${window.formatRp(trx.balance_after || 0)}</span></div>
+                         </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase">JSON Response (Server Khfy)</p>
+                        <div class="bg-slate-900 p-3 rounded-xl overflow-x-auto">
+                            <pre class="text-[9px] text-green-400 font-mono">${trx.raw_json || trx.api_msg || '// No Data Response'}</pre>
+                        </div>
+                    </div>
+                `;
+                resultArea.classList.remove('hide');
+                Swal.close();
+            } catch(e) {
+                Swal.fire('Error', e.message, 'error');
+            }
+        };
 
         window.switchTab = (tabId) => {
             if(tabId === 'pending-trx') loadPendingTransactions();
@@ -888,5 +961,24 @@
         window.triggerResetFromModal = async () => { try { await sendPasswordResetEmail(auth, document.getElementById('editEmailHidden').value); alert('Email terkirim'); } catch(e) { alert(e.message); } };
 
     </script>
+    
+    <div id="searchTrxModal" class="hide fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 fade-in">
+        <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div class="bg-gray-50 px-4 py-4 border-b border-gray-100 flex justify-between items-center">
+                <h3 class="text-sm font-bold text-gray-800"><i class="fas fa-search-dollar mr-2 text-orange-500"></i>Pelacak Transaksi Sistem</h3>
+                <button onclick="document.getElementById('searchTrxModal').classList.add('hide')" class="text-gray-400 hover:text-red-500"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-5">
+                <div class="flex gap-2 mb-6">
+                    <input type="number" id="searchTrxCode" placeholder="Masukkan 6 digit kode..." class="flex-1 px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-orange-500 outline-none font-mono font-bold text-lg text-center tracking-widest">
+                    <button onclick="findTransactionByCode()" class="bg-orange-500 hover:bg-orange-600 text-white px-6 rounded-xl font-bold transition-all"><i class="fas fa-search"></i></button>
+                </div>
+                
+                <div id="searchTrxResult" class="hide space-y-4 max-h-[60vh] overflow-y-auto custom-scroll pr-2">
+                    
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

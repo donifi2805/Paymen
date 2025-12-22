@@ -849,11 +849,14 @@ window.openAkrabV2 = () => {
         let targetUrl = `${ICS_CONFIG.baseUrl}/?action=${action}&apikey=${ICS_CONFIG.apiKey}`;
         let options = { method: method };
 
-                if (method === 'GET') {
+                        if (method === 'GET') {
             const qs = new URLSearchParams(params).toString();
             if(qs) targetUrl += `&${qs}`;
         } else if (method === 'POST') {
-             // FIX: Kirim sebagai Form Data + Header Eksplisit agar terbaca Server PHP
+             // FIX: Strategi Double-Send (URL + Body) agar kebal terhadap Proxy yang membuang Body
+             const qs = new URLSearchParams(params).toString();
+             if(qs) targetUrl += `&${qs}`; // Tempel juga di URL sebagai cadangan
+             
              options.body = new URLSearchParams(params);
              options.headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
         }

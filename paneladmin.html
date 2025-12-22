@@ -566,6 +566,7 @@
                         <td class="p-3 text-center"><span class="px-1.5 py-0.5 rounded ${t.status==='Gagal'?'bg-red-100 text-red-700':'bg-yellow-100 text-yellow-700'}">${t.status}</span></td>
                         <td class="p-3 text-center">
                             <button onclick="manualSuccess('${parentUid}', '${d.id}')" class="bg-green-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-green-700">SUKSESKAN</button>
+                            <button onclick="manualFail('${parentUid}', '${d.id}', ${t.amount})" class="bg-red-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-red-700 ml-1">GAGALKAN</button>
                         </td>\n                    </tr>`;
                 });
                 tbody.innerHTML = html;
@@ -575,6 +576,47 @@
             }
         };
 
+
+        window.manualFail = async (uid, trxId, amount) => {
+            const { value: reason } = await Swal.fire({
+                title: 'Gagalkan & Refund',
+                input: 'text',
+                inputLabel: 'Alasan Kegagalan (akan tampil di user)',
+                inputPlaceholder: 'Contoh: Nomor salah / Gangguan Provider',
+                showCancelButton: true,
+                confirmButtonColor: '#d33'
+            });
+
+            if (reason !== undefined) {
+                try {
+                    Swal.showLoading();
+                    const userRef = doc(db, "users", uid);
+                    const userSnap = await getDoc(userRef);
+                    
+                    if (!userSnap.exists()) throw new Error("User tidak ditemukan");
+                    
+                    const currentBalance = userSnap.data().balance || 0;
+                    const newBalance = currentBalance + amount;
+
+                    // 1. Update Saldo User (Refund)
+                    await updateDoc(userRef, { balance: newBalance });
+
+                    // 2. Update Status Transaksi & Log Refund
+                    await updateDoc(doc(db, "users", uid, "history", trxId), {
+                        status: 'Gagal',
+                        api_msg: reason || 'Dibatalkan oleh Admin (Refund Berhasil)',
+                        balance_final: newBalance,
+                        date_updated: new Date().toISOString()
+                    });
+
+                    Swal.fire('Berhasil', `Transaksi digagalkan. Saldo Rp ${amount.toLocaleString()} telah dikembalikan ke user.`, 'success');
+                    loadPendingTransactions();
+                    loadDashboardData();
+                } catch(e) {
+                    Swal.fire('Gagal', e.message, 'error');
+                }
+            }
+        };
         window.manualSuccess = async (uid, trxId) => {
             const { value: sn } = await Swal.fire({
                 title: 'Sukseskan Manual',

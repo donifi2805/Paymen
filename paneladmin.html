@@ -378,25 +378,23 @@
             </div>
             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4">
                                 <label class="text-[10px] font-bold text-gray-500 block mb-1">Filter Kategori / Provider</label>
-                <select id="pricingProvider" onchange="loadPricingData()" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs font-bold focus:ring-1 focus:ring-blue-500 outline-none">
-                    <optgroup label="Server ICS (Jalur Prioritas)">
-                        <option value="ICS_XDA">ICS - Akrab Fresh (XDA)</option>
-                        <option value="ICS_CIRCLE">ICS - XL Circle</option>
-                        <option value="ICS_FMAX">ICS - FlexMax</option>
-                        <option value="ICS_BPA">ICS - Bagi Pulsa</option>
+                                <select id="pricingProvider" onchange="loadPricingData()" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs font-bold focus:ring-1 focus:ring-blue-500 outline-none">
+                    <optgroup label="Server ICS">
+                        <option value="ICS_XDA">Akrab Fresh (XDA)</option>
+                        <option value="ICS_CIRCLE">XL Circle</option>
                     </optgroup>
-                    <optgroup label="Server Khfy (Cadangan)">
-                        <option value="FMX">Khfy - FlexMax (FMX)</option>
-                        <option value="XLR">Khfy - XL Reguler</option>
-                        <option value="PLN">Khfy - PLN Token</option>
-                        <option value="XDA">Khfy - Akrab (Legacy)</option>
+                    <optgroup label="Server Khfy">
+                        <option value="XLA">Akrab Fresh (XLA)</option>
+                        <option value="FMX">FlexMax (FMX)</option>
+                        <option value="XLR">XL Reguler</option>
+                        <option value="PLN">PLN Pascabayar</option>
                     </optgroup>
                 </select>
             </div>
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="overflow-x-auto custom-scroll">
                     <table class="w-full text-left">
-                        <thead><tr class="bg-gray-50 text-gray-500 text-[9px] uppercase tracking-wider border-b border-gray-100"><th class="p-3">Nama Produk</th><th class="p-3 text-right">Harga Pusat</th><th class="p-3 text-center">Markup (Rp)</th><th class="p-3 text-right">Harga Jual</th></tr></thead>
+                        <thead><tr class="bg-gray-50 text-gray-500 text-[9px] uppercase tracking-wider border-b border-gray-100"><th class="p-3">Nama Asli</th><th class="p-3">Nama Custom (Baru)</th><th class="p-3 text-right">Harga Pusat</th><th class="p-3 text-center">Markup (Rp)</th><th class="p-3 text-right">Harga Jual</th></tr></thead>
                         <tbody id="pricingTableBody" class="text-[11px] divide-y divide-gray-50"><tr><td colspan="4" class="p-6 text-center text-gray-400">Silakan pilih provider...</td></tr></tbody>
                     </table>
                 </div>
@@ -1015,15 +1013,34 @@
                 const code = p.kode_produk || p.code || p.buyer_sku_code;
                 const name = p.nama_produk || p.product_name || p.name;
                 const rawPrice = parseInt(p.harga || p.price || p.harga_final || 0);
-                const markup = pricingRules[code] || 0;
-                const sellPrice = rawPrice + parseInt(markup);
+                
+                // Support Format Lama (Angka) dan Baru (Object)
+                let savedData = pricingRules[code] || 0;
+                let markup = 0;
+                let customName = '';
+
+                if (typeof savedData === 'object') {
+                    markup = parseInt(savedData.price || 0);
+                    customName = savedData.name || '';
+                } else {
+                    markup = parseInt(savedData || 0);
+                }
+
+                const sellPrice = rawPrice + markup;
                 const isGangguan = (p.stok === 0 || p.stok === '0' || p.gangguan == 1);
 
                 html += `<tr>
                     <td class="p-3">
-                        <b class="text-gray-800">${name}</b>
-                        <div class="text-[10px] text-gray-400 font-mono">${code}</div>
-                        ${isGangguan ? '<span class="text-[9px] text-red-500 font-bold">STOK HABIS / GANGGUAN</span>' : ''}
+                        <div class="text-xs font-bold text-gray-800">${name}</div>
+                        <div class="text-[9px] text-gray-400 font-mono">${code}</div>
+                        ${isGangguan ? '<span class="text-[9px] text-red-500 font-bold">STOK HABIS</span>' : ''}
+                    </td>
+                    <td class="p-3">
+                        <input type="text" 
+                               data-code="${code}" 
+                               value="${customName}" 
+                               placeholder="(Default)" 
+                               class="name-input w-full border border-gray-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none placeholder-gray-300">
                     </td>
                     <td class="p-3 text-right text-gray-500">${window.formatRp(rawPrice)}</td>
                     <td class="p-3 text-center">
@@ -1043,12 +1060,28 @@
         
         window.saveAllPrices = async () => {
             const newRules = {};
-            document.querySelectorAll('.markup-input').forEach(inp => {
-                const val = parseInt(inp.value);
-                if (!isNaN(val)) newRules[inp.dataset.code] = val;
+            const markupInputs = document.querySelectorAll('.markup-input');
+            const nameInputs = document.querySelectorAll('.name-input');
+            
+            // Buat Map Nama Custom
+            const nameMap = {};
+            nameInputs.forEach(inp => {
+                if(inp.value.trim() !== '') nameMap[inp.dataset.code] = inp.value.trim();
             });
+
+            markupInputs.forEach(inp => {
+                const code = inp.dataset.code;
+                const priceVal = parseInt(inp.value) || 0;
+                const nameVal = nameMap[code] || null;
+
+                // Simpan hanya jika ada perubahan (Harga != 0 ATAU Nama diset)
+                if (priceVal !== 0 || nameVal) {
+                     newRules[code] = { price: priceVal, name: nameVal };
+                }
+            });
+
             await setDoc(doc(db, "settings", "pricing"), { rules: newRules }, { merge: true });
-            Swal.fire('Berhasil', 'Harga diupdate', 'success');
+            Swal.fire('Berhasil', 'Harga & Nama Produk berhasil disimpan!', 'success');
         };
 
         window.loadChatList = () => {

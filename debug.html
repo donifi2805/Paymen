@@ -804,10 +804,10 @@
     // 1. PROXY LIST (Global)
         // 1. PROXY LIST (Global) - Prioritaskan CorsProxyIO untuk POST Request
         // 1. PROXY LIST (Global) - Update dengan CodeTabs sebagai cadangan handal
+        // 1. PROXY LIST (Global) - Update dengan CodeTabs (Paling Stabil)
     const PROXY_LIST = [
-        { name: 'CorsProxyIO', url: 'https://corsproxy.io/?' },
         { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
-        { name: 'ThingProxy', url: 'https://thingproxy.freeboard.io/fetch/' },
+        { name: 'CorsProxyIO', url: 'https://corsproxy.io/?' },
         { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
         { name: 'Direct', url: '' }
     ];
@@ -844,33 +844,29 @@ window.openAkrabV2 = () => {
         window.initAkrabV2Data();
     };
 
-                async function callIcsApi(action, params = {}, method = 'GET') {
-        // FIX: HANYA gunakan API Key di URL. Jangan gunakan Header X-API-Key karena sering dihapus Proxy.
+                    async function callIcsApi(action, params = {}, method = 'GET') {
+        // FIX: Gunakan API Key di URL. Header sering dihapus oleh Proxy publik.
         let targetUrl = `${ICS_CONFIG.baseUrl}/?action=${action}&apikey=${ICS_CONFIG.apiKey}`;
-
-        let options = { 
-            method: method,
-            headers: {
-                'Content-Type': 'application/json' // Standar JSON
-            }
-        };
+        let options = { method: method };
 
         if (method === 'GET') {
             const qs = new URLSearchParams(params).toString();
             if(qs) targetUrl += `&${qs}`;
         } else if (method === 'POST') {
-             // Kirim Body JSON polos tanpa header auth tambahan
+             // Kirim body sebagai string JSON murni
              options.body = JSON.stringify(params);
+             // Tips: Jangan set Content-Type header manual saat pakai Proxy CodeTabs/AllOrigins
+             // Biarkan browser/proxy mendeteksi atau kirim sebagai text/plain agar tidak kena preflight CORS.
         }
 
         for (const proxy of PROXY_LIST) {
             try {
-                // Encode URL agar karakter & dan ? tidak merusak format Proxy
+                // Encode URL target agar aman saat melewati URL proxy
                 const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
                 
-                // Timeout controller untuk skip proxy macet (10 detik)
+                // Timeout 15 detik
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 10000);
+                const timeoutId = setTimeout(() => controller.abort(), 15000);
 
                 const res = await fetch(fullUrl, { ...options, signal: controller.signal });
                 clearTimeout(timeoutId);
@@ -880,7 +876,7 @@ window.openAkrabV2 = () => {
                     // Coba parsing JSON
                     try { 
                         let data = JSON.parse(text); 
-                        // Handle jika proxy membungkus response (contoh: AllOrigins kadang membungkus di 'contents')
+                        // Handle jika proxy membungkus response di dalam field 'contents'
                         if (data.contents) {
                              try { data = JSON.parse(data.contents); } catch(e) { data = data.contents; }
                         }

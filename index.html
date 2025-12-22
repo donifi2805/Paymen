@@ -70,7 +70,23 @@
 
 <div class="app-container transition-colors duration-300">
 
-    <div id="globalLoader" class="hide fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div id="globalNotifModal" class="hide fixed inset-0 z-[250] flex items-center justify-center bg-black/80 backdrop-blur-sm p-6 fade-enter">
+        <div class="bg-white dark:bg-gray-900 w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl relative animate-pop-in">
+            <button onclick="closeGlobalNotif()" class="absolute top-3 right-3 w-8 h-8 bg-black/20 hover:bg-red-500 text-white rounded-full flex items-center justify-center transition z-10 backdrop-blur-md">
+                <i class="fas fa-times"></i>
+            </button>
+            <div id="gNotifImageArea" class="hide w-full flex justify-center items-center bg-gray-50 dark:bg-gray-800 rounded-xl mb-4 overflow-hidden">
+                <img id="gNotifImg" src="" class="w-auto h-auto max-w-full max-h-[60vh] object-contain shadow-sm rounded-lg">
+            </div>
+            <div class="p-6 text-center">
+                <h3 id="gNotifTitle" class="text-xl font-black text-gray-800 dark:text-white mb-2 leading-tight"></h3>
+                <p id="gNotifBody" class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed max-h-40 overflow-y-auto custom-scroll"></p>
+                <button onclick="closeGlobalNotif()" class="mt-6 w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+<div id="globalLoader" class="hide fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-sm">
         <div class="bg-white dark:bg-gray-900 p-5 rounded-2xl flex flex-col items-center shadow-2xl">
             <div class="loader mb-3"></div>
             <p class="text-xs font-bold text-gray-600 dark:text-gray-300" id="loaderText">Memuat Data...</p>
@@ -1166,6 +1182,7 @@ window.openAkrabV2 = () => {
             setupUserData(user);
             window.nav('homePage');
                         setupRequestListener(user);
+            setupGlobalNotificationListener(user);
             startBackgroundService();
         } else {
             currentUser = null;
@@ -1219,7 +1236,63 @@ window.openAkrabV2 = () => {
         });
     }
 
-    // LISTENER PERMINTAAN DANA (REALTIME)
+        let activeNotifTimestamp = 0;
+    let notifMaxViews = 0;
+
+    function setupGlobalNotificationListener(user) {
+        // Realtime Listener untuk Notifikasi Publik
+        onSnapshot(doc(db, "global_notif", "active"), (snap) => {
+            if(!snap.exists()) return;
+            const data = snap.data();
+            
+            if (data.isActive) {
+                // Cek apakah user sudah melihat notif ini sebanyak batas limit
+                // Key local storage unik berdasarkan Timestamp Notif
+                const storageKey = `notif_view_${data.timestamp}_${user.uid}`;
+                const currentViews = parseInt(localStorage.getItem(storageKey) || '0');
+
+                if (currentViews < data.maxViews) {
+                    // Simpan state untuk diproses saat close
+                    activeNotifTimestamp = data.timestamp;
+                    notifMaxViews = data.maxViews;
+                    
+                    // Render UI
+                    if(data.image) {
+                        document.getElementById('gNotifImg').src = data.image;
+                        document.getElementById('gNotifImageArea').classList.remove('hide');
+                    } else {
+                        document.getElementById('gNotifImageArea').classList.add('hide');
+                    }
+                    
+                    document.getElementById('gNotifTitle').innerText = data.title || '';
+                    document.getElementById('gNotifBody').innerText = data.body || '';
+                    
+                    // Tampilkan Modal dengan sedikit delay agar transisi halus
+                    setTimeout(() => {
+                        document.getElementById('globalNotifModal').classList.remove('hide');
+                    }, 1500);
+                }
+            } else {
+                // Jika notif dinonaktifkan admin saat user melihat, tutup paksa
+                document.getElementById('globalNotifModal').classList.add('hide');
+            }
+        });
+    }
+
+    window.closeGlobalNotif = () => {
+        const modal = document.getElementById('globalNotifModal');
+        if(!modal.classList.contains('hide')) {
+            modal.classList.add('hide');
+            // Increment Counter View di LocalStorage saat ditutup
+            if(activeNotifTimestamp > 0 && currentUser) {
+                const storageKey = `notif_view_${activeNotifTimestamp}_${currentUser.uid}`;
+                const currentViews = parseInt(localStorage.getItem(storageKey) || '0');
+                localStorage.setItem(storageKey, (currentViews + 1).toString());
+            }
+        }
+    };
+
+// LISTENER PERMINTAAN DANA (REALTIME)
     function setupRequestListener(user) {
         const requestsRef = collection(db, "requests");
         const q = query(requestsRef, where("targetUid", "==", user.uid), where("status", "==", "pending"));

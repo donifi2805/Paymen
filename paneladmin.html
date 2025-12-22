@@ -86,8 +86,11 @@
             <a onclick="switchTab('transactions')" id="nav-transactions" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
                 <i class="fas fa-receipt w-4 mr-3 group-hover:scale-110 transition"></i> Transaksi
             </a>
-            <a onclick="switchTab('pricing')" id="nav-pricing" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
+                        <a onclick="switchTab('pricing')" id="nav-pricing" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
                 <i class="fas fa-tags w-4 mr-3 group-hover:scale-110 transition"></i> Kelola Harga
+            </a>
+            <a onclick="switchTab('notification')" id="nav-notification" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
+                <i class="fas fa-bullhorn w-4 mr-3 group-hover:scale-110 transition"></i> Notifikasi
             </a>
         </nav>
         <div class="p-4 border-t border-slate-800">
@@ -122,7 +125,8 @@
                     <a onclick="switchTab('users'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-users w-4 mr-3"></i> Data User </a>
                     <a onclick="switchTab('livechat'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-comments w-4 mr-3"></i> Live Chat </a>
                     <a onclick="switchTab('transactions'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-receipt w-4 mr-3"></i> Transaksi </a>
-                    <a onclick="switchTab('pricing'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-tags w-4 mr-3"></i> Kelola Harga </a>
+                                        <a onclick="switchTab('pricing'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-tags w-4 mr-3"></i> Kelola Harga </a>
+                    <a onclick="switchTab('notification'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-bullhorn w-4 mr-3"></i> Notifikasi </a>
                 </nav>
             </div>
         </div>
@@ -368,7 +372,59 @@
             </div>
         </div>
 
-        <div id="tab-pricing" class="tab-content hide fade-in pb-10">
+                <div id="tab-notification" class="tab-content hide fade-in pb-10">
+            <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100 sticky top-0 z-20">
+                <div class="flex items-center gap-3">
+                    <button onclick="switchTab('dashboard')" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition"><i class="fas fa-arrow-left"></i></button>
+                    <div><h2 class="text-lg font-bold text-gray-800 leading-none">Push Notification</h2><p class="text-[10px] text-gray-500">Kirim info ke layar pengguna</p></div>
+                </div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-4">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                    <h3 class="font-bold text-gray-700 mb-3">Buat Pesan Baru</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-[10px] font-bold text-gray-500 block mb-1">Judul</label>
+                            <input type="text" id="notifTitle" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs focus:ring-1 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-gray-500 block mb-1">Isi Pesan (Opsional jika ada gambar)</label>
+                            <textarea id="notifBody" rows="3" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs focus:ring-1 focus:ring-blue-500 outline-none"></textarea>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                             <div>
+                                <label class="text-[10px] font-bold text-gray-500 block mb-1">Limit Tampil (Kali)</label>
+                                <input type="number" id="notifMaxViews" value="1" min="1" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs focus:ring-1 focus:ring-blue-500 outline-none">
+                             </div>
+                             <div>
+                                <label class="text-[10px] font-bold text-gray-500 block mb-1">Gambar (Max 1000px)</label>
+                                <input type="file" id="notifImageInput" accept="image/*" onchange="processNotifImage()" class="w-full text-[10px] text-gray-500">
+                             </div>
+                        </div>
+                        <input type="hidden" id="notifBase64">
+                        <div id="previewArea" class="hide relative rounded-lg overflow-hidden border border-gray-200">
+                            <img id="imgPreview" class="w-full h-32 object-cover">
+                            <button onclick="clearImageSelection()" class="absolute top-1 right-1 bg-red-500 text-white w-5 h-5 rounded-full text-[10px] flex items-center justify-center shadow"><i class="fas fa-times"></i></button>
+                        </div>
+                        <button onclick="sendBroadcast()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-bold text-xs shadow-lg transition">KIRIM NOTIFIKASI</button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-bold text-gray-700">Status Aktif</h3>
+                        <button onclick="loadActiveNotif()" class="text-blue-600 hover:bg-blue-50 p-1 rounded"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                    <div id="activeNotifContainer" class="text-center py-8 text-gray-400 text-xs">
+                        Memuat...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-pricing"
+<div id="tab-pricing" class="tab-content hide fade-in pb-10">
             <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100 sticky top-0 z-20">
                 <div class="flex items-center gap-3">
                     <button onclick="switchTab('dashboard')" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition"><i class="fas fa-arrow-left"></i></button>
@@ -676,6 +732,7 @@
             document.querySelectorAll('nav a').forEach(el => el.classList.remove('active-nav', 'text-white'));
             const activeLink = document.getElementById('nav-' + tabId);
             if(activeLink) activeLink.classList.add('active-nav', 'text-white');
+                        if(tabId === 'notification') loadActiveNotif();
             if(tabId === 'pricing') loadPricingData();
             if(tabId === 'livechat') loadChatList();
         };
@@ -1192,6 +1249,105 @@
             document.getElementById('addUserModal').classList.add('hide'); loadDashboardData();
         };
         window.triggerResetFromModal = async () => { try { await sendPasswordResetEmail(auth, document.getElementById('editEmailHidden').value); alert('Email terkirim'); } catch(e) { alert(e.message); } };
+
+        window.processNotifImage = () => {
+            const file = document.getElementById('notifImageInput').files[0];
+            if(!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    // Resize Max 1000px
+                    if (width > 1000) {
+                        height = Math.round(height * (1000 / width));
+                        width = 1000;
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                    document.getElementById('notifBase64').value = dataUrl;
+                    document.getElementById('imgPreview').src = dataUrl;
+                    document.getElementById('previewArea').classList.remove('hide');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        window.clearImageSelection = () => {
+            document.getElementById('notifImageInput').value = '';
+            document.getElementById('notifBase64').value = '';
+            document.getElementById('previewArea').classList.add('hide');
+        };
+
+        window.sendBroadcast = async () => {
+            const title = document.getElementById('notifTitle').value;
+            const body = document.getElementById('notifBody').value;
+            const img = document.getElementById('notifBase64').value;
+            const maxViews = parseInt(document.getElementById('notifMaxViews').value) || 1;
+
+            if(!title && !body && !img) return Swal.fire('Gagal', 'Isi minimal Judul, Pesan, atau Gambar', 'warning');
+
+            try {
+                Swal.showLoading();
+                await setDoc(doc(db, "global_notif", "active"), {
+                    title, body, image: img, maxViews,
+                    timestamp: Date.now(),
+                    isActive: true,
+                    admin: auth.currentUser.email
+                });
+                Swal.fire('Terkirim', 'Notifikasi berhasil dipublikasikan ke seluruh user', 'success');
+                loadActiveNotif();
+                
+                // Reset Form
+                document.getElementById('notifTitle').value = '';
+                document.getElementById('notifBody').value = '';
+                document.getElementById('notifMaxViews').value = '1';
+                window.clearImageSelection();
+            } catch(e) { Swal.fire('Error', e.message, 'error'); }
+        };
+
+        window.loadActiveNotif = async () => {
+            const container = document.getElementById('activeNotifContainer');
+            try {
+                const snap = await getDoc(doc(db, "global_notif", "active"));
+                if(!snap.exists() || !snap.data().isActive) {
+                    container.innerHTML = '<div class="bg-gray-50 border border-dashed border-gray-200 rounded-lg p-4"><i class="fas fa-bell-slash text-2xl text-gray-300 mb-2"></i><p>Tidak ada notifikasi aktif</p></div>';
+                    return;
+                }
+                const d = snap.data();
+                container.innerHTML = `
+                    <div class="text-left bg-blue-50 border border-blue-100 rounded-xl overflow-hidden">
+                        ${d.image ? `<img src="${d.image}" class="w-full h-32 object-cover">` : ''}
+                        <div class="p-3">
+                            <h4 class="font-bold text-gray-800">${d.title || '(Tanpa Judul)'}</h4>
+                            <p class="text-[10px] text-gray-600 mb-2">${d.body || ''}</p>
+                            <div class="flex justify-between items-center text-[9px] text-gray-500 mb-3">
+                                <span>Limit: ${d.maxViews}x / user</span>
+                                <span>${new Date(d.timestamp).toLocaleString()}</span>
+                            </div>
+                            <button onclick="deactivateNotif()" class="w-full bg-red-100 text-red-600 py-2 rounded-lg font-bold text-[10px] hover:bg-red-200">HENTIKAN NOTIFIKASI</button>
+                        </div>
+                    </div>
+                `;
+            } catch(e) { console.log(e); }
+        };
+
+        window.deactivateNotif = async () => {
+            if(confirm('Hentikan penayangan notifikasi ini?')) {
+                await updateDoc(doc(db, "global_notif", "active"), { isActive: false });
+                loadActiveNotif();
+            }
+        };
 
     </script>
     

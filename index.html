@@ -2033,13 +2033,17 @@ window.openAkrabV2 = () => {
             
             if(pricingRules[code]) price += parseInt(pricingRules[code]);
             
-            let isGangguan = false;
-            if (p.gangguan === 1 || p.gangguan === '1') isGangguan = true;
-            if (p.kosong === 1 || p.kosong === '1') isGangguan = true;
-            if (String(p.buyer_product_status) === '0') isGangguan = true;
+                        let isGangguan = false;
+            // FIX: Deteksi Status Khfy Lebih Lengkap (Boolean/Int/String)
+            if (p.gangguan == 1) isGangguan = true;
+            if (p.kosong == 1) isGangguan = true;
+            if (p.buyer_product_status === false || p.buyer_product_status == 0) isGangguan = true;
+            if (p.seller_product_status === false || p.seller_product_status == 0) isGangguan = true;
+            if (p.stock == 0 && p.unlimited_stock === false) isGangguan = true;
 
+            // FIX: Hapus cursor-pointer dan active:scale jika gangguan agar tidak terkesan bisa ditekan
             const div = document.createElement('div');
-            div.className = `p-4 rounded-2xl border ${isGangguan ? 'border-red-200 bg-red-50 dark:bg-red-900/10' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900'} mb-2 flex justify-between items-center group cursor-pointer transition active:scale-[0.98]`;
+            div.className = `p-4 rounded-2xl border ${isGangguan ? 'border-red-200 bg-red-50 dark:bg-red-900/10 cursor-not-allowed opacity-70' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 cursor-pointer transition active:scale-[0.98]'} mb-2 flex justify-between items-center group`;
             
             if(isGangguan) {
                 div.innerHTML = `

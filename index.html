@@ -149,6 +149,10 @@
         <div class="bg-white dark:bg-gray-900 w-full max-w-xs rounded-3xl p-6 shadow-2xl relative overflow-hidden">
             <div class="absolute top-0 left-0 w-full h-1.5 bg-blue-500"></div>
             <button onclick="closeTrxDetail()" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 z-10"><i class="fas fa-times text-xl"></i></button>
+            <div class="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-2xl mb-4 text-center border border-blue-100 dark:border-blue-800">
+                <p class="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-widest">Kode Transaksi</p>
+                <p class="text-lg font-mono font-black text-gray-800 dark:text-white" id="dtTrxCode">------</p>
+            </div>
             <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-4">Detail Transaksi</h3>
             
             <div class="space-y-3">
@@ -1846,10 +1850,9 @@
     window.executeApiTransaction = async (code, dest, price, name) => {
         window.showLoader(true);
         const reffId = crypto.randomUUID();
+        const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
         const trxRef = doc(db, "users", currentUser.uid, "history", reffId);
         
-        // 1. ATOMIC DEDUCTION (Potong & Catat History Sekaligus)
-        // Mencegah saldo hilang tanpa jejak (Ghost Deduction)
         try {
             await runTransaction(db, async (t) => {
                 const uRef = doc(db, "users", currentUser.uid);
@@ -1869,6 +1872,7 @@
                     status: 'Proses',
                     api_msg: 'Menghubungkan ke server...',
                     trx_id: reffId,
+                    trx_code: trxCode,
                     provider_id: '',
                     balance_before: balanceBefore,
                     balance_after: balanceAfter
@@ -1915,7 +1919,21 @@
                     t.update(trxRef, { 
                         status: 'Gagal', 
                         api_msg: 'Refund Otomatis: ' + msg,
-                        balance_final: balanceFinal
+                        balance_final: balanceFinal,
+                        raw_json: JSON.stringify(result.data)
+                    });
+                    // Catat Riwayat Refund Terpisah agar muncul di mutasi
+                    const refundId = 'REF-' + Date.now();
+                    const refundRef = doc(db, "users", currentUser.uid, "history", refundId);
+                    t.set(refundRef, {
+                        title: "Refund: " + name,
+                        amount: price,
+                        type: 'in',
+                        date: new Date().toISOString(),
+                        status: 'Sukses',
+                        api_msg: 'Pengembalian saldo otomatis',
+                        trx_id: refundId,
+                        trx_code: trxCode
                     });
                 });
                 
@@ -2223,6 +2241,7 @@ window.renderTopUpHistory = () => {
         if(!trx) return;
 
         document.getElementById('dtTitle').innerText = trx.title;
+        document.getElementById('dtTrxCode').innerText = trx.trx_code || '------';
         document.getElementById('dtAmount').innerText = window.formatRp(trx.amount);
         document.getElementById('dtDate').innerText = new Date(trx.date).toLocaleString('id-ID');
         

@@ -787,10 +787,9 @@
 
     const CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
     const PROXY_LIST = [
-        { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
-        { name: 'CorsProxy', url: 'https://corsproxy.io/?' },
-        { name: 'ThingProxy', url: 'https://thingproxy.freeboard.io/fetch/' },
         { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
+        { name: 'CorsProxyIO', url: 'https://corsproxy.io/?' },
+        { name: 'ThingProxy', url: 'https://thingproxy.freeboard.io/fetch/' },
         { name: 'Direct', url: '' }
     ];
 
@@ -1258,13 +1257,17 @@
             
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 detik timeout
+                const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 detik timeout
 
                 const response = await fetch(fullUrl, { signal: controller.signal });
                 clearTimeout(timeoutId);
 
                 if (response.ok) {
                     const text = await response.text();
+                    if (!text || text.trim().startsWith('<')) {
+                        console.warn(`[API] Respon HTML terdeteksi via ${proxy.name}`);
+                        continue;
+                    }
                     try {
                         const data = JSON.parse(text);
                         console.log(`[API] SUKSES via ${proxy.name}`);

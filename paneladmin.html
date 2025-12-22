@@ -767,8 +767,8 @@
                     document.getElementById('statChatCount').innerText = unreadCount;
                 });
 
-                // Pending Count for Dashboard Card
-                const qPending = query(collectionGroup(db, 'history'), where("status", "in", ["Pending", "Proses", "Gagal"]));
+                                // Pending Count for Dashboard Card
+                const qPending = query(collectionGroup(db, 'history'), where("status", "in", ["Pending", "Proses"]));
                 onSnapshot(qPending, (snap) => {
                     document.getElementById('statPendingCount').innerText = snap.size;
                 });
@@ -777,30 +777,42 @@
             } catch (e) { console.log(e); }
         };
 
-        window.loadPendingTransactions = async () => {
+                window.loadPendingTransactions = async () => {
             const tbody = document.getElementById('pendingTrxTableBody');
             tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center">Memproses...</td></tr>';
             try {
-                const q = query(collectionGroup(db, 'history'), where("status", "in", ["Pending", "Proses", "Gagal"]));
+                const q = query(collectionGroup(db, 'history'), where("status", "in", ["Pending", "Proses"]));
                 const snap = await getDocs(q);
-                let html = '';
-                if(snap.empty) { html = '<tr><td colspan="5" class="p-6 text-center">Tidak ada transaksi pending/gagal</td></tr>'; }
+                let pendingList = [];
                 snap.forEach(d => {
-                    const t = d.data();
-                    const parentUid = d.ref.parent.parent ? d.ref.parent.parent.id : 'Unk';
-                    const user = allUsers.find(u => u.id === parentUid);
+                    pendingList.push({ id: d.id, parentUid: d.ref.parent.parent ? d.ref.parent.parent.id : 'Unk', ...d.data() });
+                });
+
+                pendingList.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                let html = '';
+                if(pendingList.length === 0) { 
+                    html = '<tr><td colspan="5" class="p-6 text-center">Tidak ada transaksi pending</td></tr>'; 
+                }
+                
+                pendingList.forEach(t => {
+                    const user = allUsers.find(u => u.id === t.parentUid);
+                    const dObj = t.date ? new Date(t.date) : null;
+                    const timeStr = dObj ? dObj.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : '--:--';
+                    
                     html += `<tr class="border-b border-gray-50">
-                        <td class="p-3"><b>${user ? user.username : 'User'}</b><br><span class="text-[9px] text-gray-400">${parentUid}</span></td>
+                        <td class="p-3"><b>${user ? user.username : 'User'}</b><br><span class="text-[9px] text-blue-500 font-mono">${timeStr} WIB</span></td>
                         <td class="p-3"><b>${t.title}</b><br>${t.api_msg || '-'}</td>
                         <td class="p-3 text-right font-bold text-blue-600">${window.formatRp(t.amount)}</td>
                         <td class="p-3 text-center">
-                            <button onclick="viewUserHistory('${parentUid}', '${user ? user.username : 'User'}')" class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 hover:bg-orange-500 hover:text-white transition shadow-sm"><i class="fas fa-history text-[10px]"></i></button>
+                            <button onclick="viewUserHistory('${t.parentUid}', '${user ? user.username : 'User'}')" class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 hover:bg-orange-500 hover:text-white transition shadow-sm"><i class="fas fa-history text-[10px]"></i></button>
                         </td>
-                        <td class="p-3 text-center"><span class="px-1.5 py-0.5 rounded ${t.status==='Gagal'?'bg-red-100 text-red-700':'bg-yellow-100 text-yellow-700'}">${t.status}</span></td>
+                        <td class="p-3 text-center"><span class="px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700">${t.status}</span></td>
                         <td class="p-3 text-center">
-                            <button onclick="manualSuccess('${parentUid}', '${d.id}')" class="bg-green-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-green-700">SUKSESKAN</button>
-                            <button onclick="manualFail('${parentUid}', '${d.id}', ${t.amount})" class="bg-red-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-red-700 ml-1">GAGALKAN</button>
-                        </td>\n                    </tr>`;
+                            <button onclick="manualSuccess('${t.parentUid}', '${t.id}')" class="bg-green-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-green-700">SUKSESKAN</button>
+                            <button onclick="manualFail('${t.parentUid}', '${t.id}', ${t.amount})" class="bg-red-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-red-700 ml-1">GAGALKAN</button>
+                        </td>
+                    </tr>`;
                 });
                 tbody.innerHTML = html;
             } catch(e) { 

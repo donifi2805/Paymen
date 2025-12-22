@@ -1039,8 +1039,10 @@
                 if (senderBalance < amount) throw "Saldo tidak cukup!";
 
                 const receiverDoc = await transaction.get(receiverRef);
-                if (!receiverDoc.exists()) throw "Penerima tidak valid!";
                 const receiverBalance = receiverDoc.data().balance || 0;
+
+                const balanceBefore = senderBalance;
+                const balanceAfter = senderBalance - amount;
 
                 // 1. Kurangi Saldo Pengirim
                 transaction.update(senderRef, { balance: senderBalance - amount });
@@ -1057,7 +1059,9 @@
                     date: new Date().toISOString(),
                     status: 'Sukses',
                     api_msg: 'Transfer Sesama',
-                    trx_id: trxId
+                    trx_id: trxId,
+                    balance_before: balanceBefore,
+                    balance_after: balanceAfter
                 });
 
                 // 4. Catat History Penerima
@@ -1853,16 +1857,21 @@
                 const currentBal = uDoc.data().balance || 0;
                 if(currentBal < price) throw "Saldo tidak cukup!";
                 
-                t.update(uRef, { balance: currentBal - price });
+                const balanceBefore = currentBal;
+                const balanceAfter = currentBal - price;
+
+                t.update(uRef, { balance: balanceAfter });
                 t.set(trxRef, {
                     title: name,
                     amount: price,
                     type: 'out',
                     date: new Date().toISOString(),
-                    status: 'Proses', // Status awal agar terlacak
+                    status: 'Proses',
                     api_msg: 'Menghubungkan ke server...',
                     trx_id: reffId,
-                    provider_id: ''
+                    provider_id: '',
+                    balance_before: balanceBefore,
+                    balance_after: balanceAfter
                 });
             });
         } catch(e) {
@@ -1901,8 +1910,13 @@
                     const uRef = doc(db, "users", currentUser.uid);
                     const uDoc = await t.get(uRef);
                     const currentBal = uDoc.data().balance || 0;
-                    t.update(uRef, { balance: currentBal + price });
-                    t.update(trxRef, { status: 'Gagal', api_msg: 'Refund Otomatis: ' + msg });
+                    const balanceFinal = currentBal + price;
+                    t.update(uRef, { balance: balanceFinal });
+                    t.update(trxRef, { 
+                        status: 'Gagal', 
+                        api_msg: 'Refund Otomatis: ' + msg,
+                        balance_final: balanceFinal
+                    });
                 });
                 
                 currentBalance += price;

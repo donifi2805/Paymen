@@ -849,12 +849,13 @@ window.openAkrabV2 = () => {
         let targetUrl = `${ICS_CONFIG.baseUrl}/?action=${action}&apikey=${ICS_CONFIG.apiKey}`;
         let options = { method: method };
 
-        if (method === 'GET') {
+                if (method === 'GET') {
             const qs = new URLSearchParams(params).toString();
             if(qs) targetUrl += `&${qs}`;
-        }         } else if (method === 'POST') {
-             // FIX: Gunakan URLSearchParams agar terbaca sebagai $_POST di server PHP
+        } else if (method === 'POST') {
+             // FIX: Kirim sebagai Form Data + Header Eksplisit agar terbaca Server PHP
              options.body = new URLSearchParams(params);
+             options.headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
         }
 
         for (const proxy of PROXY_LIST) {

@@ -846,7 +846,8 @@ window.openAkrabV2 = () => {
 
                     async function callIcsApi(action, params = {}, method = 'GET') {
         // FIX: Gunakan API Key di URL. Header sering dihapus oleh Proxy publik.
-        let targetUrl = `${ICS_CONFIG.baseUrl}/?action=${action}&apikey=${ICS_CONFIG.apiKey}`;
+                // FIX: Tambahkan timestamp (_t) untuk bypass Cache Proxy yang membandel
+        let targetUrl = `${ICS_CONFIG.baseUrl}/?action=${action}&apikey=${ICS_CONFIG.apiKey}&_t=${Date.now()}`;
         let options = { method: method };
 
                         if (method === 'GET') {
@@ -1014,11 +1015,11 @@ window.openAkrabV2 = () => {
             }
             
             // 2. Panggil API ICS
-            const apiRes = await callIcsApi('createTransaction', {
+                        const apiRes = await callIcsApi('createTransaction', {
                 kode_produk: code,
                 nomor_tujuan: number,
                 refid: reffId
-            }, 'POST');
+            }, 'GET'); // FIX: Gunakan GET agar data 100% aman lewat Proxy
 
             window.showLoader(false);
 

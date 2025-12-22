@@ -408,6 +408,40 @@
             </div>
         </div>
     </section>
+    <section id="akrabV2Page" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen z-40 absolute top-0 w-full max-w-[480px]">
+        <div class="p-4 bg-white dark:bg-gray-900 sticky top-0 z-20 shadow-sm flex items-center gap-4">
+            <button onclick="nav('homePage')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"><i class="fas fa-arrow-left text-gray-800 dark:text-white"></i></button>
+            <h2 class="font-bold text-lg text-gray-800 dark:text-white">Akrab v2 (ICS)</h2>
+        </div>
+        <div class="p-4 pb-24">
+            <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-800">
+            <div class="mb-4">
+                    <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Kategori / Provider</label>
+                    <div onclick="openIcsSheet()" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white text-sm rounded-xl px-4 py-3 font-bold flex justify-between items-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                        <span id="icsProviderDisplay">XL Akrab (XLA)</span>
+                        <i class="fas fa-chevron-down text-gray-400"></i>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <div class="flex justify-between items-center mb-1"><label class="block text-xs font-bold text-gray-500 ml-1">Pilih Paket</label><button onclick="initAkrabV2Data()" class="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded-md hover:bg-blue-100"><i class="fas fa-sync-alt mr-1"></i> Refresh</button></div>
+                    <select id="icsProductSelect" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 px-3 text-sm font-bold dark:text-white" onchange="updateIcsPriceDisplay()">
+                        <option value="" disabled selected>-- Memuat Data... --</option>
+                    </select>
+                    <p class="text-[10px] text-blue-500 mt-1 text-right font-bold" id="icsPriceDisplay">Harga: -</p>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Nomor Tujuan</label>
+                    <div class="input-group">
+                        <input type="tel" id="icsNumberInput" placeholder="Nomor HP" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-800 text-gray-800 dark:text-white text-sm font-bold pl-11">
+                        <i class="fas fa-address-book text-gray-400 absolute left-4 top-1/2 -translate-y-1/2 z-10"></i>
+                    </div>
+                </div>
+                <button onclick="processAkrabV2Transaction()" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-cyan-500/30 active:scale-95 transition-transform flex justify-center items-center gap-2"><span>Beli Paket</span><i class="fas fa-arrow-right"></i></button>
+                <p class="text-[10px] text-gray-400 mt-4 text-center">Powered by ICS Store API</p>
+            </div>
+        </div>
+    </section>
+
 
     <section id="homePage" class="page hide bg-gray-50/50 dark:bg-gray-950">
         <div class="bg-gradient-brand text-white pt-8 pb-24 px-6 rounded-b-[40px] shadow-lg relative overflow-hidden">
@@ -559,6 +593,33 @@
         </div>
     </section>
 
+    <section id="akrabV2Page" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen z-40 absolute top-0 w-full max-w-[480px]">
+        <div class="p-4 bg-white dark:bg-gray-900 sticky top-0 z-20 shadow-sm flex items-center gap-4">
+            <button onclick="nav('homePage')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"><i class="fas fa-arrow-left text-gray-800 dark:text-white"></i></button>
+            <h2 class="font-bold text-lg text-gray-800 dark:text-white">Akrab v2 (ICS)</h2>
+        </div>
+        <div class="p-4 pb-24">
+            <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-800">
+                <div class="mb-4">
+                    <div class="flex justify-between items-center mb-1"><label class="block text-xs font-bold text-gray-500 ml-1">Pilih Paket</label><button onclick="initAkrabV2Data()" class="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded-md hover:bg-blue-100"><i class="fas fa-sync-alt mr-1"></i> Refresh</button></div>
+                    <select id="icsProductSelect" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 px-3 text-sm font-bold dark:text-white" onchange="updateIcsPriceDisplay()">
+                        <option value="" disabled selected>-- Memuat Data... --</option>
+                    </select>
+                    <p class="text-[10px] text-blue-500 mt-1 text-right font-bold" id="icsPriceDisplay">Harga: -</p>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Nomor Tujuan</label>
+                    <div class="input-group">
+                        <input type="tel" id="icsNumberInput" placeholder="Nomor HP" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-800 text-gray-800 dark:text-white text-sm font-bold pl-11">
+                        <i class="fas fa-address-book text-gray-400 absolute left-4 top-1/2 -translate-y-1/2 z-10"></i>
+                    </div>
+                </div>
+                <button onclick="processAkrabV2Transaction()" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-cyan-500/30 active:scale-95 transition-transform flex justify-center items-center gap-2"><span>Beli Paket</span><i class="fas fa-arrow-right"></i></button>
+                <p class="text-[10px] text-gray-400 mt-4 text-center">Powered by ICS Store API</p>
+            </div>
+        </div>
+    </section>
+
     <section id="historyPage" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen">
         <div class="p-4 bg-white dark:bg-gray-900 sticky top-0 z-10 shadow-sm dark:shadow-gray-800">
             <div class="flex justify-between items-center mb-4"><h2 class="font-bold text-lg text-gray-800 dark:text-white">Riwayat</h2><div class="flex gap-2"><button onclick="downloadHistoryPDF()" class="text-xs bg-blue-100 text-blue-600 px-3 py-1.5 rounded-lg font-bold hover:bg-blue-200 transition"><i class="fas fa-file-pdf mr-1"></i> PDF</button></div></div>
@@ -649,12 +710,12 @@
             <button onclick="closeAllSheets()" class="text-gray-400 hover:text-red-500"><i class="fas fa-times"></i></button>
         </div>
         <div class="space-y-2 max-h-[60vh] overflow-y-auto no-scrollbar pb-8">
-            <div onclick="selectProvider('XDA', 'Akrab Fresh (XDA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
-                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Akrab Fresh (XDA)</span>
+            <div onclick="selectProvider('ICS_XDA', 'Akrab Fresh (ICS)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Akrab Fresh (ICS)</span>
                 <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
             </div>
-            <div onclick="selectProvider('XLA', 'Akrab Fresh (XLA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
-                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Akrab Fresh (XLA)</span>
+            <div onclick="selectProvider('ICS_CIRCLE', 'XL Circle (ICS)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">XL Circle (ICS)</span>
                 <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
             </div>
             <div onclick="selectProvider('FMX', 'FlexMax (FMX)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
@@ -673,6 +734,30 @@
     </div>
 
     
+    <div id="sheetIcsProvider" class="hide fixed bottom-0 left-0 right-0 z-[70] bg-white dark:bg-gray-900 rounded-t-[2rem] p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.3)] max-w-[480px] mx-auto transition-transform duration-300 transform translate-y-0">
+        <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-6"></div>
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Pilih Kategori</h3>
+            <button onclick="closeIcsSheet()" class="text-gray-400 hover:text-red-500"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="space-y-2 max-h-[60vh] overflow-y-auto no-scrollbar pb-8">
+            <div onclick="setIcsProvider('xla', 'XL Akrab (XLA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">XL Akrab (XLA)</span><i class="fas fa-chevron-right text-gray-300 text-xs"></i>
+            </div>
+            <div onclick="setIcsProvider('xda', 'Akrab Fresh/Data (XDA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Akrab Fresh (XDA)</span><i class="fas fa-chevron-right text-gray-300 text-xs"></i>
+            </div>
+            <div onclick="setIcsProvider('fmax', 'FlexMax (FMAX)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">FlexMax (FMAX)</span><i class="fas fa-chevron-right text-gray-300 text-xs"></i>
+            </div>
+            <div onclick="setIcsProvider('circle', 'XL Circle')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">XL Circle</span><i class="fas fa-chevron-right text-gray-300 text-xs"></i>
+            </div>
+            <div onclick="setIcsProvider('bpa', 'Bagi Pulsa (BPA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Bagi Pulsa (BPA)</span><i class="fas fa-chevron-right text-gray-300 text-xs"></i>
+            </div>
+        </div>
+    </div>
     <div id="sheetProduct" class="hide fixed bottom-0 left-0 right-0 z-[70] bg-white dark:bg-gray-900 rounded-t-[2rem] p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.3)] max-w-[480px] mx-auto transition-transform duration-300">
         <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-6"></div>
         <div class="flex justify-between items-center mb-4">
@@ -715,6 +800,267 @@
     };
 
     const app = initializeApp(firebaseConfig);
+
+    // 1. PROXY LIST (Global)
+        // 1. PROXY LIST (Global) - Prioritaskan CorsProxyIO untuk POST Request
+        // 1. PROXY LIST (Global) - Update dengan CodeTabs sebagai cadangan handal
+        // 1. PROXY LIST (Global) - Update dengan CodeTabs (Paling Stabil)
+    const PROXY_LIST = [
+        { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
+        { name: 'CorsProxyIO', url: 'https://corsproxy.io/?' },
+        { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
+        { name: 'Direct', url: '' }
+    ];
+
+    // 2. ICS STORE INTEGRATION
+    const ICS_CONFIG = {
+        apiKey: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3",
+        baseUrl: "https://reseller.ics-store.my.id"
+    };
+
+        let currentIcsType = 'xla';
+
+    window.openIcsSheet = () => {
+        document.getElementById('sheetIcsProvider').classList.remove('hide');
+        document.getElementById('sheetOverlay').classList.remove('hide');
+        document.body.style.overflow = 'hidden';
+    };
+
+    window.closeIcsSheet = () => {
+        document.getElementById('sheetIcsProvider').classList.add('hide');
+        document.getElementById('sheetOverlay').classList.add('hide');
+        document.body.style.overflow = '';
+    };
+
+    window.setIcsProvider = (type, name) => {
+        currentIcsType = type;
+        document.getElementById('icsProviderDisplay').innerText = name;
+        window.closeIcsSheet();
+        window.initAkrabV2Data();
+    };
+
+window.openAkrabV2 = () => {
+        window.nav('akrabV2Page');
+        window.initAkrabV2Data();
+    };
+
+                    async function callIcsApi(action, params = {}, method = 'GET') {
+        // FIX: Gunakan API Key di URL. Header sering dihapus oleh Proxy publik.
+                // FIX: Tambahkan timestamp (_t) untuk bypass Cache Proxy yang membandel
+        let targetUrl = `${ICS_CONFIG.baseUrl}/?action=${action}&apikey=${ICS_CONFIG.apiKey}&_t=${Date.now()}`;
+        let options = { method: method };
+
+                        if (method === 'GET') {
+            const qs = new URLSearchParams(params).toString();
+            if(qs) targetUrl += `&${qs}`;
+        } else if (method === 'POST') {
+             // FIX: Strategi Double-Send (URL + Body) agar kebal terhadap Proxy yang membuang Body
+             const qs = new URLSearchParams(params).toString();
+             if(qs) targetUrl += `&${qs}`; // Tempel juga di URL sebagai cadangan
+             
+             options.body = new URLSearchParams(params);
+             options.headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+        }
+
+        for (const proxy of PROXY_LIST) {
+            try {
+                // Encode URL target agar aman saat melewati URL proxy
+                const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
+                
+                // Timeout 15 detik
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+                const res = await fetch(fullUrl, { ...options, signal: controller.signal });
+                clearTimeout(timeoutId);
+
+                if (res.ok) {
+                    const text = await res.text();
+                    // Coba parsing JSON
+                    try { 
+                        let data = JSON.parse(text); 
+                        // Handle jika proxy membungkus response di dalam field 'contents'
+                        if (data.contents) {
+                             try { data = JSON.parse(data.contents); } catch(e) { data = data.contents; }
+                        }
+                        return data;
+                    } catch (e) { 
+                        console.warn('ICS JSON Parse Error via ' + proxy.name, e); 
+                    }
+                }
+            } catch (e) { 
+                console.warn('ICS Proxy Error via ' + proxy.name, e); 
+            }
+        }
+        return { success: false, message: 'Gagal koneksi ke server ICS (Semua Proxy Gagal)' };
+    }
+
+
+
+        window.initAkrabV2Data = async () => {
+        const select = document.getElementById('icsProductSelect');
+        select.innerHTML = '<option>Memuat...</option>';
+        
+        const res = await callIcsApi('listProducts', { type: currentIcsType });
+        select.innerHTML = '';
+
+        // PERBAIKAN: Handle Respon Sukses (Gabung Ready + Empty)
+        if (res.success && res.data) {
+            const readyItems = res.data.ready || [];
+            const emptyItems = res.data.empty || [];
+            // 1. Gabungkan kedua array
+            const allProducts = [...readyItems, ...emptyItems];
+
+            if(allProducts.length === 0) {
+                 select.innerHTML = '<option value="" disabled>Produk Kosong</option>';
+                 return;
+            }
+
+            // 2. Urutkan dari harga termurah
+            allProducts.sort((a, b) => a.harga - b.harga);
+
+            select.innerHTML = '<option value="" disabled selected>-- Pilih Produk --</option>';
+            
+            allProducts.forEach(p => {
+                // Markup Profit Rp 2000
+                const sellPrice = p.harga + 2000;
+                
+                // Cek apakah produk ini berasal dari list 'empty' atau stoknya 0
+                // Kita cek referensi objeknya langsung
+                const isHabis = p.stok === 0 || p.stok === '0' || emptyItems.includes(p);
+
+                const opt = document.createElement('option');
+                opt.value = p.kode_produk;
+                opt.dataset.name = p.nama_produk;
+                opt.dataset.price = sellPrice;
+                opt.dataset.rawPrice = p.harga;
+                
+                if (isHabis) {
+                    // Tampilkan Tanda Silang & Disable jika stok habis
+                    opt.innerHTML = `❌ ${p.nama_produk} (Habis) - Rp ${window.formatRp(sellPrice)}`;
+                    opt.disabled = true;
+                    opt.style.color = '#ef4444'; // Warna Merah
+                } else {
+                    opt.innerHTML = `${p.nama_produk} - Rp ${window.formatRp(sellPrice)}`;
+                }
+                
+                select.appendChild(opt);
+            });
+        } else {
+            select.innerHTML = '<option value="" disabled>Gagal Memuat</option>';
+            alert('Gagal memuat produk ICS: ' + (res.message || 'Unknown Error'));
+        }
+    };
+
+
+
+    window.updateIcsPriceDisplay = () => {
+        const select = document.getElementById('icsProductSelect');
+        const opt = select.options[select.selectedIndex];
+        if(opt && opt.dataset.price) {
+            document.getElementById('icsPriceDisplay').innerText = `Harga: ${window.formatRp(parseInt(opt.dataset.price))}`;
+        }
+    };
+
+            window.executeIcsTransaction = async (code, number, price, name) => {
+        window.showLoader(true);
+        const reffId = 'ICS-' + Date.now();
+        const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        try {
+            await runTransaction(db, async (t) => {
+                const uRef = doc(db, "users", currentUser.uid);
+                const uDoc = await t.get(uRef);
+                const bal = uDoc.data().balance || 0;
+                if(bal < price) throw "Saldo kurang";
+                
+                const balanceAfter = bal - price;
+                t.update(uRef, { balance: balanceAfter });
+                
+                const hRef = doc(db, "users", currentUser.uid, "history", reffId);
+                t.set(hRef, {
+                    title: name,
+                    amount: price,
+                    type: 'out',
+                    date: new Date().toISOString(),
+                    status: 'Proses',
+                    api_msg: 'Menghubungkan ke ICS...',
+                    trx_id: reffId,
+                    trx_code: trxCode,
+                    provider_id: 'ICS',
+                    raw_code: code,
+                    dest_num: number,
+                    balance_before: bal,
+                    balance_after: balanceAfter
+                });
+            });
+        } catch(e) {
+            window.showLoader(false);
+            return alert("Gagal proses database: " + e);
+        }
+        
+        // 2. Panggil API ICS
+        const apiRes = await callIcsApi('createTransaction', {
+            kode_produk: code,
+            nomor_tujuan: number,
+            refid: reffId
+        }, 'GET');
+
+        window.showLoader(false);
+
+        if(apiRes.success) {
+            await updateDoc(doc(db, "users", currentUser.uid, "history", reffId), {
+                status: 'Pending',
+                api_msg: apiRes.message || 'Sedang diproses',
+                supplier_id: apiRes.supplier_trxid || '-'
+            });
+            alert("Transaksi Berhasil Dikirim!\nKode Trx: " + trxCode + "\nStatus: Pending.");
+            window.nav('homePage');
+        } else {
+            // Refund Otomatis
+            await runTransaction(db, async (t) => {
+                const uRef = doc(db, "users", currentUser.uid);
+                const uDoc = await t.get(uRef);
+                const balNow = uDoc.data().balance || 0;
+                t.update(uRef, { balance: balNow + price });
+                t.update(doc(db, "users", currentUser.uid, "history", reffId), {
+                    status: 'Gagal',
+                    api_msg: 'Refund: ' + (apiRes.error || apiRes.message || 'Gagal dari pusat'),
+                    balance_final: balNow + price
+                });
+            });
+            alert("Transaksi Gagal: " + (apiRes.error || apiRes.message || "Unknown") + "\nSaldo dikembalikan.");
+        }
+    };
+
+
+
+
+    async function checkIcsStatus(trx, docSnap) {
+        const res = await callIcsApi('checkTransaction', { refid: trx.trx_id });
+        if(res.success) {
+            let newStatus = 'Pending';
+            const statusRaw = (res.status || '').toLowerCase();
+            if(statusRaw === 'success') newStatus = 'Sukses';
+            else if(statusRaw === 'failed' || statusRaw === 'error' || statusRaw === 'unpaid') newStatus = 'Gagal';
+            
+            if(newStatus !== 'Pending') {
+                await runTransaction(db, async (t) => {
+                    const freshDoc = await t.get(docSnap.ref);
+                    if(freshDoc.data().status !== 'Pending') return;
+
+                    if(newStatus === 'Gagal') {
+                        const uRef = doc(db, "users", currentUser.uid);
+                        const uDoc = await t.get(uRef);
+                        t.update(uRef, { balance: (uDoc.data().balance || 0) + trx.amount });
+                        t.update(docSnap.ref, { status: 'Gagal', api_msg: 'Refund: ' + (res.message || 'Gagal') });
+                    } else {
+                        t.update(docSnap.ref, { status: 'Sukses', api_msg: res.message || res.sn || 'Sukses' });
+                    }
+                });
+            }
+        }
+    }
     const auth = getAuth(app);
     const db = getFirestore(app);
     auth.languageCode = 'id';
@@ -786,12 +1132,6 @@
     let qiosTicket = null;
 
     const CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
-    const PROXY_LIST = [
-        { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
-        { name: 'CorsProxyIO', url: 'https://corsproxy.io/?' },
-        { name: 'ThingProxy', url: 'https://thingproxy.freeboard.io/fetch/' },
-        { name: 'Direct', url: '' }
-    ];
 
     // AUTH & DATA
     onAuthStateChanged(auth, (user) => {
@@ -1540,6 +1880,7 @@
     window.closeAllSheets = () => {
         document.getElementById('sheetProvider').classList.add('hide');
         document.getElementById('sheetProduct').classList.add('hide');
+        if(document.getElementById('sheetIcsProvider')) document.getElementById('sheetIcsProvider').classList.add('hide');
         document.getElementById('sheetOverlay').classList.add('hide');
         document.body.style.overflow = '';
     };
@@ -1619,7 +1960,7 @@
         }
     };
 
-    window.updateProductDropdown = () => {
+        window.updateProductDropdown = async () => {
         const providerCode = document.getElementById('formProvider').value;
         const listContainer = document.getElementById('sheetProductList');
         const btnProd = document.getElementById('btnProductTrigger');
@@ -1627,7 +1968,64 @@
         
         if(!listContainer) return;
         listContainer.innerHTML = '';
-        
+
+        // --- LOGIKA BARU: ICS HANDLER ---
+        if (providerCode.startsWith('ICS_')) {
+             if(txtProd) txtProd.innerText = 'Memuat dari Server ICS...';
+             if(btnProd) btnProd.classList.add('cursor-not-allowed', 'opacity-50');
+
+             let icsType = 'xda';
+             if(providerCode === 'ICS_CIRCLE') icsType = 'circle';
+
+             const res = await callIcsApi('listProducts', { type: icsType });
+             
+             if (res.success && res.data) {
+                const readyItems = res.data.ready || [];
+                const emptyItems = res.data.empty || [];
+                const allProducts = [...readyItems, ...emptyItems];
+                allProducts.sort((a, b) => a.harga - b.harga);
+
+                if(allProducts.length === 0) {
+                     if(txtProd) txtProd.innerText = 'Stok Kosong';
+                     listContainer.innerHTML = '<div class="text-center py-8 text-gray-400 flex flex-col items-center"><i class="fas fa-box-open text-2xl mb-2"></i><p class="text-xs">Tidak ada produk tersedia di ICS</p></div>';
+                     return;
+                }
+
+                if(btnProd) {
+                    btnProd.classList.remove('cursor-not-allowed', 'opacity-50');
+                    btnProd.classList.add('bg-white', 'hover:bg-gray-50');
+                }
+                if(txtProd) txtProd.innerText = '-- Klik Untuk Pilih Produk --';
+
+                allProducts.forEach(p => {
+                    const sellPrice = p.harga + 2000; // Margin Rp 2000
+                    const isHabis = p.stok === 0 || p.stok === '0' || emptyItems.includes(p);
+
+                    const div = document.createElement('div');
+                    div.className = `p-4 rounded-2xl border ${isHabis ? 'border-red-200 bg-red-50 dark:bg-red-900/10 cursor-not-allowed opacity-70' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 cursor-pointer transition active:scale-[0.98]'} mb-2 flex justify-between items-center group`;
+                    
+                    if(!isHabis) {
+                        div.onclick = () => window.selectProduct(p.kode_produk, p.nama_produk, sellPrice, `Stok Tersedia: ${p.stok}`, encodeURIComponent(p.nama_produk));
+                    }
+
+                    div.innerHTML = `
+                        <div class="flex-1 pr-2">
+                            <p class="text-xs font-bold text-gray-700 dark:text-gray-200 leading-tight group-hover:text-blue-600 transition">${p.nama_produk}</p>
+                            ${isHabis ? '<span class="text-[9px] text-red-500 font-bold">STOK HABIS</span>' : ''}
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm font-black text-blue-600 dark:text-blue-400">Rp ${window.formatRp(sellPrice).replace('Rp', '')}</p>
+                        </div>`;
+                    listContainer.appendChild(div);
+                });
+             } else {
+                 if(txtProd) txtProd.innerText = 'Gagal Koneksi ICS';
+                 alert('Gagal memuat data ICS: ' + (res.message || 'Unknown'));
+             }
+             return; // Stop, jangan jalankan logika Khfy
+        }
+
+        // --- LOGIKA LAMA: KHFY ---
         if(!globalProducts || globalProducts.length === 0) {
              if(txtProd) txtProd.innerText = 'Data Belum Siap';
              window.initProductData(); 
@@ -1639,8 +2037,6 @@
             const name = (p.name || p.nama_produk || p.product_name || '').toUpperCase();
             const brand = (p.brand || p.kode_provider || p.operator || '').toUpperCase();
             
-            if (providerCode === 'XDA') return code.startsWith('XDA');
-            if (providerCode === 'XLA') return code.startsWith('XLA');
             if (providerCode === 'FMX') return (code.startsWith('FMX') || code === 'CFMX') && brand === 'FMAX';
             if (providerCode === 'XLR') return brand === 'XLREGULER';
             if (providerCode === 'PLN') return brand.includes('PLN') || code.includes('PLN') || name.includes('TOKEN');
@@ -1654,7 +2050,6 @@
             return;
         }
 
-        // Enable Button
         if(btnProd) {
             btnProd.classList.remove('cursor-not-allowed', 'opacity-50');
             btnProd.classList.add('bg-white', 'hover:bg-gray-50');
@@ -1678,12 +2073,14 @@
             if(pricingRules[code]) price += parseInt(pricingRules[code]);
             
             let isGangguan = false;
-            if (p.gangguan === 1 || p.gangguan === '1') isGangguan = true;
-            if (p.kosong === 1 || p.kosong === '1') isGangguan = true;
-            if (String(p.buyer_product_status) === '0') isGangguan = true;
+            if (p.gangguan == 1) isGangguan = true;
+            if (p.kosong == 1) isGangguan = true;
+            if (p.buyer_product_status === false || p.buyer_product_status == 0) isGangguan = true;
+            if (p.seller_product_status === false || p.seller_product_status == 0) isGangguan = true;
+            if (p.stock == 0 && p.unlimited_stock === false) isGangguan = true;
 
             const div = document.createElement('div');
-            div.className = `p-4 rounded-2xl border ${isGangguan ? 'border-red-200 bg-red-50 dark:bg-red-900/10' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900'} mb-2 flex justify-between items-center group cursor-pointer transition active:scale-[0.98]`;
+            div.className = `p-4 rounded-2xl border ${isGangguan ? 'border-red-200 bg-red-50 dark:bg-red-900/10 cursor-not-allowed opacity-70' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 cursor-pointer transition active:scale-[0.98]'} mb-2 flex justify-between items-center group`;
             
             if(isGangguan) {
                 div.innerHTML = `
@@ -1708,6 +2105,7 @@
             listContainer.appendChild(div);
         });
     };
+
 
     window.toggleMultiTrx = () => {
         isMultiTrx = !isMultiTrx;
@@ -1769,12 +2167,25 @@
         window.nav('homePage');
     };
 
-        window.processFormTransaction = () => {
+            window.processFormTransaction = () => {
+        const provider = document.getElementById('formProvider').value;
         const code = document.getElementById('formProduct').value;
         const name = document.getElementById('selectedProductName').value;
         const price = parseInt(document.getElementById('selectedProductPrice').value || 0);
+        const number = document.getElementById('ppobNumber').value;
 
         if(!code) return alert('Silakan pilih Produk!');
+
+        // --- HANDLER KHUSUS ICS ---
+        if (provider.startsWith('ICS_')) {
+            if(!number || number.length < 9) return alert("Nomor HP tidak valid!");
+            if(currentBalance < price) return alert("Saldo tidak cukup!");
+            
+            window.customConfirm('Beli Paket (ICS)', `Produk: ${name}\nNomor: ${number}\nHarga: ${window.formatRp(price)}`, async () => {
+                window.executeIcsTransaction(code, number, price, name);
+            });
+            return;
+        }
 
         if (code === 'CEKPLN') {
             window.checkPLN(document.getElementById('ppobNumber').value);
@@ -1799,6 +2210,7 @@
             window.confirmTransaction(code, name, price);
         }
     };
+
 
     window.checkPLN = async (num) => {
         window.showLoader(true);
@@ -1850,7 +2262,7 @@
         window.showInvoice(code, name, price, num);
     };
 
-    window.executeApiTransaction = async (code, dest, price, name) => {
+        window.executeApiTransaction = async (code, dest, price, name) => {
         window.showLoader(true);
         const reffId = crypto.randomUUID();
         const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -1921,11 +2333,11 @@
                     t.update(uRef, { balance: balanceFinal });
                     t.update(trxRef, { 
                         status: 'Gagal', 
-                        api_msg: 'Refund Otomatis: ' + msg,
+                        api_msg: 'Gagal Tujuan di luar wilayah', // Simpan pesan aman di DB juga
                         balance_final: balanceFinal,
-                        raw_json: JSON.stringify(result.data)
+                        raw_json: '{}' // Kosongkan raw json agar tidak terbaca user
                     });
-                    // Catat Riwayat Refund Terpisah agar muncul di mutasi
+                    // Catat Riwayat Refund Terpisah
                     const refundId = 'REF-' + Date.now();
                     const refundRef = doc(db, "users", currentUser.uid, "history", refundId);
                     t.set(refundRef, {
@@ -1943,27 +2355,24 @@
                 currentBalance += price;
                 if(document.getElementById('displayBalance')) document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
                 
-                alert(`Transaksi Gagal: ${msg}\n\nSaldo telah dikembalikan otomatis ke akun Anda.`);
+                // --- PESAN AMAN UNTUK USER ---
+                alert("Gagal Tujuan di luar wilayah\n\nSaldo telah dikembalikan otomatis.");
                 window.nav('homePage');
             }
 
         } catch(e) {
             window.showLoader(false);
-            // 3. GAGAL -> REFUND AMAN
-            await runTransaction(db, async (t) => {
-                const uRef = doc(db, "users", currentUser.uid);
-                const uDoc = await t.get(uRef);
-                // Kembalikan saldo berdasarkan data terbaru di DB (Aman dari TopUp susulan)
-                t.update(uRef, { balance: (uDoc.data().balance || 0) + price });
-                t.update(trxRef, { status: 'Gagal', api_msg: String(e) });
+            // 3. ERROR KONEKSI
+            await updateDoc(trxRef, { 
+                status: 'Pending', 
+                api_msg: 'Koneksi Timeout. Cek status berkala.',
+                error_log: String(e)
             });
             
-            currentBalance += price; 
-            if(document.getElementById('displayBalance')) document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
-            
-            alert(`Transaksi Gagal: ${e}\n\nSaldo telah dikembalikan otomatis.`);
+            alert(`Koneksi Terputus/Timeout!\n\nTransaksi masuk status PENDING.\nMohon cek Riwayat & Refresh status beberapa saat lagi.`);
         }
     };
+
 
     // --- TOP UP LOGIC & SMART BADGE ---
         // --- BACKGROUND SERVICE (AUTO CHECK 5 Detik) ---
@@ -1986,6 +2395,7 @@
             for (const docSnap of snapshot.docs) {
                 const trx = docSnap.data();
                 if(trx.provider_id === 'MANUAL') continue;
+                                if(trx.provider_id === 'ICS') { await checkIcsStatus(trx, docSnap); continue; }
                 
                 try {
                     // Cek API tanpa loader (Silent)
@@ -2297,98 +2707,68 @@ window.renderTopUpHistory = () => {
 
 
 
-        window.manualCheckTrx = async (docId, providerId) => {
+            window.manualCheckTrx = async (docId, providerId) => {
         const btn = document.getElementById('btnRefreshStatus');
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         
-        console.log("[CheckTrx] Checking refid:", docId);
-        // Panggil API
         const res = await callApi('/history', { refid: docId });
-        
-        // Ambil root data (karena field 'msg' ada di root, bukan selalu di data.data)
-                const root = res.data || {};
-        // PERBAIKAN: Deteksi jika 'data' adalah Array (List) atau Object
+        const root = res.data || {};
         let inner = root.data || {};
-        if (Array.isArray(inner) && inner.length > 0) {
-             inner = inner[0]; // Ambil data pertama jika bentuknya Array
-        }
+        if (Array.isArray(inner) && inner.length > 0) inner = inner[0];
         
-                if(res.ok || root) {
-            console.log("[CheckTrx] Result:", root);
-            
-            // TAMPILKAN RAW DATA JSON
+        if(res.ok || root) {
+            // HIDE RAW JSON FROM USER
             if(document.getElementById('dtRawJson')) {
-                document.getElementById('dtRawJson').innerText = JSON.stringify(root, null, 2);
-                // Buka details element jika belum terbuka
-                const details = document.getElementById('dtRawJson').closest('details');
-                if(details) details.open = true;
+                document.getElementById('dtRawJson').innerText = "Data Teknis Disembunyikan (Privasi)";
             }
             
             let freshStatus = 'Pending';
-            
-            // 1. Ambil Pesan Mentah (Cari di semua kemungkinan field)
-            // Prioritas: msg (root) -> message -> sn -> data.sn
             let rawMsg = root.msg || root.message || root.sn || inner.sn || inner.message || 'Tidak ada pesan';
             if (typeof rawMsg !== 'string') rawMsg = JSON.stringify(rawMsg);
 
-            // --- SMART PARSER (LOGIKA BARU) ---
             const lowerMsg = rawMsg.toLowerCase();
             const rawStatusField = String(root.status || inner.status || root.result || '').toLowerCase();
             const statusText = String(root.status_text || inner.status_text || '').toUpperCase();
 
-            // A. Deteksi Status
-            // Cek: 'status sukses' di pesan ATAU status field = true/0 ATAU status_text = SUKSES
             if (lowerMsg.includes('status sukses') || rawStatusField.includes('sukses') || rawStatusField === '0' || rawStatusField === 'true' || statusText === 'SUKSES') {
                 freshStatus = 'Sukses';
             } else if (lowerMsg.includes('gagal') || rawStatusField.includes('gagal') || rawStatusField === '1' || statusText === 'GAGAL') {
                 freshStatus = 'Gagal';
             }
 
-            // B. Ekstrak Detail Pesan (SN)
-            // Format: "... SN:varian tersedia: 10GB... @..."
             let displaySn = rawMsg;
             if (rawMsg.includes('SN:')) {
                 const parts = rawMsg.split('SN:');
                 if (parts.length > 1) {
-                    // Ambil teks setelah 'SN:'
                     let snContent = parts.slice(1).join('SN:'); 
-                    // Buang bagian tanggal (setelah tanda @)
-                    if (snContent.includes('@')) {
-                        snContent = snContent.split('@')[0];
-                    }
+                    if (snContent.includes('@')) snContent = snContent.split('@')[0];
                     displaySn = snContent.trim();
                 }
             }
-            // ----------------------------------
 
-                        // Update UI
             const statusEl = document.getElementById('dtStatus');
             statusEl.innerText = freshStatus;
             statusEl.className = 'text-xs font-bold ' + (freshStatus === 'Sukses' ? 'text-green-600' : (freshStatus === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
             
-            // Update Info Detail Menggunakan Helper Baru
             document.getElementById('dtSn').innerHTML = window.formatDetailInfo(root);
 
-            // Simpan ke Database Firestore
             await updateDoc(doc(db, "users", currentUser.uid, "history", docId), {
                 status: freshStatus,
                 api_msg: displaySn,
-                // PERBAIKAN: Simpan JSON mentah agar detail tetap bisa dibuka nanti
-                raw_json: JSON.stringify(root, null, 2)
+                raw_json: '{}' // Hide raw json
             });
             
             if(freshStatus !== 'Pending') {
                 btn.classList.add('hide');
             } else {
                 btn.innerHTML = '<i class="fas fa-sync-alt"></i>';
-                // alert('Status masih Pending di server Khfy.');
             }
         } else {
-            console.error("[CheckTrx] API Error:", res);
             alert('Gagal cek status. Tidak ada respon valid.');
             btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
         }
     };
+
 
     window.closeTrxDetail = () => document.getElementById('detailTrxModal').classList.add('hide');
 

@@ -1870,7 +1870,7 @@ window.openAkrabV2 = () => {
                     statusIcon = '<i class="fas fa-times-circle"></i>';
                 }
 
-                // Pesan SN / Detail (Jika ada)
+                // Pesan SN / Detail (Hanya untuk logika, tidak ditampilkan di list utama)
                 let snDisplay = t.api_msg || '';
                 // Bersihkan pesan jika terlalu kotor
                 if(snDisplay.includes('RC=')) snDisplay = snDisplay.split('SN:')[1] || snDisplay;
@@ -1895,7 +1895,6 @@ window.openAkrabV2 = () => {
                             </span>
                         </div>
                     </div>
-                    ${snDisplay ? `<div class="mt-1 pt-2 border-t border-dashed border-gray-100 dark:border-gray-700"><p class="text-[10px] text-gray-500 font-mono break-words leading-relaxed"><i class="fas fa-info-circle text-blue-400 mr-1"></i>${snDisplay}</p></div>` : ''}
                 </div>`;
             });
         }

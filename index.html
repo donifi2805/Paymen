@@ -1146,7 +1146,8 @@ window.openAkrabV2 = () => {
             await updateDoc(doc(db, "users", currentUser.uid, "history", reffId), {
                 status: 'Pending',
                 api_msg: apiRes.message || 'Sedang diproses',
-                supplier_id: apiRes.supplier_trxid || '-'
+                supplier_id: apiRes.supplier_trxid || '-',
+                raw_json: JSON.stringify(apiRes)
             });
             alert("Transaksi Berhasil Dikirim!\nKode Trx: " + trxCode + "\nStatus: Pending.");
             window.nav('homePage');
@@ -2564,7 +2565,8 @@ window.openAkrabV2 = () => {
                     successCount++;
                     await updateDoc(doc(db, "users", currentUser.uid, "history", reffId), {
                         api_msg: apiMsg,
-                        provider_id: provId
+                        provider_id: provId,
+                        raw_json: JSON.stringify(result.data || {})
                     });
                 } else {
                     throw new Error(apiMsg);
@@ -2753,7 +2755,7 @@ window.openAkrabV2 = () => {
                 if (safeMsg.includes('password=') || safeMsg.includes('pin=')) {
                     safeMsg = safeMsg.split('#').pop() || 'Tujuan Diluar Wilayah';
                 }
-                await updateDoc(trxRef, { status: 'Pending', api_msg: safeMsg, provider_id: providerId });
+                await updateDoc(trxRef, { status: 'Pending', api_msg: safeMsg, provider_id: providerId, raw_json: JSON.stringify(result.data || {}) });
                 alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                 window.nav('homePage');
             } else {
@@ -2768,7 +2770,7 @@ window.openAkrabV2 = () => {
                         status: 'Gagal', 
                         api_msg: 'Gagal Tujuan di luar wilayah', // Simpan pesan aman di DB juga
                         balance_final: balanceFinal,
-                        raw_json: '{}' // Kosongkan raw json agar tidak terbaca user
+                        raw_json: JSON.stringify(result.data || {})
                     });
                     // Catat Riwayat Refund Terpisah
                     const refundId = 'REF-' + Date.now();
@@ -3098,7 +3100,7 @@ window.renderTopUpHistory = () => {
             await updateDoc(doc(db, "users", currentUser.uid, "history", docId), {
                 status: freshStatus,
                 api_msg: displaySn,
-                raw_json: '{}' // Hide raw json
+                raw_json: JSON.stringify(root)
             });
             
             if(freshStatus !== 'Pending') {

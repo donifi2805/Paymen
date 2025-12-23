@@ -68,23 +68,6 @@
 </head>
 <body>
 
-    
-    <div id="maintenanceMode" class="fixed inset-0 z-[9999] flex items-center justify-center bg-white/90 dark:bg-gray-950/95 backdrop-blur-md">
-        <div class="text-center px-6">
-            <div class="w-24 h-24 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
-                <i class="fas fa-tools text-4xl"></i>
-            </div>
-            <h1 class="text-3xl font-black text-gray-900 dark:text-white mb-2 tracking-tighter">SERVER DOWN</h1>
-            <p class="text-gray-500 dark:text-gray-400 font-medium mb-8">Mohon maaf, sistem sedang dalam perbaikan berkala.<br>Aplikasi tidak dapat digunakan untuk sementara waktu.</p>
-            <div class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-full text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                <i class="fas fa-circle-notch fa-spin"></i> Estimasi Selesai: Segera
-            </div>
-        </div>
-    </div>
-    <style>
-        body { overflow: hidden !important; touch-action: none !important; }
-    </style>
-
 <div class="app-container transition-colors duration-300">
 
         <div id="globalNotifModal" class="hide fixed inset-0 z-[250] flex items-center justify-center bg-black/80 backdrop-blur-sm p-6 fade-enter">
@@ -830,13 +813,13 @@
     import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, onSnapshot, query, orderBy, where, getDocs, runTransaction, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
-        apiKey: "AIzaSyC7vP4QUhxPM3wG_jsnA2Z8dsTYd2IJ1KA",
-        authDomain: "server-ppob-xl.firebaseapp.com",
-        projectId: "server-ppob-xl",
-        storageBucket: "server-ppob-xl.firebasestorage.app",
-        messagingSenderId: "197244150476",
-        appId: "1:197244150476:web:23b3448b65ea5dc66c5869",
-        measurementId: "G-55M9H4WRGY"
+        apiKey: "AIzaSyBnVxgxkS8InH1PQCMGe3cY8IvPqSN6dLo",
+        authDomain: "ppob-3ea96.firebaseapp.com",
+        projectId: "ppob-3ea96",
+        storageBucket: "ppob-3ea96.firebasestorage.app",
+        messagingSenderId: "181320175094",
+        appId: "1:181320175094:web:306b79071018410b910bd7",
+        measurementId: "G-0K2V796QDX"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -1259,42 +1242,83 @@ window.openAkrabV2 = () => {
     });
 
     function setupUserData(user) {
-        onSnapshot(doc(db, "users", user.uid), (docSnap) => {
+        const userRef = doc(db, "users", user.uid);
+        
+        getDoc(userRef).then(async (docSnap) => {
+            if (docSnap.exists()) {
+                // User sudah ada di database baru
+                startUserDataListener(user.uid);
+            } else {
+                // JIKA USER TIDAK ADA, CEK BERDASARKAN EMAIL (SINKRONISASI AKUN LAMA)
+                window.showLoader(true);
+                const q = query(collection(db, "users"), where("email", "==", user.email));
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    // DATA LAMA DITEMUKAN (Berdasarkan Email)
+                    const oldData = querySnapshot.docs[0].data();
+                    const oldDocId = querySnapshot.docs[0].id;
+
+                    // Pindahkan data lama ke UID baru
+                    await setDoc(userRef, {
+                        ...oldData,
+                        uid: user.uid, // Update ke UID baru
+                        lastLogin: new Date().toISOString(),
+                        syncStatus: 'migrated'
+                    });
+
+                    console.log("Saldo dan data lama berhasil dipindahkan ke akun baru!");
+                    startUserDataListener(user.uid);
+                } else {
+                    // USER BENAR-BENAR BARU
+                    document.getElementById('setupProfileModal').classList.remove('hide');
+                }
+                window.showLoader(false);
+            }
+        });
+    }
+
+    function startUserDataListener(uid) {
+        onSnapshot(doc(db, "users", uid), (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 
-                // Cek kelengkapan data (Google Login)
+                // Jika data profil (username/dob) belum lengkap, tampilkan modal
                 if (!data.username || !data.dob) {
-                     document.getElementById('setupProfileModal').classList.remove('hide');
-                     return;
+                    document.getElementById('setupProfileModal').classList.remove('hide');
+                    return;
                 }
+
                 document.getElementById('setupProfileModal').classList.add('hide');
                 window.nav('homePage');
-
                 window.showLoader(false);
+
                 currentBalance = data.balance || 0;
                 currentUsername = data.username || "User";
-                if(document.getElementById('displayBalance')) document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
                 
-                const name = data.username || user.displayName || "Pengguna";
+                if(document.getElementById('displayBalance')) 
+                    document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
+                
+                const name = data.username || "Pengguna";
                 document.getElementById('headerUsername').innerText = name.length > 15 ? name.substring(0,12)+'...' : name;
                 document.getElementById('profileName').innerText = name;
-                document.getElementById('profilePhone').innerText = user.email || user.phoneNumber;
+                document.getElementById('profilePhone').innerText = currentUser.email || currentUser.phoneNumber || '-';
                 document.getElementById('profileGender').innerText = data.gender || '-';
                 document.getElementById('profileDob').innerText = data.dob || '-';
+                
                 if(data.profile_pic) {
                     document.getElementById('headerProfileImg').src = data.profile_pic;
                     document.getElementById('profilePageImg').src = data.profile_pic;
                 }
             } else {
-                // User Baru (Login Google pertama kali) -> Tampilkan Modal
                 document.getElementById('setupProfileModal').classList.remove('hide');
             }
         });
 
-        const historyRef = collection(db, "users", user.uid, "history");
-        const q = query(historyRef, orderBy("date", "desc"));
-        onSnapshot(q, (snapshot) => {
+        // Listener Riwayat Transaksi
+        const historyRef = collection(db, "users", uid, "history");
+        const qH = query(historyRef, orderBy("date", "desc"));
+        onSnapshot(qH, (snapshot) => {
             transactions = [];
             snapshot.forEach((doc) => transactions.push(doc.data()));
             renderHistoryList();

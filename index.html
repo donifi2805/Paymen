@@ -1928,7 +1928,7 @@ window.openAkrabV2 = () => {
         }
     });
 
-                document.getElementById('btnAuthAction').addEventListener('click', async () => {
+                    document.getElementById('btnAuthAction').addEventListener('click', async () => {
         const email = document.getElementById('emailInput').value;
         const password = document.getElementById('passwordInput').value;
         const status = document.getElementById('statusMessage');
@@ -1962,7 +1962,6 @@ window.openAkrabV2 = () => {
         if(authMode === 'login') {
             try { 
                 await signInWithEmailAndPassword(auth, email, password);
-                // Loader akan dimatikan oleh onAuthStateChanged
             } catch(e) {
                 window.showLoader(false);
                 status.innerText = "Gagal Login";
@@ -1973,7 +1972,7 @@ window.openAkrabV2 = () => {
                 }
             }
         
-        // 4. HANDLER REGISTER (LOGIKA MIGRASI & DAFTAR)
+        // 4. HANDLER REGISTER (LOGIKA AUTO-MIGRASI)
         } else if (authMode === 'register') {
             const username = document.getElementById('regUsername').value;
             const gender = document.getElementById('regGender').value;
@@ -1985,65 +1984,58 @@ window.openAkrabV2 = () => {
             }
 
             try {
-                // A. COBA BUAT AKUN AUTH
+                // A. BUAT AKUN AUTH
                 const cred = await createUserWithEmailAndPassword(auth, email, password);
                 const newUid = cred.user.uid;
 
-                // B. CEK DATABASE UNTUK MIGRASI
+                // B. CEK DATABASE (AUTO TRANSFER)
                 try {
                     const q = query(collection(db, "users"), where("email", "==", email));
                     const querySnapshot = await getDocs(q);
-                    
-                    // Cari dokumen lama yang BUKAN uid baru ini
                     const oldDoc = querySnapshot.docs.find(doc => doc.id !== newUid);
 
                     if (oldDoc) {
-                        // === ADA DATA LAMA ===
-                        window.showLoader(false);
+                        // === ADA DATA LAMA -> EKSEKUSI LANGSUNG ===
                         const oldData = oldDoc.data();
                         
-                        window.customConfirm(
-                            "Akun Lama Ditemukan!", 
-                            `Email ini memiliki saldo lama Rp ${window.formatRp(oldData.balance || 0)}.\nTransfer data ke akun baru ini?`,
-                            async () => {
-                                // -> PILIHAN YA (TRANSFER)
-                                window.showLoader(true);
-                                try {
-                                    // Salin data lama ke UID baru
-                                    await setDoc(doc(db, "users", newUid), {
-                                        ...oldData,
-                                        uid: newUid,
-                                        email: email,
-                                        migratedAt: new Date().toISOString(),
-                                        lastLogin: new Date().toISOString()
-                                    });
+                        try {
+                            // 1. Salin data ke UID baru
+                            await setDoc(doc(db, "users", newUid), {
+                                ...oldData,
+                                uid: newUid,
+                                email: email,
+                                migratedAt: new Date().toISOString(),
+                                lastLogin: new Date().toISOString()
+                            });
 
-                                    // Hapus Data Lama
-                                    await deleteDoc(doc(db, "users", oldDoc.id));
+                            // 2. Hapus data lama
+                            await deleteDoc(doc(db, "users", oldDoc.id));
 
-                                    window.showLoader(false);
-                                    alert("Transfer Berhasil! Data lama telah dipindahkan.");
-                                    document.getElementById('setupProfileModal').classList.add('hide');
-                                    window.nav('homePage');
-                                } catch (err) {
-                                    console.error(err);
-                                    alert("Gagal Transfer: " + err.message);
-                                    window.showLoader(false);
-                                }
-                            },
-                            async () => {
-                                // -> PILIHAN TIDAK (BUAT BARU)
-                                window.showLoader(true);
-                                await createNewUserProfile(newUid, email, username, gender, dob);
+                            window.showLoader(false);
+                            
+                            // 3. Notifikasi Sukses (Hanya Tombol OK)
+                            alert("AKUN LAMA DITEMUKAN!\n\nData & Saldo Anda berhasil dipindahkan otomatis ke akun baru.\nSilakan klik OK untuk masuk.");
+                            
+                            document.getElementById('setupProfileModal').classList.add('hide');
+                            window.nav('homePage');
+                            
+                        } catch (migrasiErr) {
+                            console.error("Migrasi Error:", migrasiErr);
+                            window.showLoader(false);
+                            // Penanganan Error Permission
+                            if(String(migrasiErr).includes("permission")) {
+                                alert("Data berhasil disalin, namun data lama gagal dihapus otomatis (Masalah Izin).\nSilakan hubungi Admin untuk pembersihan data duplikat.");
+                            } else {
+                                alert("Gagal Transfer Otomatis: " + migrasiErr.message);
                             }
-                        );
+                            window.nav('homePage');
+                        }
                     } else {
                         // === TIDAK ADA DATA LAMA ===
                         await createNewUserProfile(newUid, email, username, gender, dob);
                     }
                 } catch (dbErr) {
-                    console.error("DB Check Skipped:", dbErr);
-                    // Jika gagal cek DB, tetap buat profil baru agar tidak stuck
+                    console.error("DB Check Error:", dbErr);
                     await createNewUserProfile(newUid, email, username, gender, dob);
                 }
 
@@ -2051,7 +2043,7 @@ window.openAkrabV2 = () => {
                 window.showLoader(false);
                 status.innerText = "Gagal Daftar";
                 if (e.code === 'auth/email-already-in-use') {
-                    alert("Email ini SUDAH TERDAFTAR di sistem Login.\n\nJika Anda ingin memulihkan saldo lama, silakan LOGIN menggunakan email & sandi ini (Jangan daftar ulang).");
+                    alert("Email ini SUDAH TERDAFTAR.\nSilakan LOGIN saja untuk mengakses saldo lama Anda.");
                     window.setAuthMode('login');
                 } else {
                     alert("Gagal Daftar: " + e.message); 
@@ -2060,8 +2052,7 @@ window.openAkrabV2 = () => {
         }
     });
 
-    // Helper Function Profil Baru
-        async function createNewUserProfile(uid, email, username, gender, dob) {
+    async function createNewUserProfile(uid, email, username, gender, dob) {
         await setDoc(doc(db, "users", uid), {
             email: email, 
             balance: 0, 

@@ -1242,31 +1242,35 @@ window.openAkrabV2 = () => {
     });
 
     function setupUserData(user) {
-        // 1. Cek langsung berdasarkan UID
         const userRef = doc(db, "users", user.uid);
         
         getDoc(userRef).then(async (docSnap) => {
             if (docSnap.exists()) {
-                // User sudah terdaftar atau sudah disinkronkan
+                // User sudah ada di database baru
                 startUserDataListener(user.uid);
             } else {
-                // 2. Jika UID baru, cari berdasarkan Email (Data hasil migrasi)
+                // JIKA USER TIDAK ADA, CEK BERDASARKAN EMAIL (SINKRONISASI AKUN LAMA)
                 window.showLoader(true);
                 const q = query(collection(db, "users"), where("email", "==", user.email));
                 const querySnapshot = await getDocs(q);
 
                 if (!querySnapshot.empty) {
-                    // 3. Data lama ditemukan! Sinkronkan ke UID baru
+                    // DATA LAMA DITEMUKAN (Berdasarkan Email)
                     const oldData = querySnapshot.docs[0].data();
+                    const oldDocId = querySnapshot.docs[0].id;
+
+                    // Pindahkan data lama ke UID baru
                     await setDoc(userRef, {
                         ...oldData,
+                        uid: user.uid, // Update ke UID baru
                         lastLogin: new Date().toISOString(),
-                        authMethod: 're-synced'
+                        syncStatus: 'migrated'
                     });
-                    console.log("Data user lama berhasil disinkronkan berdasarkan email!");
+
+                    console.log("Saldo dan data lama berhasil dipindahkan ke akun baru!");
                     startUserDataListener(user.uid);
                 } else {
-                    // User benar-benar baru
+                    // USER BENAR-BENAR BARU
                     document.getElementById('setupProfileModal').classList.remove('hide');
                 }
                 window.showLoader(false);
@@ -1279,38 +1283,42 @@ window.openAkrabV2 = () => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 
-                // Cek kelengkapan data (Google Login)
+                // Jika data profil (username/dob) belum lengkap, tampilkan modal
                 if (!data.username || !data.dob) {
-                     document.getElementById('setupProfileModal').classList.remove('hide');
-                     return;
+                    document.getElementById('setupProfileModal').classList.remove('hide');
+                    return;
                 }
+
                 document.getElementById('setupProfileModal').classList.add('hide');
                 window.nav('homePage');
-
                 window.showLoader(false);
+
                 currentBalance = data.balance || 0;
                 currentUsername = data.username || "User";
-                if(document.getElementById('displayBalance')) document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
                 
-                const name = data.username || currentUser.displayName || "Pengguna";
+                if(document.getElementById('displayBalance')) 
+                    document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
+                
+                const name = data.username || "Pengguna";
                 document.getElementById('headerUsername').innerText = name.length > 15 ? name.substring(0,12)+'...' : name;
                 document.getElementById('profileName').innerText = name;
-                document.getElementById('profilePhone').innerText = currentUser.email || currentUser.phoneNumber;
+                document.getElementById('profilePhone').innerText = currentUser.email || currentUser.phoneNumber || '-';
                 document.getElementById('profileGender').innerText = data.gender || '-';
                 document.getElementById('profileDob').innerText = data.dob || '-';
+                
                 if(data.profile_pic) {
                     document.getElementById('headerProfileImg').src = data.profile_pic;
                     document.getElementById('profilePageImg').src = data.profile_pic;
                 }
             } else {
-                // User Baru (Login Google pertama kali) -> Tampilkan Modal
                 document.getElementById('setupProfileModal').classList.remove('hide');
             }
         });
 
+        // Listener Riwayat Transaksi
         const historyRef = collection(db, "users", uid, "history");
-        const q = query(historyRef, orderBy("date", "desc"));
-        onSnapshot(q, (snapshot) => {
+        const qH = query(historyRef, orderBy("date", "desc"));
+        onSnapshot(qH, (snapshot) => {
             transactions = [];
             snapshot.forEach((doc) => transactions.push(doc.data()));
             renderHistoryList();

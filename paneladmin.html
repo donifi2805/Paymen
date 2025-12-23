@@ -570,7 +570,7 @@
                         <span class="font-bold text-gray-500">System Log:</span><br>${t.api_msg || '-'}
                     </div>
                     <div class="bg-slate-900 p-2 mt-2 rounded text-[9px] font-mono text-green-400 break-words">
-                        <span class="font-bold text-gray-500 block">Raw JSON:</span>${t.raw_json || '// -'}
+                        <span class="font-bold text-gray-500 block">Raw JSON:</span><pre style="white-space: pre-wrap;">${(() => { try { return JSON.stringify(JSON.parse(t.raw_json), null, 2); } catch(e) { return t.raw_json || '// -'; } })()}</pre>
                     </div>
                 </div>`;
 
@@ -714,7 +714,7 @@
                     <div class="space-y-2">
                         <p class="text-[10px] font-bold text-gray-400 uppercase">JSON Response (Server Khfy)</p>
                         <div class="bg-slate-900 p-3 rounded-xl overflow-x-auto">
-                            <pre class="text-[9px] text-green-400 font-mono">${trx.raw_json || trx.api_msg || '// No Data Response'}</pre>
+                            <pre class="text-[9px] text-green-400 font-mono" style="white-space: pre-wrap;">${(() => { try { return JSON.stringify(JSON.parse(trx.raw_json), null, 2); } catch(e) { return trx.raw_json || trx.api_msg || '// No Data'; } })()}</pre>
                         </div>
                     </div>
                 `;

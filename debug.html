@@ -70,7 +70,23 @@
 
 <div class="app-container transition-colors duration-300">
 
-    <div id="globalLoader" class="hide fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div id="globalNotifModal" class="hide fixed inset-0 z-[250] flex items-center justify-center bg-black/80 backdrop-blur-sm p-6 fade-enter">
+        <div class="bg-white dark:bg-gray-900 w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl relative animate-pop-in">
+            <button onclick="closeGlobalNotif()" class="absolute top-3 right-3 w-8 h-8 bg-black/20 hover:bg-red-500 text-white rounded-full flex items-center justify-center transition z-10 backdrop-blur-md">
+                <i class="fas fa-times"></i>
+            </button>
+            <div id="gNotifImageArea" class="hide w-full flex justify-center items-center bg-gray-50 dark:bg-gray-800 rounded-xl mb-4 overflow-hidden">
+                <img id="gNotifImg" src="" class="w-auto h-auto max-w-full max-h-[60vh] object-contain shadow-sm rounded-lg">
+            </div>
+            <div class="p-6 text-center">
+                <h3 id="gNotifTitle" class="text-xl font-black text-gray-800 dark:text-white mb-2 leading-tight"></h3>
+                <p id="gNotifBody" class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed max-h-40 overflow-y-auto custom-scroll"></p>
+                <button onclick="closeGlobalNotif()" class="mt-6 w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+<div id="globalLoader" class="hide fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-sm">
         <div class="bg-white dark:bg-gray-900 p-5 rounded-2xl flex flex-col items-center shadow-2xl">
             <div class="loader mb-3"></div>
             <p class="text-xs font-bold text-gray-600 dark:text-gray-300" id="loaderText">Memuat Data...</p>
@@ -363,7 +379,7 @@
             <div class="text-center mb-6 text-white">
                 <div class="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg border border-white/30"><i class="fas fa-wallet text-4xl text-white"></i></div>
                 <h1 class="text-3xl font-bold tracking-tight">Pandawa Store</h1>
-                <p class="text-blue-100 text-sm mt-1">PPOB Terpercaya</p>
+                <p class="text-blue-100 text-sm mt-1">Agen Pulsa PPOB Terpercaya</p>
             </div>
             
             <div class="bg-white dark:bg-gray-900 p-8 rounded-3xl shadow-xl shadow-blue-900/10 dark:shadow-black/30 transition-all duration-300">
@@ -478,7 +494,7 @@
             <div class="grid grid-cols-4 gap-4">
                 <div class="text-center group cursor-pointer" onclick="openPPOB('akrab')"><div class="bg-blue-100 dark:bg-blue-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-globe text-blue-600 dark:text-blue-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Data</span></div>
                 <div class="text-center group cursor-pointer" onclick="alert('Menu Paket OTP Segera Hadir')"><div class="bg-emerald-100 dark:bg-emerald-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-key text-emerald-600 dark:text-emerald-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Paket OTP</span></div>
-                <div class="text-center group cursor-pointer" onclick="alert('Menu Pre-Order Segera Hadir')"><div class="bg-purple-100 dark:bg-purple-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-clock text-purple-600 dark:text-purple-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Pre-Order</span></div><div class="text-center group cursor-pointer" onclick="openAkrabV2()"><div class="bg-cyan-100 dark:bg-cyan-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-users-cog text-cyan-600 dark:text-cyan-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Akrab v2</span></div>
+                <div class="text-center group cursor-pointer" onclick="alert('Menu Pre-Order Segera Hadir')"><div class="bg-purple-100 dark:bg-purple-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-clock text-purple-600 dark:text-purple-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Pre-Order</span></div>
                 <div class="text-center group cursor-pointer" onclick="checkAkrabStock()"><div class="bg-orange-100 dark:bg-orange-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-cubes text-orange-600 dark:text-orange-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Stok Akrab</span></div>
                 <div class="text-center group cursor-pointer" onclick="alert('Menu Login OTP Segera Hadir')"><div class="bg-rose-100 dark:bg-rose-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-lock text-rose-600 dark:text-rose-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Login OTP</span></div>
                 <div class="text-center group cursor-pointer" onclick="nav('historyPage')"><div class="bg-indigo-100 dark:bg-indigo-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-history text-indigo-600 dark:text-indigo-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Riwayat</span></div>
@@ -710,10 +726,17 @@
             <button onclick="closeAllSheets()" class="text-gray-400 hover:text-red-500"><i class="fas fa-times"></i></button>
         </div>
         <div class="space-y-2 max-h-[60vh] overflow-y-auto no-scrollbar pb-8">
-            <div onclick="selectProvider('XDA', 'Akrab Fresh (XDA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+            
+            <div onclick="selectProvider('ICS_XDA', 'Akrab Fresh (XDA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
                 <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Akrab Fresh (XDA)</span>
                 <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
             </div>
+            <div onclick="selectProvider('ICS_CIRCLE', 'XL Circle')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">XL Circle</span>
+                <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
+            </div>
+            
+            
             <div onclick="selectProvider('XLA', 'Akrab Fresh (XLA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
                 <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Akrab Fresh (XLA)</span>
                 <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
@@ -790,13 +813,13 @@
     import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, onSnapshot, query, orderBy, where, getDocs, runTransaction, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
-        apiKey: "AIzaSyC7vP4QUhxPM3wG_jsnA2Z8dsTYd2IJ1KA",
-        authDomain: "server-ppob-xl.firebaseapp.com",
-        projectId: "server-ppob-xl",
-        storageBucket: "server-ppob-xl.firebasestorage.app",
-        messagingSenderId: "197244150476",
-        appId: "1:197244150476:web:23b3448b65ea5dc66c5869",
-        measurementId: "G-55M9H4WRGY"
+        apiKey: "AIzaSyBnVxgxkS8InH1PQCMGe3cY8IvPqSN6dLo",
+        authDomain: "ppob-3ea96.firebaseapp.com",
+        projectId: "ppob-3ea96",
+        storageBucket: "ppob-3ea96.firebasestorage.app",
+        messagingSenderId: "181320175094",
+        appId: "1:181320175094:web:306b79071018410b910bd7",
+        measurementId: "G-0K2V796QDX"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -812,7 +835,55 @@
         { name: 'Direct', url: '' }
     ];
 
-    // 2. ICS STORE INTEGRATION
+        // 3. TELEGRAM NOTIFICATION SYSTEM
+    const TELEGRAM_CONFIG = {
+        token: "7507761189:AAGUCYltzj_IMuDRgjUzUPiZDz4nbVXvOME",
+        chatId: "-1002997407612" // Ditambahkan tanda minus untuk ID Grup/Supergroup
+    };
+
+    window.sendTelegramNotif = async (type, data) => {
+        let message = "";
+        const now = new Date();
+        const options = { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+        const formattedDate = now.toLocaleDateString('id-ID', options).replace(/ pukul /g, ' | ');
+
+        if (type === 'TOPUP') {
+            message = `✅ DEPOSIT BERHASIL \n` +
+                      `━━━━━━━━━━━━━━━━━━\n` +
+                      `💳 Jumlah : Rp ${window.formatRp(data.amount).replace('Rp', '').trim()}\n` +
+                      `🕒 Waktu : ${formattedDate}\n` +
+                      `👤 User ID : ${currentUsername}\n` +
+                      `📌 Status : BERHASIL\n` +
+                      `🆔 ID Transaksi :\n` +
+                      `${data.trxId}\n` +
+                      `━━━━━━━━━━━━━━━━━━\n` +
+                      `🏢 PANDAWA SYSTEM\n` +
+                      `https://www.pandawa-digital.store\n` +
+                      `✨ Terima kasih atas kepercayaan Anda`;
+        } else {
+            message = `✅ TRANSAKSI BERHASIL \n` +
+                      `━━━━━━━━━━━━━━━━━━\n` +
+                      `📦 Produk : ${data.title}\n` +
+                      `🎯 Tujuan : ${data.dest}\n` +
+                      `💸 Harga : Rp ${window.formatRp(data.amount).replace('Rp', '').trim()}\n` +
+                      `🕒 Waktu : ${formattedDate}\n` +
+                      `👤 User : ${currentUsername}\n` +
+                      `🆔 TRX ID : ${data.trxId}\n` +
+                      `━━━━━━━━━━━━━━━━━━\n` +
+                      `🏢 PANDAWA SYSTEM\n` +
+                      `https://www.pandawa-digital.store`;
+        }
+
+        try {
+            await fetch(`https://api.telegram.org/bot${TELEGRAM_CONFIG.token}/sendMessage`, {
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: TELEGRAM_CONFIG.chatId, text: message })
+            });
+        } catch (e) { console.error("Telegram Notif Error:", e); }
+    };
+
+// 2. ICS STORE INTEGRATION
     const ICS_CONFIG = {
         apiKey: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3",
         baseUrl: "https://reseller.ics-store.my.id"
@@ -901,6 +972,12 @@ window.openAkrabV2 = () => {
         const select = document.getElementById('icsProductSelect');
         select.innerHTML = '<option>Memuat...</option>';
         
+        // Muat Aturan Harga & Nama Custom
+        try {
+            const settingsSnap = await getDoc(doc(db, "settings", "pricing"));
+            if (settingsSnap.exists()) pricingRules = settingsSnap.data().rules || {};
+        } catch(e) { console.log("Load pricing rules error", e); }
+
         const res = await callIcsApi('listProducts', { type: currentIcsType });
         select.innerHTML = '';
 
@@ -922,26 +999,38 @@ window.openAkrabV2 = () => {
             select.innerHTML = '<option value="" disabled selected>-- Pilih Produk --</option>';
             
             allProducts.forEach(p => {
-                // Markup Profit Rp 2000
-                const sellPrice = p.harga + 2000;
+                let sellPrice = p.harga;
+                let name = p.nama_produk;
+                const code = p.kode_produk;
+
+                // LOGIKA BARU: Markup & Rename (Akrab V2)
+                if(pricingRules[code]) {
+                    const r = pricingRules[code];
+                    if(typeof r === 'object') {
+                        if(r.price) sellPrice += parseInt(r.price);
+                        if(r.name) name = r.name;
+                    } else {
+                        sellPrice += parseInt(r);
+                    }
+                } else {
+                    sellPrice += 2000; // Default Margin
+                }
                 
                 // Cek apakah produk ini berasal dari list 'empty' atau stoknya 0
-                // Kita cek referensi objeknya langsung
                 const isHabis = p.stok === 0 || p.stok === '0' || emptyItems.includes(p);
 
                 const opt = document.createElement('option');
-                opt.value = p.kode_produk;
-                opt.dataset.name = p.nama_produk;
+                opt.value = code;
+                opt.dataset.name = name;
                 opt.dataset.price = sellPrice;
                 opt.dataset.rawPrice = p.harga;
                 
                 if (isHabis) {
-                    // Tampilkan Tanda Silang & Disable jika stok habis
-                    opt.innerHTML = `❌ ${p.nama_produk} (Habis) - Rp ${window.formatRp(sellPrice)}`;
+                    opt.innerHTML = `❌ ${name} (Habis) - Rp ${window.formatRp(sellPrice)}`;
                     opt.disabled = true;
                     opt.style.color = '#ef4444'; // Warna Merah
                 } else {
-                    opt.innerHTML = `${p.nama_produk} - Rp ${window.formatRp(sellPrice)}`;
+                    opt.innerHTML = `${name} - Rp ${window.formatRp(sellPrice)}`;
                 }
                 
                 select.appendChild(opt);
@@ -962,93 +1051,78 @@ window.openAkrabV2 = () => {
         }
     };
 
-        window.processAkrabV2Transaction = async () => {
-        const select = document.getElementById('icsProductSelect');
-        const number = document.getElementById('icsNumberInput').value;
+            window.executeIcsTransaction = async (code, number, price, name) => {
+        window.showLoader(true);
+        const reffId = 'ICS-' + Date.now();
+        const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
         
-        if (select.selectedIndex < 1) return alert("Pilih produk dulu!");
-        if (!number || number.length < 9) return alert("Nomor HP tidak valid!");
-
-        const opt = select.options[select.selectedIndex];
-        const code = select.value;
-        const name = opt.dataset.name;
-        const price = parseInt(opt.dataset.price);
-
-        if (currentBalance < price) return alert("Saldo tidak cukup!");
-
-        window.customConfirm('Beli Akrab V2', `Produk: ${name}\nNomor: ${number}\nHarga: ${window.formatRp(price)}`, async () => {
-            window.showLoader(true);
-            const reffId = 'ICS-' + Date.now();
-            const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
-            
-            // 1. Potong Saldo Lokal & DB
-            try {
-                await runTransaction(db, async (t) => {
-                    const uRef = doc(db, "users", currentUser.uid);
-                    const uDoc = await t.get(uRef);
-                    const bal = uDoc.data().balance || 0;
-                    if(bal < price) throw "Saldo kurang";
-                    
-                    const balanceAfter = bal - price;
-                    t.update(uRef, { balance: balanceAfter });
-                    
-                    const hRef = doc(db, "users", currentUser.uid, "history", reffId);
-                    t.set(hRef, {
-                        title: name,
-                        amount: price,
-                        type: 'out',
-                        date: new Date().toISOString(),
-                        status: 'Proses',
-                        api_msg: 'Menghubungkan ke ICS...',
-                        trx_id: reffId,
-                        trx_code: trxCode,
-                        provider_id: 'ICS',
-                        raw_code: code,
-                        dest_num: number,
-                        balance_before: bal,
-                        balance_after: balanceAfter
-                    });
+        try {
+            await runTransaction(db, async (t) => {
+                const uRef = doc(db, "users", currentUser.uid);
+                const uDoc = await t.get(uRef);
+                const bal = uDoc.data().balance || 0;
+                if(bal < price) throw "Saldo kurang";
+                
+                const balanceAfter = bal - price;
+                t.update(uRef, { balance: balanceAfter });
+                
+                const hRef = doc(db, "users", currentUser.uid, "history", reffId);
+                t.set(hRef, {
+                    title: name,
+                    amount: price,
+                    type: 'out',
+                    date: new Date().toISOString(),
+                    status: 'Proses',
+                    api_msg: 'Menghubungkan ke server...',
+                    trx_id: reffId,
+                    trx_code: trxCode,
+                    provider_id: 'ICS',
+                    raw_code: code,
+                    dest_num: number,
+                    balance_before: bal,
+                    balance_after: balanceAfter
                 });
-            } catch(e) {
-                window.showLoader(false);
-                return alert("Gagal proses database: " + e);
-            }
-            
-            // 2. Panggil API ICS
-                        const apiRes = await callIcsApi('createTransaction', {
-                kode_produk: code,
-                nomor_tujuan: number,
-                refid: reffId
-            }, 'GET'); // FIX: Gunakan GET agar data 100% aman lewat Proxy
-
+            });
+        } catch(e) {
             window.showLoader(false);
+            return alert("Gagal proses database: " + e);
+        }
+        
+        // 2. Panggil API ICS
+        const apiRes = await callIcsApi('createTransaction', {
+            kode_produk: code,
+            nomor_tujuan: number,
+            refid: reffId
+        }, 'GET');
 
-            if(apiRes.success) {
-                // Sukses Pending
-                await updateDoc(doc(db, "users", currentUser.uid, "history", reffId), {
-                    status: 'Pending',
-                    api_msg: apiRes.message || 'Sedang diproses',
-                    supplier_id: apiRes.supplier_trxid || '-'
+        window.showLoader(false);
+
+        if(apiRes.success) {
+            await updateDoc(doc(db, "users", currentUser.uid, "history", reffId), {
+                status: 'Pending',
+                api_msg: apiRes.message || 'Sedang diproses',
+                supplier_id: apiRes.supplier_trxid || '-'
+            });
+            alert("Transaksi Berhasil Dikirim!\nKode Trx: " + trxCode + "\nStatus: Pending.");
+            window.nav('homePage');
+        } else {
+            // Refund Otomatis
+            await runTransaction(db, async (t) => {
+                const uRef = doc(db, "users", currentUser.uid);
+                const uDoc = await t.get(uRef);
+                const balNow = uDoc.data().balance || 0;
+                t.update(uRef, { balance: balNow + price });
+                t.update(doc(db, "users", currentUser.uid, "history", reffId), {
+                    status: 'Gagal',
+                    api_msg: 'Refund: ' + (apiRes.error || apiRes.message || 'Gagal dari pusat'),
+                    balance_final: balNow + price
                 });
-                alert("Transaksi Berhasil Dikirim!\nKode Trx: " + trxCode + "\nStatus: Pending.");
-                window.nav('homePage');
-            } else {
-                // Gagal -> Refund Otomatis
-                await runTransaction(db, async (t) => {
-                    const uRef = doc(db, "users", currentUser.uid);
-                    const uDoc = await t.get(uRef);
-                    const balNow = uDoc.data().balance || 0;
-                    t.update(uRef, { balance: balNow + price });
-                    t.update(doc(db, "users", currentUser.uid, "history", reffId), {
-                        status: 'Gagal',
-                        api_msg: 'Refund: ' + (apiRes.error || apiRes.message || 'Gagal dari pusat'),
-                        balance_final: balNow + price
-                    });
-                });
-                alert("Transaksi Gagal: " + (apiRes.error || apiRes.message || "Unknown") + "\nSaldo dikembalikan.");
-            }
-        });
+            });
+            alert("Transaksi Gagal: " + (apiRes.error || apiRes.message || "Unknown") + "\nSaldo dikembalikan.");
+        }
     };
+
+
 
 
     async function checkIcsStatus(trx, docSnap) {
@@ -1156,6 +1230,7 @@ window.openAkrabV2 = () => {
             setupUserData(user);
             window.nav('homePage');
                         setupRequestListener(user);
+            setupGlobalNotificationListener(user);
             startBackgroundService();
         } else {
             currentUser = null;
@@ -1167,7 +1242,40 @@ window.openAkrabV2 = () => {
     });
 
     function setupUserData(user) {
-        onSnapshot(doc(db, "users", user.uid), (docSnap) => {
+        // 1. Cek langsung berdasarkan UID
+        const userRef = doc(db, "users", user.uid);
+        
+        getDoc(userRef).then(async (docSnap) => {
+            if (docSnap.exists()) {
+                // User sudah terdaftar atau sudah disinkronkan
+                startUserDataListener(user.uid);
+            } else {
+                // 2. Jika UID baru, cari berdasarkan Email (Data hasil migrasi)
+                window.showLoader(true);
+                const q = query(collection(db, "users"), where("email", "==", user.email));
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    // 3. Data lama ditemukan! Sinkronkan ke UID baru
+                    const oldData = querySnapshot.docs[0].data();
+                    await setDoc(userRef, {
+                        ...oldData,
+                        lastLogin: new Date().toISOString(),
+                        authMethod: 're-synced'
+                    });
+                    console.log("Data user lama berhasil disinkronkan berdasarkan email!");
+                    startUserDataListener(user.uid);
+                } else {
+                    // User benar-benar baru
+                    document.getElementById('setupProfileModal').classList.remove('hide');
+                }
+                window.showLoader(false);
+            }
+        });
+    }
+
+    function startUserDataListener(uid) {
+        onSnapshot(doc(db, "users", uid), (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 
@@ -1184,10 +1292,10 @@ window.openAkrabV2 = () => {
                 currentUsername = data.username || "User";
                 if(document.getElementById('displayBalance')) document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
                 
-                const name = data.username || user.displayName || "Pengguna";
+                const name = data.username || currentUser.displayName || "Pengguna";
                 document.getElementById('headerUsername').innerText = name.length > 15 ? name.substring(0,12)+'...' : name;
                 document.getElementById('profileName').innerText = name;
-                document.getElementById('profilePhone').innerText = user.email || user.phoneNumber;
+                document.getElementById('profilePhone').innerText = currentUser.email || currentUser.phoneNumber;
                 document.getElementById('profileGender').innerText = data.gender || '-';
                 document.getElementById('profileDob').innerText = data.dob || '-';
                 if(data.profile_pic) {
@@ -1200,7 +1308,7 @@ window.openAkrabV2 = () => {
             }
         });
 
-        const historyRef = collection(db, "users", user.uid, "history");
+        const historyRef = collection(db, "users", uid, "history");
         const q = query(historyRef, orderBy("date", "desc"));
         onSnapshot(q, (snapshot) => {
             transactions = [];
@@ -1209,7 +1317,63 @@ window.openAkrabV2 = () => {
         });
     }
 
-    // LISTENER PERMINTAAN DANA (REALTIME)
+        let activeNotifTimestamp = 0;
+    let notifMaxViews = 0;
+
+    function setupGlobalNotificationListener(user) {
+        // Realtime Listener untuk Notifikasi Publik
+        onSnapshot(doc(db, "global_notif", "active"), (snap) => {
+            if(!snap.exists()) return;
+            const data = snap.data();
+            
+            if (data.isActive) {
+                // Cek apakah user sudah melihat notif ini sebanyak batas limit
+                // Key local storage unik berdasarkan Timestamp Notif
+                const storageKey = `notif_view_${data.timestamp}_${user.uid}`;
+                const currentViews = parseInt(localStorage.getItem(storageKey) || '0');
+
+                if (currentViews < data.maxViews) {
+                    // Simpan state untuk diproses saat close
+                    activeNotifTimestamp = data.timestamp;
+                    notifMaxViews = data.maxViews;
+                    
+                    // Render UI
+                    if(data.image) {
+                        document.getElementById('gNotifImg').src = data.image;
+                        document.getElementById('gNotifImageArea').classList.remove('hide');
+                    } else {
+                        document.getElementById('gNotifImageArea').classList.add('hide');
+                    }
+                    
+                    document.getElementById('gNotifTitle').innerText = data.title || '';
+                    document.getElementById('gNotifBody').innerText = data.body || '';
+                    
+                    // Tampilkan Modal dengan sedikit delay agar transisi halus
+                    setTimeout(() => {
+                        document.getElementById('globalNotifModal').classList.remove('hide');
+                    }, 1500);
+                }
+            } else {
+                // Jika notif dinonaktifkan admin saat user melihat, tutup paksa
+                document.getElementById('globalNotifModal').classList.add('hide');
+            }
+        });
+    }
+
+    window.closeGlobalNotif = () => {
+        const modal = document.getElementById('globalNotifModal');
+        if(!modal.classList.contains('hide')) {
+            modal.classList.add('hide');
+            // Increment Counter View di LocalStorage saat ditutup
+            if(activeNotifTimestamp > 0 && currentUser) {
+                const storageKey = `notif_view_${activeNotifTimestamp}_${currentUser.uid}`;
+                const currentViews = parseInt(localStorage.getItem(storageKey) || '0');
+                localStorage.setItem(storageKey, (currentViews + 1).toString());
+            }
+        }
+    };
+
+// LISTENER PERMINTAAN DANA (REALTIME)
     function setupRequestListener(user) {
         const requestsRef = collection(db, "requests");
         const q = query(requestsRef, where("targetUid", "==", user.uid), where("status", "==", "pending"));
@@ -1787,7 +1951,7 @@ window.openAkrabV2 = () => {
                     statusIcon = '<i class="fas fa-times-circle"></i>';
                 }
 
-                // Pesan SN / Detail (Jika ada)
+                // Pesan SN / Detail (Hanya untuk logika, tidak ditampilkan di list utama)
                 let snDisplay = t.api_msg || '';
                 // Bersihkan pesan jika terlalu kotor
                 if(snDisplay.includes('RC=')) snDisplay = snDisplay.split('SN:')[1] || snDisplay;
@@ -1812,7 +1976,6 @@ window.openAkrabV2 = () => {
                             </span>
                         </div>
                     </div>
-                    ${snDisplay ? `<div class="mt-1 pt-2 border-t border-dashed border-gray-100 dark:border-gray-700"><p class="text-[10px] text-gray-500 font-mono break-words leading-relaxed"><i class="fas fa-info-circle text-blue-400 mr-1"></i>${snDisplay}</p></div>` : ''}
                 </div>`;
             });
         }
@@ -1975,7 +2138,7 @@ window.openAkrabV2 = () => {
         }
     };
 
-    window.updateProductDropdown = () => {
+        window.updateProductDropdown = async () => {
         const providerCode = document.getElementById('formProvider').value;
         const listContainer = document.getElementById('sheetProductList');
         const btnProd = document.getElementById('btnProductTrigger');
@@ -1983,7 +2146,80 @@ window.openAkrabV2 = () => {
         
         if(!listContainer) return;
         listContainer.innerHTML = '';
-        
+
+        // --- LOGIKA BARU: ICS HANDLER ---
+        if (providerCode.startsWith('ICS_')) {
+             if(txtProd) txtProd.innerText = 'Memuat Dari Server';
+             if(btnProd) btnProd.classList.add('cursor-not-allowed', 'opacity-50');
+
+             let icsType = 'xda';
+             if(providerCode === 'ICS_CIRCLE') icsType = 'circle';
+
+             const res = await callIcsApi('listProducts', { type: icsType });
+             
+             if (res.success && res.data) {
+                const readyItems = res.data.ready || [];
+                const emptyItems = res.data.empty || [];
+                const allProducts = [...readyItems, ...emptyItems];
+                allProducts.sort((a, b) => a.harga - b.harga);
+
+                if(allProducts.length === 0) {
+                     if(txtProd) txtProd.innerText = 'Stok Kosong';
+                     listContainer.innerHTML = '<div class="text-center py-8 text-gray-400 flex flex-col items-center"><i class="fas fa-box-open text-2xl mb-2"></i><p class="text-xs">Tidak ada produk tersedia di ICS</p></div>';
+                     return;
+                }
+
+                if(btnProd) {
+                    btnProd.classList.remove('cursor-not-allowed', 'opacity-50');
+                    btnProd.classList.add('bg-white', 'hover:bg-gray-50');
+                }
+                if(txtProd) txtProd.innerText = '-- Klik Untuk Pilih Produk --';
+
+                allProducts.forEach(p => {
+                    let sellPrice = p.harga;
+                    let name = p.nama_produk;
+                    const code = p.kode_produk;
+
+                    // LOGIKA BARU (ICS General): Markup & Rename
+                    if(pricingRules[code]) {
+                        const r = pricingRules[code];
+                        if(typeof r === 'object') {
+                            if(r.price) sellPrice += parseInt(r.price);
+                            if(r.name) name = r.name;
+                        } else {
+                            sellPrice += parseInt(r);
+                        }
+                    } else {
+                        sellPrice += 2000; // Default Margin
+                    }
+
+                    const isHabis = p.stok === 0 || p.stok === '0' || emptyItems.includes(p);
+
+                    const div = document.createElement('div');
+                    div.className = `p-4 rounded-2xl border ${isHabis ? 'border-red-200 bg-red-50 dark:bg-red-900/10 cursor-not-allowed opacity-70' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 cursor-pointer transition active:scale-[0.98]'} mb-2 flex justify-between items-center group`;
+                    
+                    if(!isHabis) {
+                        div.onclick = () => window.selectProduct(code, name, sellPrice, `Stok Tersedia: ${p.stok}`, encodeURIComponent(name));
+                    }
+
+                    div.innerHTML = `
+                        <div class="flex-1 pr-2">
+                            <p class="text-xs font-bold text-gray-700 dark:text-gray-200 leading-tight group-hover:text-blue-600 transition">${name}</p>
+                            ${isHabis ? '<span class="text-[9px] text-red-500 font-bold">STOK HABIS</span>' : ''}
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm font-black text-blue-600 dark:text-blue-400">Rp ${window.formatRp(sellPrice).replace('Rp', '')}</p>
+                        </div>`;
+                    listContainer.appendChild(div);
+                });
+             } else {
+                 if(txtProd) txtProd.innerText = 'Gagal Koneksi ICS';
+                 alert('Gagal memuat data ICS: ' + (res.message || 'Unknown'));
+             }
+             return; // Stop, jangan jalankan logika Khfy
+        }
+
+        // --- LOGIKA LAMA: KHFY ---
         if(!globalProducts || globalProducts.length === 0) {
              if(txtProd) txtProd.innerText = 'Data Belum Siap';
              window.initProductData(); 
@@ -1995,8 +2231,6 @@ window.openAkrabV2 = () => {
             const name = (p.name || p.nama_produk || p.product_name || '').toUpperCase();
             const brand = (p.brand || p.kode_provider || p.operator || '').toUpperCase();
             
-            if (providerCode === 'XDA') return code.startsWith('XDA');
-            if (providerCode === 'XLA') return code.startsWith('XLA');
             if (providerCode === 'FMX') return (code.startsWith('FMX') || code === 'CFMX') && brand === 'FMAX';
             if (providerCode === 'XLR') return brand === 'XLREGULER';
             if (providerCode === 'PLN') return brand.includes('PLN') || code.includes('PLN') || name.includes('TOKEN');
@@ -2010,7 +2244,6 @@ window.openAkrabV2 = () => {
             return;
         }
 
-        // Enable Button
         if(btnProd) {
             btnProd.classList.remove('cursor-not-allowed', 'opacity-50');
             btnProd.classList.add('bg-white', 'hover:bg-gray-50');
@@ -2028,18 +2261,29 @@ window.openAkrabV2 = () => {
         filtered.forEach(p => {
             let price = p.price || p.harga_final || p.buyer_price || 0;
             const code = p.code || p.kode_produk || p.buyer_sku_code;
-            const name = p.name || p.nama_produk || p.product_name;
+            let name = p.name || p.nama_produk || p.product_name;
             const desc = p.deskripsi || '';
             
-            if(pricingRules[code]) price += parseInt(pricingRules[code]);
+            // LOGIKA BARU (KHFY): Support Rename & Markup Object
+            if(pricingRules[code]) {
+                const r = pricingRules[code];
+                if(typeof r === 'object') {
+                    if(r.price) price += parseInt(r.price);
+                    if(r.name) name = r.name;
+                } else {
+                    price += parseInt(r);
+                }
+            }
             
             let isGangguan = false;
-            if (p.gangguan === 1 || p.gangguan === '1') isGangguan = true;
-            if (p.kosong === 1 || p.kosong === '1') isGangguan = true;
-            if (String(p.buyer_product_status) === '0') isGangguan = true;
+            if (p.gangguan == 1) isGangguan = true;
+            if (p.kosong == 1) isGangguan = true;
+            if (p.buyer_product_status === false || p.buyer_product_status == 0) isGangguan = true;
+            if (p.seller_product_status === false || p.seller_product_status == 0) isGangguan = true;
+            if (p.stock == 0 && p.unlimited_stock === false) isGangguan = true;
 
             const div = document.createElement('div');
-            div.className = `p-4 rounded-2xl border ${isGangguan ? 'border-red-200 bg-red-50 dark:bg-red-900/10' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900'} mb-2 flex justify-between items-center group cursor-pointer transition active:scale-[0.98]`;
+            div.className = `p-4 rounded-2xl border ${isGangguan ? 'border-red-200 bg-red-50 dark:bg-red-900/10 cursor-not-allowed opacity-70' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 cursor-pointer transition active:scale-[0.98]'} mb-2 flex justify-between items-center group`;
             
             if(isGangguan) {
                 div.innerHTML = `
@@ -2064,6 +2308,7 @@ window.openAkrabV2 = () => {
             listContainer.appendChild(div);
         });
     };
+
 
     window.toggleMultiTrx = () => {
         isMultiTrx = !isMultiTrx;
@@ -2099,38 +2344,124 @@ window.openAkrabV2 = () => {
 
     window.executeMultiBatch = async (code, numbers, price, name) => {
         window.showLoader(true);
-        let success = 0; let fail = 0;
-        for (const num of numbers) {
-            try {
-                const reffId = crypto.randomUUID();
-                const result = await callApi('/trx', { produk: code, tujuan: num, reff_id: reffId });
-                if (result.ok && result.data && (result.data.status === true || result.data.success === true || result.data.status === 'success' || (result.data.data && result.data.data.status === 'Pending'))) {
-                     success++;
-                     await runTransaction(db, async (t) => {
-                        const userRef = doc(db, "users", currentUser.uid);
-                        const uDoc = await t.get(userRef);
-                        const newBal = (uDoc.data().balance || 0) - price;
-                        t.update(userRef, { balance: newBal });
-                        const hRef = doc(db, "users", currentUser.uid, "history", reffId);
-                        t.set(hRef, { title: name + ' (Multi)', amount: price, type: 'out', date: new Date().toISOString(), status: 'Pending', api_msg: 'Batch Trx', trx_id: reffId, provider_id: (result.data && result.data.data && result.data.data.id) ? result.data.data.id : 'MANUAL' });
-                     });
-                     
-                } else { fail++; }
-            } catch(e) { fail++; console.error(e); }
-            await new Promise(r => setTimeout(r, 1000));
+        const totalRequired = numbers.length * price;
+
+        // 1. Validasi Saldo Kolektif di Awal
+        if (currentBalance < totalRequired) {
+            window.showLoader(false);
+            return alert(`Saldo tidak cukup untuk memproses ${numbers.length} transaksi.\nTotal dibutuhkan: ${window.formatRp(totalRequired)}`);
         }
+
+        let successCount = 0;
+        let failCount = 0;
+
+        for (let i = 0; i < numbers.length; i++) {
+            const num = numbers[i].trim();
+            if (num.length < 5) continue;
+
+            // Indikator Progress pada Loader
+            document.getElementById('loaderText').innerText = `Memproses ${i + 1}/${numbers.length}: ${num}`;
+
+            const reffId = 'BATCH-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+            const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+            try {
+                // 2. Jalankan Firestore Transaction untuk setiap nomor agar riwayat terpisah
+                await runTransaction(db, async (t) => {
+                    const uRef = doc(db, "users", currentUser.uid);
+                    const uDoc = await t.get(uRef);
+                    const bal = uDoc.data().balance || 0;
+
+                    if (bal < price) throw new Error("Saldo tidak mencukupi di tengah antrean");
+
+                    const balanceAfter = bal - price;
+                    t.update(uRef, { balance: balanceAfter });
+
+                    const hRef = doc(db, "users", currentUser.uid, "history", reffId);
+                    t.set(hRef, {
+                        title: `${name} (${num})`,
+                        amount: price,
+                        type: 'out',
+                        date: new Date().toISOString(),
+                        status: 'Pending',
+                        api_msg: 'Menunggu respon API...',
+                        trx_id: reffId,
+                        trx_code: trxCode,
+                        dest_num: num,
+                        balance_before: bal,
+                        balance_after: balanceAfter
+                    });
+                });
+
+                // 3. Eksekusi API
+                const result = await callApi('/trx', { produk: code, tujuan: num, reff_id: reffId });
+                
+                let isOk = false;
+                let apiMsg = "Antrean dikirim";
+                let provId = "";
+
+                if (result.ok && result.data) {
+                    const d = result.data;
+                    const dataObj = d.data || d;
+                    apiMsg = d.message || d.sn || dataObj.message || "Pending";
+                    provId = dataObj.id || "";
+                    isOk = d.status === true || d.success === true || d.status === 'success' || (d.data && d.data.status === 'Pending');
+                }
+
+                if (isOk) {
+                    successCount++;
+                    await updateDoc(doc(db, "users", currentUser.uid, "history", reffId), {
+                        api_msg: apiMsg,
+                        provider_id: provId
+                    });
+                } else {
+                    throw new Error(apiMsg);
+                }
+
+            } catch (e) {
+                failCount++;
+                // 4. Refund Otomatis jika satu nomor dalam batch gagal
+                await runTransaction(db, async (t) => {
+                    const uRef = doc(db, "users", currentUser.uid);
+                    const uDoc = await t.get(uRef);
+                    const currentBal = uDoc.data().balance || 0;
+                    t.update(uRef, { balance: currentBal + price });
+                    t.update(doc(db, "users", currentUser.uid, "history", reffId), {
+                        status: 'Gagal',
+                        api_msg: 'Gagal/Refund: ' + e.message
+                    });
+                });
+            }
+
+            // Jeda 1.5 detik per transaksi agar tidak terkena Rate Limit
+            await new Promise(r => setTimeout(r, 1500));
+        }
+
         window.showLoader(false);
-        if(document.getElementById('displayBalance')) document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
-        alert(`Transaksi Selesai!\nSukses: ${success}\nGagal: ${fail}`);
+        document.getElementById('loaderText').innerText = "Memuat Data...";
+        alert(`Multi Transaksi Selesai!\nBerhasil: ${successCount}\nGagal: ${failCount}`);
         window.nav('homePage');
     };
 
-        window.processFormTransaction = () => {
+            window.processFormTransaction = () => {
+        const provider = document.getElementById('formProvider').value;
         const code = document.getElementById('formProduct').value;
         const name = document.getElementById('selectedProductName').value;
         const price = parseInt(document.getElementById('selectedProductPrice').value || 0);
+        const number = document.getElementById('ppobNumber').value;
 
         if(!code) return alert('Silakan pilih Produk!');
+
+        // --- HANDLER KHUSUS ICS ---
+        if (provider.startsWith('ICS_')) {
+            if(!number || number.length < 9) return alert("Nomor HP tidak valid!");
+            if(currentBalance < price) return alert("Saldo tidak cukup!");
+            
+            window.customConfirm('Apakah anda ingin melanjutkan?', `Produk: ${name}\nNomor: ${number}\nHarga: ${window.formatRp(price)}`, async () => {
+                window.executeIcsTransaction(code, number, price, name);
+            });
+            return;
+        }
 
         if (code === 'CEKPLN') {
             window.checkPLN(document.getElementById('ppobNumber').value);
@@ -2155,6 +2486,7 @@ window.openAkrabV2 = () => {
             window.confirmTransaction(code, name, price);
         }
     };
+
 
     window.checkPLN = async (num) => {
         window.showLoader(true);
@@ -2206,7 +2538,7 @@ window.openAkrabV2 = () => {
         window.showInvoice(code, name, price, num);
     };
 
-    window.executeApiTransaction = async (code, dest, price, name) => {
+        window.executeApiTransaction = async (code, dest, price, name) => {
         window.showLoader(true);
         const reffId = crypto.randomUUID();
         const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -2264,7 +2596,12 @@ window.openAkrabV2 = () => {
 
             if(isSuccess) {
                 // Sukses: Update status jadi Pending
-                await updateDoc(trxRef, { status: 'Pending', api_msg: msg, provider_id: providerId });
+                // Membersihkan pesan dari parameter sensitif
+                let safeMsg = msg;
+                if (safeMsg.includes('password=') || safeMsg.includes('pin=')) {
+                    safeMsg = safeMsg.split('#').pop() || 'Tujuan Diluar Wilayah';
+                }
+                await updateDoc(trxRef, { status: 'Pending', api_msg: safeMsg, provider_id: providerId });
                 alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                 window.nav('homePage');
             } else {
@@ -2277,11 +2614,11 @@ window.openAkrabV2 = () => {
                     t.update(uRef, { balance: balanceFinal });
                     t.update(trxRef, { 
                         status: 'Gagal', 
-                        api_msg: 'Refund Otomatis: ' + msg,
+                        api_msg: 'Gagal Tujuan di luar wilayah', // Simpan pesan aman di DB juga
                         balance_final: balanceFinal,
-                        raw_json: JSON.stringify(result.data)
+                        raw_json: '{}' // Kosongkan raw json agar tidak terbaca user
                     });
-                    // Catat Riwayat Refund Terpisah agar muncul di mutasi
+                    // Catat Riwayat Refund Terpisah
                     const refundId = 'REF-' + Date.now();
                     const refundRef = doc(db, "users", currentUser.uid, "history", refundId);
                     t.set(refundRef, {
@@ -2299,27 +2636,24 @@ window.openAkrabV2 = () => {
                 currentBalance += price;
                 if(document.getElementById('displayBalance')) document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
                 
-                alert(`Transaksi Gagal: ${msg}\n\nSaldo telah dikembalikan otomatis ke akun Anda.`);
+                // --- PESAN AMAN UNTUK USER ---
+                alert("Gagal Tujuan di luar wilayah\n\nSaldo telah dikembalikan otomatis.");
                 window.nav('homePage');
             }
 
         } catch(e) {
             window.showLoader(false);
-            // 3. GAGAL -> REFUND AMAN
-            await runTransaction(db, async (t) => {
-                const uRef = doc(db, "users", currentUser.uid);
-                const uDoc = await t.get(uRef);
-                // Kembalikan saldo berdasarkan data terbaru di DB (Aman dari TopUp susulan)
-                t.update(uRef, { balance: (uDoc.data().balance || 0) + price });
-                t.update(trxRef, { status: 'Gagal', api_msg: String(e) });
+            // 3. ERROR KONEKSI
+            await updateDoc(trxRef, { 
+                status: 'Pending', 
+                api_msg: 'Koneksi Timeout. Cek status berkala.',
+                error_log: String(e)
             });
             
-            currentBalance += price; 
-            if(document.getElementById('displayBalance')) document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
-            
-            alert(`Transaksi Gagal: ${e}\n\nSaldo telah dikembalikan otomatis.`);
+            alert(`Koneksi Terputus/Timeout!\n\nTransaksi masuk status PENDING.\nMohon cek Riwayat & Refresh status beberapa saat lagi.`);
         }
     };
+
 
     // --- TOP UP LOGIC & SMART BADGE ---
         // --- BACKGROUND SERVICE (AUTO CHECK 5 Detik) ---
@@ -2369,6 +2703,10 @@ window.openAkrabV2 = () => {
                         
                         // Bersihkan Pesan SN
                         let displaySn = rawMsg;
+            // Filter data sensitif admin dari pesan
+            if (displaySn.includes('password=') || displaySn.includes('pin=')) {
+                displaySn = displaySn.split('#').pop() || 'Transaksi Gagal';
+            }
                         if (rawMsg.includes('SN:')) {
                             const parts = rawMsg.split('SN:');
                             if (parts.length > 1) {
@@ -2395,6 +2733,16 @@ window.openAkrabV2 = () => {
                             
                             if(freshStatus !== 'Pending') {
                                 updateData.status = freshStatus;
+                                
+                                // Kirim Notif Telegram jika berubah jadi Sukses
+                                if(freshStatus === 'Sukses') {
+                                    window.sendTelegramNotif('TRANSAKSI', { 
+                                        title: trx.title, 
+                                        amount: trx.amount, 
+                                        dest: trx.dest_num || '-',
+                                        trxId: trx.trx_id 
+                                    });
+                                }
                                 
                                 // LOGIKA REFUND OTOMATIS JIKA GAGAL
                                 if(freshStatus === 'Gagal') {
@@ -2654,98 +3002,72 @@ window.renderTopUpHistory = () => {
 
 
 
-        window.manualCheckTrx = async (docId, providerId) => {
+            window.manualCheckTrx = async (docId, providerId) => {
         const btn = document.getElementById('btnRefreshStatus');
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         
-        console.log("[CheckTrx] Checking refid:", docId);
-        // Panggil API
         const res = await callApi('/history', { refid: docId });
-        
-        // Ambil root data (karena field 'msg' ada di root, bukan selalu di data.data)
-                const root = res.data || {};
-        // PERBAIKAN: Deteksi jika 'data' adalah Array (List) atau Object
+        const root = res.data || {};
         let inner = root.data || {};
-        if (Array.isArray(inner) && inner.length > 0) {
-             inner = inner[0]; // Ambil data pertama jika bentuknya Array
-        }
+        if (Array.isArray(inner) && inner.length > 0) inner = inner[0];
         
-                if(res.ok || root) {
-            console.log("[CheckTrx] Result:", root);
-            
-            // TAMPILKAN RAW DATA JSON
+        if(res.ok || root) {
+            // HIDE RAW JSON FROM USER
             if(document.getElementById('dtRawJson')) {
-                document.getElementById('dtRawJson').innerText = JSON.stringify(root, null, 2);
-                // Buka details element jika belum terbuka
-                const details = document.getElementById('dtRawJson').closest('details');
-                if(details) details.open = true;
+                document.getElementById('dtRawJson').innerText = "Data Teknis Disembunyikan (Privasi)";
             }
             
             let freshStatus = 'Pending';
-            
-            // 1. Ambil Pesan Mentah (Cari di semua kemungkinan field)
-            // Prioritas: msg (root) -> message -> sn -> data.sn
             let rawMsg = root.msg || root.message || root.sn || inner.sn || inner.message || 'Tidak ada pesan';
             if (typeof rawMsg !== 'string') rawMsg = JSON.stringify(rawMsg);
 
-            // --- SMART PARSER (LOGIKA BARU) ---
             const lowerMsg = rawMsg.toLowerCase();
             const rawStatusField = String(root.status || inner.status || root.result || '').toLowerCase();
             const statusText = String(root.status_text || inner.status_text || '').toUpperCase();
 
-            // A. Deteksi Status
-            // Cek: 'status sukses' di pesan ATAU status field = true/0 ATAU status_text = SUKSES
             if (lowerMsg.includes('status sukses') || rawStatusField.includes('sukses') || rawStatusField === '0' || rawStatusField === 'true' || statusText === 'SUKSES') {
                 freshStatus = 'Sukses';
             } else if (lowerMsg.includes('gagal') || rawStatusField.includes('gagal') || rawStatusField === '1' || statusText === 'GAGAL') {
                 freshStatus = 'Gagal';
             }
 
-            // B. Ekstrak Detail Pesan (SN)
-            // Format: "... SN:varian tersedia: 10GB... @..."
             let displaySn = rawMsg;
+            // Filter data sensitif admin dari pesan
+            if (displaySn.includes('password=') || displaySn.includes('pin=')) {
+                displaySn = displaySn.split('#').pop() || 'Transaksi Gagal';
+            }
             if (rawMsg.includes('SN:')) {
                 const parts = rawMsg.split('SN:');
                 if (parts.length > 1) {
-                    // Ambil teks setelah 'SN:'
                     let snContent = parts.slice(1).join('SN:'); 
-                    // Buang bagian tanggal (setelah tanda @)
-                    if (snContent.includes('@')) {
-                        snContent = snContent.split('@')[0];
-                    }
+                    if (snContent.includes('@')) snContent = snContent.split('@')[0];
                     displaySn = snContent.trim();
                 }
             }
-            // ----------------------------------
 
-                        // Update UI
             const statusEl = document.getElementById('dtStatus');
             statusEl.innerText = freshStatus;
             statusEl.className = 'text-xs font-bold ' + (freshStatus === 'Sukses' ? 'text-green-600' : (freshStatus === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
             
-            // Update Info Detail Menggunakan Helper Baru
             document.getElementById('dtSn').innerHTML = window.formatDetailInfo(root);
 
-            // Simpan ke Database Firestore
             await updateDoc(doc(db, "users", currentUser.uid, "history", docId), {
                 status: freshStatus,
                 api_msg: displaySn,
-                // PERBAIKAN: Simpan JSON mentah agar detail tetap bisa dibuka nanti
-                raw_json: JSON.stringify(root, null, 2)
+                raw_json: '{}' // Hide raw json
             });
             
             if(freshStatus !== 'Pending') {
                 btn.classList.add('hide');
             } else {
                 btn.innerHTML = '<i class="fas fa-sync-alt"></i>';
-                // alert('Status masih Pending di server Khfy.');
             }
         } else {
-            console.error("[CheckTrx] API Error:", res);
             alert('Gagal cek status. Tidak ada respon valid.');
             btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
         }
     };
+
 
     window.closeTrxDetail = () => document.getElementById('detailTrxModal').classList.add('hide');
 
@@ -2935,6 +3257,9 @@ window.renderTopUpHistory = () => {
                         trx_id: "QP-" + qiosTicket.created
                     });
                 });
+
+                // Kirim Notif Telegram
+                window.sendTelegramNotif('TOPUP', { amount: targetAmount, trxId: "QP-" + qiosTicket.created });
 
                 alert(`SUKSES! Saldo Rp ${targetAmount.toLocaleString()} telah masuk ke akun Anda.`);
                 localStorage.removeItem('qios_trx_' + currentUser.uid);

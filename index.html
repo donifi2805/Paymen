@@ -3063,8 +3063,8 @@ window.renderTopUpHistory = () => {
                 document.getElementById('dtRawJson').innerText = "Data Teknis Disembunyikan (Privasi)";
             }
             
-            let freshStatus = 'Pending';
-            let rawMsg = root.msg || root.message || root.sn || inner.sn || inner.message || 'Tidak ada pesan';
+                        let freshStatus = 'Pending';
+            let rawMsg = root.msg || root.message || root.sn || inner.sn || inner.message || inner.keterangan || 'Tidak ada pesan';
             if (typeof rawMsg !== 'string') rawMsg = JSON.stringify(rawMsg);
 
             const lowerMsg = rawMsg.toLowerCase();
@@ -3073,16 +3073,14 @@ window.renderTopUpHistory = () => {
 
             if (lowerMsg.includes('status sukses') || rawStatusField.includes('sukses') || rawStatusField === '0' || rawStatusField === 'true' || statusText === 'SUKSES') {
                 freshStatus = 'Sukses';
-            } else if (lowerMsg.includes('gagal') || rawStatusField.includes('gagal') || rawStatusField === '1' || statusText === 'GAGAL') {
+            } else if (lowerMsg.includes('gagal') || lowerMsg.includes('err_body') || rawStatusField.includes('gagal') || rawStatusField === '1' || statusText === 'GAGAL' || lowerMsg.includes('body_err')) {
                 freshStatus = 'Gagal';
             }
 
-            // LOGIKA REFUND OTOMATIS JIKA GAGAL
             if (freshStatus === 'Gagal') {
                 await runTransaction(db, async (t) => {
                     const trxRef = doc(db, "users", currentUser.uid, "history", docId);
                     const freshDoc = await t.get(trxRef);
-                    // Pastikan hanya memproses yang masih 'Pending' atau 'Proses' untuk menghindari double refund
                     if (!freshDoc.exists() || (freshDoc.data().status !== 'Pending' && freshDoc.data().status !== 'Proses')) return;
 
                     const uRef = doc(db, "users", currentUser.uid);
@@ -3109,10 +3107,6 @@ window.renderTopUpHistory = () => {
             if (statusEl) {
                 statusEl.innerText = freshStatus;
                 statusEl.className = 'text-xs font-bold ' + (freshStatus === 'Sukses' ? 'text-green-600' : (freshStatus === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
-            }
-            
-            if(freshStatus !== 'Pending') {
-                btn.classList.add('hide');
             } else {
                 btn.innerHTML = '<i class="fas fa-sync-alt"></i>';
             }

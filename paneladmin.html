@@ -1291,7 +1291,35 @@
             await updateDoc(doc(db, "users", uid), { username: document.getElementById('editUsername').value, balance: parseInt(document.getElementById('editBalance').value) });
             document.getElementById('editUserModal').classList.add('hide'); loadDashboardData();
         };
-        window.deleteUserFromModal = async () => { if(confirm('Hapus permanen?')) { await deleteDoc(doc(db, "users", document.getElementById('editUid').value)); document.getElementById('editUserModal').classList.add('hide'); loadDashboardData(); } };
+                window.deleteUserFromModal = async () => {
+            const uid = document.getElementById('editUid').value;
+            if (!uid) return;
+
+            const { isConfirmed } = await Swal.fire({
+                title: 'Hapus User?',
+                text: "Semua data profil dan saldo user ini akan hilang permanen!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal'
+            });
+
+            if (isConfirmed) {
+                try {
+                    Swal.showLoading();
+                    await deleteDoc(doc(db, "users", uid));
+                    
+                    document.getElementById('editUserModal').classList.add('hide');
+                    Swal.fire('Terhapus!', 'Akun user telah dihapus dari database.', 'success');
+                    loadDashboardData();
+                } catch (e) {
+                    console.error("Error deleting user:", e);
+                    Swal.fire('Gagal', 'Terjadi kesalahan: ' + e.message, 'error');
+                }
+            }
+        };
         
         window.openAddUserModal = () => document.getElementById('addUserModal').classList.remove('hide');
         window.createNewUserDoc = async () => {

@@ -73,6 +73,23 @@
 </head>
 <body>
 
+    
+    <div id="maintenanceMode" class="fixed inset-0 z-[9999] flex items-center justify-center bg-white/90 dark:bg-gray-950/95 backdrop-blur-md">
+        <div class="text-center px-6">
+            <div class="w-24 h-24 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                <i class="fas fa-tools text-4xl"></i>
+            </div>
+            <h1 class="text-3xl font-black text-gray-900 dark:text-white mb-2 tracking-tighter">SERVER DOWN</h1>
+            <p class="text-gray-500 dark:text-gray-400 font-medium mb-8">Mohon maaf, sistem sedang dalam perbaikan berkala.<br>Aplikasi tidak dapat digunakan untuk sementara waktu.</p>
+            <div class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-full text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                <i class="fas fa-circle-notch fa-spin"></i> Estimasi Selesai: Segera
+            </div>
+        </div>
+    </div>
+    <style>
+        body { overflow: hidden !important; touch-action: none !important; }
+    </style>
+
 <div class="app-container transition-colors duration-300">
 
         
@@ -1901,7 +1918,9 @@ window.openAkrabV2 = () => {
     
     // API CALLER
     async function callApi(endpoint, params = {}) {
-        params['api_key'] = CONFIG.apiKey;
+                params['api_key'] = CONFIG.apiKey;
+        // UPDATE: Anti-Cache (Paksa Proxy ambil data baru)
+        params['_t'] = Date.now();
         const queryString = new URLSearchParams(params).toString();
         const targetUrl = `${CONFIG.baseUrl}${endpoint}?${queryString}`;
         
@@ -3095,17 +3114,29 @@ window.renderTopUpHistory = () => {
                 document.getElementById('dtRawJson').innerText = "Data Teknis Disembunyikan (Privasi)";
             }
             
-                        let freshStatus = 'Pending';
-            let rawMsg = root.msg || root.message || root.sn || inner.sn || inner.message || inner.keterangan || 'Tidak ada pesan';
+                                    let freshStatus = 'Pending';
+            // UPDATE: Prioritas ambil pesan dari keterangan jika SN kosong (untuk menangkap pesan 'stock transaksi habis')
+            let rawMsg = inner.sn || inner.keterangan || inner.message || root.msg || root.message || root.sn || 'Tidak ada pesan';
             if (typeof rawMsg !== 'string') rawMsg = JSON.stringify(rawMsg);
 
             const lowerMsg = rawMsg.toLowerCase();
             const rawStatusField = String(root.status || inner.status || root.result || '').toLowerCase();
             const statusText = String(root.status_text || inner.status_text || '').toUpperCase();
 
+            // Logic Status Checker v3.4 (Updated for Akrab/Khfy Panel)
             if (lowerMsg.includes('status sukses') || rawStatusField.includes('sukses') || rawStatusField === '0' || rawStatusField === 'true' || statusText === 'SUKSES') {
                 freshStatus = 'Sukses';
-            } else if (lowerMsg.includes('gagal') || lowerMsg.includes('err_body') || rawStatusField.includes('gagal') || rawStatusField === '1' || statusText === 'GAGAL' || lowerMsg.includes('body_err')) {
+            } else if (
+                lowerMsg.includes('gagal') || 
+                lowerMsg.includes('err_body') || 
+                lowerMsg.includes('stock transaksi habis') || 
+                lowerMsg.includes('stok habis') || 
+                lowerMsg.includes('kosong') ||
+                rawStatusField.includes('gagal') || 
+                rawStatusField === '1' || 
+                statusText === 'GAGAL' || 
+                lowerMsg.includes('body_err')
+            ) {
                 freshStatus = 'Gagal';
             }
 

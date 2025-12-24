@@ -1678,17 +1678,12 @@
             const status = docSnap.exists() ? docSnap.data() : {};
 
             const providers = [
-                { key: 'XLA', name: 'Khfy - XL Akrab', cat: 'Khfy' },
-                { key: 'FMX', name: 'Khfy - FlexMax', cat: 'Khfy' },
-                { key: 'XLR', name: 'Khfy - XL Reguler', cat: 'Khfy' },
-                { key: 'PLN', name: 'Khfy - PLN Pasca', cat: 'Khfy' },
-                { key: 'ICS_XDA', name: 'ICS - Akrab Fresh (XDA)', cat: 'ICS Legacy' },
-                { key: 'ICS_CIRCLE', name: 'ICS - XL Circle', cat: 'ICS Legacy' },
-                { key: 'xla', name: 'ICS - XL Akrab (XLA)', cat: 'ICS V2' },
-                { key: 'xda', name: 'ICS - Akrab Fresh (XDA)', cat: 'ICS V2' },
-                { key: 'fmax', name: 'ICS - FlexMax (FMAX)', cat: 'ICS V2' },
-                { key: 'circle', name: 'ICS - XL Circle', cat: 'ICS V2' },
-                { key: 'bpa', name: 'ICS - Bagi Pulsa (BPA)', cat: 'ICS V2' }
+                { key: 'ICS_XDA', name: 'Akrab Fresh (XDA)', cat: 'Server ICS' },
+                { key: 'ICS_CIRCLE', name: 'XL Circle', cat: 'Server ICS' },
+                { key: 'XLA', name: 'Akrab Fresh (XLA)', cat: 'Server Khfy' },
+                { key: 'FMX', name: 'FlexMax (FMX)', cat: 'Server Khfy' },
+                { key: 'XLR', name: 'XL Reguler', cat: 'Server Khfy' },
+                { key: 'PLN', name: 'PLN Pascabayar', cat: 'Server Khfy' }
             ];
 
             let html = '';

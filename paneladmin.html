@@ -186,8 +186,7 @@
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
                     <div>
                         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Saldo Beredar</p>
-                        <h3 class="text-2xl font-black text-gray-800" id="statTotalBalance">Rp ...</h3>
-                        <p class="text-[9px] text-green-500 font-bold mt-1">Akumulasi</p>
+                        <h3 class="text-xl font-black text-gray-800 cursor-pointer hover:text-blue-600 transition" onclick="calculateFinancialStats()" id="statTotalBalance" title="Klik untuk hitung ulang"><i class="fas fa-calculator mr-2 text-gray-300"></i>Hitung</h3><p class="text-[9px] text-green-500 font-bold mt-1">Klik untuk update (Hemat Kuota)</p>
                     </div>
                     <div class="w-10 h-10 bg-green-50 text-green-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-wallet"></i></div>
                 </div>
@@ -246,6 +245,7 @@
                              <tr><td colspan="5" class="p-6 text-center text-gray-400">Klik refresh untuk memuat data...</td></tr>
                         </tbody>
                     </table>
+                    <div class="p-2 bg-gray-50 border-t border-gray-100 text-center text-[10px] text-gray-400">Menampilkan seluruh data pending</div>
                 </div>
             </div>
         </div>
@@ -273,7 +273,7 @@
                                 <th class="p-3 font-bold text-center">SN / Ket</th>
                             </tr>
                         </thead>
-                                                                        <tbody id="successTrxTableBody" class="text-[11px] divide-y divide-gray-50">
+                        <tbody id="successTrxTableBody" class="text-[11px] divide-y divide-gray-50">
                              <tr><td colspan="5" class="p-6 text-center text-gray-400">Klik refresh untuk memuat data...</td></tr>
                         </tbody>
                     </table>
@@ -282,10 +282,9 @@
             </div>
         </div>
 
-        
-<div id="tab-users" class="tab-content hide fade-in pb-10">
-            <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100 sticky top-0 z-20">
-                <div class="flex items-center gap-3">
+        <div id="tab-users" class="tab-content hide fade-in pb-10">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-3 bg-white p-3 rounded-xl shadow-sm border border-gray-100 sticky top-0 z-20">
+                <div class="flex items-center gap-3 w-full md:w-auto">
                     <button onclick="switchTab('dashboard')" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition">
                         <i class="fas fa-arrow-left"></i>
                     </button>
@@ -294,13 +293,18 @@
                         <p class="text-[10px] text-gray-500">Kelola akun user</p>
                     </div>
                 </div>
-                <div class="flex-1 max-w-xs mx-4">
-                    <div class="relative">
-                        <input type="text" id="searchUserInput" onkeyup="filterUserTable()" placeholder="Cari username atau email..." class="w-full px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 text-[10px] focus:ring-1 focus:ring-blue-500 outline-none pl-8">
+                <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+                    <button onclick="toggleLoadAllUsers()" id="btnLoadAll" class="bg-white text-gray-600 border border-gray-300 px-3 py-1.5 rounded-lg font-bold text-[10px] shadow-sm transition hover:bg-gray-50 whitespace-nowrap">
+                        <i class="fas fa-list-ul mr-1"></i> <span class="hidden sm:inline">Semua</span>
+                    </button>
+                    <div class="relative w-full md:w-48">
+                        <input type="text" id="searchUserInput" onkeyup="filterUserTable()" placeholder="Cari user..." class="w-full px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 text-[10px] focus:ring-1 focus:ring-blue-500 outline-none pl-8">
                         <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]"></i>
                     </div>
+                    <button onclick="openAddUserModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-bold text-[10px] shadow transition flex items-center gap-1.5 whitespace-nowrap">
+                        <i class="fas fa-plus"></i> <span class="hidden sm:inline">Manual</span>
+                    </button>
                 </div>
-                <button onclick="openAddUserModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-bold text-[10px] shadow transition flex items-center gap-1.5"><i class="fas fa-plus"></i> Manual</button>
             </div>
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="overflow-x-auto custom-scroll">
@@ -317,6 +321,9 @@
                             <tr><td colspan="4" class="p-6 text-center text-gray-400 animate-pulse">Memuat...</td></tr>
                         </tbody>
                     </table>
+                </div>
+                <div id="userPaginationArea" class="p-3 border-t border-gray-100 bg-gray-50 flex justify-center items-center gap-2 hide">
+                    <button onclick="loadUsers(false)" class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold shadow-sm hover:bg-blue-50 text-blue-600 transition">Muat Lebih Banyak...</button>
                 </div>
             </div>
         </div>
@@ -551,7 +558,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup, sendPasswordResetEmail, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, getDoc, collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy, collectionGroup, setDoc, where, onSnapshot, serverTimestamp, addDoc, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, getDoc, collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy, collectionGroup, setDoc, where, onSnapshot, serverTimestamp, addDoc, limit, startAfter, startAt } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
         const firebaseConfig = {
@@ -567,6 +574,7 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        let lastUserDoc = null, isAllUsersLoaded = false, lastDashboardFetch = 0;
         let currentChatUid = null, chatUnsub = null, chatListUnsub = null, isRedirectFromUsers = false;
                 let globalProducts = [], pricingRules = {}, allTransactions = [], allUsers = [], trxCurrentPage = 1, trxItemsPerPage = 15, trxCurrentData = [];
         let successTrxData = [], successCurrentPage = 1, successItemsPerPage = 15;
@@ -581,8 +589,25 @@
         });
 
         window.showAdminTrxDetail = (t) => {
+            // Ambil User terbaru dari memory untuk cek saldo saat ini
+            const user = allUsers.find(u => u.id === t.uid);
+            const currentBalance = user ? user.balance : 0;
+
             let flowHtml = `
                 <div class="text-left space-y-3">
+                    
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="p-2 bg-indigo-50 rounded-lg border border-indigo-100">
+                            <p class="text-[9px] text-indigo-600 font-bold uppercase mb-1">Saldo User Saat Ini</p>
+                            <p class="text-sm font-black text-indigo-700">${window.formatRp(currentBalance)}</p>
+                        </div>
+                        <div class="p-2 bg-gray-50 rounded-lg border border-gray-200 relative group">
+                            <p class="text-[9px] text-gray-400 font-bold uppercase mb-1">ID Transaksi</p>
+                            <p class="text-[10px] font-mono font-bold text-gray-600 truncate" title="${t.id}">${t.id}</p>
+                            <button onclick="navigator.clipboard.writeText('${t.id}'); Swal.showValidationMessage('ID Disalin!'); setTimeout(()=>Swal.resetValidationMessage(), 1000)" class="absolute top-2 right-2 text-gray-400 hover:text-blue-600 transition"><i class="fas fa-copy"></i></button>
+                        </div>
+                    </div>
+
                     <div class="p-3 bg-blue-50 rounded-lg border border-blue-100">
                         <p class="text-[10px] text-blue-600 font-bold mb-2 uppercase">Alur Transaksi</p>
                         <div class="flex items-center gap-3 mb-2">
@@ -620,7 +645,7 @@
                 </div>`;
 
             Swal.fire({
-                title: 'Rincian Keuangan User',
+                title: 'Rincian Transaksi',
                 html: flowHtml,
                 confirmButtonText: 'Tutup',
                 confirmButtonColor: '#1e40af'
@@ -682,7 +707,7 @@
                 document.getElementById('modalUserHistory').innerHTML = '<p class="text-red-500">Gagal memuat: ' + e.message + '</p>';
             }
         };
-        window.filterUserTable = () => {
+                window.filterUserTable = () => {
             const filter = document.getElementById('searchUserInput').value.toLowerCase();
             const rows = document.querySelectorAll('#userTableBody tr');
             rows.forEach(row => {
@@ -780,20 +805,130 @@
             const activeLink = document.getElementById('nav-' + tabId);
             if(activeLink) activeLink.classList.add('active-nav', 'text-white');
                         if(tabId === 'notification') loadActiveNotif();
-            if(tabId === 'pricing') loadPricingData();
+            if(tabId === 'users') { if(!lastUserDoc && !isAllUsersLoaded) loadUsers(true); }
+if(tabId === 'pricing') loadPricingData();
             if(tabId === 'livechat') loadChatList();
         };
 
-        window.loadDashboardData = async () => {
+        window.changeUserPage = (target) => loadDashboardData(target);
+
+        // Fungsi Render Tombol Angka
+        function renderPaginationControls(currentPage, hasNext) {
+            const container = document.getElementById('userPaginationContainer');
+            if (!container) return;
+            
+            let html = '';
+            
+            // Loop untuk membuat tombol angka berdasarkan halaman yang sudah terbuka (stack)
+            // Kita bisa mundur ke halaman mana saja yang ada di stack
+            for (let i = 1; i <= currentPage; i++) {
+                const isActive = i === currentPage;
+                const style = isActive 
+                    ? "bg-blue-600 text-white border-blue-600 shadow-md transform scale-105" 
+                    : "bg-white text-gray-600 border-gray-200 hover:bg-gray-100";
+                
+                html += `<button onclick="changeUserPage(${i})" class="w-8 h-8 flex items-center justify-center rounded-lg border text-xs font-bold transition-all duration-200 ${style}">${i}</button>`;
+            }
+
+            // Tombol Next (hanya muncul jika ada data berikutnya)
+            if (hasNext) {
+                html += `<button onclick="changeUserPage('next')" class="px-3 py-1.5 h-8 rounded-lg bg-white border border-gray-200 text-gray-600 text-[10px] font-bold shadow-sm hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition flex items-center">Next <i class="fas fa-chevron-right ml-1"></i></button>`;
+            }
+            
+            container.innerHTML = html;
+        }
+
+                window.loadDashboardData = async (force = false) => {
+            // Caching: Cegah reload jika data baru diambil < 2 menit lalu
+            if (!force && Date.now() - lastDashboardFetch < 120000) {
+                console.log("Using Cached Dashboard Data");
+                return;
+            }
+            lastDashboardFetch = Date.now();
+
+            try {
+                // HANYA mengambil Metadata / Count (Hemat Read)
+                // Total user dihitung dari metadata jika ada, atau estimasi
+                // Di sini kita ambil Count Server (jika pakai aggregation) atau sekadar update UI statis
+                // Untuk hemat, kita tidak ambil 'collection users' di sini.
+                
+                document.getElementById('statUserCount').innerText = 'Check Tab';
+                
+                // Jalankan Listener Global (Hanya sekali)
+                if (!window.globalListenersActive) {
+                    loadGlobalListeners();
+                    window.globalListenersActive = true;
+                }
+                // loadGlobalTransactions(); // Dinonaktifkan di Dashboard agar hemat kuota (Hanya load di Tab Transaksi)
+                
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Data Dashboard Diperbarui', showConfirmButton: false, timer: 1500 });
+                
+            } catch (e) { 
+                console.error(e); 
+            } 
+        };
+
+        window.calculateFinancialStats = async () => {
+            // Fitur Manual Trigger (Bayar 'Read' hanya saat diklik)
+            Swal.showLoading();
             try {
                 const snap = await getDocs(collection(db, "users"));
-                let totalUsers = 0, totalBalance = 0, html = ''; allUsers = [];
+                let totalBal = 0;
+                snap.forEach(d => totalBal += (d.data().balance || 0));
+                
+                document.getElementById('statTotalBalance').innerHTML = window.formatRp(totalBal);
+                document.getElementById('statUserCount').innerText = snap.size;
+                Swal.close();
+            } catch(e) {
+                Swal.fire('Error', e.message, 'error');
+            }
+        };
+
+        window.loadUsers = async (reset = false) => {
+            const tbody = document.getElementById('userTableBody');
+            const btnArea = document.getElementById('userPaginationArea');
+            
+            if (reset) {
+                tbody.innerHTML = '';
+                lastUserDoc = null;
+                isAllUsersLoaded = false;
+                document.getElementById('btnLoadAll').classList.remove('bg-blue-100', 'text-blue-700');
+                document.getElementById('btnLoadAll').innerHTML = '<i class="fas fa-list-ul mr-1"></i> Tampilkan Semua';
+            }
+
+            // Mode Tampilkan Semua (Boros tapi User yang minta)
+            if (isAllUsersLoaded) return;
+
+            const limitSize = 20;
+            // Query Pagination (Hemat: Cuma ambil 20)
+            let q = query(collection(db, "users"), limit(limitSize));
+            if (lastUserDoc) {
+                q = query(collection(db, "users"), startAfter(lastUserDoc), limit(limitSize));
+            }
+
+            try {
+                if(reset) tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Memuat data...</td></tr>';
+                
+                const snap = await getDocs(q);
+                if (reset) tbody.innerHTML = ''; // Clear loading spinner
+
+                if (snap.empty) {
+                    if(reset) tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-gray-400">Tidak ada data user.</td></tr>';
+                    btnArea.classList.add('hide');
+                    return;
+                }
+
+                lastUserDoc = snap.docs[snap.docs.length - 1]; // Simpan kursor terakhir
+                
+                let html = '';
+                allUsers = reset ? [] : allUsers; // Reset array global jika perlu
+
                 snap.forEach(docSnap => {
                     const data = docSnap.data(), uid = docSnap.id;
-                    totalUsers++; totalBalance += (data.balance || 0);
                     allUsers.push({ id: uid, ...data });
+                    
                     const avatarUrl = data.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${uid}`;
-                    html += `<tr class="hover:bg-blue-50/30 border-b border-gray-50 last:border-0">
+                    html += `<tr class="hover:bg-blue-50/30 border-b border-gray-50 last:border-0 fade-in">
                         <td class="p-3"><img src="${avatarUrl}" class="w-8 h-8 rounded-full border bg-gray-100"></td>
                         <td class="p-3"><div class="font-bold text-gray-800">${data.username || 'User'}</div><div class="text-[9px] text-gray-400">${data.email || '-'}</div></td>
                         <td class="p-3 font-bold text-blue-600">${window.formatRp(data.balance || 0)}</td>
@@ -803,26 +938,79 @@
                             <button onclick="openEditUser('${uid}')" class="px-2 py-1 rounded bg-white text-gray-600 border border-gray-200">Edit</button>
                         </td></tr>`;
                 });
-                document.getElementById('userTableBody').innerHTML = html;
-                document.getElementById('statUserCount').innerText = totalUsers;
-                document.getElementById('statTotalBalance').innerText = window.formatRp(totalBalance);
-                
-                // Realtime Chat Count
-                onSnapshot(query(collection(db, "chats")), (chatSnap) => {
-                    let unreadCount = 0;
-                    chatSnap.forEach(d => { if(d.data().lastSender === 'user' && !d.data().isRead) unreadCount++; });
-                    document.getElementById('statChatCount').innerText = unreadCount;
-                });
 
-                                // Pending Count for Dashboard Card
-                const qPending = query(collectionGroup(db, 'history'), where("status", "in", ["Pending", "Proses"]));
-                onSnapshot(qPending, (snap) => {
-                    document.getElementById('statPendingCount').innerText = snap.size;
-                });
+                // Append (tambahkan ke bawah) bukan replace
+                tbody.insertAdjacentHTML('beforeend', html);
 
-                loadGlobalTransactions();
-            } catch (e) { console.log(e); }
+                // Atur tombol Load More
+                if (snap.size < limitSize) btnArea.classList.add('hide');
+                else btnArea.classList.remove('hide');
+
+            } catch (e) {
+                console.error(e);
+                tbody.innerHTML += `<tr><td colspan="4" class="text-red-500 p-4">Error: ${e.message}</td></tr>`;
+            }
         };
+
+        window.toggleLoadAllUsers = async () => {
+            const btn = document.getElementById('btnLoadAll');
+            const btnArea = document.getElementById('userPaginationArea');
+            
+            if (isAllUsersLoaded) {
+                // Kembali ke Mode Pagination
+                loadUsers(true);
+                return;
+            }
+
+            if(!confirm('Peringatan: Menampilkan SEMUA user akan memakan banyak kuota read database. Lanjutkan?')) return;
+
+            // Mode Load All
+            isAllUsersLoaded = true;
+            btn.classList.add('bg-blue-100', 'text-blue-700');
+            btn.innerHTML = '<i class="fas fa-check mr-1"></i> Mode Semua Data';
+            btnArea.classList.add('hide'); // Sembunyikan tombol pagination
+
+            const tbody = document.getElementById('userTableBody');
+            tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-blue-500"><i class="fas fa-spinner fa-spin mr-2"></i>Mengambil SELURUH data user (High Usage)...</td></tr>';
+
+            try {
+                const snap = await getDocs(collection(db, "users"));
+                tbody.innerHTML = '';
+                let html = '';
+                allUsers = [];
+                snap.forEach(docSnap => {
+                     const data = docSnap.data(), uid = docSnap.id;
+                     allUsers.push({ id: uid, ...data });
+                     const avatarUrl = data.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${uid}`;
+                     html += `<tr class="hover:bg-blue-50/30 border-b border-gray-50 last:border-0">
+                        <td class="p-3"><img src="${avatarUrl}" class="w-8 h-8 rounded-full border bg-gray-100"></td>
+                        <td class="p-3"><div class="font-bold text-gray-800">${data.username || 'User'}</div><div class="text-[9px] text-gray-400">${data.email || '-'}</div></td>
+                        <td class="p-3 font-bold text-blue-600">${window.formatRp(data.balance || 0)}</td>
+                        <td class="p-3 text-center">
+                            <button onclick="viewUserHistory('${uid}', '${data.username || 'User'}')" class="px-2 py-1 rounded bg-orange-50 text-orange-600 border border-orange-100 mr-1"><i class="fas fa-history"></i></button>
+                            <button onclick="initChat('${uid}', '${data.username || 'User'}')" class="px-2 py-1 rounded bg-blue-50 text-blue-600 border border-blue-100 mr-1"><i class="fas fa-comment-alt"></i></button>
+                            <button onclick="openEditUser('${uid}')" class="px-2 py-1 rounded bg-white text-gray-600 border border-gray-200">Edit</button>
+                        </td></tr>`;
+                });
+                tbody.innerHTML = html;
+                document.getElementById('statUserCount').innerText = snap.size;
+            } catch(e) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-red-500 p-4">Gagal Load All: ${e.message}</td></tr>`;
+                loadUsers(true); // Revert jika gagal
+            }
+        };
+
+        function loadGlobalListeners() {
+            onSnapshot(query(collection(db, "chats")), (chatSnap) => {
+                let unreadCount = 0;
+                chatSnap.forEach(d => { if(d.data().lastSender === 'user' && !d.data().isRead) unreadCount++; });
+                document.getElementById('statChatCount').innerText = unreadCount;
+            });
+            const qPending = query(collectionGroup(db, 'history'), where("status", "in", ["Pending", "Proses"]));
+            onSnapshot(qPending, (snap) => {
+                document.getElementById('statPendingCount').innerText = snap.size;
+            });
+        }
 
                         
                 window.loadSuccessTransactions = async () => {
@@ -870,14 +1058,14 @@
 
             let html = '';
             pageData.forEach(t => {
-                const user = allUsers.find(u => u.id === t.uid);
+                const user = allUsers.find(u => u.id === t.uid); const userName = user ? (user.username || 'User') : (t.username || 'User');
                 const dObj = t.date ? new Date(t.date) : null;
                 const dateStr = dObj ? dObj.toLocaleString('id-ID', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '-';
                 
                 html += `<tr class="border-b border-gray-50 hover:bg-gray-50">
                     <td class="p-3 text-gray-500 font-mono text-[10px]">${dateStr}</td>
                     <td class="p-3">
-                        <div class="font-bold text-gray-700">${user ? (user.username || 'User') : 'User'}</div>
+                        <div class="font-bold text-gray-700">${userName}</div>
                         <div class="text-[9px] text-gray-400 font-mono">${t.uid.substring(0,6)}...</div>
                     </td>
                     <td class="p-3">
@@ -940,23 +1128,32 @@
                 }
                 
                 pendingList.forEach(t => {
-                    const user = allUsers.find(u => u.id === t.parentUid);
+                    const user = allUsers.find(u => u.id === t.parentUid); 
+                    const userName = user ? user.username : (t.username || 'User');
                     const dObj = t.date ? new Date(t.date) : null;
                     const timeStr = dObj ? dObj.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : '--:--';
                     
                     html += `<tr class="border-b border-gray-50">
-                        <td class="p-3"><b>${user ? user.username : 'User'}</b><br><span class="text-[9px] text-blue-500 font-mono">${timeStr} WIB</span></td>
-                        <td class="p-3"><b>${t.title}</b><br>${t.api_msg || '-'}</td>
+                        <td class="p-3">
+                            <div class="font-bold">${userName}</div>
+                            <div class="text-[9px] text-gray-400 font-mono">${timeStr} WIB</div>
+                        </td>
+                        <td class="p-3">
+                            <div class="font-bold">${t.title}</div>
+                            <div class="text-[9px] text-gray-500">${t.api_msg || '-'}</div>
+                            ${t.trx_code ? `<div class="text-[9px] font-mono text-blue-600 font-bold mt-1"><i class="fas fa-hashtag mr-1"></i>${t.trx_code}</div>` : ''}
+                        </td>
                         <td class="p-3 text-right font-bold text-blue-600">${window.formatRp(t.amount)}</td>
                         <td class="p-3 text-center">
-                            <button onclick="viewUserHistory('${t.parentUid}', '${user ? user.username : 'User'}')" class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 hover:bg-orange-500 hover:text-white transition shadow-sm"><i class="fas fa-history text-[10px]"></i></button>
+                             <span class="px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700 text-[10px] font-bold">${t.status}</span>
                         </td>
-                        <td class="p-3 text-center"><span class="px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700">${t.status}</span></td>
                         <td class="p-3 text-center">
-                            <button onclick="manualSuccess('${t.parentUid}', '${t.id}')" class="bg-green-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-green-700">SUKSESKAN</button>
-                            <button onclick="manualFail('${t.parentUid}', '${t.id}', ${t.amount})" class="bg-red-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-red-700 ml-1">GAGALKAN</button>
-
-                            <button onclick="recheckServerTrx('${t.parentUid}', '${t.id}')" class="bg-slate-700 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-slate-800 ml-1"><i class="fas fa-search"></i> RECHECK</button>
+                            <div class="flex items-center justify-center gap-1">
+                                <button onclick="manualSuccess('${t.parentUid}', '${t.id}')" class="bg-green-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-green-700" title="Sukseskan Manual"><i class="fas fa-check"></i></button>
+                                <button onclick="manualFail('${t.parentUid}', '${t.id}', ${t.amount})" class="bg-red-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-red-700" title="Gagalkan & Refund"><i class="fas fa-times"></i></button>
+                                <button onclick="recheckServerTrx('${t.parentUid}', '${t.id}')" class="bg-slate-700 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-slate-800" title="Cek Server"><i class="fas fa-search"></i></button>
+                                <button onclick='showAdminTrxDetail(${JSON.stringify(t)})' class="bg-blue-50 text-blue-600 px-2 py-1 rounded text-[9px] font-bold border border-blue-200" title="Detail JSON"><i class="fas fa-code"></i></button>
+                            </div>
                         </td>
                     </tr>`;
                 });
@@ -1184,6 +1381,12 @@
             let html = '';
             pageData.forEach(t => {
                 const isOut = t.type === 'out', user = allUsers.find(u => u.id === t.uid); const dObj = t.date ? new Date(t.date) : null; const date = dObj ? dObj.toLocaleDateString('id-ID', {day:'numeric', month:'short'}) : '-'; const time = dObj ? dObj.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : '';
+                let statusHtml = '';
+                if (t.status === 'Sukses') statusHtml = '<span class="px-1.5 py-0.5 rounded bg-green-100 text-green-700">Sukses</span>';
+                else if (t.status === 'Gagal' && t.balance_final) statusHtml = '<span class="px-1.5 py-0.5 rounded bg-red-100 text-red-700">Gagal</span><div class="text-[9px] text-green-600 font-bold mt-1"><i class="fas fa-undo mr-1"></i>REFUND</div>';
+                else if (t.status === 'Gagal') statusHtml = '<span class="px-1.5 py-0.5 rounded bg-red-100 text-red-700">Gagal</span>';
+                else statusHtml = `<span class="px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700">${t.status}</span>`;
+
                 html += `<tr class="border-b border-gray-50">
                     <td class="p-3"><div class="font-bold">${date}</div><div class="text-[10px] text-gray-400 font-mono">${time} WIB</div></td>
                     <td class="p-3"><div class="font-bold">${user ? user.username : 'User'}</div><button onclick="viewUserHistory('${t.uid}', '${user ? user.username : 'User'}')" class="text-[9px] text-orange-500 font-bold hover:underline"><i class="fas fa-history mr-1"></i>Lihat Riwayat</button></td>
@@ -1194,7 +1397,7 @@
                         </button>
                     </td>
                     <td class="p-3 text-right"><span class="font-bold ${isOut?'text-red-500':'text-green-500'}">${isOut?'-':'+'}${window.formatRp(t.amount)}</span></td>
-                    <td class="p-3 text-center"><span class="px-1.5 py-0.5 rounded ${t.status==='Sukses'?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}">${t.status}</span></td>
+                    <td class="p-3 text-center">${statusHtml}</td>
                 </tr>`;
             });
             document.getElementById('trxTableBody').innerHTML = html || '<tr><td colspan="5" class="p-4 text-center">Kosong</td></tr>';
@@ -1427,7 +1630,7 @@
             const listContainer = document.getElementById('chatUserList');
             if(!listContainer) return;
             if(chatListUnsub) chatListUnsub(); 
-            chatListUnsub = onSnapshot(query(collection(db, "chats"), orderBy("lastTimestamp", "desc")), (snapshot) => {
+            chatListUnsub = onSnapshot(query(collection(db, "chats"), orderBy("lastTimestamp", "desc"), limit(50)), (snapshot) => {
                 if (snapshot.empty) { listContainer.innerHTML = '<div class="text-center text-gray-400 mt-10 text-[10px]">Belum ada pesan.</div>'; return; }
                 let html = '';
                 snapshot.forEach(docSnap => {

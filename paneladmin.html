@@ -472,7 +472,9 @@
                     <button onclick="switchTab('dashboard')" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition"><i class="fas fa-arrow-left"></i></button>
                     <div><h2 class="text-lg font-bold text-gray-800 leading-none">Kelola Harga</h2><p class="text-[10px] text-gray-500">Atur keuntungan per produk</p></div>
                 </div>
-                <button onclick="saveAllPrices()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-[11px] shadow transition flex items-center gap-2"><i class="fas fa-save"></i> Simpan Perubahan</button>
+                                <button onclick="openMaintenanceModal()" class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-bold text-[11px] shadow transition flex items-center gap-2 mr-2"><i class="fas fa-tools"></i> Maintenance Mode</button>
+
+<button onclick="saveAllPrices()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-[11px] shadow transition flex items-center gap-2"><i class="fas fa-save"></i> Simpan Perubahan</button>
             </div>
             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4">
                                 <label class="text-[10px] font-bold text-gray-500 block mb-1">Filter Kategori / Provider</label>
@@ -770,6 +772,7 @@
         window.switchTab = (tabId) => {
             if(tabId === 'pending-trx') loadPendingTransactions();
             if(tabId === 'success-trx') loadSuccessTransactions();
+            if(tabId === 'transactions') loadGlobalTransactions();
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hide'));
             document.getElementById('tab-' + tabId).classList.remove('hide');
             document.querySelectorAll('nav a').forEach(el => el.classList.remove('active-nav', 'text-white'));
@@ -1592,12 +1595,181 @@ window.loadPendingTransactions = async () => {
             } catch(e) { console.log(e); }
         };
 
-        window.deactivateNotif = async () => {
-            if(confirm('Hentikan penayangan notifikasi ini?')) {
+        
+    // --- MAINTENANCE MODE LOGIC (GLOBAL) ---
+    window.openMaintenanceModal = async () => {
+        const modal = document.getElementById('maintenanceModal');
+        if(modal) modal.classList.remove('hide');
+        
+        const container = document.getElementById('maintenanceList');
+        if(container) container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-orange-500"></i> Memuat status...</div>';
+
+        try {
+            const docSnap = await getDoc(doc(db, "settings", "providers"));
+            const status = docSnap.exists() ? docSnap.data() : {};
+
+            const providers = [
+                { key: 'XLA', name: 'Khfy - XL Akrab', cat: 'Khfy' },
+                { key: 'FMX', name: 'Khfy - FlexMax', cat: 'Khfy' },
+                { key: 'XLR', name: 'Khfy - XL Reguler', cat: 'Khfy' },
+                { key: 'PLN', name: 'Khfy - PLN Pasca', cat: 'Khfy' },
+                { key: 'ICS_XDA', name: 'ICS - Akrab Fresh (XDA)', cat: 'ICS Legacy' },
+                { key: 'ICS_CIRCLE', name: 'ICS - XL Circle', cat: 'ICS Legacy' },
+                { key: 'xla', name: 'ICS - XL Akrab (XLA)', cat: 'ICS V2' },
+                { key: 'xda', name: 'ICS - Akrab Fresh (XDA)', cat: 'ICS V2' },
+                { key: 'fmax', name: 'ICS - FlexMax (FMAX)', cat: 'ICS V2' },
+                { key: 'circle', name: 'ICS - XL Circle', cat: 'ICS V2' },
+                { key: 'bpa', name: 'ICS - Bagi Pulsa (BPA)', cat: 'ICS V2' }
+            ];
+
+            let html = '';
+            let currentCat = '';
+
+            providers.forEach(p => {
+                if(p.cat !== currentCat) {
+                    html += `<div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2 mb-1 border-b border-gray-100 pb-1">${p.cat}</div>`;
+                    currentCat = p.cat;
+                }
+                const isMt = status[p.key] === true;
+                html += `
+                <label class="flex items-center justify-between p-3 rounded-xl border ${isMt ? 'bg-red-50 border-red-100' : 'bg-white border-gray-200'} cursor-pointer transition hover:bg-gray-50">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center ${isMt ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}">
+                            <i class="fas ${isMt ? 'fa-ban' : 'fa-check'}"></i>
+                        </div>
+                        <div>
+                            <p class="font-bold text-xs text-gray-800">${p.name}</p>
+                            <p class="text-[9px] ${isMt ? 'text-red-500 font-bold' : 'text-gray-400'}">${isMt ? 'Sedang Gangguan' : 'Normal / Aktif'}</p>
+                        </div>
+                    </div>
+                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" name="mt_toggle" value="${p.key}" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer ${isMt ? 'right-0 border-red-500' : 'left-0 border-gray-300'}" ${isMt ? 'checked' : ''} onclick="this.classList.toggle('right-0'); this.classList.toggle('left-0'); this.classList.toggle('border-red-500'); this.classList.toggle('border-gray-300');"/>
+                        <label class="toggle-label block overflow-hidden h-5 rounded-full cursor-pointer ${isMt ? 'bg-red-500' : 'bg-gray-300'}"></label>
+                    </div>
+                </label>`;
+            });
+
+            if(container) container.innerHTML = html;
+        } catch(e) {
+            console.error(e);
+            if(container) container.innerHTML = `<p class="text-red-500 text-center">Gagal: ${e.message}</p>`;
+        }
+    };
+
+    window.saveMaintenanceStatus = async () => {
+        const checkboxes = document.querySelectorAll('input[name="mt_toggle"]');
+        const statusMap = {};
+        
+        checkboxes.forEach(cb => {
+            statusMap[cb.value] = cb.checked; 
+        });
+
+        try {
+            Swal.fire({ title: 'Menyimpan...', didOpen: () => Swal.showLoading() });
+            await setDoc(doc(db, "settings", "providers"), statusMap, { merge: true });
+            Swal.fire('Berhasil', 'Status maintenance provider diperbarui.', 'success');
+            document.getElementById('maintenanceModal').classList.add('hide');
+        } catch(e) {
+            Swal.fire('Gagal', e.message, 'error');
+        }
+    };
+
+
+
+    // --- FIX: LOAD HISTORY ---
+    window.loadGlobalTransactions = async () => {
+        const tbody = document.getElementById('trxTableBody');
+        if(tbody.innerHTML.includes('Menunggu')) tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Mengambil data...</td></tr>';
+        try {
+            const q = query(collectionGroup(db, 'history'), orderBy("date", "desc"), limit(100));
+            const snap = await getDocs(q);
+            allTransactions = [];
+            snap.forEach(d => {
+                allTransactions.push({ id: d.id, uid: d.ref.parent.parent ? d.ref.parent.parent.id : 'Unk', ...d.data() });
+            });
+            renderTransactions(allTransactions);
+        } catch(e) {
+            console.error("Err Load Trx:", e);
+            tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-red-400">Gagal: ${e.message}</td></tr>`;
+        }
+    };
+
+    // --- MAINTENANCE MODE LOGIC (GLOBAL) ---
+    window.openMaintenanceModal = async () => {
+        const modal = document.getElementById('maintenanceModal');
+        if(modal) modal.classList.remove('hide');
+        const container = document.getElementById('maintenanceList');
+        if(container) container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-orange-500"></i> Memuat status...</div>';
+
+        try {
+            const docSnap = await getDoc(doc(db, "settings", "providers"));
+            const status = docSnap.exists() ? docSnap.data() : {};
+            const providers = [
+                { key: 'XLA', name: 'Khfy - XL Akrab', cat: 'Khfy' },
+                { key: 'FMX', name: 'Khfy - FlexMax', cat: 'Khfy' },
+                { key: 'XLR', name: 'Khfy - XL Reguler', cat: 'Khfy' },
+                { key: 'PLN', name: 'Khfy - PLN Pasca', cat: 'Khfy' },
+                { key: 'ICS_XDA', name: 'ICS - Akrab Fresh (XDA)', cat: 'ICS Legacy' },
+                { key: 'ICS_CIRCLE', name: 'ICS - XL Circle', cat: 'ICS Legacy' },
+                { key: 'xla', name: 'ICS - XL Akrab (XLA)', cat: 'ICS V2' },
+                { key: 'xda', name: 'ICS - Akrab Fresh (XDA)', cat: 'ICS V2' },
+                { key: 'fmax', name: 'ICS - FlexMax (FMAX)', cat: 'ICS V2' },
+                { key: 'circle', name: 'ICS - XL Circle', cat: 'ICS V2' },
+                { key: 'bpa', name: 'ICS - Bagi Pulsa (BPA)', cat: 'ICS V2' }
+            ];
+            let html = '';
+            let currentCat = '';
+            providers.forEach(p => {
+                if(p.cat !== currentCat) {
+                    html += `<div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2 mb-1 border-b border-gray-100 pb-1">${p.cat}</div>`;
+                    currentCat = p.cat;
+                }
+                const isMt = status[p.key] === true;
+                html += `
+                <label class="flex items-center justify-between p-3 rounded-xl border ${isMt ? 'bg-red-50 border-red-100' : 'bg-white border-gray-200'} cursor-pointer transition hover:bg-gray-50">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center ${isMt ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}">
+                            <i class="fas ${isMt ? 'fa-ban' : 'fa-check'}"></i>
+                        </div>
+                        <div>
+                            <p class="font-bold text-xs text-gray-800">${p.name}</p>
+                            <p class="text-[9px] ${isMt ? 'text-red-500 font-bold' : 'text-gray-400'}">${isMt ? 'Sedang Gangguan' : 'Normal / Aktif'}</p>
+                        </div>
+                    </div>
+                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" name="mt_toggle" value="${p.key}" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer ${isMt ? 'right-0 border-red-500' : 'left-0 border-gray-300'}" ${isMt ? 'checked' : ''} onclick="this.classList.toggle('right-0'); this.classList.toggle('left-0'); this.classList.toggle('border-red-500'); this.classList.toggle('border-gray-300');"/>
+                        <label class="toggle-label block overflow-hidden h-5 rounded-full cursor-pointer ${isMt ? 'bg-red-500' : 'bg-gray-300'}"></label>
+                    </div>
+                </label>`;
+            });
+            if(container) container.innerHTML = html;
+        } catch(e) {
+            console.error(e);
+            if(container) container.innerHTML = `<p class="text-red-500 text-center">Gagal: ${e.message}</p>`;
+        }
+    };
+
+    window.saveMaintenanceStatus = async () => {
+        const checkboxes = document.querySelectorAll('input[name="mt_toggle"]');
+        const statusMap = {};
+        checkboxes.forEach(cb => { statusMap[cb.value] = cb.checked; });
+        try {
+            Swal.fire({ title: 'Menyimpan...', didOpen: () => Swal.showLoading() });
+            await setDoc(doc(db, "settings", "providers"), statusMap, { merge: true });
+            Swal.fire('Berhasil', 'Status maintenance provider diperbarui.', 'success');
+            document.getElementById('maintenanceModal').classList.add('hide');
+        } catch(e) { Swal.fire('Gagal', e.message, 'error'); }
+    };
+
+    window.deactivateNotif = async () => {
+        if(confirm('Hentikan penayangan notifikasi ini?')) {
+            try {
                 await updateDoc(doc(db, "global_notif", "active"), { isActive: false });
                 loadActiveNotif();
-            }
-        };
+                Swal.fire('Sukses', 'Notifikasi dimatikan.', 'success');
+            } catch(e) { Swal.fire('Error', e.message, 'error'); }
+        }
+    };
 
     </script>
     
@@ -1619,5 +1791,23 @@ window.loadPendingTransactions = async () => {
             </div>
         </div>
     </div>
+    <div id="maintenanceModal" class="hide fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 fade-in">
+        <div class="bg-white rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div class="bg-orange-50 px-4 py-3 border-b border-orange-100 flex justify-between items-center">
+                <h3 class="text-sm font-bold text-orange-800"><i class="fas fa-traffic-light mr-2"></i>Kontrol Gangguan (Maintenance)</h3>
+                <button onclick="document.getElementById('maintenanceModal').classList.add('hide')" class="text-gray-400 hover:text-red-500"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-5">
+                <p class="text-[10px] text-gray-500 mb-4">Aktifkan switch untuk menandai provider sebagai <b>GANGGUAN</b> (User tidak bisa transaksi).</p>
+                <div class="space-y-4 max-h-[60vh] overflow-y-auto custom-scroll pr-2" id="maintenanceList">
+                    
+                </div>
+                <div class="mt-4 pt-3 border-t border-gray-100 flex justify-end">
+                    <button onclick="saveMaintenanceStatus()" class="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded-lg font-bold text-xs shadow-lg transition">SIMPAN STATUS</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>

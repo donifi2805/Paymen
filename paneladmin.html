@@ -825,8 +825,36 @@
         };
 
                         
-        window.loadSuccessTransactions = async () => {
-            
+                window.loadSuccessTransactions = async () => {
+            const tbody = document.getElementById('successTrxTableBody');
+            tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Mengambil data...</td></tr>';
+            try {
+                // Ambil 100 data terakhir untuk pagination
+                const q = query(collectionGroup(db, 'history'), where("status", "==", "Sukses"), orderBy("date", "desc"), limit(100));
+                const snap = await getDocs(q);
+                
+                successTrxData = [];
+                if(snap.empty) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-gray-400">Belum ada riwayat sukses.</td></tr>';
+                    document.getElementById('successPagination').classList.add('hide');
+                    return;
+                }
+
+                snap.forEach(d => {
+                    const t = d.data();
+                    const parentUid = d.ref.parent.parent ? d.ref.parent.parent.id : 'Unk';
+                    successTrxData.push({ ...t, uid: parentUid });
+                });
+
+                successCurrentPage = 1;
+                renderSuccessTransactions();
+                document.getElementById('statSuccessCount').innerText = snap.size >= 100 ? '99+' : snap.size;
+
+            } catch(e) {
+                console.error("Load success err: ", e);
+                tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-red-500">Gagal: ${e.message}</td></tr>`;
+            }
+        };
 
         window.changeSuccessPage = (page) => {
             successCurrentPage = page;
@@ -870,8 +898,11 @@
             } else {
                 container.classList.remove('hide');
                 let pHtml = '';
-                pHtml += `<button onclick="changeSuccessPage(${Math.max(1, successCurrentPage - 1)})" disabled="${successCurrentPage === 1}" class="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition mr-1"><i class="fas fa-chevron-left"></i></button>`;
+                
+                // TOMBOL PREV (TEXT)
+                pHtml += `<button onclick="changeSuccessPage(${Math.max(1, successCurrentPage - 1)})" disabled="${successCurrentPage === 1}" class="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition mr-1 text-[10px] font-bold shadow-sm flex items-center gap-1"><i class="fas fa-chevron-left"></i> Prev</button>`;
 
+                // ANGKA HALAMAN
                 let startP = Math.max(1, successCurrentPage - 2);
                 let endP = Math.min(totalPages, startP + 4);
                 if(endP - startP < 4) startP = Math.max(1, endP - 4);
@@ -881,56 +912,16 @@
                     pHtml += `<button onclick="changeSuccessPage(${i})" class="w-8 h-8 flex items-center justify-center rounded-lg border text-xs font-bold transition mx-0.5 ${active}">${i}</button>`;
                 }
 
-                pHtml += `<button onclick="changeSuccessPage(${Math.min(totalPages, successCurrentPage + 1)})" disabled="${successCurrentPage === totalPages}" class="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition ml-1"><i class="fas fa-chevron-right"></i></button>`;
+                // TOMBOL NEXT (TEXT)
+                pHtml += `<button onclick="changeSuccessPage(${Math.min(totalPages, successCurrentPage + 1)})" disabled="${successCurrentPage === totalPages}" class="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition ml-1 text-[10px] font-bold shadow-sm flex items-center gap-1">Next <i class="fas fa-chevron-right"></i></button>`;
+                
                 pHtml += `<span class="ml-3 text-[10px] text-gray-400 font-mono">${successCurrentPage}/${totalPages}</span>`;
                 container.innerHTML = pHtml;
             }
         }
 
-            const tbody = document.getElementById('successTrxTableBody');
-            tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Mengambil data...</td></tr>';
-            try {
-                const q = query(collectionGroup(db, 'history'), where("status", "==", "Sukses"), orderBy("date", "desc"), limit(50));
-                const snap = await getDocs(q);
-                let html = '';
-                
-                if(snap.empty) {
-                    html = '<tr><td colspan="5" class="p-6 text-center text-gray-400">Belum ada riwayat sukses.</td></tr>';
-                } else {
-                    snap.forEach(d => {
-                        const t = d.data();
-                        const uid = d.ref.parent.parent ? d.ref.parent.parent.id : 'Unk';
-                        const user = allUsers.find(u => u.id === uid);
-                        const dObj = t.date ? new Date(t.date) : null;
-                        const dateStr = dObj ? dObj.toLocaleString('id-ID', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '-';
-                        
-                        html += `<tr class="border-b border-gray-50 hover:bg-gray-50">
-                            <td class="p-3 text-gray-500 font-mono text-[10px]">${dateStr}</td>
-                            <td class="p-3">
-                                <div class="font-bold text-gray-700">${user ? (user.username || 'User') : 'User'}</div>
-                                <div class="text-[9px] text-gray-400 font-mono">${uid.substring(0,6)}...</div>
-                            </td>
-                            <td class="p-3">
-                                <div class="font-bold text-gray-800">${t.title || '-'}</div>
-                                <div class="text-[9px] text-blue-500 font-mono">${t.dest_num || '-'}</div>
-                            </td>
-                            <td class="p-3 text-right font-bold text-emerald-600">${window.formatRp(t.amount || 0)}</td>
-                            <td class="p-3 text-center">
-                                <div class="text-[9px] bg-gray-100 p-1.5 rounded border border-gray-200 break-all max-w-[150px] mx-auto text-gray-600 font-mono">${t.api_msg || t.trx_id || '-'}</div>
-                            </td>
-                        </tr>`;
-                    });
-                    document.getElementById('statSuccessCount').innerText = snap.size >= 50 ? '50+' : snap.size;
-                }
-                tbody.innerHTML = html;
-            } catch(e) {
-                console.error("Load success err: ", e);
-                tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-red-500">Gagal: ${e.message}</td></tr>`;
-            }
-        };
 
-
-window.loadPendingTransactions = async () => {
+        window.loadPendingTransactions = async () => {
             const tbody = document.getElementById('pendingTrxTableBody');
             tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center">Memproses...</td></tr>';
             try {
@@ -1657,15 +1648,30 @@ window.loadPendingTransactions = async () => {
                 `;
             } catch(e) { console.log(e); }
         };
+        window.loadGlobalTransactions = async () => {
+            const tbody = document.getElementById('trxTableBody');
+            tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Mengambil data...</td></tr>';
+            try {
+                const q = query(collectionGroup(db, 'history'), orderBy("date", "desc"), limit(100));
+                const snap = await getDocs(q);
+                allTransactions = [];
+                snap.forEach(d => {
+                    allTransactions.push({ id: d.id, uid: d.ref.parent.parent ? d.ref.parent.parent.id : 'Unk', ...d.data() });
+                });
+                trxCurrentPage = 1;
+                renderTransactions(allTransactions);
+                document.getElementById('statTrxCount').innerText = snap.size >= 100 ? '99+' : snap.size;
+            } catch(e) {
+                console.error("Err Load Trx:", e);
+                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-red-400">Gagal: ${e.message}</td></tr>`;
+            }
+        };
 
-        
     // --- MAINTENANCE MODE LOGIC (GLOBAL) ---
     window.openMaintenanceModal = async () => {
-        const modal = document.getElementById('maintenanceModal');
-        if(modal) modal.classList.remove('hide');
-        
+        document.getElementById('maintenanceModal').classList.remove('hide');
         const container = document.getElementById('maintenanceList');
-        if(container) container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-orange-500"></i> Memuat status...</div>';
+        container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-orange-500"></i> Memuat status...</div>';
 
         try {
             const docSnap = await getDoc(doc(db, "settings", "providers"));
@@ -1712,10 +1718,9 @@ window.loadPendingTransactions = async () => {
                 </label>`;
             });
 
-            if(container) container.innerHTML = html;
+            container.innerHTML = html;
         } catch(e) {
-            console.error(e);
-            if(container) container.innerHTML = `<p class="text-red-500 text-center">Gagal: ${e.message}</p>`;
+            container.innerHTML = `<p class="text-red-500 text-center">Gagal: ${e.message}</p>`;
         }
     };
 
@@ -1738,93 +1743,7 @@ window.loadPendingTransactions = async () => {
     };
 
 
-
-    // --- FIX: LOAD HISTORY ---
-    window.loadGlobalTransactions = async () => {
-        const tbody = document.getElementById('trxTableBody');
-        if(tbody.innerHTML.includes('Menunggu')) tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Mengambil data...</td></tr>';
-        try {
-            const q = query(collectionGroup(db, 'history'), orderBy("date", "desc"), limit(100));
-            const snap = await getDocs(q);
-            allTransactions = [];
-            snap.forEach(d => {
-                allTransactions.push({ id: d.id, uid: d.ref.parent.parent ? d.ref.parent.parent.id : 'Unk', ...d.data() });
-            });
-            renderTransactions(allTransactions);
-        } catch(e) {
-            console.error("Err Load Trx:", e);
-            tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-red-400">Gagal: ${e.message}</td></tr>`;
-        }
-    };
-
-    // --- MAINTENANCE MODE LOGIC (GLOBAL) ---
-    window.openMaintenanceModal = async () => {
-        const modal = document.getElementById('maintenanceModal');
-        if(modal) modal.classList.remove('hide');
-        const container = document.getElementById('maintenanceList');
-        if(container) container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-orange-500"></i> Memuat status...</div>';
-
-        try {
-            const docSnap = await getDoc(doc(db, "settings", "providers"));
-            const status = docSnap.exists() ? docSnap.data() : {};
-            const providers = [
-                { key: 'XLA', name: 'Khfy - XL Akrab', cat: 'Khfy' },
-                { key: 'FMX', name: 'Khfy - FlexMax', cat: 'Khfy' },
-                { key: 'XLR', name: 'Khfy - XL Reguler', cat: 'Khfy' },
-                { key: 'PLN', name: 'Khfy - PLN Pasca', cat: 'Khfy' },
-                { key: 'ICS_XDA', name: 'ICS - Akrab Fresh (XDA)', cat: 'ICS Legacy' },
-                { key: 'ICS_CIRCLE', name: 'ICS - XL Circle', cat: 'ICS Legacy' },
-                { key: 'xla', name: 'ICS - XL Akrab (XLA)', cat: 'ICS V2' },
-                { key: 'xda', name: 'ICS - Akrab Fresh (XDA)', cat: 'ICS V2' },
-                { key: 'fmax', name: 'ICS - FlexMax (FMAX)', cat: 'ICS V2' },
-                { key: 'circle', name: 'ICS - XL Circle', cat: 'ICS V2' },
-                { key: 'bpa', name: 'ICS - Bagi Pulsa (BPA)', cat: 'ICS V2' }
-            ];
-            let html = '';
-            let currentCat = '';
-            providers.forEach(p => {
-                if(p.cat !== currentCat) {
-                    html += `<div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2 mb-1 border-b border-gray-100 pb-1">${p.cat}</div>`;
-                    currentCat = p.cat;
-                }
-                const isMt = status[p.key] === true;
-                html += `
-                <label class="flex items-center justify-between p-3 rounded-xl border ${isMt ? 'bg-red-50 border-red-100' : 'bg-white border-gray-200'} cursor-pointer transition hover:bg-gray-50">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full flex items-center justify-center ${isMt ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}">
-                            <i class="fas ${isMt ? 'fa-ban' : 'fa-check'}"></i>
-                        </div>
-                        <div>
-                            <p class="font-bold text-xs text-gray-800">${p.name}</p>
-                            <p class="text-[9px] ${isMt ? 'text-red-500 font-bold' : 'text-gray-400'}">${isMt ? 'Sedang Gangguan' : 'Normal / Aktif'}</p>
-                        </div>
-                    </div>
-                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                        <input type="checkbox" name="mt_toggle" value="${p.key}" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer ${isMt ? 'right-0 border-red-500' : 'left-0 border-gray-300'}" ${isMt ? 'checked' : ''} onclick="this.classList.toggle('right-0'); this.classList.toggle('left-0'); this.classList.toggle('border-red-500'); this.classList.toggle('border-gray-300');"/>
-                        <label class="toggle-label block overflow-hidden h-5 rounded-full cursor-pointer ${isMt ? 'bg-red-500' : 'bg-gray-300'}"></label>
-                    </div>
-                </label>`;
-            });
-            if(container) container.innerHTML = html;
-        } catch(e) {
-            console.error(e);
-            if(container) container.innerHTML = `<p class="text-red-500 text-center">Gagal: ${e.message}</p>`;
-        }
-    };
-
-    window.saveMaintenanceStatus = async () => {
-        const checkboxes = document.querySelectorAll('input[name="mt_toggle"]');
-        const statusMap = {};
-        checkboxes.forEach(cb => { statusMap[cb.value] = cb.checked; });
-        try {
-            Swal.fire({ title: 'Menyimpan...', didOpen: () => Swal.showLoading() });
-            await setDoc(doc(db, "settings", "providers"), statusMap, { merge: true });
-            Swal.fire('Berhasil', 'Status maintenance provider diperbarui.', 'success');
-            document.getElementById('maintenanceModal').classList.add('hide');
-        } catch(e) { Swal.fire('Gagal', e.message, 'error'); }
-    };
-
-    window.deactivateNotif = async () => {
+window.deactivateNotif = async () => {
         if(confirm('Hentikan penayangan notifikasi ini?')) {
             try {
                 await updateDoc(doc(db, "global_notif", "active"), { isActive: false });

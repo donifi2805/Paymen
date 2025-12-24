@@ -64,7 +64,12 @@
         .chat-me { align-self: flex-end; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; border-bottom-right-radius: 2px; margin-left: auto; }
         .chat-admin { align-self: flex-start; background: #e2e8f0; color: #1e293b; border-bottom-left-radius: 2px; margin-right: auto; }
         html.dark .chat-admin { background: #374151; color: #f3f4f6; }
-    </style>
+            .prov-maintenance { filter: grayscale(100%); opacity: 0.8; background-color: #f3f4f6 !important; border-color: #e5e7eb !important; cursor: not-allowed !important; pointer-events: none; } 
+        html.dark .prov-maintenance { background-color: #1f2937 !important; border-color: #374151 !important; } 
+        .mt-badge { display: none; font-size: 9px; background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-left: 8px; } 
+        .prov-maintenance .mt-badge { display: inline-block; } 
+        .prov-maintenance .fa-chevron-right { display: none; }
+</style>
 </head>
 <body>
 
@@ -766,30 +771,28 @@
         </div>
         <div class="space-y-2 max-h-[60vh] overflow-y-auto no-scrollbar pb-8">
             
-            <div onclick="selectProvider('ICS_XDA', 'Akrab Fresh (XDA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
-                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Akrab Fresh (XDA)</span>
+                        <div id="prov_ICS_XDA" onclick="checkProv('ICS_XDA') && selectProvider('ICS_XDA', 'Akrab Fresh (XDA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <div class="flex items-center"><span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Akrab Fresh (XDA)</span><span class="mt-badge">GANGGUAN</span></div>
                 <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
             </div>
-            <div onclick="selectProvider('ICS_CIRCLE', 'XL Circle')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
-                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">XL Circle</span>
+            <div id="prov_ICS_CIRCLE" onclick="checkProv('ICS_CIRCLE') && selectProvider('ICS_CIRCLE', 'XL Circle')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <div class="flex items-center"><span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">XL Circle</span><span class="mt-badge">GANGGUAN</span></div>
                 <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
             </div>
-            
-            
-            <div onclick="selectProvider('XLA', 'Akrab Fresh (XLA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
-                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Akrab Fresh (XLA)</span>
+            <div id="prov_XLA" onclick="checkProv('XLA') && selectProvider('XLA', 'Akrab Fresh (XLA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <div class="flex items-center"><span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Akrab Fresh (XLA)</span><span class="mt-badge">GANGGUAN</span></div>
                 <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
             </div>
-            <div onclick="selectProvider('FMX', 'FlexMax (FMX)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
-                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">FlexMax (FMX)</span>
+            <div id="prov_FMX" onclick="checkProv('FMX') && selectProvider('FMX', 'FlexMax (FMX)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <div class="flex items-center"><span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">FlexMax (FMX)</span><span class="mt-badge">GANGGUAN</span></div>
                 <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
             </div>
-            <div onclick="selectProvider('XLR', 'XL Reguler (XLR)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
-                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">XL Reguler (XLR)</span>
+            <div id="prov_XLR" onclick="checkProv('XLR') && selectProvider('XLR', 'XL Reguler (XLR)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <div class="flex items-center"><span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">XL Reguler (XLR)</span><span class="mt-badge">GANGGUAN</span></div>
                 <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
             </div>
-            <div onclick="selectProvider('PLN', 'PLN Pascabayar')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
-                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">PLN Pascabayar</span>
+            <div id="prov_PLN" onclick="checkProv('PLN') && selectProvider('PLN', 'PLN Pascabayar')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <div class="flex items-center"><span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">PLN Pascabayar</span><span class="mt-badge">GANGGUAN</span></div>
                 <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
             </div>
         </div>
@@ -803,20 +806,20 @@
             <button onclick="closeIcsSheet()" class="text-gray-400 hover:text-red-500"><i class="fas fa-times"></i></button>
         </div>
         <div class="space-y-2 max-h-[60vh] overflow-y-auto no-scrollbar pb-8">
-            <div onclick="setIcsProvider('xla', 'XL Akrab (XLA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
-                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">XL Akrab (XLA)</span><i class="fas fa-chevron-right text-gray-300 text-xs"></i>
+                        <div id="prov_ICS_xla" onclick="checkProv('xla') && setIcsProvider('xla', 'XL Akrab (XLA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <div class="flex items-center"><span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">XL Akrab (XLA)</span><span class="mt-badge">GANGGUAN</span></div><i class="fas fa-chevron-right text-gray-300 text-xs"></i>
             </div>
-            <div onclick="setIcsProvider('xda', 'Akrab Fresh/Data (XDA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
-                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Akrab Fresh (XDA)</span><i class="fas fa-chevron-right text-gray-300 text-xs"></i>
+            <div id="prov_ICS_xda" onclick="checkProv('xda') && setIcsProvider('xda', 'Akrab Fresh (XDA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <div class="flex items-center"><span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Akrab Fresh (XDA)</span><span class="mt-badge">GANGGUAN</span></div><i class="fas fa-chevron-right text-gray-300 text-xs"></i>
             </div>
-            <div onclick="setIcsProvider('fmax', 'FlexMax (FMAX)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
-                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">FlexMax (FMAX)</span><i class="fas fa-chevron-right text-gray-300 text-xs"></i>
+            <div id="prov_ICS_fmax" onclick="checkProv('fmax') && setIcsProvider('fmax', 'FlexMax (FMAX)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <div class="flex items-center"><span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">FlexMax (FMAX)</span><span class="mt-badge">GANGGUAN</span></div><i class="fas fa-chevron-right text-gray-300 text-xs"></i>
             </div>
-            <div onclick="setIcsProvider('circle', 'XL Circle')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
-                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">XL Circle</span><i class="fas fa-chevron-right text-gray-300 text-xs"></i>
+            <div id="prov_ICS_circle" onclick="checkProv('circle') && setIcsProvider('circle', 'XL Circle')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <div class="flex items-center"><span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">XL Circle</span><span class="mt-badge">GANGGUAN</span></div><i class="fas fa-chevron-right text-gray-300 text-xs"></i>
             </div>
-            <div onclick="setIcsProvider('bpa', 'Bagi Pulsa (BPA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
-                <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Bagi Pulsa (BPA)</span><i class="fas fa-chevron-right text-gray-300 text-xs"></i>
+            <div id="prov_ICS_bpa" onclick="checkProv('bpa') && setIcsProvider('bpa', 'Bagi Pulsa (BPA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <div class="flex items-center"><span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Bagi Pulsa (BPA)</span><span class="mt-badge">GANGGUAN</span></div><i class="fas fa-chevron-right text-gray-300 text-xs"></i>
             </div>
         </div>
     </div>
@@ -1198,6 +1201,35 @@ window.openAkrabV2 = () => {
     }
     const auth = getAuth(app);
     const db = getFirestore(app);
+
+    // Provider Maintenance Logic
+    let providerStatus = {};
+    window.checkProv = (code) => {
+        if(providerStatus[code] === true) {
+            alert('Layanan sedang dalam perbaikan (Maintenance).\nSilakan coba lagi nanti.');
+            return false;
+        }
+        return true;
+    };
+
+    function initProviderListener() {
+        onSnapshot(doc(db, "settings", "providers"), (docSnap) => {
+            if (docSnap.exists()) {
+                providerStatus = docSnap.data();
+                // Update UI
+                Object.keys(providerStatus).forEach(key => {
+                    // Cek ID Main (prov_KEY) dan ID ICS (prov_ICS_KEY)
+                    const el = document.getElementById('prov_' + key) || document.getElementById('prov_ICS_' + key);
+                    if(el) {
+                        if(providerStatus[key]) el.classList.add('prov-maintenance');
+                        else el.classList.remove('prov-maintenance');
+                    }
+                });
+            }
+        });
+    }
+    initProviderListener();
+
     auth.languageCode = 'id';
 
     // Fungsi Notifikasi Update Manual

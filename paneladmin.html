@@ -158,7 +158,16 @@
                     <div class="w-10 h-10 bg-yellow-50 text-yellow-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-exclamation-triangle"></i></div>
                 </div>
                 
-                <div onclick="switchTab('livechat')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-green-200">
+                <div onclick="switchTab('success-trx')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-emerald-400">
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Riwayat Sukses</p>
+                        <h3 class="text-2xl font-black text-emerald-600" id="statSuccessCount">-</h3>
+                        <p class="text-[9px] text-emerald-500 font-bold mt-1">Lihat Data <i class="fas fa-arrow-right ml-0.5"></i></p>
+                    </div>
+                    <div class="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-check-circle"></i></div>
+                </div>
+                
+<div onclick="switchTab('livechat')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-green-200">
                     <div>
                         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Pesan Terbaru</p>
                         <h3 class="text-2xl font-black text-gray-800" id="statChatCount">0</h3>
@@ -241,7 +250,39 @@
             </div>
         </div>
 
-        <div id="tab-users" class="tab-content hide fade-in pb-10">
+        <div id="tab-success-trx" class="tab-content hide fade-in pb-10">
+            <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100 sticky top-0 z-20">
+                <div class="flex items-center gap-3">
+                    <button onclick="switchTab('dashboard')" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition"><i class="fas fa-arrow-left"></i></button>
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-800 leading-none">Riwayat Sukses</h2>
+                        <p class="text-[10px] text-gray-500">50 Transaksi Sukses Terakhir (Global)</p>
+                    </div>
+                </div>
+                <button onclick="loadSuccessTransactions()" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-bold text-[10px]"><i class="fas fa-sync-alt"></i> Refresh</button>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-500 text-[9px] uppercase tracking-wider border-b">
+                                <th class="p-3 font-bold">Waktu</th>
+                                <th class="p-3 font-bold">User</th>
+                                <th class="p-3 font-bold">Produk / Tujuan</th>
+                                <th class="p-3 font-bold text-right">Nominal</th>
+                                <th class="p-3 font-bold text-center">SN / Ket</th>
+                            </tr>
+                        </thead>
+                        <tbody id="successTrxTableBody" class="text-[11px] divide-y divide-gray-50">
+                             <tr><td colspan="5" class="p-6 text-center text-gray-400">Klik refresh untuk memuat data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        
+<div id="tab-users" class="tab-content hide fade-in pb-10">
             <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100 sticky top-0 z-20">
                 <div class="flex items-center gap-3">
                     <button onclick="switchTab('dashboard')" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition">
@@ -318,6 +359,7 @@
                              <tr><td colspan="5" class="p-6 text-center text-gray-400">Menunggu data...</td></tr>
                         </tbody>
                     </table>
+                <div id="trxPagination" class="p-3 border-t border-gray-100 bg-gray-50 flex justify-center items-center gap-1 hide transition-all"></div>
                 </div>
             </div>
         </div>
@@ -507,7 +549,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup, sendPasswordResetEmail, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, getDoc, collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy, collectionGroup, setDoc, where, onSnapshot, serverTimestamp, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, getDoc, collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy, collectionGroup, setDoc, where, onSnapshot, serverTimestamp, addDoc, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
         const firebaseConfig = {
@@ -524,7 +566,7 @@
         const db = getFirestore(app);
 
         let currentChatUid = null, chatUnsub = null, chatListUnsub = null, isRedirectFromUsers = false;
-        let globalProducts = [], pricingRules = {}, allTransactions = [], allUsers = [];
+        let globalProducts = [], pricingRules = {}, allTransactions = [], allUsers = [], trxCurrentPage = 1, trxItemsPerPage = 9, trxCurrentData = [];
 
         onAuthStateChanged(auth, u => { 
             if(u && ALLOWED_ADMINS.includes(u.email)) { 
@@ -727,6 +769,7 @@
 
         window.switchTab = (tabId) => {
             if(tabId === 'pending-trx') loadPendingTransactions();
+            if(tabId === 'success-trx') loadSuccessTransactions();
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hide'));
             document.getElementById('tab-' + tabId).classList.remove('hide');
             document.querySelectorAll('nav a').forEach(el => el.classList.remove('active-nav', 'text-white'));
@@ -777,7 +820,51 @@
             } catch (e) { console.log(e); }
         };
 
-                window.loadPendingTransactions = async () => {
+                        window.loadSuccessTransactions = async () => {
+            const tbody = document.getElementById('successTrxTableBody');
+            tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Mengambil data...</td></tr>';
+            try {
+                const q = query(collectionGroup(db, 'history'), where("status", "==", "Sukses"), orderBy("date", "desc"), limit(50));
+                const snap = await getDocs(q);
+                let html = '';
+                
+                if(snap.empty) {
+                    html = '<tr><td colspan="5" class="p-6 text-center text-gray-400">Belum ada riwayat sukses.</td></tr>';
+                } else {
+                    snap.forEach(d => {
+                        const t = d.data();
+                        const uid = d.ref.parent.parent ? d.ref.parent.parent.id : 'Unk';
+                        const user = allUsers.find(u => u.id === uid);
+                        const dObj = t.date ? new Date(t.date) : null;
+                        const dateStr = dObj ? dObj.toLocaleString('id-ID', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '-';
+                        
+                        html += `<tr class="border-b border-gray-50 hover:bg-gray-50">
+                            <td class="p-3 text-gray-500 font-mono text-[10px]">${dateStr}</td>
+                            <td class="p-3">
+                                <div class="font-bold text-gray-700">${user ? (user.username || 'User') : 'User'}</div>
+                                <div class="text-[9px] text-gray-400 font-mono">${uid.substring(0,6)}...</div>
+                            </td>
+                            <td class="p-3">
+                                <div class="font-bold text-gray-800">${t.title || '-'}</div>
+                                <div class="text-[9px] text-blue-500 font-mono">${t.dest_num || '-'}</div>
+                            </td>
+                            <td class="p-3 text-right font-bold text-emerald-600">${window.formatRp(t.amount || 0)}</td>
+                            <td class="p-3 text-center">
+                                <div class="text-[9px] bg-gray-100 p-1.5 rounded border border-gray-200 break-all max-w-[150px] mx-auto text-gray-600 font-mono">${t.api_msg || t.trx_id || '-'}</div>
+                            </td>
+                        </tr>`;
+                    });
+                    document.getElementById('statSuccessCount').innerText = snap.size >= 50 ? '50+' : snap.size;
+                }
+                tbody.innerHTML = html;
+            } catch(e) {
+                console.error("Load success err: ", e);
+                tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-red-500">Gagal: ${e.message}</td></tr>`;
+            }
+        };
+
+
+window.loadPendingTransactions = async () => {
             const tbody = document.getElementById('pendingTrxTableBody');
             tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center">Memproses...</td></tr>';
             try {
@@ -1024,26 +1111,21 @@
             renderTransactions(filtered);
         };
 
-        async function loadGlobalTransactions() {
-            try {
-                const snap = await getDocs(query(collectionGroup(db, 'history'), orderBy('date', 'desc')));
-                allTransactions = [];
-                snap.forEach(d => {
-                    const parent = d.ref.parent.parent ? d.ref.parent.parent.id : 'Unk';
-                    allTransactions.push({ uid: parent, id: d.id, ...d.data() });
-                });
+        window.changeTrxPage = (page) => {
+            trxCurrentPage = page;
+            renderTransactions();
+        };
 
-                const todayStart = new Date(new Date().setHours(0,0,0,0)).getTime();
-                const dailyTrx = allTransactions.filter(t => new Date(t.date).getTime() >= todayStart);
-                document.getElementById('statTrxCount').innerText = dailyTrx.length;
+        function renderTransactions(data = null) {
+            if(data) { trxCurrentData = data; trxCurrentPage = 1; }
+            
+            const start = (trxCurrentPage - 1) * trxItemsPerPage;
+            const end = start + trxItemsPerPage;
+            const pageData = trxCurrentData.slice(start, end);
+            const totalPages = Math.ceil(trxCurrentData.length / trxItemsPerPage);
 
-                window.filterTrx('today');
-            } catch (e) { console.log(e); }
-        }
-
-        function renderTransactions(data) {
             let html = '';
-            data.forEach(t => {
+            pageData.forEach(t => {
                 const isOut = t.type === 'out', user = allUsers.find(u => u.id === t.uid); const dObj = t.date ? new Date(t.date) : null; const date = dObj ? dObj.toLocaleDateString('id-ID', {day:'numeric', month:'short'}) : '-'; const time = dObj ? dObj.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : '';
                 html += `<tr class="border-b border-gray-50">
                     <td class="p-3"><div class="font-bold">${date}</div><div class="text-[10px] text-gray-400 font-mono">${time} WIB</div></td>
@@ -1059,6 +1141,31 @@
                 </tr>`;
             });
             document.getElementById('trxTableBody').innerHTML = html || '<tr><td colspan="5" class="p-4 text-center">Kosong</td></tr>';
+
+            const container = document.getElementById('trxPagination');
+            if(container) {
+                if(totalPages <= 1) {
+                    container.innerHTML = '';
+                    container.classList.add('hide');
+                } else {
+                    container.classList.remove('hide');
+                    let pHtml = '';
+                    pHtml += `<button onclick="changeTrxPage(${Math.max(1, trxCurrentPage - 1)})" disabled="${trxCurrentPage === 1}" class="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition mr-1"><i class="fas fa-chevron-left"></i></button>`;
+
+                    let startP = Math.max(1, trxCurrentPage - 2);
+                    let endP = Math.min(totalPages, startP + 4);
+                    if(endP - startP < 4) startP = Math.max(1, endP - 4);
+                    
+                    for(let i = startP; i <= endP; i++) {
+                        const active = i === trxCurrentPage ? 'bg-blue-600 text-white border-blue-600 shadow-md transform scale-105' : 'bg-white text-gray-600 hover:bg-gray-50 border-gray-200';
+                        pHtml += `<button onclick="changeTrxPage(${i})" class="w-8 h-8 flex items-center justify-center rounded-lg border text-xs font-bold transition mx-0.5 ${active}">${i}</button>`;
+                    }
+
+                    pHtml += `<button onclick="changeTrxPage(${Math.min(totalPages, trxCurrentPage + 1)})" disabled="${trxCurrentPage === totalPages}" class="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition ml-1"><i class="fas fa-chevron-right"></i></button>`;
+                    pHtml += `<span class="ml-3 text-[10px] text-gray-400 font-mono">${trxCurrentPage}/${totalPages}</span>`;
+                    container.innerHTML = pHtml;
+                }
+            }
         }
 
         window.downloadTrxPDF = () => {

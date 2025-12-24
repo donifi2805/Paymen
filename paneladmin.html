@@ -273,10 +273,11 @@
                                 <th class="p-3 font-bold text-center">SN / Ket</th>
                             </tr>
                         </thead>
-                        <tbody id="successTrxTableBody" class="text-[11px] divide-y divide-gray-50">
+                                                                        <tbody id="successTrxTableBody" class="text-[11px] divide-y divide-gray-50">
                              <tr><td colspan="5" class="p-6 text-center text-gray-400">Klik refresh untuk memuat data...</td></tr>
                         </tbody>
                     </table>
+                    <div id="successPagination" class="p-3 border-t border-gray-100 bg-gray-50 flex justify-center items-center gap-1 hide transition-all"></div>
                 </div>
             </div>
         </div>
@@ -465,8 +466,7 @@
             </div>
         </div>
 
-        <div id="tab-pricing"
-<div id="tab-pricing" class="tab-content hide fade-in pb-10">
+        <div id="tab-pricing" class="tab-content hide fade-in pb-10">
             <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100 sticky top-0 z-20">
                 <div class="flex items-center gap-3">
                     <button onclick="switchTab('dashboard')" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition"><i class="fas fa-arrow-left"></i></button>
@@ -568,7 +568,8 @@
         const db = getFirestore(app);
 
         let currentChatUid = null, chatUnsub = null, chatListUnsub = null, isRedirectFromUsers = false;
-        let globalProducts = [], pricingRules = {}, allTransactions = [], allUsers = [], trxCurrentPage = 1, trxItemsPerPage = 9, trxCurrentData = [];
+                let globalProducts = [], pricingRules = {}, allTransactions = [], allUsers = [], trxCurrentPage = 1, trxItemsPerPage = 15, trxCurrentData = [];
+        let successTrxData = [], successCurrentPage = 1, successItemsPerPage = 15;
 
         onAuthStateChanged(auth, u => { 
             if(u && ALLOWED_ADMINS.includes(u.email)) { 
@@ -770,8 +771,8 @@
         };
 
         window.switchTab = (tabId) => {
-            if(tabId === 'pending-trx') loadPendingTransactions();
-            if(tabId === 'success-trx') loadSuccessTransactions();
+                        if(tabId === 'pending-trx') loadPendingTransactions();
+                        if(tabId === 'success-trx') loadSuccessTransactions();
             if(tabId === 'transactions') loadGlobalTransactions();
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hide'));
             document.getElementById('tab-' + tabId).classList.remove('hide');
@@ -823,7 +824,69 @@
             } catch (e) { console.log(e); }
         };
 
-                        window.loadSuccessTransactions = async () => {
+                        
+        window.loadSuccessTransactions = async () => {
+            
+
+        window.changeSuccessPage = (page) => {
+            successCurrentPage = page;
+            renderSuccessTransactions();
+        };
+
+        function renderSuccessTransactions() {
+            const tbody = document.getElementById('successTrxTableBody');
+            const start = (successCurrentPage - 1) * successItemsPerPage;
+            const end = start + successItemsPerPage;
+            const pageData = successTrxData.slice(start, end);
+            const totalPages = Math.ceil(successTrxData.length / successItemsPerPage);
+
+            let html = '';
+            pageData.forEach(t => {
+                const user = allUsers.find(u => u.id === t.uid);
+                const dObj = t.date ? new Date(t.date) : null;
+                const dateStr = dObj ? dObj.toLocaleString('id-ID', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '-';
+                
+                html += `<tr class="border-b border-gray-50 hover:bg-gray-50">
+                    <td class="p-3 text-gray-500 font-mono text-[10px]">${dateStr}</td>
+                    <td class="p-3">
+                        <div class="font-bold text-gray-700">${user ? (user.username || 'User') : 'User'}</div>
+                        <div class="text-[9px] text-gray-400 font-mono">${t.uid.substring(0,6)}...</div>
+                    </td>
+                    <td class="p-3">
+                        <div class="font-bold text-gray-800">${t.title || '-'}</div>
+                        <div class="text-[9px] text-blue-500 font-mono">${t.dest_num || '-'}</div>
+                    </td>
+                    <td class="p-3 text-right font-bold text-emerald-600">${window.formatRp(t.amount || 0)}</td>
+                    <td class="p-3 text-center">
+                        <div class="text-[9px] bg-gray-100 p-1.5 rounded border border-gray-200 break-all max-w-[150px] mx-auto text-gray-600 font-mono">${t.api_msg || t.trx_id || '-'}</div>
+                    </td>
+                </tr>`;
+            });
+            tbody.innerHTML = html;
+
+            const container = document.getElementById('successPagination');
+            if(totalPages <= 1) {
+                container.classList.add('hide');
+            } else {
+                container.classList.remove('hide');
+                let pHtml = '';
+                pHtml += `<button onclick="changeSuccessPage(${Math.max(1, successCurrentPage - 1)})" disabled="${successCurrentPage === 1}" class="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition mr-1"><i class="fas fa-chevron-left"></i></button>`;
+
+                let startP = Math.max(1, successCurrentPage - 2);
+                let endP = Math.min(totalPages, startP + 4);
+                if(endP - startP < 4) startP = Math.max(1, endP - 4);
+                
+                for(let i = startP; i <= endP; i++) {
+                    const active = i === successCurrentPage ? 'bg-emerald-600 text-white border-emerald-600 shadow-md transform scale-105' : 'bg-white text-gray-600 hover:bg-gray-50 border-gray-200';
+                    pHtml += `<button onclick="changeSuccessPage(${i})" class="w-8 h-8 flex items-center justify-center rounded-lg border text-xs font-bold transition mx-0.5 ${active}">${i}</button>`;
+                }
+
+                pHtml += `<button onclick="changeSuccessPage(${Math.min(totalPages, successCurrentPage + 1)})" disabled="${successCurrentPage === totalPages}" class="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-50 transition ml-1"><i class="fas fa-chevron-right"></i></button>`;
+                pHtml += `<span class="ml-3 text-[10px] text-gray-400 font-mono">${successCurrentPage}/${totalPages}</span>`;
+                container.innerHTML = pHtml;
+            }
+        }
+
             const tbody = document.getElementById('successTrxTableBody');
             tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Mengambil data...</td></tr>';
             try {

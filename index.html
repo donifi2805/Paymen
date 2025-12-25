@@ -2847,23 +2847,23 @@ window.openAkrabV2 = () => {
         // --- BACKGROUND SERVICE (AUTO CHECK 5 Detik) ---
     window.autoCheckInterval = null;
 
-    window.startBackgroundService = () => {
+        window.startBackgroundService = () => {
         if(window.autoCheckInterval) clearInterval(window.autoCheckInterval);
         
+        // UPDATE: Interval 30 Detik sesuai permintaan
         window.autoCheckInterval = setInterval(async () => {
             if(!currentUser) return;
             const cacheKey = `trx_cache_${currentUser.uid}`;
             let cachedData = JSON.parse(localStorage.getItem(cacheKey) || '[]');
             
-            // HANYA REFRESH OTOMATIS UNTUK 5 TRANSAKSI TERATAS JIKA PENDING
-            const pendingTop5 = cachedData.slice(0, 5).filter(t => t.status === 'Pending');
+            const pendingTop5 = cachedData.slice(0, 5).filter(t => t.status === 'Pending' || t.status === 'Proses');
             
             for (const trx of pendingTop5) {
                 if(!trx.provider_id || trx.provider_id === 'MANUAL' || trx.provider_id === 'ICS') continue;
-                // Panggil pengecekan manual tanpa loader untuk silent update
-                window.manualCheckTrx(trx.trx_id, trx.provider_id);
+                // UPDATE: Cek menggunakan TRX ID (RefID) untuk akurasi data KHFY
+                window.manualCheckTrx(trx.trx_id, null);
             }
-        }, 15000);
+        }, 30000);
     };
 
     window.checkPendingTopUp = () => {
@@ -3082,84 +3082,83 @@ window.renderTopUpHistory = () => {
         document.getElementById('detailTrxModal').classList.remove('hide');
     };
 
-    window.manualCheckTrx = async (docId, providerId) => {
+        window.manualCheckTrx = async (docId, providerId) => {
         const btn = document.getElementById('btnRefreshStatus');
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        if(btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         
+        // UPDATE: Panggil API History berdasarkan RefID (TRX ID Lokal) mirip debugg cek.html
         const res = await callApi('/history', { refid: docId });
-        const root = res.data || {};
-        let inner = root.data || {};
-        if (Array.isArray(inner) && inner.length > 0) inner = inner[0];
         
-        if(res.ok || root) {
-            // HIDE RAW JSON FROM USER
-            if(document.getElementById('dtRawJson')) {
-                document.getElementById('dtRawJson').innerText = "Data Teknis Disembunyikan (Privasi)";
-            }
+        if(res.ok && res.data) {
+            // LOGIKA PARSING KHUSUS PANEL V2 (KHFY)
+            let root = res.data;
+            let item = root.data;
+            // Handle array wrapper bug
+            if (Array.isArray(item)) item = item[0];
             
-                                    let freshStatus = 'Pending';
-            // UPDATE: Prioritas ambil pesan dari keterangan jika SN kosong (untuk menangkap pesan 'stock transaksi habis')
-            let rawMsg = inner.sn || inner.keterangan || inner.message || root.msg || root.message || root.sn || 'Tidak ada pesan';
-            if (typeof rawMsg !== 'string') rawMsg = JSON.stringify(rawMsg);
+            if (item) {
+                // Ambil parameter penting sesuai JSON KHFY
+                const statusText = (item.status_text || '').toUpperCase();
+                const keterangan = item.keterangan || '';
+                const sn = item.sn || '';
+                
+                let freshStatus = 'Pending';
 
-            const lowerMsg = rawMsg.toLowerCase();
-            const rawStatusField = String(root.status || inner.status || root.result || '').toLowerCase();
-            const statusText = String(root.status_text || inner.status_text || '').toUpperCase();
+                // 1. Cek Status Sukses
+                if (statusText === 'SUKSES') {
+                    freshStatus = 'Sukses';
+                } 
+                // 2. Cek Status Gagal (Menggunakan status_text: "GAGAL")
+                else if (statusText === 'GAGAL') {
+                    freshStatus = 'Gagal';
+                }
 
-            // Logic Status Checker v3.4 (Updated for Akrab/Khfy Panel)
-            if (lowerMsg.includes('status sukses') || rawStatusField.includes('sukses') || rawStatusField === '0' || rawStatusField === 'true' || statusText === 'SUKSES') {
-                freshStatus = 'Sukses';
-            } else if (
-                lowerMsg.includes('gagal') || 
-                lowerMsg.includes('err_body') || 
-                lowerMsg.includes('stock transaksi habis') || 
-                lowerMsg.includes('stok habis') || 
-                lowerMsg.includes('kosong') ||
-                rawStatusField.includes('gagal') || 
-                rawStatusField === '1' || 
-                statusText === 'GAGAL' || 
-                lowerMsg.includes('body_err')
-            ) {
-                freshStatus = 'Gagal';
-            }
+                // EKSEKUSI UPDATE DATABASE
+                if (freshStatus === 'Gagal') {
+                    await runTransaction(db, async (t) => {
+                        const trxRef = doc(db, "users", currentUser.uid, "history", docId);
+                        const freshDoc = await t.get(trxRef);
+                        // Cegah refund ganda
+                        if (!freshDoc.exists() || (freshDoc.data().status !== 'Pending' && freshDoc.data().status !== 'Proses')) return;
 
-            if (freshStatus === 'Gagal') {
-                await runTransaction(db, async (t) => {
-                    const trxRef = doc(db, "users", currentUser.uid, "history", docId);
-                    const freshDoc = await t.get(trxRef);
-                    if (!freshDoc.exists() || (freshDoc.data().status !== 'Pending' && freshDoc.data().status !== 'Proses')) return;
+                        const uRef = doc(db, "users", currentUser.uid);
+                        const uDoc = await t.get(uRef);
+                        const currentBal = uDoc.data().balance || 0;
+                        const refundAmount = freshDoc.data().amount || 0;
 
-                    const uRef = doc(db, "users", currentUser.uid);
-                    const uDoc = await t.get(uRef);
-                    const currentBal = uDoc.data().balance || 0;
-                    const refundAmount = freshDoc.data().amount || 0;
-
-                    t.update(uRef, { balance: currentBal + refundAmount });
-                    t.update(trxRef, {
-                        status: 'Gagal',
-                        api_msg: 'Refund Otomatis: ' + (inner.keterangan || rawMsg),
-                        balance_final: currentBal + refundAmount
+                        // Refund Saldo
+                        t.update(uRef, { balance: currentBal + refundAmount });
+                        // Simpan Keterangan Gagal (misal: "stock transaksi habis")
+                        t.update(trxRef, {
+                            status: 'Gagal',
+                            api_msg: 'Refund: ' + (keterangan || 'Transaksi Gagal'),
+                            balance_final: currentBal + refundAmount,
+                            raw_json: JSON.stringify(root)
+                        });
                     });
-                });
-            } else if (freshStatus === 'Sukses') {
-                await updateDoc(doc(db, "users", currentUser.uid, "history", docId), {
-                    status: 'Sukses',
-                    api_msg: rawMsg,
-                    raw_json: JSON.stringify(root)
-                });
-            }
+                } else if (freshStatus === 'Sukses') {
+                    await updateDoc(doc(db, "users", currentUser.uid, "history", docId), {
+                        status: 'Sukses',
+                        api_msg: sn || keterangan || 'Transaksi Berhasil',
+                        raw_json: JSON.stringify(root)
+                    });
+                }
 
-            const statusEl = document.getElementById('dtStatus');
-            if (statusEl) {
-                statusEl.innerText = freshStatus;
-                statusEl.className = 'text-xs font-bold ' + (freshStatus === 'Sukses' ? 'text-green-600' : (freshStatus === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
-            } else {
-                btn.innerHTML = '<i class="fas fa-sync-alt"></i>';
+                // UPDATE UI LIVE (Jika Modal Terbuka)
+                const statusEl = document.getElementById('dtStatus');
+                if (statusEl) {
+                    statusEl.innerText = freshStatus;
+                    statusEl.className = 'text-xs font-bold ' + (freshStatus === 'Sukses' ? 'text-green-600' : (freshStatus === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
+                    if(freshStatus !== 'Pending' && document.getElementById('dtSn')) {
+                         document.getElementById('dtSn').innerText = (freshStatus === 'Gagal' ? keterangan : sn);
+                    }
+                }
             }
         } else {
-            alert('Gagal cek status. Tidak ada respon valid.');
-            btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+             console.log("Gagal cek status manual:", res.error);
         }
+        
+        if(btn) btn.innerHTML = '<i class="fas fa-sync-alt"></i>';
     };
 
 

@@ -102,7 +102,7 @@
 
     <main class="md:ml-[14rem] w-full p-4 md:p-6 transition-all duration-300 h-screen overflow-y-auto custom-scroll bg-gray-100">
         
-        <div class="md:hidden flex justify-between items-center mb-4 bg-white p-3 rounded-lg shadow-sm">
+                <div class="md:hidden flex justify-between items-center mb-4 bg-white p-3 rounded-lg shadow-sm">
             <div class="flex items-center gap-3">
                 <button onclick="toggleMobileMenu()" class="text-gray-600 focus:outline-none">
                     <i class="fas fa-bars text-lg"></i>
@@ -112,7 +112,6 @@
             <button onclick="logout()" class="text-red-500 font-bold text-[10px]">Keluar</button>
         </div>
 
-        
         <div id="mobileMenu" class="fixed inset-0 z-[150] bg-slate-900/50 backdrop-blur-sm hidden">
             <div class="w-64 bg-slate-900 h-full shadow-xl fade-in flex flex-col">
                 <div class="p-4 border-b border-slate-800 flex justify-between items-center">
@@ -125,7 +124,7 @@
                     <a onclick="switchTab('users'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-users w-4 mr-3"></i> Data User </a>
                     <a onclick="switchTab('livechat'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-comments w-4 mr-3"></i> Live Chat </a>
                     <a onclick="switchTab('transactions'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-receipt w-4 mr-3"></i> Transaksi </a>
-                                        <a onclick="switchTab('pricing'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-tags w-4 mr-3"></i> Kelola Harga </a>
+                    <a onclick="switchTab('pricing'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-tags w-4 mr-3"></i> Kelola Harga </a>
                     <a onclick="switchTab('notification'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-bullhorn w-4 mr-3"></i> Notifikasi </a>
                 </nav>
             </div>
@@ -141,7 +140,7 @@
             </div>
 
             <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
-                                <div onclick="openSearchTrxModal()" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-orange-400">
+                <div onclick="openSearchTrxModal()" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-orange-400">
                     <div>
                         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Cek Transaksi</p>
                         <h3 class="text-2xl font-black text-orange-600"><i class="fas fa-search"></i></h3>
@@ -149,7 +148,7 @@
                     </div>
                     <div class="w-10 h-10 bg-orange-50 text-orange-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-receipt"></i></div>
                 </div>
-<div onclick="switchTab('pending-trx')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-yellow-400">
+                <div onclick="switchTab('pending-trx')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-yellow-400">
                     <div>
                         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Trx Pending</p>
                         <h3 class="text-2xl font-black text-yellow-600" id="statPendingCount">0</h3>
@@ -157,7 +156,6 @@
                     </div>
                     <div class="w-10 h-10 bg-yellow-50 text-yellow-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-exclamation-triangle"></i></div>
                 </div>
-                
                 <div onclick="switchTab('success-trx')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-emerald-400">
                     <div>
                         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Riwayat Sukses</p>
@@ -166,8 +164,7 @@
                     </div>
                     <div class="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-check-circle"></i></div>
                 </div>
-                
-<div onclick="switchTab('livechat')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-green-200">
+                <div onclick="switchTab('livechat')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-green-200">
                     <div>
                         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Pesan Terbaru</p>
                         <h3 class="text-2xl font-black text-gray-800" id="statChatCount">0</h3>
@@ -182,21 +179,6 @@
                         <p class="text-[9px] text-blue-500 font-bold mt-1">Kelola <i class="fas fa-arrow-right ml-0.5"></i></p>
                     </div>
                     <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-users"></i></div>
-                </div>
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-                    <div>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Saldo Beredar</p>
-                        <h3 class="text-xl font-black text-gray-800 cursor-pointer hover:text-blue-600 transition" onclick="calculateFinancialStats()" id="statTotalBalance" title="Klik untuk hitung ulang"><i class="fas fa-calculator mr-2 text-gray-300"></i>Hitung</h3><p class="text-[9px] text-green-500 font-bold mt-1">Klik untuk update (Hemat Kuota)</p>
-                    </div>
-                    <div class="w-10 h-10 bg-green-50 text-green-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-wallet"></i></div>
-                </div>
-                <div onclick="switchTab('transactions')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-purple-200">
-                    <div>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Transaksi</p>
-                        <h3 class="text-2xl font-black text-gray-800" id="statTrxCount">...</h3>
-                        <p class="text-[9px] text-purple-500 font-bold mt-1">Lihat <i class="fas fa-arrow-right ml-0.5"></i></p>
-                    </div>
-                    <div class="w-10 h-10 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-chart-line"></i></div>
                 </div>
             </div>
 
@@ -213,7 +195,7 @@
                 <i class="fas fa-check-circle text-green-500 mt-0.5"></i>
                 <div>
                     <h4 class="font-bold text-gray-800 text-[11px]">Sistem Terhubung</h4>
-                                        <p class="text-[10px] text-gray-50">Database <span class="font-mono bg-gray-100 px-1 rounded text-gray-700">ppob-3ea96</span> aktif dengan Index.</p>
+                    <p class="text-[10px] text-gray-50">Database <span class="font-mono bg-gray-100 px-1 rounded text-gray-700">ppob-3ea96</span> aktif dengan Index.</p>
                 </div>
             </div>
         </div>
@@ -227,7 +209,10 @@
                         <p class="text-[10px] text-gray-500">Manajemen Transaksi Manual</p>
                     </div>
                 </div>
-                <button onclick="loadPendingTransactions()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold text-[10px]"><i class="fas fa-sync-alt"></i> Refresh</button>
+                <div class="flex items-center gap-2">
+                    <input type="date" id="pendingDateFilter" onchange="loadPendingTransactions()" class="bg-gray-50 border border-gray-300 text-gray-900 text-[10px] rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-1.5 shadow-sm">
+                    <button onclick="loadPendingTransactions()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold text-[10px]"><i class="fas fa-sync-alt"></i> Refresh</button>
+                </div>
             </div>
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="overflow-x-auto">
@@ -250,7 +235,7 @@
             </div>
         </div>
 
-        <div id="tab-success-trx" class="tab-content hide fade-in pb-10">
+        <div id="tab-success-trx"<div id="tab-success-trx" class="tab-content hide fade-in pb-10">
             <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100 sticky top-0 z-20">
                 <div class="flex items-center gap-3">
                     <button onclick="switchTab('dashboard')" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition"><i class="fas fa-arrow-left"></i></button>
@@ -1109,22 +1094,52 @@ if(tabId === 'pricing') loadPricingData();
         }
 
 
-        window.loadPendingTransactions = async () => {
+                        window.loadPendingTransactions = async () => {
             const tbody = document.getElementById('pendingTrxTableBody');
-            tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center">Memproses...</td></tr>';
+            const dateInput = document.getElementById('pendingDateFilter');
+            
+            // Set Default Tanggal Hari Ini jika kosong
+            if (!dateInput.value) {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                dateInput.value = `${year}-${month}-${day}`;
+            }
+            
+            const selectedDate = dateInput.value; // YYYY-MM-DD
+
+            tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center">Memproses data tanggal ' + selectedDate + '...</td></tr>';
+            
             try {
+                // Ambil semua status Pending/Proses
                 const q = query(collectionGroup(db, 'history'), where("status", "in", ["Pending", "Proses"]));
                 const snap = await getDocs(q);
                 let pendingList = [];
+                
                 snap.forEach(d => {
-                    pendingList.push({ id: d.id, parentUid: d.ref.parent.parent ? d.ref.parent.parent.id : 'Unk', ...d.data() });
+                    const data = d.data();
+                    // Konversi Timestamp/String date ke YYYY-MM-DD
+                    let trxDate = '';
+                    if (data.date) {
+                        const dObj = new Date(data.date);
+                        const y = dObj.getFullYear();
+                        const m = String(dObj.getMonth() + 1).padStart(2, '0');
+                        const da = String(dObj.getDate()).padStart(2, '0');
+                        trxDate = `${y}-${m}-${da}`;
+                    }
+
+                    // FILTER: Hanya masukkan jika tanggal cocok
+                    if (trxDate === selectedDate) {
+                        pendingList.push({ id: d.id, parentUid: d.ref.parent.parent ? d.ref.parent.parent.id : 'Unk', ...data });
+                    }
                 });
 
                 pendingList.sort((a, b) => new Date(b.date) - new Date(a.date));
 
                 let html = '';
                 if(pendingList.length === 0) { 
-                    html = '<tr><td colspan="5" class="p-6 text-center">Tidak ada transaksi pending</td></tr>'; 
+                    html = '<tr><td colspan="5" class="p-6 text-center text-gray-400">Tidak ada transaksi pending pada tanggal ' + selectedDate + '</td></tr>'; 
                 }
                 
                 pendingList.forEach(t => {
@@ -1222,62 +1237,114 @@ if(tabId === 'pricing') loadPricingData();
             }
         };
 
-                window.recheckServerTrx = async (uid, trxId) => {
+                                window.recheckServerTrx = async (uid, trxId) => {
             Swal.fire({
-                title: 'Menghubungi Server...',
-                html: 'Mengecek riwayat untuk RefID: <b>' + trxId + '</b>',
+                title: 'Memproses...',
+                html: 'Mengecek & Sinkronisasi RefID: <b>' + trxId + '</b>',
                 allowOutsideClick: false,
                 didOpen: () => { Swal.showLoading(); }
             });
 
             try {
-                // MENGGUNAKAN LOGIKA DARI INDEX.HTML (Client Side)
-                // Endpoint: /history, Parameter: refid
+                // 1. Ambil Data Transaksi dari DB untuk nominal refund
+                const trxRef = doc(db, "users", uid, "history", trxId);
+                const trxSnap = await getDoc(trxRef);
+                if(!trxSnap.exists()) throw new Error("Data transaksi lokal tidak ditemukan");
+                const trxData = trxSnap.data();
+
+                // 2. Cek ke Server
                 const res = await callApi('/history', { refid: trxId });
                 
-                // Logika Parsing Data (Mirip manualCheckTrx)
-                const root = res.data || {};
-                let inner = root.data || {};
-                // Jika array, ambil elemen pertama
-                if (Array.isArray(inner) && inner.length > 0) inner = inner[0];
+                if (res.ok && res.data) {
+                    let root = res.data;
+                    let inner = root.data || {};
+                    // Handle array wrapper bug
+                    if (Array.isArray(inner) && inner.length > 0) inner = inner[0];
 
-                if (res.ok || (root && root.success)) {
-                    const rawMsg = root.msg || root.message || root.sn || inner.sn || inner.message || inner.keterangan || 'Tidak ada pesan spesifik';
-                    const statusRaw = String(root.status || inner.status || root.result || 'Pending');
+                    const statusText = (inner.status_text || root.status_text || '').toUpperCase();
+                    // Prioritas pesan: keterangan > sn > message
+                    const rawMsg = (inner.keterangan || inner.sn || inner.message || root.msg || '').toLowerCase();
+                    const sn = inner.sn || '';
                     
-                    // Tentukan warna status
-                    let statusColor = 'text-orange-500';
-                    if(statusRaw.toLowerCase().includes('sukses') || statusRaw === 'Success') statusColor = 'text-green-600';
-                    else if(statusRaw.toLowerCase().includes('gagal') || statusRaw === 'Gagal') statusColor = 'text-red-600';
+                    let newStatus = 'Pending';
+                    // Logic Deteksi Status V3.4 (Mirip Index.html)
+                    if (statusText === 'SUKSES') {
+                        newStatus = 'Sukses';
+                    } else if (statusText === 'GAGAL' || rawMsg.includes('stock transaksi habis') || rawMsg.includes('stok habis') || rawMsg.includes('kosong') || rawMsg.includes('gagal')) {
+                        newStatus = 'Gagal';
+                    }
 
-                    Swal.fire({
-                        title: 'Hasil Re-Check',
-                        html: `
-                            <div class="text-left space-y-2">
-                                <div class="bg-gray-100 p-2 rounded">
-                                    <p class="text-[10px] text-gray-500">Status Server:</p>
-                                    <p class="text-lg font-bold ${statusColor}">${statusRaw}</p>
+                    // HTML untuk Menampilkan JSON Mentah
+                    const jsonHtml = `
+                        <div class="mt-3 text-left border-t border-gray-200 pt-2">
+                            <p class="text-[10px] font-bold text-gray-500 mb-1">Raw Response (Debug):</p>
+                            <div class="bg-slate-900 p-2 rounded-lg overflow-x-auto max-h-40 custom-scroll">
+                                <pre class="text-[9px] text-green-400 font-mono" style="white-space: pre-wrap;">${JSON.stringify(root, null, 2)}</pre>
+                            </div>
+                        </div>`;
+
+                    // 3. Eksekusi Update & Refund
+                    if (newStatus !== 'Pending') {
+                        await runTransaction(db, async (t) => {
+                            const tDoc = await t.get(trxRef);
+                            if (tDoc.data().status === newStatus) return; // Sudah update
+
+                            if (newStatus === 'Gagal') {
+                                // REFUND OTOMATIS
+                                const uRef = doc(db, "users", uid);
+                                const uDoc = await t.get(uRef);
+                                const currentBal = uDoc.data().balance || 0;
+                                const refundAmount = tDoc.data().amount || 0;
+
+                                t.update(uRef, { balance: currentBal + refundAmount });
+                                t.update(trxRef, {
+                                    status: 'Gagal',
+                                    api_msg: 'Refund Admin: ' + (inner.keterangan || 'Gagal dari Pusat'),
+                                    balance_final: currentBal + refundAmount,
+                                    raw_json: JSON.stringify(root),
+                                    date_updated: new Date().toISOString()
+                                });
+                            } else {
+                                // SUKSES
+                                t.update(trxRef, {
+                                    status: 'Sukses',
+                                    api_msg: sn || inner.keterangan || 'Sukses',
+                                    raw_json: JSON.stringify(root),
+                                    date_updated: new Date().toISOString()
+                                });
+                            }
+                        });
+
+                        Swal.fire({
+                            title: newStatus === 'Sukses' ? 'Berhasil' : 'Refund Berhasil',
+                            html: `
+                                <div class="mb-2 text-sm text-gray-700">
+                                    ${newStatus === 'Sukses' ? `Status updated ke SUKSES.<br><b>SN: ${sn}</b>` : `Transaksi digagalkan & saldo <b>Rp ${window.formatRp(trxData.amount)}</b> dikembalikan.`}
                                 </div>
-                                <div class="bg-blue-50 p-2 rounded border border-blue-100">
-                                    <p class="text-[10px] text-blue-500">Pesan / SN:</p>
-                                    <p class="text-xs font-mono font-bold text-gray-700 break-words">${rawMsg}</p>
+                                ${jsonHtml}
+                            `,
+                            icon: 'success'
+                        });
+                        loadPendingTransactions(); // Refresh tabel
+                    } else {
+                        Swal.fire({
+                            title: 'Masih Pending',
+                            html: `
+                                <div class="text-left bg-blue-50 p-2 rounded border border-blue-100 mb-2">
+                                    <p class="text-xs"><b>Status Pusat:</b> ${statusText || 'Pending'}</p>
+                                    <p class="text-xs"><b>Pesan:</b> ${inner.keterangan || rawMsg}</p>
                                 </div>
-                                <div class="mt-2">
-                                    <p class="text-[9px] text-gray-400 mb-1">Raw Response:</p>
-                                    <div class="bg-slate-900 p-2 rounded overflow-x-auto max-h-32 custom-scroll">
-                                        <pre class="text-[9px] text-green-400 font-mono">${JSON.stringify(root, null, 2)}</pre>
-                                    </div>
-                                </div>
-                            </div>`,
-                        icon: 'info',
-                        confirmButtonText: 'Tutup',
-                        confirmButtonColor: '#1e40af'
-                    });
+                                ${jsonHtml}
+                            `,
+                            icon: 'info'
+                        });
+                    }
                 } else {
-                    throw new Error(res.error || 'Data tidak ditemukan di riwayat server.');
+                    throw new Error("Gagal koneksi atau data tidak ditemukan di server");
                 }
             } catch (e) {
-                Swal.fire('Gagal Re-Check', 'Pastikan ID Transaksi valid di Server.\nError: ' + e.message, 'error');
+                console.error(e);
+                Swal.fire('Error', e.message, 'error');
             }
         };
 

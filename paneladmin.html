@@ -139,7 +139,17 @@
                 <button onclick="loadDashboardData()" class="bg-white text-gray-600 px-3 py-1.5 rounded border hover:bg-gray-50 text-[10px] font-bold transition shadow-sm flex items-center gap-2"><i class="fas fa-sync-alt"></i> Refresh</button>
             </div>
 
-            <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-blue-200 mb-5 relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1 h-full bg-blue-600"></div>
+                <h3 class="font-bold text-gray-800 text-sm mb-2"><i class="fas fa-satellite-dish mr-2 text-blue-600"></i>Cek Status Pusat (Realtime)</h3>
+                <div class="flex gap-2">
+                    <input type="text" id="univTrxInput" placeholder="Masukkan ID Transaksi / RefID (Contoh: TRX... atau ICS...)" class="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono font-bold focus:ring-2 focus:ring-blue-500 outline-none">
+                    <button onclick="universalDebugCheck()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-xs shadow transition flex items-center gap-2"><i class="fas fa-search"></i> CEK</button>
+                </div>
+                <p class="text-[9px] text-gray-400 mt-1.5"><i class="fas fa-info-circle mr-1"></i>Otomatis mendeteksi server (ICS / Khfy) dan menampilkan respon asli dari pusat.</p>
+            </div>
+
+<div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
                 <div onclick="openSearchTrxModal()" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-orange-400">
                     <div>
                         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Cek Transaksi</p>
@@ -823,7 +833,112 @@ if(tabId === 'pricing') loadPricingData();
             container.innerHTML = html;
         }
 
-                window.loadDashboardData = async (force = false) => {
+                        window.universalDebugCheck = async () => {
+            const input = document.getElementById('univTrxInput').value.trim();
+            if (!input) return Swal.fire('Gagal', 'Masukkan ID Transaksi!', 'warning');
+
+            Swal.fire({
+                title: 'Menghubungkan ke Pusat...',
+                html: 'Mencoba mendeteksi server & mengambil data...',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            // Prioritas Cek: Jika ada 'ICS' atau 'PLN' -> Cek ICS Dulu, selain itu Khfy Dulu
+            let tasks = (input.toUpperCase().includes('ICS') || input.toUpperCase().includes('PLN')) 
+                ? ['ICS', 'KHFY'] 
+                : ['KHFY', 'ICS'];
+
+            let foundData = null;
+            let providerName = '';
+            let rawRes = null;
+
+            for (const provider of tasks) {
+                try {
+                    if (provider === 'ICS') {
+                        // Logika ICS (Sesuai debug2.html)
+                        const res = await callIcsApi('checkTransaction', { refid: input });
+                        // ICS biasanya mengembalikan object langsung atau string JSON di 'contents'
+                        let d = res;
+                        if (d && (d.data || d.status || d.sn)) {
+                            // Validasi: Jika status sukses/pending/gagal (bukan error koneksi)
+                            foundData = d.data || d;
+                            rawRes = d;
+                            providerName = 'Server ICS';
+                            break;
+                        }
+                    } else {
+                        // Logika Khfy (Sesuai debug cek.html)
+                        const res = await callApi('/history', { refid: input });
+                        if (res.ok && res.data && res.data.data) {
+                            let d = res.data.data;
+                            if (Array.isArray(d)) d = d[0];
+                            if (d) {
+                                foundData = d;
+                                rawRes = res.data;
+                                providerName = 'Server Khfy';
+                                break;
+                            }
+                        }
+                    }
+                } catch (e) { console.log(`Skip ${provider}: ${e.message}`); }
+            }
+
+            if (foundData) {
+                // Parsing Data Universal
+                let status = '-', sn = '-', price = 0, product = '-';
+                
+                if (providerName === 'Server ICS') {
+                    status = foundData.status || 'Unknown';
+                    sn = foundData.sn || foundData.message || '-';
+                    price = foundData.harga || foundData.price || 0;
+                    product = foundData.produk || foundData.code || '-';
+                } else {
+                    // Khfy
+                    status = foundData.status || 'Unknown';
+                    sn = foundData.sn || foundData.message || foundData.keterangan || '-';
+                    price = foundData.price || foundData.harga || 0;
+                    product = foundData.code || foundData.kode_produk || '-';
+                }
+
+                const isSuccess = status.toLowerCase().includes('sukses') || status.toLowerCase().includes('success');
+                
+                Swal.fire({
+                    title: `Hasil: ${providerName}`,
+                    html: `
+                        <div class="text-left space-y-3">
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="p-2 bg-gray-50 rounded border">
+                                    <p class="text-[9px] text-gray-500 uppercase">Status Pusat</p>
+                                    <p class="font-bold text-sm ${isSuccess ? 'text-green-600' : 'text-gray-800'}">${status}</p>
+                                </div>
+                                <div class="p-2 bg-gray-50 rounded border">
+                                    <p class="text-[9px] text-gray-500 uppercase">Harga Beli</p>
+                                    <p class="font-bold text-sm text-blue-600">Rp ${parseInt(price).toLocaleString('id-ID')}</p>
+                                </div>
+                            </div>
+                            <div class="p-2 bg-white rounded border border-gray-200">
+                                <p class="text-[9px] text-gray-500 uppercase mb-1">SN / Pesan Server</p>
+                                <p class="font-mono text-xs font-bold text-gray-700 break-all">${sn}</p>
+                            </div>
+                            <div>
+                                <p class="text-[9px] text-gray-400 mb-1">Respon JSON Mentah:</p>
+                                <div class="p-2 bg-slate-900 rounded text-green-400 text-[9px] font-mono overflow-auto custom-scroll max-h-32 text-left">
+                                    <pre style="white-space: pre-wrap;">${JSON.stringify(rawRes, null, 2)}</pre>
+                                </div>
+                            </div>
+                        </div>
+                    `,
+                    icon: isSuccess ? 'success' : 'info',
+                    confirmButtonText: 'Tutup'
+                });
+            } else {
+                Swal.fire('Tidak Ditemukan', 'Data transaksi tidak ditemukan di Server ICS maupun Khfy (Atau koneksi timeout).', 'error');
+            }
+        };
+
+
+window.loadDashboardData = async (force = false) => {
             // Caching: Cegah reload jika data baru diambil < 2 menit lalu
             if (!force && Date.now() - lastDashboardFetch < 120000) {
                 console.log("Using Cached Dashboard Data");

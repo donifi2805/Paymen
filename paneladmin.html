@@ -1837,10 +1837,12 @@ window.loadDashboardData = async (force = false) => {
             if(!currentChatUid) return;
             const res = await Swal.fire({ title: 'Hapus Chat?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Hapus' });
             if(res.isConfirmed) {
+                Swal.showLoading();
                 const msgs = await getDocs(collection(db, "chats", currentChatUid, "messages"));
                 for (const m of msgs.docs) { await deleteDoc(m.ref); }
                 await deleteDoc(doc(db, "chats", currentChatUid));
-                currentChatUid = null; document.getElementById('chatBoxArea').classList.add('hidden');
+                Swal.close();
+                window.closeChatMobile(); 
             }
         };
 

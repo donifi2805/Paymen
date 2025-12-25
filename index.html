@@ -2726,7 +2726,7 @@ window.openAkrabV2 = () => {
         window.showInvoice(code, name, price, num);
     };
 
-        window.executeApiTransaction = async (code, dest, price, name) => {
+            window.executeApiTransaction = async (code, dest, price, name) => {
         window.showLoader(true);
         const reffId = crypto.randomUUID();
         const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -2775,6 +2775,10 @@ window.openAkrabV2 = () => {
             let msg = 'Tidak ada respon server';
             let providerId = '';
             
+            // DETEKSI KHUSUS ERROR LOCK_TIMEOUT (Server Busy)
+            const rawRes = JSON.stringify(result).toLowerCase();
+            const isLockTimeout = rawRes.includes('lock_timeout');
+
             if(result.ok && result.data) {
                  const d = result.data;
                  msg = d.message || d.msg || d.sn || (d.data ? d.data.message : '') || msg;
@@ -2782,9 +2786,13 @@ window.openAkrabV2 = () => {
                  isSuccess = d.status === true || d.success === true || d.status === 'success' || (d.data && d.data.status === 'Pending') || String(msg).toLowerCase().includes('proses');
             }
 
+            // PAKSA GAGAL JIKA LOCK TIMEOUT
+            if(isLockTimeout) {
+                isSuccess = false;
+                msg = "Server Busy (Lock Timeout). Silakan coba lagi sebentar.";
+            }
+
             if(isSuccess) {
-                // Sukses: Update status jadi Pending
-                // Membersihkan pesan dari parameter sensitif
                 let safeMsg = msg;
                 if (safeMsg.includes('password=') || safeMsg.includes('pin=')) {
                     safeMsg = safeMsg.split('#').pop() || 'Tujuan Diluar Wilayah';
@@ -2800,11 +2808,15 @@ window.openAkrabV2 = () => {
                     const currentBal = uDoc.data().balance || 0;
                     const balanceFinal = currentBal + price;
                     t.update(uRef, { balance: balanceFinal });
+                    
+                    // Gunakan pesan error dinamis
+                    const finalMsg = isLockTimeout ? msg : (msg.includes('wilayah') ? 'Gagal Tujuan di luar wilayah' : msg);
+
                     t.update(trxRef, { 
                         status: 'Gagal', 
-                        api_msg: 'Gagal Tujuan di luar wilayah', // Simpan pesan aman di DB juga
+                        api_msg: finalMsg, 
                         balance_final: balanceFinal,
-                        raw_json: JSON.stringify(result.data || {})
+                        raw_json: JSON.stringify(result.data || result.error || {})
                     });
                     // Catat Riwayat Refund Terpisah
                     const refundId = 'REF-' + Date.now();
@@ -2815,7 +2827,7 @@ window.openAkrabV2 = () => {
                         type: 'in',
                         date: new Date().toISOString(),
                         status: 'Sukses',
-                        api_msg: 'Pengembalian saldo otomatis',
+                        api_msg: isLockTimeout ? 'Auto Refund (Server Busy)' : 'Pengembalian saldo otomatis',
                         trx_id: refundId,
                         trx_code: trxCode
                     });
@@ -2825,13 +2837,13 @@ window.openAkrabV2 = () => {
                 if(document.getElementById('displayBalance')) document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
                 
                 // --- PESAN AMAN UNTUK USER ---
-                alert("Gagal Tujuan di luar wilayah\n\nSaldo telah dikembalikan otomatis.");
+                alert(`${isLockTimeout ? msg : "Transaksi Gagal / Stok Kosong"}\n\nSaldo telah dikembalikan otomatis.`);
                 window.nav('homePage');
             }
 
         } catch(e) {
             window.showLoader(false);
-            // 3. ERROR KONEKSI
+            // 3. ERROR KONEKSI (Murni jaringan, bukan error logic server)
             await updateDoc(trxRef, { 
                 status: 'Pending', 
                 api_msg: 'Koneksi Timeout. Cek status berkala.',

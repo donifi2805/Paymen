@@ -2014,7 +2014,7 @@ window.loadDashboardData = async (force = false) => {
                 });
                 trxCurrentPage = 1;
                 renderTransactions(allTransactions);
-                document.getElementById('statTrxCount').innerText = snap.size >= 100 ? '99+' : snap.size;
+                
             } catch(e) {
                 console.error("Err Load Trx:", e);
                 tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-red-400">Gagal: ${e.message}</td></tr>`;

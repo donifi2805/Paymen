@@ -558,7 +558,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup, sendPasswordResetEmail, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, getDoc, collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy, collectionGroup, setDoc, where, onSnapshot, serverTimestamp, addDoc, limit, startAfter, startAt } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { runTransaction, getFirestore, getDoc, collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy, collectionGroup, setDoc, where, onSnapshot, serverTimestamp, addDoc, limit, startAfter, startAt } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
         const firebaseConfig = {
@@ -1165,48 +1165,9 @@ if(tabId === 'pricing') loadPricingData();
         };
 
 
-        window.manualFail = async (uid, trxId, amount) => {
-            const { value: reason } = await Swal.fire({
-                title: 'Gagalkan & Refund',
-                input: 'text',
-                inputLabel: 'Alasan Kegagalan (akan tampil di user)',
-                inputPlaceholder: 'Contoh: Nomor salah / Gangguan Provider',
-                showCancelButton: true,
-                confirmButtonColor: '#d33'
-            });
+        // [Fungsi Duplikat Dihapus]
 
-            if (reason !== undefined) {
-                try {
-                    Swal.showLoading();
-                    const userRef = doc(db, "users", uid);
-                    const userSnap = await getDoc(userRef);
-                    
-                    if (!userSnap.exists()) throw new Error("User tidak ditemukan");
-                    
-                    const currentBalance = userSnap.data().balance || 0;
-                    const newBalance = currentBalance + amount;
-
-                    // 1. Update Saldo User (Refund)
-                    await updateDoc(userRef, { balance: newBalance });
-
-                    // 2. Update Status Transaksi & Log Refund
-                    await updateDoc(doc(db, "users", uid, "history", trxId), {
-                        status: 'Gagal',
-                        api_msg: reason || 'Dibatalkan oleh Admin (Refund Berhasil)',
-                        balance_final: newBalance,
-                        date_updated: new Date().toISOString()
-                    });
-
-                    Swal.fire('Berhasil', `Transaksi digagalkan. Saldo Rp ${amount.toLocaleString()} telah dikembalikan ke user.`, 'success');
-                    loadPendingTransactions();
-                    loadDashboardData();
-                } catch(e) {
-                    Swal.fire('Gagal', e.message, 'error');
-                }
-            }
-        };
-
-        window.manualFail = async (uid, trxId, amount) => {
+                window.manualFail = async (uid, trxId, amount) => {
             const { value: reason } = await Swal.fire({
                 title: 'Gagalkan & Refund',
                 input: 'text', 
@@ -1221,34 +1182,42 @@ if(tabId === 'pricing') loadPricingData();
                 try {
                     Swal.fire({ title: 'Memproses...', didOpen: () => { Swal.showLoading() } });
                     
-                    const trxRef = doc(db, "users", uid, "history", trxId);
-                    const trxSnap = await getDoc(trxRef);
+                    // MENGGUNAKAN FIREBASE TRANSACTION (Anti-Jebol)
+                    await runTransaction(db, async (t) => {
+                        const trxRef = doc(db, "users", uid, "history", trxId);
+                        const userRef = doc(db, "users", uid);
 
-                    if (!trxSnap.exists()) throw new Error("Transaksi tidak ditemukan.");
-                    if (trxSnap.data().status === 'Gagal') throw new Error("Transaksi ini sudah berstatus Gagal sebelumnya.");
-                    if (trxSnap.data().status === 'Sukses') throw new Error("Tidak bisa menggagalkan transaksi yang sudah Sukses.");
+                        // 1. Baca Data Atomik
+                        const trxSnap = await t.get(trxRef);
+                        const userSnap = await t.get(userRef);
 
-                    const userRef = doc(db, "users", uid);
-                    const userSnap = await getDoc(userRef);
-                    if (!userSnap.exists()) throw new Error("User tidak ditemukan.");
+                        if (!trxSnap.exists()) throw "Transaksi tidak ditemukan.";
+                        if (!userSnap.exists()) throw "User tidak ditemukan.";
+                        
+                        const tData = trxSnap.data();
+                        // 2. Cek Status Terkini (Cegah Double Refund)
+                        if (tData.status === 'Gagal') throw "Transaksi SUDAH Gagal sebelumnya (Saldo Aman).";
+                        if (tData.status === 'Sukses') throw "Transaksi sudah Sukses, tidak bisa digagalkan.";
 
-                    const currentBalance = userSnap.data().balance || 0;
-                    const newBalance = currentBalance + amount;
+                        // 3. Eksekusi Write (Update Saldo & Status)
+                        const currentBalance = userSnap.data().balance || 0;
+                        const newBalance = currentBalance + amount;
 
-                    // Eksekusi Refund & Update Status
-                    await updateDoc(userRef, { balance: newBalance });
-                    await updateDoc(trxRef, {
-                        status: 'Gagal',
-                        api_msg: reason || 'Dibatalkan oleh Admin (Saldo Di-refund)',
-                        balance_final: newBalance,
-                        date_updated: new Date().toISOString()
+                        t.update(userRef, { balance: newBalance });
+                        t.update(trxRef, {
+                            status: 'Gagal',
+                            api_msg: reason || 'Dibatalkan oleh Admin (Saldo Di-refund)',
+                            balance_final: newBalance,
+                            date_updated: new Date().toISOString()
+                        });
                     });
 
                     Swal.fire('Berhasil', `Status diubah ke Gagal & Saldo Rp ${amount.toLocaleString()} telah dikembalikan ke user.`, 'success');
                     loadPendingTransactions();
                     loadDashboardData();
                 } catch(e) {
-                    Swal.fire('Gagal', e.message, 'error');
+                    console.error(e);
+                    Swal.fire('Gagal', typeof e === 'string' ? e : e.message, 'error');
                 }
             }
         };

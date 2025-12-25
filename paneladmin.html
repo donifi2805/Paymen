@@ -55,7 +55,7 @@
             <div class="flex items-center my-3">
                 <div class="flex-1 border-t border-gray-200"></div>
                 <span class="px-2 text-[9px] text-gray-400 uppercase">Atau</span>
-                <div class="flex-1 border-t border-gray-200"></div>
+                                <div class="flex-1 border-t border-gray-200"></div>
             </div>
             <button type="button" onclick="handleGoogleLogin()" class="w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-2 rounded-lg shadow-sm transition transform active:scale-95 text-xs flex items-center justify-center gap-2">
                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-4 h-4">
@@ -190,12 +190,24 @@
                     </div>
                     <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-users"></i></div>
                 </div>
+                <div class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-indigo-400">
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Total Saldo User</p>
+                        <h3 class="text-lg font-black text-indigo-600" id="valUserBalance">
+                            <button onclick="calcUserBalance()" class="bg-indigo-600 text-white px-3 py-1 rounded text-[9px] hover:bg-indigo-700 shadow transition"><i class="fas fa-calculator mr-1"></i>Hitung</button>
+                        </h3>
+                        <p class="text-[9px] text-indigo-500 font-bold mt-1">Aset Tersimpan</p>
+                    </div>
+                    <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-wallet"></i></div>
+                </div>
             </div>
 
             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between w-full md:w-1/4 mb-5">
                 <div>
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Estimasi Profit</p>
-                    <h3 class="text-2xl font-black text-gray-800" id="statEstimatedProfit">Rp 0</h3>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Estimasi Omset (Sukses)</p>
+                    <h3 class="text-lg font-black text-gray-800" id="statEstimatedProfit">
+                        <button onclick="calcProfit()" class="bg-blue-600 text-white px-3 py-1 rounded text-[9px] hover:bg-blue-700 shadow transition"><i class="fas fa-calculator mr-1"></i>Hitung</button>
+                    </h3>
                     <p class="text-[9px] text-blue-500 font-bold mt-1">Bulan Ini</p>
                 </div>
                 <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-hand-holding-usd"></i></div>
@@ -245,7 +257,7 @@
             </div>
         </div>
 
-        <div id="tab-success-trx"<div id="tab-success-trx" class="tab-content hide fade-in pb-10">
+        <div id="tab-success-trx" class="tab-content hide fade-in pb-10">
             <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100 sticky top-0 z-20">
                 <div class="flex items-center gap-3">
                     <button onclick="switchTab('dashboard')" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition"><i class="fas fa-arrow-left"></i></button>
@@ -938,7 +950,58 @@ if(tabId === 'pricing') loadPricingData();
         };
 
 
-window.loadDashboardData = async (force = false) => {
+        window.calcUserBalance = async () => {
+            const el = document.getElementById('valUserBalance');
+            el.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            try {
+                const snap = await getDocs(collection(db, "users"));
+                let total = 0;
+                snap.forEach(d => total += (d.data().balance || 0));
+                el.innerHTML = window.formatRp(total);
+                el.parentElement.classList.add('text-2xl');
+            } catch(e) { el.innerHTML = 'Error'; Swal.fire('Error', e.message, 'error'); }
+        };
+
+        window.calcProfit = async () => {
+            const el = document.getElementById('statEstimatedProfit');
+            el.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            try {
+                // Hanya ambil status Sukses (Refund otomatis statusnya Gagal/Pending, jadi aman)
+                const q = query(collectionGroup(db, 'history'), where("status", "==", "Sukses"));
+                const snap = await getDocs(q);
+                let total = 0;
+                snap.forEach(d => total += (d.data().amount || 0));
+                el.innerHTML = window.formatRp(total);
+                el.parentElement.classList.add('text-2xl');
+            } catch(e) { el.innerHTML = 'Error'; Swal.fire('Error', e.message, 'error'); }
+        };
+
+                window.calcUserBalance = async () => {
+            const el = document.getElementById('valUserBalance');
+            el.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            try {
+                const snap = await getDocs(collection(db, "users"));
+                let total = 0;
+                snap.forEach(d => total += (d.data().balance || 0));
+                el.innerHTML = window.formatRp(total);
+                el.parentElement.classList.add('text-2xl');
+            } catch(e) { el.innerHTML = 'Error'; Swal.fire('Error', e.message, 'error'); }
+        };
+
+        window.calcProfit = async () => {
+            const el = document.getElementById('statEstimatedProfit');
+            el.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            try {
+                const q = query(collectionGroup(db, 'history'), where("status", "==", "Sukses"));
+                const snap = await getDocs(q);
+                let total = 0;
+                snap.forEach(d => total += (d.data().amount || 0));
+                el.innerHTML = window.formatRp(total);
+                el.parentElement.classList.add('text-2xl');
+            } catch(e) { el.innerHTML = 'Error'; Swal.fire('Error', e.message, 'error'); }
+        };
+
+        window.loadDashboardData = async (force = false) => {
             // Caching: Cegah reload jika data baru diambil < 2 menit lalu
             if (!force && Date.now() - lastDashboardFetch < 120000) {
                 console.log("Using Cached Dashboard Data");
@@ -1106,9 +1169,21 @@ window.loadDashboardData = async (force = false) => {
                 chatSnap.forEach(d => { if(d.data().lastSender === 'user' && !d.data().isRead) unreadCount++; });
                 document.getElementById('statChatCount').innerText = unreadCount;
             });
-            const qPending = query(collectionGroup(db, 'history'), where("status", "in", ["Pending", "Proses"]));
+                        const qPending = query(collectionGroup(db, 'history'), where("status", "in", ["Pending", "Proses"]));
             onSnapshot(qPending, (snap) => {
-                document.getElementById('statPendingCount').innerText = snap.size;
+                let todayCount = 0;
+                const now = new Date();
+                const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+                snap.forEach(d => {
+                    const data = d.data();
+                    if(data.date) {
+                        const dObj = new Date(data.date);
+                        const dStr = `${dObj.getFullYear()}-${String(dObj.getMonth() + 1).padStart(2, '0')}-${String(dObj.getDate()).padStart(2, '0')}`;
+                        if(dStr === todayStr) todayCount++;
+                    }
+                });
+                document.getElementById('statPendingCount').innerText = todayCount;
             });
         }
 

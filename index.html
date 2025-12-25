@@ -2841,16 +2841,22 @@ window.openAkrabV2 = () => {
                 window.nav('homePage');
             }
 
-        } catch(e) {
+                } catch(e) {
             window.showLoader(false);
             // 3. ERROR KONEKSI (Murni jaringan, bukan error logic server)
             await updateDoc(trxRef, { 
                 status: 'Pending', 
-                api_msg: 'Koneksi Timeout. Cek status berkala.',
+                api_msg: 'Koneksi Timeout. Klik tombol refresh pada riwayat.',
                 error_log: String(e)
             });
             
-            alert(`Koneksi Terputus/Timeout!\n\nTransaksi masuk status PENDING.\nMohon cek Riwayat & Refresh status beberapa saat lagi.`);
+            window.customConfirm(
+                'Koneksi Timeout', 
+                'Koneksi terputus saat transaksi. Saldo aman. Silakan cek status untuk memastikan keberhasilan transaksi atau pengembalian saldo.', 
+                async () => {
+                    window.manualCheckTrx(reffId, null);
+                }
+            );
         }
     };
 
@@ -3341,17 +3347,27 @@ window.renderTopUpHistory = () => {
                 return txAmount === targetAmount && (txType === 'cr' || txType === 'credit' || txType === 'masuk');
             });
 
-            if(foundTx) {
+                        if(foundTx) {
                 await runTransaction(db, async (t) => {
+                    // 1. Definisikan Referensi Dokumen History DULU
+                    const trxId = "TOPUP-" + qiosTicket.created;
+                    const hRef = doc(db, "users", currentUser.uid, "history", trxId);
+                    
+                    // 2. CEK APAKAH SUDAH PERNAH DIKLAIM? (INI KUNCINYA)
+                    const hDoc = await t.get(hRef);
+                    if (hDoc.exists()) {
+                        throw "Transaksi ini sudah diproses sebelumnya!";
+                    }
+
                     const userRef = doc(db, "users", currentUser.uid);
                     const uDoc = await t.get(userRef);
                     if (!uDoc.exists()) throw "User tidak ditemukan";
                     
+                    // 3. Tambah Saldo
                     const newBal = (uDoc.data().balance || 0) + targetAmount;
                     t.update(userRef, { balance: newBal });
                     
-                    // Catat riwayat sukses
-                    const hRef = doc(db, "users", currentUser.uid, "history", "TOPUP-" + qiosTicket.created);
+                    // 4. Catat riwayat sukses
                     t.set(hRef, {
                         title: "Top Up QRIS Berhasil",
                         amount: targetAmount,

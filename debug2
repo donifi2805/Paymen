@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug ICS Transaction</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f1f5f9; }
+        .json-pre { white-space: pre-wrap; word-wrap: break-word; font-size: 11px; }
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
+        <div class="bg-blue-600 p-6 text-white">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-xl font-bold"><i class="fas fa-bug mr-2"></i>ICS Debugger</h1>
+                    <p class="text-blue-100 text-xs">Cek Status Transaksi Manual (Realtime)</p>
+                </div>
+                <a href="index.html" class="bg-white/20 hover:bg-white/30 text-white px-3 py-1 rounded-lg text-xs font-bold transition">
+                    Kembali ke App
+                </a>
+            </div>
+        </div>
+
+        <div class="p-6">
+            <label class="block text-sm font-bold text-gray-700 mb-2">Masukkan Reff ID / Trx ID</label>
+            <div class="flex gap-2 mb-4">
+                <input type="text" id="trxIdInput" placeholder="Contoh: ICS-1708..." class="flex-1 bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm">
+                <button onclick="checkStatus()" id="btnCheck" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-xl shadow-lg transition flex items-center gap-2">
+                    <span id="btnText">CEK</span>
+                </button>
+            </div>
+
+            <div id="statusLog" class="text-[10px] text-gray-400 mb-4 text-center italic hidden"></div>
+
+            <div id="resultArea" class="hidden animate-pulse">
+                
+                <div id="statusBadgeContainer" class="mb-4 text-center p-3 rounded-xl border border-dashed">
+                    <span class="text-xs text-gray-500 block mb-1">Status Server</span>
+                    <span id="statusText" class="text-xl font-black uppercase">-</span>
+                </div>
+
+                <div class="bg-gray-50 rounded-xl p-4 border border-gray-200 mb-4 space-y-2">
+                    <div class="flex justify-between border-b border-gray-200 pb-2">
+                        <span class="text-xs text-gray-500">Produk</span>
+                        <span id="resProduct" class="text-xs font-bold text-gray-800 text-right">-</span>
+                    </div>
+                    <div class="flex justify-between border-b border-gray-200 pb-2">
+                        <span class="text-xs text-gray-500">Tujuan</span>
+                        <span id="resTarget" class="text-xs font-bold text-gray-800 font-mono">-</span>
+                    </div>
+                    <div class="flex justify-between border-b border-gray-200 pb-2">
+                        <span class="text-xs text-gray-500">SN / Pesan</span>
+                        <span id="resSn" class="text-xs font-bold text-blue-600 text-right break-all">-</span>
+                    </div>
+                    <div class="flex justify-between pt-1">
+                        <span class="text-xs text-gray-500">Harga</span>
+                        <span id="resPrice" class="text-xs font-bold text-gray-800">-</span>
+                    </div>
+                </div>
+
+                <details class="group">
+                    <summary class="flex justify-between items-center font-bold cursor-pointer list-none text-xs text-gray-500 bg-gray-100 p-2 rounded-lg">
+                        <span>Lihat Data Mentah (JSON)</span>
+                        <span class="transition group-open:rotate-180">
+                            <i class="fas fa-chevron-down"></i>
+                        </span>
+                    </summary>
+                    <div class="text-gray-600 mt-2 bg-gray-900 rounded-lg p-3 overflow-x-auto shadow-inner">
+                        <pre id="rawJson" class="json-pre text-green-400 font-mono"></pre>
+                    </div>
+                </details>
+
+            </div>
+
+            <div id="errorArea" class="hidden mt-4 p-4 bg-red-50 text-red-600 rounded-xl border border-red-100 text-center text-sm font-bold">
+                <i class="fas fa-exclamation-triangle mb-1 block text-xl"></i>
+                <span id="errorMsg">Terjadi Kesalahan</span>
+            </div>
+
+        </div>
+        
+        <div class="bg-gray-50 p-3 text-center border-t border-gray-200">
+            <p class="text-[10px] text-gray-400">ICS Debugger Tool v1.0 • Menggunakan API Key yang sama dengan index.html</p>
+        </div>
+    </div>
+
+<script>
+    // KONFIGURASI SESUAI FILE UTAMA
+    const ICS_CONFIG = {
+        apiKey: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3",
+        baseUrl: "https://reseller.ics-store.my.id"
+    };
+
+    // PROXY LIST (Sama seperti index.html untuk memastikan koneksi)
+    const PROXY_LIST = [
+        { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
+        { name: 'CorsProxyIO', url: 'https://corsproxy.io/?' },
+        { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
+        { name: 'Direct', url: '' }
+    ];
+
+    async function checkStatus() {
+        const input = document.getElementById('trxIdInput').value.trim();
+        if (!input) return alert("Mohon masukkan ID Transaksi!");
+
+        // Reset UI
+        toggleLoading(true);
+        document.getElementById('resultArea').classList.add('hidden');
+        document.getElementById('errorArea').classList.add('hidden');
+        document.getElementById('statusLog').classList.remove('hidden');
+        document.getElementById('statusLog').innerText = "Menyiapkan koneksi...";
+
+        // Construct URL ICS (Sesuai dokumentasi mereka: action=checkTransaction)
+        // Tambahkan timestamp (_t) untuk menghindari cache proxy
+        const targetUrl = `${ICS_CONFIG.baseUrl}/?action=checkTransaction&apikey=${ICS_CONFIG.apiKey}&refid=${input}&_t=${Date.now()}`;
+
+        let success = false;
+        let finalData = null;
+
+        // Loop Proxy (Mencoba semua jalur)
+        for (const proxy of PROXY_LIST) {
+            document.getElementById('statusLog').innerText = `Mencoba menghubungkan via ${proxy.name}...`;
+            
+            try {
+                const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
+                
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 detik timeout
+
+                const res = await fetch(fullUrl, { signal: controller.signal });
+                clearTimeout(timeoutId);
+
+                if (res.ok) {
+                    const text = await res.text();
+                    try {
+                        let json = JSON.parse(text);
+                        // Handle jika proxy membungkus response (seperti AllOrigins kadang2)
+                        if (json.contents) {
+                            try { json = JSON.parse(json.contents); } catch(e) { json = json.contents; }
+                        }
+                        
+                        finalData = json;
+                        success = true;
+                        break; // Berhenti jika sudah berhasil
+                    } catch (e) {
+                        console.warn(`Gagal parse JSON via ${proxy.name}`);
+                    }
+                }
+            } catch (e) {
+                console.warn(`Gagal koneksi via ${proxy.name}: ${e.message}`);
+            }
+        }
+
+        toggleLoading(false);
+        document.getElementById('statusLog').classList.add('hidden');
+
+        if (success && finalData) {
+            renderResult(finalData);
+        } else {
+            showError("Gagal terhubung ke server ICS melalui semua jalur Proxy. Coba lagi nanti.");
+        }
+    }
+
+    function renderResult(data) {
+        document.getElementById('resultArea').classList.remove('hidden');
+        document.getElementById('resultArea').classList.remove('animate-pulse'); // Hapus animasi loading
+        
+        // Menampilkan JSON Mentah
+        document.getElementById('rawJson').innerText = JSON.stringify(data, null, 2);
+
+        // Parsing Data untuk UI User Friendly
+        // Biasanya ICS mengembalikan data di dalam object utama atau field 'data'
+        const d = data.data || data; 
+
+        // Mapping Data (Sesuaikan dengan struktur respon ICS yang biasa)
+        const product = d.produk || d.code || d.kode_produk || '-';
+        const target = d.tujuan || d.nomor_tujuan || '-';
+        const sn = d.sn || d.message || d.msg || d.keterangan || 'Tidak ada pesan';
+        const price = d.harga || d.price || 0;
+        
+        // Logika Status
+        let status = (d.status || '').toLowerCase();
+        let statusColor = 'text-yellow-600 bg-yellow-50 border-yellow-200';
+        let statusLabel = 'PENDING / PROSES';
+
+        if (status === 'success' || status === 'sukses' || status === 'berhasil') {
+            statusColor = 'text-green-600 bg-green-50 border-green-200';
+            statusLabel = 'SUKSES';
+        } else if (status === 'failed' || status === 'gagal' || status === 'error') {
+            statusColor = 'text-red-600 bg-red-50 border-red-200';
+            statusLabel = 'GAGAL';
+        }
+
+        // Update UI Elements
+        const badge = document.getElementById('statusBadgeContainer');
+        badge.className = `mb-4 text-center p-3 rounded-xl border border-dashed ${statusColor}`;
+        document.getElementById('statusText').innerText = statusLabel;
+
+        document.getElementById('resProduct').innerText = product;
+        document.getElementById('resTarget').innerText = target;
+        document.getElementById('resSn').innerText = sn;
+        document.getElementById('resPrice').innerText = "Rp " + new Intl.NumberFormat('id-ID').format(price);
+    }
+
+    function showError(msg) {
+        document.getElementById('errorArea').classList.remove('hidden');
+        document.getElementById('errorMsg').innerText = msg;
+    }
+
+    function toggleLoading(isLoading) {
+        const btn = document.getElementById('btnCheck');
+        const txt = document.getElementById('btnText');
+        
+        if (isLoading) {
+            btn.disabled = true;
+            btn.classList.add('opacity-70', 'cursor-not-allowed');
+            txt.innerHTML = '<div class="loader"></div>';
+        } else {
+            btn.disabled = false;
+            btn.classList.remove('opacity-70', 'cursor-not-allowed');
+            txt.innerText = 'CEK';
+        }
+    }
+</script>
+
+</body>
+</html>

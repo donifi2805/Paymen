@@ -2,144 +2,277 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>REAL API Debugger - Khfy Store</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Transaction Debugger Tool</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        pre { background: #0f172a; color: #4ade80; padding: 15px; border-radius: 12px; overflow-x: auto; font-family: 'Consolas', monospace; font-size: 11px; border: 1px solid #334155; }
-        .loading { animation: spin 1s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f1f5f9; }
+        .app-container { max-width: 480px; margin: 0 auto; min-height: 100vh; background: white; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
+        .json-viewer { background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 8px; font-family: 'Consolas', 'Monaco', monospace; font-size: 11px; white-space: pre-wrap; word-break: break-all; overflow-x: auto; max-height: 400px; overflow-y: auto;}
+        .key { color: #9cdcfe; }
+        .string { color: #ce9178; }
+        .number { color: #b5cea8; }
+        .boolean { color: #569cd6; }
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .hide { display: none !important; }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-200 min-h-screen p-4">
+<body>
 
-    <div class="max-w-3xl mx-auto space-y-6">
-        <div class="flex items-center justify-between bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
-            <div>
-                <h1 class="text-2xl font-black text-white"><i class="fas fa-bug text-yellow-400 mr-2"></i>REAL DEBUGGER</h1>
-                <p class="text-xs text-slate-400 mt-1">Gunakan untuk melihat respon JSON asli dari Server Khfy</p>
-            </div>
-            <div class="text-right">
-                <span class="px-3 py-1 bg-red-500/20 text-red-400 border border-red-500/50 rounded-full text-[10px] font-bold uppercase tracking-widest">Live Connection</span>
-            </div>
+<div class="app-container flex flex-col p-6">
+    
+    <div class="mb-8 text-center">
+        <div class="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/30">
+            <i class="fas fa-search-dollar text-3xl text-white"></i>
         </div>
-
-        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 space-y-4">
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Kode Produk</label>
-                    <input type="text" id="dbCode" placeholder="Contoh: XDA1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Nomor Tujuan</label>
-                    <input type="text" id="dbTarget" placeholder="08xxx / No. Meter" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                </div>
-            </div>
-
-            <div class="flex gap-2">
-                <button onclick="executeAction('/trx')" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition-all flex items-center justify-center gap-2">
-                    <i class="fas fa-shopping-cart"></i> TEST BELI (POTONG SALDO)
-                </button>
-                <button onclick="executeAction('/history', true)" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-lg transition-all flex items-center justify-center gap-2">
-                    <i class="fas fa-search"></i> CEK STATUS TERAKHIR
-                </button>
-            </div>
-            <p class="text-[10px] text-yellow-500/70 italic"><i class="fas fa-exclamation-triangle mr-1"></i> Perhatian: Tombol "TEST BELI" akan memotong saldo Khfy asli Anda jika data valid.</p>
-        </div>
-
-        <div class="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden shadow-2xl">
-            <div class="bg-slate-700 px-6 py-3 flex justify-between items-center">
-                <span class="text-xs font-bold uppercase tracking-widest text-slate-300">Raw JSON Response</span>
-                <button onclick="copyRaw()" class="text-[10px] bg-slate-600 px-2 py-1 rounded hover:bg-slate-500 transition">Copy</button>
-            </div>
-            <div class="p-6">
-                <div id="loader" class="hidden flex flex-col items-center justify-center py-10">
-                    <i class="fas fa-circle-notch loading text-3xl text-blue-500 mb-3"></i>
-                    <p class="text-xs font-bold text-slate-500">Menghubungi Server Khfy...</p>
-                </div>
-                <pre id="rawOutput" class="min-h-[200px]">Menunggu aksi...</pre>
-            </div>
-        </div>
-
-        <div class="p-4 bg-blue-900/20 border border-blue-500/30 rounded-xl">
-            <h4 class="text-xs font-bold text-blue-400 mb-1">Tips Debugging:</h4>
-            <ul class="text-[10px] text-slate-400 space-y-1 list-disc ml-4">
-                <li>Gunakan **REFID** yang unik untuk setiap tes beli agar tidak ditolak server sebagai "Duplicate".</li>
-                <li>Jika respon menunjukkan `status: false`, periksa saldo akun Khfy Anda atau API Key di file `index.html`.</li>
-                <li>Debugger ini menggunakan Proxy yang sama dengan aplikasi utama Anda untuk memastikan konsistensi.</li>
-            </ul>
-        </div>
+        <h1 class="text-2xl font-bold text-gray-800">Cek Status Transaksi</h1>
+        <p class="text-xs text-gray-500 mt-1">Pandawa Store Debugger (JSON View)</p>
     </div>
 
-    <script>
-        // Mengambil konfigurasi langsung dari struktur file Anda
-        const CONFIG = { 
-            apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", 
-            baseUrl: "https://panel.khfy-store.com/api_v2" 
-        };
+    <div class="bg-white p-1 rounded-xl mb-6">
+        <label class="block text-xs font-bold text-gray-500 mb-2 ml-1">Masukkan TRX ID / Ref ID</label>
+        <div class="relative flex items-center mb-4">
+            <input type="text" id="trxInput" placeholder="Contoh: TRX-1735..." class="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl px-4 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 font-mono">
+            <button onclick="pasteClipboard()" class="absolute right-2 p-2 text-gray-400 hover:text-blue-600"><i class="fas fa-paste"></i></button>
+        </div>
+        <button onclick="checkStatus()" id="btnCheck" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition flex justify-center items-center gap-2">
+            <span id="btnText">CEK SEKARANG</span>
+            <div id="btnLoader" class="loader hide"></div>
+        </button>
+    </div>
 
-        const PROXY_LIST = [
-            'https://api.codetabs.com/v1/proxy?quest=',
-            'https://corsproxy.io/?',
-            'https://api.allorigins.win/raw?url='
-        ];
+    <div id="resultArea" class="hide space-y-4 animate-fade-in">
+        
+        <div class="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm relative overflow-hidden">
+            <div id="statusIndicator" class="absolute top-0 left-0 w-1.5 h-full bg-gray-300"></div>
+            <div class="flex justify-between items-start mb-2 pl-2">
+                <div>
+                    <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Status</p>
+                    <h2 id="displayStatus" class="text-lg font-black text-gray-800">-</h2>
+                </div>
+                <div class="text-right">
+                    <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Harga</p>
+                    <p id="displayPrice" class="text-sm font-bold text-blue-600">-</p>
+                </div>
+            </div>
+            <div class="pl-2 space-y-2 mt-3 pt-3 border-t border-dashed border-gray-100">
+                <div>
+                    <span class="text-[10px] text-gray-400 block">Pesan Server (SN):</span>
+                    <span id="displaySn" class="text-xs font-mono font-bold text-gray-700 break-all">-</span>
+                </div>
+                <div class="flex justify-between">
+                    <div><span class="text-[10px] text-gray-400 block">Produk:</span><span id="displayProduct" class="text-xs font-bold">-</span></div>
+                    <div class="text-right"><span class="text-[10px] text-gray-400 block">Tujuan:</span><span id="displayDest" class="text-xs font-bold">-</span></div>
+                </div>
+            </div>
+        </div>
 
-        async function executeAction(endpoint, isHistory = false) {
-            const code = document.getElementById('dbCode').value;
-            const target = document.getElementById('dbTarget').value;
-            const output = document.getElementById('rawOutput');
-            const loader = document.getElementById('loader');
+        <div>
+            <div class="flex justify-between items-center mb-2">
+                <h3 class="text-xs font-bold text-gray-500"><i class="fas fa-code mr-1"></i> Respon Mentah (JSON)</h3>
+                <button onclick="copyJson()" class="text-[10px] bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded text-gray-600 font-bold transition">Salin JSON</button>
+            </div>
+            <div id="jsonDisplay" class="json-viewer">Menunggu data...</div>
+            <p class="text-[10px] text-gray-400 mt-2 text-center">Data diambil langsung dari API Panel Khfy v2</p>
+        </div>
 
-            if(!code || !target) return alert("Isi Kode Produk dan Nomor Tujuan!");
+    </div>
 
-            output.classList.add('hidden');
-            loader.classList.remove('hidden');
+</div>
 
-            const reffId = "DEBUG-" + Date.now();
-            let params = { 
-                api_key: CONFIG.apiKey,
-                produk: code,
-                tujuan: target,
-                reff_id: reffId 
-            };
+<script>
+    // --- KONFIGURASI DARI APLIKASI UTAMA ---
+    const CONFIG = { 
+        apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", // API Key dari file index(17).html
+        baseUrl: "https://panel.khfy-store.com/api_v2" 
+    };
 
-            // Jika hanya cek history/status
-            if(isHistory) {
-                params = { api_key: CONFIG.apiKey, refid: reffId };
-                // Catatan: Ini akan mencari history ID yang baru saja dibuat di atas, 
-                // anda mungkin perlu memasukkan ID manual jika ingin cek transaksi lama.
-            }
+    const PROXY_LIST = [
+        { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
+        { name: 'CorsProxyIO', url: 'https://corsproxy.io/?' },
+        { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
+        { name: 'Direct', url: '' }
+    ];
 
-            const queryString = new URLSearchParams(params).toString();
-            const targetUrl = `${CONFIG.baseUrl}${endpoint}?${queryString}`;
+    let currentJsonData = "";
 
-            let success = false;
+    async function pasteClipboard() {
+        try {
+            const text = await navigator.clipboard.readText();
+            document.getElementById('trxInput').value = text;
+        } catch (err) {
+            alert('Gagal paste otomatis. Silakan paste manual.');
+        }
+    }
+
+    async function checkStatus() {
+        const trxId = document.getElementById('trxInput').value.trim();
+        
+        if (!trxId) {
+            alert("Harap masukkan TRX ID / Reff ID!");
+            return;
+        }
+
+        // UI Loading State
+        const btn = document.getElementById('btnCheck');
+        const btnText = document.getElementById('btnText');
+        const loader = document.getElementById('btnLoader');
+        const resultArea = document.getElementById('resultArea');
+        const jsonDisplay = document.getElementById('jsonDisplay');
+
+        btn.disabled = true;
+        btn.classList.add('opacity-75');
+        btnText.innerText = "MENGHUBUNGKAN...";
+        loader.classList.remove('hide');
+        resultArea.classList.add('hide');
+        jsonDisplay.innerHTML = "Memuat data...";
+
+        // Call API
+        // Kita gunakan endpoint /history karena lebih detail untuk ReffID
+        const result = await callApi('/history', { refid: trxId });
+
+        // Reset UI
+        btn.disabled = false;
+        btn.classList.remove('opacity-75');
+        btnText.innerText = "CEK SEKARANG";
+        loader.classList.add('hide');
+        resultArea.classList.remove('hide');
+
+        if (result.ok && result.data) {
+            renderResult(result.data);
+        } else {
+            renderError(result.error);
+        }
+    }
+
+    function renderResult(data) {
+        const jsonDisplay = document.getElementById('jsonDisplay');
+        
+        // Simpan raw string untuk tombol copy
+        currentJsonData = JSON.stringify(data, null, 2);
+        
+        // Pretty Print JSON dengan Syntax Highlighting sederhana
+        jsonDisplay.innerHTML = syntaxHighlight(data);
+
+        // Parsing Data untuk UI Manusia
+        let item = data.data;
+        // Handle jika data dibungkus array
+        if (Array.isArray(item)) item = item[0];
+        
+        // Fallback jika data kosong
+        if (!item) item = {};
+
+        const status = item.status || data.status || "Unknown";
+        const sn = item.sn || item.message || item.keterangan || data.message || "-";
+        const price = item.price || item.harga || 0;
+        const product = item.code || item.kode_produk || "-";
+        const dest = item.tujuan || item.target || "-";
+
+        // Update UI Elements
+        document.getElementById('displayStatus').innerText = status;
+        document.getElementById('displayPrice').innerText = "Rp " + parseInt(price).toLocaleString('id-ID');
+        document.getElementById('displaySn').innerText = sn;
+        document.getElementById('displayProduct').innerText = product;
+        document.getElementById('displayDest').innerText = dest;
+
+        // Warna Indikator Status
+        const indicator = document.getElementById('statusIndicator');
+        const statusText = String(status).toLowerCase();
+        
+        if (statusText.includes('sukses') || statusText === 'success') {
+            indicator.className = "absolute top-0 left-0 w-1.5 h-full bg-green-500";
+            document.getElementById('displayStatus').className = "text-lg font-black text-green-600";
+        } else if (statusText.includes('gagal') || statusText.includes('error')) {
+            indicator.className = "absolute top-0 left-0 w-1.5 h-full bg-red-500";
+            document.getElementById('displayStatus').className = "text-lg font-black text-red-600";
+        } else {
+            indicator.className = "absolute top-0 left-0 w-1.5 h-full bg-orange-500";
+            document.getElementById('displayStatus').className = "text-lg font-black text-orange-500";
+        }
+    }
+
+    function renderError(msg) {
+        document.getElementById('jsonDisplay').innerHTML = `<span style="color:red">Error Koneksi: ${msg}</span>`;
+        document.getElementById('displayStatus').innerText = "ERROR KONEKSI";
+        document.getElementById('displaySn').innerText = msg;
+        document.getElementById('statusIndicator').className = "absolute top-0 left-0 w-1.5 h-full bg-red-600";
+    }
+
+    function copyJson() {
+        if(!currentJsonData) return;
+        navigator.clipboard.writeText(currentJsonData).then(() => {
+            alert("JSON berhasil disalin ke clipboard!");
+        });
+    }
+
+    // --- FUNGSI INTI (Sama seperti di index(17).html) ---
+    
+    async function callApi(endpoint, params = {}) {
+        params['api_key'] = CONFIG.apiKey;
+        const queryString = new URLSearchParams(params).toString();
+        const targetUrl = `${CONFIG.baseUrl}${endpoint}?${queryString}`;
+        
+        let lastError = '';
+
+        for (const proxy of PROXY_LIST) {
+            console.log(`[Checker] Mencoba via ${proxy.name}...`);
+            const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
             
-            for (const proxy of PROXY_LIST) {
-                try {
-                    const response = await fetch(proxy + encodeURIComponent(targetUrl));
-                    if(response.ok) {
-                        const data = await response.json();
-                        output.innerText = JSON.stringify(data, null, 4);
-                        success = true;
-                        break;
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 detik timeout
+
+                const response = await fetch(fullUrl, { signal: controller.signal });
+                clearTimeout(timeoutId);
+
+                if (response.ok) {
+                    const text = await response.text();
+                    try {
+                        // Handle response wrapper dari proxy tertentu
+                        let data = JSON.parse(text);
+                        if (data.contents) {
+                            try { data = JSON.parse(data.contents); } catch(e) {}
+                        }
+                        return { ok: true, data: data };
+                    } catch (e) {
+                        console.warn(`[Checker] Response bukan JSON via ${proxy.name}`);
+                        continue;
                     }
-                } catch (e) {
-                    console.error("Proxy error:", e);
                 }
+            } catch (error) {
+                console.warn(`[Checker] Error Koneksi via ${proxy.name}:`, error.message);
+                lastError = `${proxy.name}: ${error.message}`;
             }
-
-            if(!success) output.innerText = "Gagal terhubung ke server melalui semua proxy.";
-            
-            loader.classList.add('hidden');
-            output.classList.remove('hidden');
         }
+        return { ok: false, error: `Gagal menghubungkan ke server (Semua Proxy Gagal). ${lastError}` };
+    }
 
-        function copyRaw() {
-            const text = document.getElementById('rawOutput').innerText;
-            navigator.clipboard.writeText(text).then(() => alert("JSON disalin!"));
+    // Fungsi mempercantik JSON (Syntax Highlight)
+    function syntaxHighlight(json) {
+        if (typeof json != 'string') {
+             json = JSON.stringify(json, undefined, 2);
         }
-    </script>
+        json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+            var cls = 'number';
+            if (/^"/.test(match)) {
+                if (/:$/.test(match)) {
+                    cls = 'key';
+                } else {
+                    cls = 'string';
+                }
+            } else if (/true|false/.test(match)) {
+                cls = 'boolean';
+            } else if (/null/.test(match)) {
+                cls = 'null';
+            }
+            return '<span class="' + cls + '">' + match + '</span>';
+        });
+    }
+
+</script>
+
 </body>
 </html>

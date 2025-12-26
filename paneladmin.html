@@ -845,18 +845,69 @@ if(tabId === 'pricing') loadPricingData();
             container.innerHTML = html;
         }
 
-                        window.universalDebugCheck = async () => {
+                        window.calcUserBalance = async () => {
+            const el = document.getElementById('valUserBalance');
+            el.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            try {
+                const snap = await getDocs(collection(db, "users"));
+                let total = 0;
+                snap.forEach(d => total += (d.data().balance || 0));
+                el.innerHTML = window.formatRp(total);
+                el.parentElement.classList.add('text-2xl');
+            } catch(e) { el.innerHTML = 'Error'; Swal.fire('Error', e.message, 'error'); }
+        };
+
+        window.calcProfit = async () => {
+            const el = document.getElementById('statEstimatedProfit');
+            el.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            try {
+                const q = query(collectionGroup(db, 'history'), where("status", "==", "Sukses"));
+                const snap = await getDocs(q);
+                let total = 0;
+                snap.forEach(d => total += (d.data().amount || 0));
+                el.innerHTML = window.formatRp(total);
+                el.parentElement.classList.add('text-2xl');
+            } catch(e) { el.innerHTML = 'Error'; Swal.fire('Error', e.message, 'error'); }
+        };
+
+        window.universalDebugCheck = async () => {
             const input = document.getElementById('univTrxInput').value.trim();
             if (!input) return Swal.fire('Gagal', 'Masukkan ID Transaksi!', 'warning');
 
             Swal.fire({
-                title: 'Menghubungkan ke Pusat...',
-                html: 'Mencoba mendeteksi server & mengambil data...',
+                title: 'Menganalisis...',
+                html: 'Mencocokkan data lokal & server pusat...',
                 allowOutsideClick: false,
                 didOpen: () => Swal.showLoading()
             });
 
-            // Prioritas Cek: Jika ada 'ICS' atau 'PLN' -> Cek ICS Dulu, selain itu Khfy Dulu
+            // 1. CARI DATA DI FIREBASE DULU (AUTO-DETECT ID SUPPLIER)
+            let localData = null;
+            let checkParams = { refid: input }; // Default: Cek pakai RefID Lokal
+            let debugNote = 'Mode: RefID (ID Lokal)';
+
+            try {
+                // Cek berdasarkan trx_id (ICS-...) atau trx_code (123456)
+                const q1 = query(collectionGroup(db, 'history'), where("trx_id", "==", input));
+                const snap1 = await getDocs(q1);
+                
+                if(!snap1.empty) {
+                    localData = snap1.docs[0].data();
+                } else {
+                    // Coba cari by trx_code
+                    const q2 = query(collectionGroup(db, 'history'), where("trx_code", "==", input));
+                    const snap2 = await getDocs(q2);
+                    if(!snap2.empty) localData = snap2.docs[0].data();
+                }
+
+                // LOGIKA CERDAS: Jika sudah ada Supplier ID, gunakan itu (Lebih Akurat)
+                if(localData && localData.supplier_id && localData.supplier_id !== '-' && localData.supplier_id !== 'undefined' && localData.supplier_id.length > 2) {
+                    checkParams = { trxid: localData.supplier_id };
+                    debugNote = `Mode: TrxID (ID Server: ${localData.supplier_id})`;
+                }
+            } catch(e) { console.log("Local check skipped", e); }
+
+            // Prioritas Cek Provider
             let tasks = (input.toUpperCase().includes('ICS') || input.toUpperCase().includes('PLN')) 
                 ? ['ICS', 'KHFY'] 
                 : ['KHFY', 'ICS'];
@@ -868,19 +919,17 @@ if(tabId === 'pricing') loadPricingData();
             for (const provider of tasks) {
                 try {
                     if (provider === 'ICS') {
-                        // Logika ICS (Sesuai debug2.html)
-                        const res = await callIcsApi('checkTransaction', { refid: input });
-                        // ICS biasanya mengembalikan object langsung atau string JSON di 'contents'
+                        // Logika ICS dengan Parameter Cerdas
+                        const res = await callIcsApi('checkTransaction', checkParams);
                         let d = res;
                         if (d && (d.data || d.status || d.sn)) {
-                            // Validasi: Jika status sukses/pending/gagal (bukan error koneksi)
                             foundData = d.data || d;
                             rawRes = d;
                             providerName = 'Server ICS';
                             break;
                         }
                     } else {
-                        // Logika Khfy (Sesuai debug cek.html)
+                        // Logika Khfy
                         const res = await callApi('/history', { refid: input });
                         if (res.ok && res.data && res.data.data) {
                             let d = res.data.data;
@@ -897,28 +946,28 @@ if(tabId === 'pricing') loadPricingData();
             }
 
             if (foundData) {
-                // Parsing Data Universal
-                let status = '-', sn = '-', price = 0, product = '-';
-                
+                let status = '-', sn = '-', price = 0;
                 if (providerName === 'Server ICS') {
                     status = foundData.status || 'Unknown';
                     sn = foundData.sn || foundData.message || '-';
                     price = foundData.harga || foundData.price || 0;
-                    product = foundData.produk || foundData.code || '-';
                 } else {
-                    // Khfy
                     status = foundData.status || 'Unknown';
                     sn = foundData.sn || foundData.message || foundData.keterangan || '-';
                     price = foundData.price || foundData.harga || 0;
-                    product = foundData.code || foundData.kode_produk || '-';
                 }
 
                 const isSuccess = status.toLowerCase().includes('sukses') || status.toLowerCase().includes('success');
                 
                 Swal.fire({
-                    title: `Hasil: ${providerName}`,
+                    title: `Ditemukan di ${providerName}`,
                     html: `
                         <div class="text-left space-y-3">
+                            <div class="p-2 bg-blue-50 rounded border border-blue-100 text-[10px] text-gray-600">
+                                <b>Info Diagnosa:</b><br>
+                                ${debugNote}<br>
+                                ${localData ? `<span class="text-green-600"><i class="fas fa-database"></i> Data Lokal Ditemukan (Status: ${localData.status})</span>` : `<span class="text-orange-500"><i class="fas fa-exclamation-circle"></i> Tidak ada di Database Lokal</span>`}
+                            </div>
                             <div class="grid grid-cols-2 gap-2">
                                 <div class="p-2 bg-gray-50 rounded border">
                                     <p class="text-[9px] text-gray-500 uppercase">Status Pusat</p>
@@ -933,72 +982,34 @@ if(tabId === 'pricing') loadPricingData();
                                 <p class="text-[9px] text-gray-500 uppercase mb-1">SN / Pesan Server</p>
                                 <p class="font-mono text-xs font-bold text-gray-700 break-all">${sn}</p>
                             </div>
-                            <div>
-                                <p class="text-[9px] text-gray-400 mb-1">Respon JSON Mentah:</p>
-                                <div class="p-2 bg-slate-900 rounded text-green-400 text-[9px] font-mono overflow-auto custom-scroll max-h-32 text-left">
-                                    <pre style="white-space: pre-wrap;">${JSON.stringify(rawRes, null, 2)}</pre>
-                                </div>
-                            </div>
                         </div>
                     `,
                     icon: isSuccess ? 'success' : 'info',
                     confirmButtonText: 'Tutup'
                 });
             } else {
-                Swal.fire('Tidak Ditemukan', 'Data transaksi tidak ditemukan di Server ICS maupun Khfy (Atau koneksi timeout).', 'error');
+                // KASUS TRANSAKSI HANTU (Ada di Lokal, Tidak ada di Pusat)
+                if(localData) {
+                     Swal.fire({
+                        title: 'Gagal Kirim (Ghost Trx)',
+                        html: `
+                            <div class="text-left">
+                                <p class="text-sm text-gray-600 mb-3">Transaksi ini <b>ADA</b> di database lokal (Status: <b>${localData.status}</b>), tetapi <b>TIDAK DITEMUKAN</b> di server pusat.</p>
+                                <div class="bg-red-50 p-3 rounded-xl border border-red-100 text-xs text-red-600">
+                                    <p class="font-bold mb-1"><i class="fas fa-bug"></i> Analisis Sistem:</p>
+                                    1. Koneksi terputus saat request ke pusat (Timeout).<br>
+                                    2. Transaksi ditolak server tanpa respon.<br><br>
+                                    <b>Saran Tindakan:</b><br>
+                                    Silakan lakukan <b>Refund Manual / Gagalkan</b> transaksi ini agar saldo user kembali.
+                                </div>
+                            </div>
+                        `,
+                        icon: 'error'
+                    });
+                } else {
+                    Swal.fire('Tidak Ditemukan', 'Data transaksi tidak ditemukan di Server ICS maupun Khfy, dan juga tidak ada di database lokal.', 'error');
+                }
             }
-        };
-
-
-        window.calcUserBalance = async () => {
-            const el = document.getElementById('valUserBalance');
-            el.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            try {
-                const snap = await getDocs(collection(db, "users"));
-                let total = 0;
-                snap.forEach(d => total += (d.data().balance || 0));
-                el.innerHTML = window.formatRp(total);
-                el.parentElement.classList.add('text-2xl');
-            } catch(e) { el.innerHTML = 'Error'; Swal.fire('Error', e.message, 'error'); }
-        };
-
-        window.calcProfit = async () => {
-            const el = document.getElementById('statEstimatedProfit');
-            el.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            try {
-                // Hanya ambil status Sukses (Refund otomatis statusnya Gagal/Pending, jadi aman)
-                const q = query(collectionGroup(db, 'history'), where("status", "==", "Sukses"));
-                const snap = await getDocs(q);
-                let total = 0;
-                snap.forEach(d => total += (d.data().amount || 0));
-                el.innerHTML = window.formatRp(total);
-                el.parentElement.classList.add('text-2xl');
-            } catch(e) { el.innerHTML = 'Error'; Swal.fire('Error', e.message, 'error'); }
-        };
-
-                window.calcUserBalance = async () => {
-            const el = document.getElementById('valUserBalance');
-            el.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            try {
-                const snap = await getDocs(collection(db, "users"));
-                let total = 0;
-                snap.forEach(d => total += (d.data().balance || 0));
-                el.innerHTML = window.formatRp(total);
-                el.parentElement.classList.add('text-2xl');
-            } catch(e) { el.innerHTML = 'Error'; Swal.fire('Error', e.message, 'error'); }
-        };
-
-        window.calcProfit = async () => {
-            const el = document.getElementById('statEstimatedProfit');
-            el.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            try {
-                const q = query(collectionGroup(db, 'history'), where("status", "==", "Sukses"));
-                const snap = await getDocs(q);
-                let total = 0;
-                snap.forEach(d => total += (d.data().amount || 0));
-                el.innerHTML = window.formatRp(total);
-                el.parentElement.classList.add('text-2xl');
-            } catch(e) { el.innerHTML = 'Error'; Swal.fire('Error', e.message, 'error'); }
         };
 
         window.loadDashboardData = async (force = false) => {

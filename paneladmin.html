@@ -1210,6 +1210,14 @@ if(tabId === 'pricing') loadPricingData();
                 });
 
                 successCurrentPage = 1;
+
+                const uniqueUids = [...new Set(successTrxData.map(t => t.uid))];
+                const missing = uniqueUids.filter(id => !allUsers.some(u => u.id === id) && id !== 'Unk');
+                if(missing.length > 0) {
+                     tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-blue-500"><i class="fas fa-spinner fa-spin mr-2"></i>Sinkronisasi User (${missing.length})...</td></tr>`;
+                     await Promise.all(missing.map(async (uid) => { try { const u = await getDoc(doc(db, "users", uid)); if(u.exists()) allUsers.push({id:uid, ...u.data()}); } catch(e){} }));
+                }
+
                 renderSuccessTransactions();
                 document.getElementById('statSuccessCount').innerText = snap.size >= 100 ? '99+' : snap.size;
 
@@ -1233,7 +1241,7 @@ if(tabId === 'pricing') loadPricingData();
 
             let html = '';
             pageData.forEach(t => {
-                const user = allUsers.find(u => u.id === t.uid); const userName = user ? (user.username || 'User') : (t.username || 'User');
+                const user = allUsers.find(u => u.id === t.uid); const userName = user ? (user.username || 'User') : (t.username || 'User ' + (t.uid || '').substring(0,5));
                 const dObj = t.date ? new Date(t.date) : null;
                 const dateStr = dObj ? dObj.toLocaleString('id-ID', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '-';
                 
@@ -1327,6 +1335,13 @@ if(tabId === 'pricing') loadPricingData();
 
                 pendingList.sort((a, b) => new Date(b.date) - new Date(a.date));
 
+                const uniqueUids = [...new Set(pendingList.map(t => t.parentUid))];
+                const missing = uniqueUids.filter(id => !allUsers.some(u => u.id === id));
+                if(missing.length > 0) {
+                     tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-blue-500"><i class="fas fa-spinner fa-spin mr-2"></i>Sinkronisasi User (${missing.length})...</td></tr>`;
+                     await Promise.all(missing.map(async (uid) => { try { const u = await getDoc(doc(db, "users", uid)); if(u.exists()) allUsers.push({id:uid, ...u.data()}); } catch(e){} }));
+                }
+
                 let html = '';
                 if(pendingList.length === 0) { 
                     html = '<tr><td colspan="5" class="p-6 text-center text-gray-400">Tidak ada transaksi pending pada tanggal ' + selectedDate + '</td></tr>'; 
@@ -1334,7 +1349,7 @@ if(tabId === 'pricing') loadPricingData();
                 
                 pendingList.forEach(t => {
                     const user = allUsers.find(u => u.id === t.parentUid); 
-                    const userName = user ? user.username : (t.username || 'User');
+                    const userName = user ? user.username : (t.username || 'User ' + (t.parentUid || '').substring(0,5));
                     const dObj = t.date ? new Date(t.date) : null;
                     const timeStr = dObj ? dObj.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : '--:--';
                     
@@ -1606,7 +1621,7 @@ if(tabId === 'pricing') loadPricingData();
 
             let html = '';
             pageData.forEach(t => {
-                const isOut = t.type === 'out', user = allUsers.find(u => u.id === t.uid); const dObj = t.date ? new Date(t.date) : null; const date = dObj ? dObj.toLocaleDateString('id-ID', {day:'numeric', month:'short'}) : '-'; const time = dObj ? dObj.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : '';
+                const isOut = t.type === 'out', user = allUsers.find(u => u.id === t.uid); const userName = user ? (user.username || 'User') : (t.username || 'User ' + (t.uid || '').substring(0,5)); const dObj = t.date ? new Date(t.date) : null; const date = dObj ? dObj.toLocaleDateString('id-ID', {day:'numeric', month:'short'}) : '-'; const time = dObj ? dObj.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : '';
                 let statusHtml = '';
                 if (t.status === 'Sukses') statusHtml = '<span class="px-1.5 py-0.5 rounded bg-green-100 text-green-700">Sukses</span>';
                 else if (t.status === 'Gagal' && t.balance_final) statusHtml = '<span class="px-1.5 py-0.5 rounded bg-red-100 text-red-700">Gagal</span><div class="text-[9px] text-green-600 font-bold mt-1"><i class="fas fa-undo mr-1"></i>REFUND</div>';
@@ -1615,7 +1630,7 @@ if(tabId === 'pricing') loadPricingData();
 
                 html += `<tr class="border-b border-gray-50">
                     <td class="p-3"><div class="font-bold">${date}</div><div class="text-[10px] text-gray-400 font-mono">${time} WIB</div></td>
-                    <td class="p-3"><div class="font-bold">${user ? user.username : 'User'}</div><button onclick="viewUserHistory('${t.uid}', '${user ? user.username : 'User'}')" class="text-[9px] text-orange-500 font-bold hover:underline"><i class="fas fa-history mr-1"></i>Lihat Riwayat</button></td>
+                    <td class="p-3"><div class="font-bold">${userName}</div><button onclick="viewUserHistory('${t.uid}', '${userName}')" class="text-[9px] text-orange-500 font-bold hover:underline"><i class="fas fa-history mr-1"></i>Lihat Riwayat</button></td>
                     <td class="p-3"><div>${t.title}</div>${t.trx_code ? `<div class="text-[9px] font-mono text-blue-600 font-bold mt-1"><i class="fas fa-hashtag mr-1"></i>${t.trx_code}</div>` : ''}</td>
                     <td class="p-3">
                         <button onclick='showAdminTrxDetail(${JSON.stringify(t)})' class="text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 px-2 py-1 rounded">
@@ -2089,6 +2104,14 @@ if(tabId === 'pricing') loadPricingData();
                 snap.forEach(d => {
                     allTransactions.push({ id: d.id, uid: d.ref.parent.parent ? d.ref.parent.parent.id : 'Unk', ...d.data() });
                 });
+
+                const uniqueUids = [...new Set(allTransactions.map(t => t.uid))];
+                const missing = uniqueUids.filter(id => !allUsers.some(u => u.id === id) && id !== 'Unk');
+                if(missing.length > 0) {
+                     tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-blue-500"><i class="fas fa-spinner fa-spin mr-2"></i>Sinkronisasi User (${missing.length})...</td></tr>`;
+                     await Promise.all(missing.map(async (uid) => { try { const u = await getDoc(doc(db, "users", uid)); if(u.exists()) allUsers.push({id:uid, ...u.data()}); } catch(e){} }));
+                }
+
                 trxCurrentPage = 1;
                 renderTransactions(allTransactions);
                 

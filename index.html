@@ -2639,6 +2639,21 @@ window.openAkrabV2 = () => {
         const number = document.getElementById('ppobNumber').value;
 
         if(!code) return alert('Silakan pilih Produk!');
+        if(!code) return alert('Silakan pilih Produk!');
+
+        // FITUR BARU: Cegah Transaksi Ganda ke Nomor Sama jika masih Pending
+        const pendingSameNum = transactions.find(t => 
+            (t.status === 'Pending' || t.status === 'Proses') && 
+            t.dest_num === number
+        );
+
+        if (pendingSameNum) {
+            return Swal.fire({
+                title: 'Transaksi Tertunda',
+                text: 'Masih ada transaksi PENDING untuk nomor ' + number + '. Harap tunggu hingga sukses atau gagal sebelum membeli lagi.',
+                icon: 'warning'
+            });
+        }
 
         // --- HANDLER KHUSUS ICS ---
         if (provider.startsWith('ICS_')) {
@@ -2768,11 +2783,18 @@ window.openAkrabV2 = () => {
 
         // 2. CALL API
         try {
-            const result = await callApi('/trx', { produk: code, tujuan: dest, reff_id: reffId });
+                        const result = await callApi('/trx', { produk: code, tujuan: dest, reff_id: reffId });
             window.showLoader(false);
             
             let isSuccess = false;
             let msg = 'Tidak ada respon server';
+
+            // UPDATE: Jika semua proxy gagal (misal: HTTP_CLIENT_RESPONSE_BODY_ERR)
+            // Paksa pesan jadi 'Server Sedang Sibuk' agar masuk ke logika refund dengan info yang jelas
+            if (!result.ok) {
+                msg = "Server Sedang Sibuk";
+            }
+            
             let providerId = '';
             
             // DETEKSI KHUSUS ERROR LOCK_TIMEOUT (Server Busy)
@@ -2836,8 +2858,10 @@ window.openAkrabV2 = () => {
                 currentBalance += price;
                 if(document.getElementById('displayBalance')) document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
                 
-                // --- PESAN AMAN UNTUK USER ---
-                alert(`${isLockTimeout ? msg : "Transaksi Gagal / Stok Kosong"}\n\nSaldo telah dikembalikan otomatis.`);
+                                // --- PESAN AMAN UNTUK USER ---
+                // UPDATE: Tampilkan pesan 'Server Sedang Sibuk' jika terdeteksi error proxy
+                const displayMsg = (msg === "Server Sedang Sibuk" || isLockTimeout) ? msg : "Transaksi Gagal / Stok Kosong";
+                alert(`${displayMsg}\n\nSaldo telah dikembalikan otomatis.`);
                 window.nav('homePage');
             }
 
@@ -2899,36 +2923,19 @@ window.openAkrabV2 = () => {
 
     window.setTopUpAmount = (amount) => { document.getElementById('qiosInputAmount').value = amount; };
 
-    window.checkPendingTrx = async () => {
+        window.checkPendingTrx = async () => {
         if(!currentUser) return;
         const q = query(collection(db, "users", currentUser.uid, "history"), where("status", "==", "Pending"));
         const snapshot = await getDocs(q);
-        // FIX: Loop Sequential dengan Race Condition Check
+        
         for (const docSnap of snapshot.docs) {
             const trx = docSnap.data();
-            if(!trx.provider_id || trx.provider_id === 'MANUAL') continue;
+            // Skip Manual. Untuk KHFY/General, kita delegasikan ke manualCheckTrx yang berbasis RefID.
+            if(trx.provider_id === 'MANUAL') continue;
 
-            const res = await callApi('/status', { id_trx: trx.provider_id });
-            if(res.ok && res.data && res.data.data) {
-                const r = res.data.data;
-                if(r.status !== 'Pending') {
-                    if(r.status === 'Success') {
-                        updateDoc(docSnap.ref, { status: 'Sukses', api_msg: r.sn || 'Sukses' });
-                    } else if(r.status === 'Gagal' || r.status === 'Error') {
-                        await runTransaction(db, async (t) => {
-                            // FIX: Cek status lagi di dalam DB Transaction
-                            // Mencegah Refund Ganda jika Background Service sudah memproses duluan
-                            const freshDoc = await t.get(docSnap.ref);
-                            if(freshDoc.data().status !== 'Pending') return; 
-
-                            const uRef = doc(db, "users", currentUser.uid);
-                            const uDoc = await t.get(uRef);
-                            t.update(uRef, { balance: (uDoc.data().balance || 0) + trx.amount });
-                            t.update(docSnap.ref, { status: 'Gagal', api_msg: 'Refund: ' + (r.message || 'Gagal') });
-                        });
-                    }
-                }
-            }
+            // UPDATE: Pengecekan status KHFY wajib menggunakan RefID (trx_id) via manualCheckTrx
+            // Jangan gunakan /status dengan provider_id.
+            await window.manualCheckTrx(trx.trx_id, trx.provider_id);
         }
     };
 

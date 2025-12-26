@@ -870,7 +870,7 @@ if(tabId === 'pricing') loadPricingData();
             } catch(e) { el.innerHTML = 'Error'; Swal.fire('Error', e.message, 'error'); }
         };
 
-        window.universalDebugCheck = async () => {
+                window.universalDebugCheck = async () => {
             const input = document.getElementById('univTrxInput').value.trim();
             if (!input) return Swal.fire('Gagal', 'Masukkan ID Transaksi!', 'warning');
 
@@ -881,13 +881,13 @@ if(tabId === 'pricing') loadPricingData();
                 didOpen: () => Swal.showLoading()
             });
 
-            // 1. CARI DATA DI FIREBASE DULU (AUTO-DETECT ID SUPPLIER)
+            // 1. CARI DATA DI FIREBASE DULU
             let localData = null;
-            let checkParams = { refid: input }; // Default: Cek pakai RefID Lokal
-            let debugNote = 'Mode: RefID (ID Lokal)';
+            let checkParams = { refid: input }; // Default: Cek pakai Input sebagai RefID
+            let debugNote = "Mode: Input RefID";
 
             try {
-                // Cek berdasarkan trx_id (ICS-...) atau trx_code (123456)
+                // Cek berdasarkan trx_id (RefID)
                 const q1 = query(collectionGroup(db, 'history'), where("trx_id", "==", input));
                 const snap1 = await getDocs(q1);
                 
@@ -900,10 +900,10 @@ if(tabId === 'pricing') loadPricingData();
                     if(!snap2.empty) localData = snap2.docs[0].data();
                 }
 
-                // LOGIKA CERDAS: Jika sudah ada Supplier ID, gunakan itu (Lebih Akurat)
-                if(localData && localData.supplier_id && localData.supplier_id !== '-' && localData.supplier_id !== 'undefined' && localData.supplier_id.length > 2) {
-                    checkParams = { trxid: localData.supplier_id };
-                    debugNote = `Mode: TrxID (ID Server: ${localData.supplier_id})`;
+                // PERBAIKAN: Selalu gunakan RefID (trx_id) dari database jika ada
+                if(localData && localData.trx_id) {
+                    checkParams = { refid: localData.trx_id };
+                    debugNote = "Mode: RefID Database (" + localData.trx_id + ")";
                 }
             } catch(e) { console.log("Local check skipped", e); }
 
@@ -919,7 +919,7 @@ if(tabId === 'pricing') loadPricingData();
             for (const provider of tasks) {
                 try {
                     if (provider === 'ICS') {
-                        // Logika ICS dengan Parameter Cerdas
+                        // Logika ICS
                         const res = await callIcsApi('checkTransaction', checkParams);
                         let d = res;
                         if (d && (d.data || d.status || d.sn)) {
@@ -930,7 +930,7 @@ if(tabId === 'pricing') loadPricingData();
                         }
                     } else {
                         // Logika Khfy
-                        const res = await callApi('/history', { refid: input });
+                        const res = await callApi('/history', checkParams); // Pakai checkParams yang sudah dipastikan RefID
                         if (res.ok && res.data && res.data.data) {
                             let d = res.data.data;
                             if (Array.isArray(d)) d = d[0];
@@ -942,7 +942,7 @@ if(tabId === 'pricing') loadPricingData();
                             }
                         }
                     }
-                } catch (e) { console.log(`Skip ${provider}: ${e.message}`); }
+                } catch (e) { console.log("Skip " + provider + ": " + e.message); }
             }
 
             if (foundData) {
@@ -960,13 +960,13 @@ if(tabId === 'pricing') loadPricingData();
                 const isSuccess = status.toLowerCase().includes('sukses') || status.toLowerCase().includes('success');
                 
                 Swal.fire({
-                    title: `Ditemukan di ${providerName}`,
+                    title: "Ditemukan di " + providerName,
                     html: `
                         <div class="text-left space-y-3">
                             <div class="p-2 bg-blue-50 rounded border border-blue-100 text-[10px] text-gray-600">
                                 <b>Info Diagnosa:</b><br>
                                 ${debugNote}<br>
-                                ${localData ? `<span class="text-green-600"><i class="fas fa-database"></i> Data Lokal Ditemukan (Status: ${localData.status})</span>` : `<span class="text-orange-500"><i class="fas fa-exclamation-circle"></i> Tidak ada di Database Lokal</span>`}
+                                ${localData ? '<span class="text-green-600"><i class="fas fa-database"></i> Data Lokal Ditemukan (Status: ' + localData.status + ')</span>' : '<span class="text-orange-500"><i class="fas fa-exclamation-circle"></i> Tidak ada di Database Lokal</span>'}
                             </div>
                             <div class="grid grid-cols-2 gap-2">
                                 <div class="p-2 bg-gray-50 rounded border">
@@ -988,7 +988,7 @@ if(tabId === 'pricing') loadPricingData();
                     confirmButtonText: 'Tutup'
                 });
             } else {
-                // KASUS TRANSAKSI HANTU (Ada di Lokal, Tidak ada di Pusat)
+                // KASUS TRANSAKSI HANTU
                 if(localData) {
                      Swal.fire({
                         title: 'Gagal Kirim (Ghost Trx)',
@@ -1007,7 +1007,7 @@ if(tabId === 'pricing') loadPricingData();
                         icon: 'error'
                     });
                 } else {
-                    Swal.fire('Tidak Ditemukan', 'Data transaksi tidak ditemukan di Server ICS maupun Khfy, dan juga tidak ada di database lokal.', 'error');
+                    Swal.fire('Tidak Ditemukan', 'Data transaksi tidak ditemukan di Server ICS maupun Khfy (RefID Check).', 'error');
                 }
             }
         };

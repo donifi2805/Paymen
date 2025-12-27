@@ -1085,7 +1085,7 @@ window.openAkrabV2 = () => {
             });
         } else {
             select.innerHTML = '<option value="" disabled>Gagal Memuat</option>';
-            alert('Gagal memuat produk ICS: ' + (res.message || 'Unknown Error'));
+            alert('Gagal memuat produk : ' + (res.message || 'Unknown Error'));
         }
     };
 
@@ -2401,7 +2401,7 @@ window.openAkrabV2 = () => {
                 });
              } else {
                  if(txtProd) txtProd.innerText = 'Gagal Koneksi ICS';
-                 alert('Gagal memuat data ICS: ' + (res.message || 'Unknown'));
+                 alert('Gagal memuat data : ' + (res.message || 'Unknown'));
              }
              return; // Stop, jangan jalankan logika Khfy
         }

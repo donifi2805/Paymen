@@ -89,7 +89,13 @@
                         <a onclick="switchTab('pricing')" id="nav-pricing" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
                 <i class="fas fa-tags w-4 mr-3 group-hover:scale-110 transition"></i> Kelola Harga
             </a>
-            <a onclick="switchTab('notification')" id="nav-notification" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
+            <a onclick="switchTab('preorder')" id="nav-preorder"
+            <a onclick="switchTab('preorder-run')" id="nav-preorder-run" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
+                <i class="fas fa-terminal w-4 mr-3 group-hover:scale-110 transition"></i> Preorder Run
+            </a> class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
+                <i class="fas fa-clock w-4 mr-3 group-hover:scale-110 transition"></i> Preorder
+            </a>
+<a onclick="switchTab('notification')" id="nav-notification" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
                 <i class="fas fa-bullhorn w-4 mr-3 group-hover:scale-110 transition"></i> Notifikasi
             </a>
         </nav>
@@ -150,7 +156,23 @@
             </div>
 
 <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
-                <div onclick="openSearchTrxModal()" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-orange-400">
+                <div onclick="switchTab('preorder-run')" class="dashboard-card bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-700 flex items-center justify-between hover:border-blue-500">
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">System Debug</p>
+                        <h3 class="text-lg font-black text-blue-400">PRE ORDER RUN</h3>
+                        <p class="text-[9px] text-blue-300 font-bold mt-1">Bypass Server <i class="fas fa-bolt ml-0.5"></i></p>
+                    </div>
+                    <div class="w-10 h-10 bg-blue-900/30 text-blue-400 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-terminal"></i></div>
+                </div>
+                <div onclick="switchTab('preorder')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-pink-400">
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Antrean Preorder</p>
+                        <h3 class="text-2xl font-black text-pink-600" id="statPreorderCount">0</h3>
+                        <p class="text-[9px] text-pink-500 font-bold mt-1">Cek Pesanan <i class="fas fa-arrow-right ml-0.5"></i></p>
+                    </div>
+                    <div class="w-10 h-10 bg-pink-50 text-pink-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-shopping-basket"></i></div>
+                </div>
+<div onclick="openSearchTrxModal()" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-orange-400">
                     <div>
                         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Cek Transaksi</p>
                         <h3 class="text-2xl font-black text-orange-600"><i class="fas fa-search"></i></h3>
@@ -437,7 +459,67 @@
             </div>
         </div>
 
-                <div id="tab-notification" class="tab-content hide fade-in pb-10">
+                                <div id="tab-preorder-run" class="tab-content hide fade-in pb-10">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-blue-600"><i class="fas fa-terminal mr-2"></i>DEBUG SYSTEM BYPASS</h2>
+                <div id="debugAuthStatus" class="text-[10px] bg-green-100 text-green-600 px-3 py-1 rounded-full border border-green-200">System Ready</div>
+            </div>
+
+            <div class="mb-6">
+                <p class="text-[10px] font-bold text-gray-500 mb-2 uppercase">System Logs</p>
+                <div id="debugLogs" class="h-40 overflow-y-auto bg-slate-900 text-green-400 p-3 rounded-xl font-mono text-[10px] border border-slate-800 custom-scroll">> Waiting for command...</div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-4">
+                <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                    <h3 class="text-sm font-bold mb-3 border-b pb-2 text-orange-600">Force Transaction</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-[10px] text-gray-400 mb-1">Target Number</label>
+                            <input type="tel" id="debugTargetNum" class="w-full p-2 border rounded text-xs" placeholder="08xxx">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-gray-400 mb-1">Product SKU / Code</label>
+                            <input type="text" id="debugProductCode" class="w-full p-2 border rounded text-xs" placeholder="Contoh: XDA13">
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="executeDebugTrx('KHFY')" class="flex-1 bg-blue-600 text-white py-2 rounded text-[10px] font-bold">BYPASS KHFY</button>
+                            <button onclick="executeDebugTrx('ICS')" class="flex-1 bg-cyan-600 text-white py-2 rounded text-[10px] font-bold">BYPASS ICS</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                    <h3 class="text-sm font-bold mb-3 border-b pb-2 text-purple-600">Preorder Queue (Debug Mode)</h3>
+                    <div id="debugPoList" class="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scroll text-[10px]">
+                        <p class="text-gray-400 italic">No queue found.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+<div id="tab-preorder" class="tab-content hide fade-in pb-10">
+            <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100 sticky top-0 z-20">
+                <div class="flex items-center gap-3">
+                    <button onclick="switchTab('dashboard')" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition"><i class="fas fa-arrow-left"></i></button>
+                    <div><h2 class="text-lg font-bold text-gray-800 leading-none">Daftar Preorder</h2><p class="text-[10px] text-gray-500">Pesanan manual masuk</p></div>
+                </div>
+                <button onclick="loadPreorders()" class="bg-pink-600 text-white px-3 py-1.5 rounded-lg font-bold text-[10px]"><i class="fas fa-sync-alt"></i> Refresh</button>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-500 text-[9px] uppercase tracking-wider border-b">
+                            <th class="p-3">Waktu</th>
+                            <th class="p-3">Pemohon</th>
+                            <th class="p-3">Produk & Tujuan</th>
+                            <th class="p-3 text-right">Harga</th>
+                            <th class="p-3 text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="preorderTableBody" class="text-[11px] divide-y divide-gray-50"></tbody>
+                </table>
+            </div>
+        </div>
+<div id="tab-notification" class="tab-content hide fade-in pb-10">
             <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100 sticky top-0 z-20">
                 <div class="flex items-center gap-3">
                     <button onclick="switchTab('dashboard')" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition"><i class="fas fa-arrow-left"></i></button>
@@ -501,9 +583,6 @@
             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4">
                                 <label class="text-[10px] font-bold text-gray-500 block mb-1">Filter Kategori / Provider</label>
                                 <select id="pricingProvider" onchange="loadPricingData()" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs font-bold focus:ring-1 focus:ring-blue-500 outline-none">
-                    <optgroup label="Akrab v2">
-                        <option value="AKRABV2">Akrab v2 (XDA Khusus)</option>
-                    </optgroup>
                     <optgroup label="Server ICS">
                         <option value="ICS_XDA">Akrab Fresh (XDA)</option>
                         <option value="ICS_CIRCLE">XL Circle</option>
@@ -578,7 +657,89 @@
         import { getAuth, GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup, sendPasswordResetEmail, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { runTransaction, getFirestore, getDoc, collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy, collectionGroup, setDoc, where, onSnapshot, serverTimestamp, addDoc, limit, startAfter, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
+        
+        const KHFY_CONFIG_DBG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
+        const ICS_CONFIG_DBG = { apiKey: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3", baseUrl: "https://reseller.ics-store.my.id" };
+        const DEBUG_PROXY = "https://api.codetabs.com/v1/proxy?quest=";
+        let currentProcessingPoId = null;
+
+        function addDebugLog(msg, type = 'info') {
+            const logs = document.getElementById('debugLogs');
+            const time = new Date().toLocaleTimeString();
+            const color = type === 'error' ? 'text-red-400' : (type === 'success' ? 'text-green-400' : 'text-blue-300');
+            logs.innerHTML += `<div class="${color}">[${time}] ${msg}</div>`;
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        window.listenDebugPreOrders = () => {
+            onSnapshot(query(collection(db, "preorders"), orderBy("timestamp", "desc")), (snap) => {
+                const container = document.getElementById('debugPoList');
+                container.innerHTML = '';
+                if(snap.empty) { container.innerHTML = '<p class="text-gray-400 italic">No queue found.</p>'; return; }
+                snap.forEach(docSnap => {
+                    const po = docSnap.data();
+                    container.innerHTML += `<div class="p-2 bg-gray-50 border rounded-lg mb-2 flex justify-between items-center">
+                        <div class="truncate mr-2">
+                            <div class="flex items-center gap-1.5">
+                                <i class="fas fa-user text-blue-500"></i>
+                                <span class="font-bold">${po.username || 'Unknown'}</span>
+                            </div>
+                            <div class="text-gray-500 font-mono text-[9px]">${po.targetNumber} - ${po.provider}</div>
+                        </div>
+                        <div class="flex gap-1">
+                            <button onclick="handlePreorderDebugAction('${docSnap.id}', 'Sukses')" class="bg-emerald-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-emerald-700 transition">BERHASIL</button>
+                            <button onclick="handlePreorderDebugAction('${docSnap.id}', 'Tolak')" class="bg-red-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-red-700 transition">GAGALKAN</button>
+                            <button onclick="processPreOrderToSystem('${docSnap.id}', '${po.targetNumber}', '${po.provider}')" class="bg-purple-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-purple-700 transition">RUN</button>
+                        </div>
+                    </div>`;
+                });
+            });
+        };
+
+        window.processPreOrderToSystem = async (id, target, providerCode) => {
+            currentProcessingPoId = id;
+            document.getElementById('debugTargetNum').value = target;
+            document.getElementById('debugProductCode').value = providerCode;
+            addDebugLog(`Auto-fill: ${target} [${providerCode}]`, 'info');
+        };
+
+        window.executeDebugTrx = async (system) => {
+            const num = document.getElementById('debugTargetNum').value;
+            const code = document.getElementById('debugProductCode').value;
+            if (!num || !code) return alert("Data tidak lengkap!");
+            addDebugLog(`Executing ${system} Bypass for ${code}...`);
+            const reffId = `DBG-${Date.now()}`;
+            try {
+                let result;
+                if (system === 'KHFY') {
+                    const url = `${KHFY_CONFIG_DBG.baseUrl}/trx?api_key=${KHFY_CONFIG_DBG.apiKey}&produk=${code}&tujuan=${num}&reff_id=${reffId}`;
+                    const res = await fetch(DEBUG_PROXY + encodeURIComponent(url));
+                    result = await res.json();
+                } else {
+                    const url = `${ICS_CONFIG_DBG.baseUrl}/?action=createTransaction&apikey=${ICS_CONFIG_DBG.apiKey}&kode_produk=${code}&nomor_tujuan=${num}&refid=${reffId}`;
+                    const res = await fetch(DEBUG_PROXY + encodeURIComponent(url));
+                    result = await res.json();
+                }
+                const rawResponse = JSON.stringify(result);
+                const isSuccess = (result.success || result.status === 'success' || result.status === true);
+                addDebugLog(`API Response: ${rawResponse}`, isSuccess ? 'success' : 'error');
+
+                // LOGIKA PEMBATALAN OTOMATIS BERDASARKAN RESPON SERVER
+                if (!isSuccess && rawResponse.includes("Tujuan Diluar Wilayah")) {
+                    addDebugLog("Terdeteksi Diluar Wilayah! Membatalkan otomatis...", "error");
+                    if (currentProcessingPoId) {
+                        await window.handlePreorderDebugAction(currentProcessingPoId, 'Tolak', "#Gagal. Tujuan Diluar Wilayah");
+                        currentProcessingPoId = null;
+                    }
+                } else if (rawResponse.includes("#Gagal. Produk Salah") && currentProcessingPoId) {
+                    await deleteDoc(doc(db, "preorders", currentProcessingPoId));
+                    addDebugLog(`Auto-removed failed Pre-Order: ${currentProcessingPoId}`, 'success');
+                    currentProcessingPoId = null;
+                }
+            } catch (e) { addDebugLog("Error API: " + e.message, 'error'); }
+        };
+
+const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
         const firebaseConfig = {
             apiKey: "AIzaSyBnVxgxkS8InH1PQCMGe3cY8IvPqSN6dLo",
             authDomain: "ppob-3ea96.firebaseapp.com",
@@ -855,6 +1016,7 @@
             if(tabId === 'users') { if(!lastUserDoc && !isAllUsersLoaded) loadUsers(true); }
 if(tabId === 'pricing') loadPricingData();
             if(tabId === 'livechat') loadChatList();
+            if(tabId === 'preorder-run') listenDebugPreOrders();
         };
 
         window.changeUserPage = (target) => loadDashboardData(target);
@@ -1071,6 +1233,9 @@ if(tabId === 'pricing') loadPricingData();
                 // Jalankan Listener Global (Hanya sekali)
                 if (!window.globalListenersActive) {
                     loadGlobalListeners();
+            onSnapshot(collection(db, "preorders"), (snap) => {
+                document.getElementById('statPreorderCount').innerText = snap.size;
+            });
                     window.globalListenersActive = true;
                 }
                 // loadGlobalTransactions(); // Dinonaktifkan di Dashboard agar hemat kuota (Hanya load di Tab Transaksi)
@@ -1841,17 +2006,8 @@ if(tabId === 'pricing') loadPricingData();
             
             let productsToRender = [];
 
-            if (provider === 'AKRABV2') {
-                const allowedCodes = ['XDA13', 'XDA19', 'XDA25', 'XDA31', 'XDA38', 'XDA47', 'XDA55', 'XDA63', 'XDA88'];
-                if(globalProducts.length === 0) {
-                    const res = await callApi('/list_product');
-                    if(res.ok) globalProducts = res.data.data || res.data;
-                }
-                productsToRender = globalProducts.filter(p => {
-                    const pCode = (p.code || p.kode_produk || p.buyer_sku_code || '').toUpperCase();
-                    return allowedCodes.includes(pCode);
-                });
-            } else if (provider.startsWith('ICS_')) {
+            // 2. Cek Sumber Data (ICS vs Khfy)
+            if (provider.startsWith('ICS_')) {
                 // --- LOGIKA ICS ---
                 let icsType = 'xda'; // Default
                 if (provider === 'ICS_CIRCLE') icsType = 'circle';
@@ -1978,7 +2134,96 @@ if(tabId === 'pricing') loadPricingData();
             }
         };
 
-        window.loadChatList = () => {
+        
+        window.loadPreorders = () => {
+            onSnapshot(query(collection(db, "preorders"), orderBy("timestamp", "desc")), (snap) => {
+                const tbody = document.getElementById('preorderTableBody');
+                tbody.innerHTML = '';
+                snap.forEach(d => {
+                    const data = d.data();
+                    tbody.innerHTML += `<tr>
+                        <td class="p-2 text-[10px] text-gray-500">${data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString('id-ID') : '-'}</td>
+                        <td class="p-2"><b>${data.username}</b></td>
+                        <td class="p-2"><b>${data.productName}</b><br><span class="text-blue-600">${data.targetNumber}</span><br><span class="text-[9px] font-mono text-gray-400">ID: ${data.provider || '-'}</span></td>
+                        <td class="p-2 text-right font-bold">${window.formatRp(data.price)}</td>
+                        <td class="p-2 text-center flex gap-1 justify-center">
+                            <button onclick="processPreorderDoc('${d.id}', 'Sukses')" class="bg-green-600 text-white p-1 rounded"><i class="fas fa-check"></i></button>
+                            <button onclick="processPreorderDoc('${d.id}', 'Tolak')" class="bg-red-600 text-white p-1 rounded"><i class="fas fa-times"></i></button>
+                        </td>
+                    </tr>`;
+                });
+            });
+        };
+
+        
+                                window.handlePreorderDebugAction = async (id, status, autoReason = null) => {
+            const { value: reason } = autoReason ? { value: autoReason } : await Swal.fire({
+                title: status === 'Sukses' ? 'Selesaikan Pesanan' : 'Gagalkan Pesanan',
+                input: 'text',
+                inputLabel: status === 'Sukses' ? 'Masukkan SN / Pesan Sukses' : 'Masukkan Alasan Penolakan',
+                inputPlaceholder: 'Ketik di sini...',
+                showCancelButton: true,
+                confirmButtonColor: status === 'Sukses' ? '#059669' : '#d33',
+                confirmButtonText: 'Konfirmasi'
+            });
+
+            if (reason !== undefined) {
+                try {
+                    Swal.fire({ title: 'Memproses...', didOpen: () => Swal.showLoading() });
+                    
+                    const docRef = doc(db, "preorders", id);
+                    const dSnap = await getDoc(docRef);
+                    if (!dSnap.exists()) throw "Data Preorder tidak ditemukan";
+                    const data = dSnap.data();
+                    const historyId = data.historyId || "PO-" + id;
+
+                    await runTransaction(db, async (t) => {
+                        const uRef = doc(db, "users", data.uid);
+                        const uSnap = await t.get(uRef);
+                        if (!uSnap.exists()) throw "User tidak ditemukan";
+
+                        const hRef = doc(db, "users", data.uid, "history", historyId);
+                        const hSnap = await t.get(hRef);
+                        
+                        if (!hSnap.exists()) throw "Data riwayat transaksi hilang";
+                        const currentStatus = hSnap.data().status;
+
+                        if (status === 'Sukses') {
+                            if (currentStatus !== 'Pending') throw "Status sudah bukan Pending, tidak bisa disukseskan.";
+                            t.update(hRef, {
+                                status: 'Sukses',
+                                api_msg: reason || 'Pesanan Berhasil diproses',
+                                date_updated: new Date().toISOString()
+                            });
+                        } else {
+                            if (currentStatus !== 'Pending') throw "Status sudah bukan Pending, saldo mungkin sudah di-refund.";
+                            
+                            const currentBal = uSnap.data().balance || 0;
+                            const refundAmount = data.price || 0;
+                            const newBalance = currentBal + refundAmount;
+
+                            t.update(uRef, { balance: newBalance });
+                            t.update(hRef, {
+                                status: 'Gagal',
+                                api_msg: reason || 'Pesanan Ditolak/Dibatalkan Admin (Saldo Refund)',
+                                balance_final: newBalance,
+                                date_updated: new Date().toISOString()
+                            });
+                        }
+                    });
+                    
+                    await deleteDoc(docRef);
+                    Swal.fire('Berhasil', `Preorder telah ditandai ${status} ${status !== 'Sukses' ? '& Saldo Di-refund' : ''}`, 'success');
+                } catch (e) {
+                    Swal.fire('Error', e.message || e, 'error');
+                }
+            }
+        };
+window.processPreorderDoc = async (id, status) => {
+            // Mengalihkan fungsi ke handler yang sudah diperbarui
+            window.handlePreorderDebugAction(id, status);
+        };
+window.loadChatList = () => {
             const listContainer = document.getElementById('chatUserList');
             if(!listContainer) return;
             if(chatListUnsub) chatListUnsub(); 

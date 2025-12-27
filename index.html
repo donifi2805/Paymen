@@ -275,7 +275,9 @@
 
             <div class="flex gap-2 mt-4">
                  <button onclick="copyToClipboard(document.getElementById('dtSn').innerText)" class="flex-1 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-bold text-xs hover:bg-gray-200"><i class="fas fa-copy mr-1"></i> Salin Info</button>
-                 <button onclick="closeTrxDetail()" class="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold text-xs shadow-lg">Tutup</button>
+                 
+                 <button id="btnCancelPreorder" onclick="" class="hide flex-1 py-3 rounded-xl bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-bold text-xs hover:bg-red-200 transition"><i class="fas fa-ban mr-1"></i> Batalkan PO</button>
+<button onclick="closeTrxDetail()" class="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold text-xs shadow-lg">Tutup</button>
             </div>
         </div>
     </div>
@@ -2349,7 +2351,7 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
         renderHistoryList(selectedDate);
     };
 
-    function renderHistoryList(filterDate = null) {
+    window.renderHistoryList = (filterDate = null) => {
         const cacheKey = `trx_cache_${currentUser.uid}`;
         let cachedData = JSON.parse(localStorage.getItem(cacheKey) || '[]');
 
@@ -2974,7 +2976,52 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
     };
 
             
-        window.submitPreorder = async () => {
+        
+    window.cancelPreorder = async (trxId) => {
+        if (!confirm("Apakah Anda yakin ingin membatalkan preorder ini?\nSaldo akan dikembalikan otomatis.")) return;
+        
+        window.showLoader(true);
+        try {
+            await runTransaction(db, async (transaction) => {
+                const userRef = doc(db, "users", currentUser.uid);
+                const trxRef = doc(db, "users", currentUser.uid, "history", trxId);
+                const poRef = doc(db, "preorders", trxId);
+
+                const userSnap = await transaction.get(userRef);
+                const trxSnap = await transaction.get(trxRef);
+
+                if (!trxSnap.exists() || trxSnap.data().status !== 'Pending') {
+                    throw "Transaksi tidak dapat dibatalkan.";
+                }
+
+                const refundAmount = trxSnap.data().amount || 0;
+                const currentBal = userSnap.data().balance || 0;
+
+                // 1. Kembalikan Saldo
+                transaction.update(userRef, { balance: currentBal + refundAmount });
+
+                // 2. Update Status Riwayat
+                transaction.update(trxRef, {
+                    status: 'Dibatalkan',
+                    api_msg: 'Dibatalkan oleh pengguna (Auto Refund)',
+                    balance_final: currentBal + refundAmount
+                });
+
+                // 3. Hapus dari Antrean Admin
+                transaction.delete(poRef);
+            });
+
+            window.showLoader(false);
+            alert("Preorder berhasil dibatalkan dan saldo telah dikembalikan.");
+            window.closeTrxDetail();
+            window.renderHistoryList();
+        } catch (e) {
+            window.showLoader(false);
+            alert("Gagal membatalkan: " + (typeof e === 'string' ? e : e.message));
+        }
+    };
+
+window.submitPreorder = async () => {
         const prov = document.getElementById('formProvider').value;
         const code = document.getElementById('formProduct').value;
         const name = document.getElementById('selectedProductName').value;
@@ -3477,7 +3524,16 @@ window.renderTopUpHistory = () => {
             }
         }
 
-        document.getElementById('detailTrxModal').classList.remove('hide');
+        
+        const btnCancelPo = document.getElementById('btnCancelPreorder');
+        if(trx.trx_id.startsWith('PO-') && trx.status === 'Pending') {
+            btnCancelPo.classList.remove('hide');
+            btnCancelPo.onclick = () => window.cancelPreorder(trx.trx_id);
+        } else {
+            btnCancelPo.classList.add('hide');
+        }
+
+document.getElementById('detailTrxModal').classList.remove('hide');
     };
 
         window.manualCheckTrx = async (docId, providerId) => {

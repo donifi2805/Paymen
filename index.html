@@ -700,7 +700,10 @@
     <section id="historyPage" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen">
         <div class="p-4 bg-white dark:bg-gray-900 sticky top-0 z-10 shadow-sm dark:shadow-gray-800">
             <div class="flex justify-between items-center mb-4"><h2 class="font-bold text-lg text-gray-800 dark:text-white">Riwayat</h2><div class="flex gap-2"><button onclick="downloadHistoryPDF()" class="text-xs bg-blue-100 text-blue-600 px-3 py-1.5 rounded-lg font-bold hover:bg-blue-200 transition"><i class="fas fa-file-pdf mr-1"></i> PDF</button></div></div>
-            <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1"><button onclick="filterHistory('all')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold bg-blue-600 text-white shadow-md" id="filter-all">Semua</button><button onclick="filterHistory('today')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold bg-gray-100 text-gray-500" id="filter-today">Hari Ini</button><button onclick="filterHistory('week')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold bg-gray-100 text-gray-500" id="filter-week">Minggu Ini</button></div>
+                        <div class="flex gap-2 items-center bg-gray-50 dark:bg-gray-800 p-2 rounded-xl border border-gray-100 dark:border-gray-700 mt-2">
+                <span class="text-[10px] font-bold text-gray-500 ml-1">Pilih Tanggal:</span>
+                <input type="date" id="historyDateFilter" onchange="filterHistoryByDate(this.value)" class="flex-1 bg-transparent text-xs font-bold text-blue-600 focus:outline-none">
+            </div>
         </div>
         <div id="fullHistory" class="p-4 space-y-3 pb-24"></div>
     </section>
@@ -2197,27 +2200,75 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
     };
 
     // HISTORY & PDF
-    window.downloadHistoryPDF = () => { /* ... existing PDF logic ... */ };
+    window.downloadHistoryPDF = () => {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Ambil data lengkap dari cache atau transactions
+        const cacheKey = `trx_cache_${currentUser.uid}`;
+        let allData = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+        
+        if (allData.length === 0) {
+            alert("Tidak ada data transaksi untuk diunduh.");
+            return;
+        }
+
+        // Judul PDF
+        doc.setFontSize(18);
+        doc.text("Laporan Riwayat Transaksi - Pandawa Store", 14, 20);
+        doc.setFontSize(11);
+        doc.text(`Nama Pengguna: ${currentUsername}`, 14, 30);
+        doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, 14, 37);
+
+        // Persiapkan baris tabel
+        const rows = allData.map(t => [
+            new Date(t.date).toLocaleString('id-ID'),
+            t.title,
+            t.dest_num || "-",
+            window.formatRp(t.amount),
+            t.status
+        ]);
+
+        // Generate Tabel
+        doc.autoTable({
+            startY: 45,
+            head: [['Tanggal', 'Produk/Layanan', 'Tujuan', 'Nominal', 'Status']],
+            body: rows,
+            theme: 'striped',
+            headStyles: { fillColor: [37, 99, 235] },
+            styles: { fontSize: 9 }
+        });
+
+        doc.save(`Riwayat_PandawaStore_${currentUsername}.pdf`);
+    };
     window.filterHistory = (t) => { currentFilter=t; renderHistoryList(); };
-        function renderHistoryList() {
+        window.filterHistoryByDate = (selectedDate) => {
+        if(!selectedDate) return;
+        renderHistoryList(selectedDate);
+    };
+
+    function renderHistoryList(filterDate = null) {
         const cacheKey = `trx_cache_${currentUser.uid}`;
         let cachedData = JSON.parse(localStorage.getItem(cacheKey) || '[]');
 
-        // Sinkronisasi: Jika cache kosong tapi firebase ada data, isi cache
         if (cachedData.length === 0 && transactions.length > 0) {
             cachedData = [...transactions];
             localStorage.setItem(cacheKey, JSON.stringify(cachedData));
         }
 
-        // --- FILTERING ---
-        let filtered = cachedData;
-        if (currentFilter === 'today') {
-            const today = new Date().toISOString().split('T')[0];
-            filtered = cachedData.filter(t => t.date.startsWith(today));
-        } else if (currentFilter === 'week') {
-            const d = new Date(); d.setDate(d.getDate() - 7);
-            filtered = cachedData.filter(t => t.date >= d.toISOString().split('T')[0]);
-        }
+        // Default ke hari ini jika tidak ada filter
+        const today = new Date().toISOString().split('T')[0];
+        const dateToFilter = filterDate || today;
+        
+        // Update UI Input Date agar sinkron
+        const dateInput = document.getElementById('historyDateFilter');
+        if(dateInput) dateInput.value = dateToFilter;
+
+        // Filter data berdasarkan tanggal (YYYY-MM-DD)
+        const filtered = cachedData.filter(t => {
+            const trxDate = new Date(t.date).toISOString().split('T')[0];
+            return trxDate === dateToFilter;
+        });
 
         // --- RENDER FULL HISTORY (PAGE RIWAYAT) ---
         let html = '';

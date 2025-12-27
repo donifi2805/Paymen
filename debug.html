@@ -2,277 +2,216 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Transaction Debugger Tool</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DEBUG CONSOLE - Pandawa Store</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f1f5f9; }
-        .app-container { max-width: 480px; margin: 0 auto; min-height: 100vh; background: white; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
-        .json-viewer { background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 8px; font-family: 'Consolas', 'Monaco', monospace; font-size: 11px; white-space: pre-wrap; word-break: break-all; overflow-x: auto; max-height: 400px; overflow-y: auto;}
-        .key { color: #9cdcfe; }
-        .string { color: #ce9178; }
-        .number { color: #b5cea8; }
-        .boolean { color: #569cd6; }
-        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .hide { display: none !important; }
+        body { background-color: #0f172a; color: #f8fafc; font-family: 'Consolas', monospace; }
+        .log-container { height: 200px; overflow-y: auto; background: #000; padding: 10px; border-radius: 8px; font-size: 12px; border: 1px solid #334155; }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        .info { color: #60a5fa; }
+        input, select { background: #1e293b !important; color: white !important; border: 1px solid #334155 !important; }
     </style>
 </head>
-<body>
+<body class="p-4">
 
-<div class="app-container flex flex-col p-6">
-    
-    <div class="mb-8 text-center">
-        <div class="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/30">
-            <i class="fas fa-search-dollar text-3xl text-white"></i>
+    <div class="max-w-2xl mx-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-blue-400"><i class="fas fa-terminal mr-2"></i>DEBUG SYSTEM V3</h1>
+            <div id="authStatus" class="text-xs bg-red-900/30 text-red-400 px-3 py-1 rounded-full border border-red-800">Disconnected</div>
         </div>
-        <h1 class="text-2xl font-bold text-gray-800">Cek Status Transaksi</h1>
-        <p class="text-xs text-gray-500 mt-1">Pandawa Store Debugger (JSON View)</p>
-    </div>
 
-    <div class="bg-white p-1 rounded-xl mb-6">
-        <label class="block text-xs font-bold text-gray-500 mb-2 ml-1">Masukkan TRX ID / Ref ID</label>
-        <div class="relative flex items-center mb-4">
-            <input type="text" id="trxInput" placeholder="Contoh: TRX-1735..." class="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl px-4 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 font-mono">
-            <button onclick="pasteClipboard()" class="absolute right-2 p-2 text-gray-400 hover:text-blue-600"><i class="fas fa-paste"></i></button>
+        <div class="mb-6">
+            <p class="text-xs font-bold text-gray-500 mb-2">SYSTEM LOGS</p>
+            <div id="logs" class="log-container">
+                <div class="info">> System initialized. Waiting for Auth...</div>
+            </div>
         </div>
-        <button onclick="checkStatus()" id="btnCheck" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition flex justify-center items-center gap-2">
-            <span id="btnText">CEK SEKARANG</span>
-            <div id="btnLoader" class="loader hide"></div>
-        </button>
-    </div>
 
-    <div id="resultArea" class="hide space-y-4 animate-fade-in">
-        
-        <div class="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm relative overflow-hidden">
-            <div id="statusIndicator" class="absolute top-0 left-0 w-1.5 h-full bg-gray-300"></div>
-            <div class="flex justify-between items-start mb-2 pl-2">
-                <div>
-                    <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Status</p>
-                    <h2 id="displayStatus" class="text-lg font-black text-gray-800">-</h2>
-                </div>
-                <div class="text-right">
-                    <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Harga</p>
-                    <p id="displayPrice" class="text-sm font-bold text-blue-600">-</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                <h2 class="text-sm font-bold mb-3 border-b border-slate-800 pb-2 text-blue-300">USER INFO</h2>
+                <div class="space-y-2 text-xs">
+                    <div class="flex justify-between"><span>Username:</span> <span id="uName">-</span></div>
+                    <div class="flex justify-between"><span>Balance:</span> <span id="uBal" class="text-green-400">Rp 0</span></div>
+                    <div class="flex justify-between"><span>UID:</span> <span id="uUid" class="text-[10px] text-gray-500">-</span></div>
                 </div>
             </div>
-            <div class="pl-2 space-y-2 mt-3 pt-3 border-t border-dashed border-gray-100">
-                <div>
-                    <span class="text-[10px] text-gray-400 block">Pesan Server (SN):</span>
-                    <span id="displaySn" class="text-xs font-mono font-bold text-gray-700 break-all">-</span>
-                </div>
-                <div class="flex justify-between">
-                    <div><span class="text-[10px] text-gray-400 block">Produk:</span><span id="displayProduct" class="text-xs font-bold">-</span></div>
-                    <div class="text-right"><span class="text-[10px] text-gray-400 block">Tujuan:</span><span id="displayDest" class="text-xs font-bold">-</span></div>
+
+            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                <h2 class="text-sm font-bold mb-3 border-b border-slate-800 pb-2 text-orange-300">FORCE TRANSACTION</h2>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-[10px] text-gray-400 mb-1">Target Number</label>
+                        <input type="tel" id="targetNum" class="w-full p-2 rounded text-sm" placeholder="08xxx">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-gray-400 mb-1">Product SKU / Code</label>
+                        <input type="text" id="productCode" class="w-full p-2 rounded text-sm" placeholder="Contoh: XDA13">
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="executeDebugTrx('KHFY')" class="flex-1 bg-blue-600 hover:bg-blue-700 py-2 rounded text-xs font-bold">BYPASS KHFY</button>
+                        <button onclick="executeDebugTrx('ICS')" class="flex-1 bg-cyan-600 hover:bg-cyan-700 py-2 rounded text-xs font-bold">BYPASS ICS</button>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div>
-            <div class="flex justify-between items-center mb-2">
-                <h3 class="text-xs font-bold text-gray-500"><i class="fas fa-code mr-1"></i> Respon Mentah (JSON)</h3>
-                <button onclick="copyJson()" class="text-[10px] bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded text-gray-600 font-bold transition">Salin JSON</button>
+        <div class="mt-6 bg-slate-900 p-4 rounded-xl border border-slate-800">
+            <h2 class="text-sm font-bold mb-3 text-purple-300">RECENT RAW DATA</h2>
+            <div id="rawHistory" class="space-y-2 max-h-60 overflow-y-auto pr-2">
+                <p class="text-[10px] text-gray-500 italic">No recent transaction data found.</p>
             </div>
-            <div id="jsonDisplay" class="json-viewer">Menunggu data...</div>
-            <p class="text-[10px] text-gray-400 mt-2 text-center">Data diambil langsung dari API Panel Khfy v2</p>
         </div>
-
     </div>
 
-</div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, orderBy, limit, onSnapshot, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-<script>
-    // --- KONFIGURASI DARI APLIKASI UTAMA ---
-    const CONFIG = { 
-        apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", // API Key dari file index(17).html
-        baseUrl: "https://panel.khfy-store.com/api_v2" 
-    };
+        // Identical Config from index.html
+        const firebaseConfig = {
+            apiKey: "AIzaSyBnVxgxkS8InH1PQCMGe3cY8IvPqSN6dLo",
+            authDomain: "ppob-3ea96.firebaseapp.com",
+            projectId: "ppob-3ea96",
+            storageBucket: "ppob-3ea96.firebasestorage.app",
+            messagingSenderId: "181320175094",
+            appId: "1:181320175094:web:306b79071018410b910bd7"
+        };
 
-    const PROXY_LIST = [
-        { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
-        { name: 'CorsProxyIO', url: 'https://corsproxy.io/?' },
-        { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
-        { name: 'Direct', url: '' }
-    ];
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-    let currentJsonData = "";
+        const PROXY = "https://api.codetabs.com/v1/proxy?quest=";
+        const KHFY_CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
+        const ICS_CONFIG = { apiKey: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3", baseUrl: "https://reseller.ics-store.my.id" };
 
-    async function pasteClipboard() {
-        try {
-            const text = await navigator.clipboard.readText();
-            document.getElementById('trxInput').value = text;
-        } catch (err) {
-            alert('Gagal paste otomatis. Silakan paste manual.');
-        }
-    }
+        let currentUser = null;
+        let userData = null;
 
-    async function checkStatus() {
-        const trxId = document.getElementById('trxInput').value.trim();
-        
-        if (!trxId) {
-            alert("Harap masukkan TRX ID / Reff ID!");
-            return;
+        function addLog(msg, type = 'info') {
+            const logs = document.getElementById('logs');
+            const time = new Date().toLocaleTimeString();
+            logs.innerHTML += `<div class="${type}">[${time}] ${msg}</div>`;
+            logs.scrollTop = logs.scrollHeight;
         }
 
-        // UI Loading State
-        const btn = document.getElementById('btnCheck');
-        const btnText = document.getElementById('btnText');
-        const loader = document.getElementById('btnLoader');
-        const resultArea = document.getElementById('resultArea');
-        const jsonDisplay = document.getElementById('jsonDisplay');
-
-        btn.disabled = true;
-        btn.classList.add('opacity-75');
-        btnText.innerText = "MENGHUBUNGKAN...";
-        loader.classList.remove('hide');
-        resultArea.classList.add('hide');
-        jsonDisplay.innerHTML = "Memuat data...";
-
-        // Call API
-        // Kita gunakan endpoint /history karena lebih detail untuk ReffID
-        const result = await callApi('/history', { refid: trxId });
-
-        // Reset UI
-        btn.disabled = false;
-        btn.classList.remove('opacity-75');
-        btnText.innerText = "CEK SEKARANG";
-        loader.classList.add('hide');
-        resultArea.classList.remove('hide');
-
-        if (result.ok && result.data) {
-            renderResult(result.data);
-        } else {
-            renderError(result.error);
-        }
-    }
-
-    function renderResult(data) {
-        const jsonDisplay = document.getElementById('jsonDisplay');
-        
-        // Simpan raw string untuk tombol copy
-        currentJsonData = JSON.stringify(data, null, 2);
-        
-        // Pretty Print JSON dengan Syntax Highlighting sederhana
-        jsonDisplay.innerHTML = syntaxHighlight(data);
-
-        // Parsing Data untuk UI Manusia
-        let item = data.data;
-        // Handle jika data dibungkus array
-        if (Array.isArray(item)) item = item[0];
-        
-        // Fallback jika data kosong
-        if (!item) item = {};
-
-        const status = item.status || data.status || "Unknown";
-        const sn = item.sn || item.message || item.keterangan || data.message || "-";
-        const price = item.price || item.harga || 0;
-        const product = item.code || item.kode_produk || "-";
-        const dest = item.tujuan || item.target || "-";
-
-        // Update UI Elements
-        document.getElementById('displayStatus').innerText = status;
-        document.getElementById('displayPrice').innerText = "Rp " + parseInt(price).toLocaleString('id-ID');
-        document.getElementById('displaySn').innerText = sn;
-        document.getElementById('displayProduct').innerText = product;
-        document.getElementById('displayDest').innerText = dest;
-
-        // Warna Indikator Status
-        const indicator = document.getElementById('statusIndicator');
-        const statusText = String(status).toLowerCase();
-        
-        if (statusText.includes('sukses') || statusText === 'success') {
-            indicator.className = "absolute top-0 left-0 w-1.5 h-full bg-green-500";
-            document.getElementById('displayStatus').className = "text-lg font-black text-green-600";
-        } else if (statusText.includes('gagal') || statusText.includes('error')) {
-            indicator.className = "absolute top-0 left-0 w-1.5 h-full bg-red-500";
-            document.getElementById('displayStatus').className = "text-lg font-black text-red-600";
-        } else {
-            indicator.className = "absolute top-0 left-0 w-1.5 h-full bg-orange-500";
-            document.getElementById('displayStatus').className = "text-lg font-black text-orange-500";
-        }
-    }
-
-    function renderError(msg) {
-        document.getElementById('jsonDisplay').innerHTML = `<span style="color:red">Error Koneksi: ${msg}</span>`;
-        document.getElementById('displayStatus').innerText = "ERROR KONEKSI";
-        document.getElementById('displaySn').innerText = msg;
-        document.getElementById('statusIndicator').className = "absolute top-0 left-0 w-1.5 h-full bg-red-600";
-    }
-
-    function copyJson() {
-        if(!currentJsonData) return;
-        navigator.clipboard.writeText(currentJsonData).then(() => {
-            alert("JSON berhasil disalin ke clipboard!");
+        onAuthStateChanged(auth, (user) => {
+            const status = document.getElementById('authStatus');
+            if (user) {
+                currentUser = user;
+                status.innerText = "Connected: " + user.email;
+                status.className = "text-xs bg-green-900/30 text-green-400 px-3 py-1 rounded-full border border-green-800";
+                addLog(`User authenticated: ${user.uid}`, 'success');
+                listenUserData(user.uid);
+            } else {
+                status.innerText = "Disconnected";
+                addLog("No user session found. Please login at index.html", 'error');
+            }
         });
-    }
 
-    // --- FUNGSI INTI (Sama seperti di index(17).html) ---
-    
-    async function callApi(endpoint, params = {}) {
-        params['api_key'] = CONFIG.apiKey;
-        const queryString = new URLSearchParams(params).toString();
-        const targetUrl = `${CONFIG.baseUrl}${endpoint}?${queryString}`;
-        
-        let lastError = '';
+        function listenUserData(uid) {
+            onSnapshot(doc(db, "users", uid), (snap) => {
+                if (snap.exists()) {
+                    userData = snap.data();
+                    document.getElementById('uName').innerText = userData.username || 'N/A';
+                    document.getElementById('uBal').innerText = `Rp ${parseInt(userData.balance).toLocaleString()}`;
+                    document.getElementById('uUid').innerText = uid;
+                }
+            });
 
-        for (const proxy of PROXY_LIST) {
-            console.log(`[Checker] Mencoba via ${proxy.name}...`);
-            const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
+            // Listen History
+            const q = query(collection(db, "users", uid, "history"), orderBy("date", "desc"), limit(5));
+            onSnapshot(q, (snap) => {
+                const container = document.getElementById('rawHistory');
+                container.innerHTML = '';
+                snap.forEach(d => {
+                    const t = d.data();
+                    container.innerHTML += `
+                        <div class="bg-black/40 p-2 rounded border border-slate-800 text-[10px]">
+                            <div class="flex justify-between font-bold">
+                                <span class="text-blue-400">${t.title}</span>
+                                <span class="${t.status === 'Sukses' ? 'text-green-400' : 'text-orange-400'}">${t.status}</span>
+                            </div>
+                            <div class="text-gray-500 mt-1">ID: ${t.trx_id} | MSG: ${t.api_msg || '-'}</div>
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        window.executeDebugTrx = async (system) => {
+            const num = document.getElementById('targetNum').value;
+            const code = document.getElementById('productCode').value;
+
+            if (!num || !code) return alert("Nomor dan Kode wajib diisi!");
+            if (!currentUser) return alert("Auth Session Error!");
+
+            addLog(`Starting ${system} Transaction for ${code}...`);
             
+            const reffId = `DBG-${Date.now()}`;
+            const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
+
             try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 detik timeout
+                // 1. Database Deduction
+                await runTransaction(db, async (t) => {
+                    const uRef = doc(db, "users", currentUser.uid);
+                    const uSnap = await t.get(uRef);
+                    const bal = uSnap.data().balance;
+                    
+                    addLog(`Current balance: Rp ${bal}`);
+                    
+                    // Note: Pada mode debug kita tidak tahu harga pasti sebelum API hit, 
+                    // tapi sistem asli butuh pengurangan saldo. Kita asumsikan harga input manual 0 untuk debug bypass jika mau.
+                    // Namun agar identik, kita catat di history sebagai 'PROSES'.
+                    
+                    const hRef = doc(db, "users", currentUser.uid, "history", reffId);
+                    t.set(hRef, {
+                        title: `[DEBUG] ${code}`,
+                        amount: 0,
+                        type: 'out',
+                        date: new Date().toISOString(),
+                        status: 'Proses',
+                        api_msg: 'Debug Bypass Sent',
+                        trx_id: reffId,
+                        trx_code: trxCode,
+                        dest_num: num
+                    });
+                });
 
-                const response = await fetch(fullUrl, { signal: controller.signal });
-                clearTimeout(timeoutId);
-
-                if (response.ok) {
-                    const text = await response.text();
-                    try {
-                        // Handle response wrapper dari proxy tertentu
-                        let data = JSON.parse(text);
-                        if (data.contents) {
-                            try { data = JSON.parse(data.contents); } catch(e) {}
-                        }
-                        return { ok: true, data: data };
-                    } catch (e) {
-                        console.warn(`[Checker] Response bukan JSON via ${proxy.name}`);
-                        continue;
-                    }
-                }
-            } catch (error) {
-                console.warn(`[Checker] Error Koneksi via ${proxy.name}:`, error.message);
-                lastError = `${proxy.name}: ${error.message}`;
-            }
-        }
-        return { ok: false, error: `Gagal menghubungkan ke server (Semua Proxy Gagal). ${lastError}` };
-    }
-
-    // Fungsi mempercantik JSON (Syntax Highlight)
-    function syntaxHighlight(json) {
-        if (typeof json != 'string') {
-             json = JSON.stringify(json, undefined, 2);
-        }
-        json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
-            var cls = 'number';
-            if (/^"/.test(match)) {
-                if (/:$/.test(match)) {
-                    cls = 'key';
+                // 2. Call API
+                let result;
+                if (system === 'KHFY') {
+                    const url = `${KHFY_CONFIG.baseUrl}/trx?api_key=${KHFY_CONFIG.apiKey}&produk=${code}&tujuan=${num}&reff_id=${reffId}`;
+                    const res = await fetch(PROXY + encodeURIComponent(url));
+                    result = await res.json();
                 } else {
-                    cls = 'string';
+                    const url = `${ICS_CONFIG.baseUrl}/?action=createTransaction&apikey=${ICS_CONFIG.apiKey}&kode_produk=${code}&nomor_tujuan=${num}&refid=${reffId}`;
+                    const res = await fetch(PROXY + encodeURIComponent(url));
+                    result = await res.json();
                 }
-            } else if (/true|false/.test(match)) {
-                cls = 'boolean';
-            } else if (/null/.test(match)) {
-                cls = 'null';
+
+                addLog(`API Response: ${JSON.stringify(result)}`, 'info');
+                
+                if (result.success || result.status === 'success' || result.status === true) {
+                    addLog("Transaction Accepted by Server!", 'success');
+                    await updateDoc(doc(db, "users", currentUser.uid, "history", reffId), {
+                        status: 'Pending',
+                        api_msg: result.message || 'Processing'
+                    });
+                } else {
+                    addLog("API Rejected: " + (result.message || result.error), 'error');
+                }
+
+            } catch (e) {
+                addLog("Debug Execution Error: " + e.message, 'error');
             }
-            return '<span class="' + cls + '">' + match + '</span>';
-        });
-    }
+        };
 
-</script>
-
+    </script>
 </body>
 </html>

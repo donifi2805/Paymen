@@ -1139,7 +1139,7 @@ if(tabId === 'pricing') loadPricingData();
                     allUsers.push({ id: uid, ...data });
                     
                     const avatarUrl = data.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${uid}`;
-                    html += `<tr class="hover:bg-blue-50/30 border-b border-gray-50 last:border-0 fade-in">
+                                        html += `<tr id="userRow-${uid}" class="hover:bg-blue-50/30 border-b border-gray-50 last:border-0 fade-in">
                         <td class="p-3"><img src="${avatarUrl}" class="w-8 h-8 rounded-full border bg-gray-100"></td>
                         <td class="p-3"><div class="font-bold text-gray-800">${data.username || 'User'}</div><div class="text-[9px] text-gray-400">${data.email || '-'}</div></td>
                         <td class="p-3 font-bold text-blue-600">${window.formatRp(data.balance || 0)}</td>
@@ -1193,7 +1193,7 @@ if(tabId === 'pricing') loadPricingData();
                      const data = docSnap.data(), uid = docSnap.id;
                      allUsers.push({ id: uid, ...data });
                      const avatarUrl = data.profile_pic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${uid}`;
-                     html += `<tr class="hover:bg-blue-50/30 border-b border-gray-50 last:border-0">
+                                          html += `<tr id="userRow-${uid}" class="hover:bg-blue-50/30 border-b border-gray-50 last:border-0">
                         <td class="p-3"><img src="${avatarUrl}" class="w-8 h-8 rounded-full border bg-gray-100"></td>
                         <td class="p-3"><div class="font-bold text-gray-800">${data.username || 'User'}</div><div class="text-[9px] text-gray-400">${data.email || '-'}</div></td>
                         <td class="p-3 font-bold text-blue-600">${window.formatRp(data.balance || 0)}</td>
@@ -2058,10 +2058,43 @@ if(tabId === 'pricing') loadPricingData();
             const u = allUsers.find(x => x.id === uid);
             if(u) { document.getElementById('editUid').value = uid; document.getElementById('editUsername').value = u.username || ''; document.getElementById('editBalance').value = u.balance || 0; document.getElementById('editEmailHidden').value = u.email || ''; document.getElementById('editUserModal').classList.remove('hide'); }
         };
-        window.saveUserChanges = async () => {
+                window.saveUserChanges = async () => {
             const uid = document.getElementById('editUid').value;
-            await updateDoc(doc(db, "users", uid), { username: document.getElementById('editUsername').value, balance: parseInt(document.getElementById('editBalance').value) });
-            document.getElementById('editUserModal').classList.add('hide'); loadDashboardData();
+            const newUsername = document.getElementById('editUsername').value;
+            const newBalance = parseInt(document.getElementById('editBalance').value) || 0;
+
+            try {
+                Swal.showLoading();
+                await updateDoc(doc(db, "users", uid), { username: newUsername, balance: newBalance });
+                
+                // 1. Update Cache Data Lokal (Agar search tetap akurat)
+                const uIdx = allUsers.findIndex(u => u.id === uid);
+                let currentEmail = '-';
+                if(uIdx > -1) {
+                    allUsers[uIdx].username = newUsername;
+                    allUsers[uIdx].balance = newBalance;
+                    currentEmail = allUsers[uIdx].email || '-';
+                }
+
+                // 2. Update Tampilan Tabel Secara Langsung (DOM)
+                const row = document.getElementById('userRow-' + uid);
+                if(row) {
+                    const cells = row.getElementsByTagName('td');
+                    // Update Kolom Nama (Index 1)
+                    if(cells[1]) cells[1].innerHTML = `<div class="font-bold text-gray-800">${newUsername}</div><div class="text-[9px] text-gray-400">${currentEmail}</div>`;
+                    // Update Kolom Saldo (Index 2)
+                    if(cells[2]) cells[2].innerText = window.formatRp(newBalance);
+                    
+                    // Efek Berkedip Kuning tanda berubah
+                    row.classList.add('bg-yellow-50');
+                    setTimeout(() => row.classList.remove('bg-yellow-50'), 800);
+                }
+
+                document.getElementById('editUserModal').classList.add('hide'); 
+                Swal.fire('Berhasil', 'Saldo & Data user telah diperbarui.', 'success');
+            } catch(e) {
+                Swal.fire('Gagal', e.message, 'error');
+            }
         };
                 window.deleteUserFromModal = async () => {
             const uid = document.getElementById('editUid').value;

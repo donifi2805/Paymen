@@ -501,6 +501,9 @@
             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4">
                                 <label class="text-[10px] font-bold text-gray-500 block mb-1">Filter Kategori / Provider</label>
                                 <select id="pricingProvider" onchange="loadPricingData()" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs font-bold focus:ring-1 focus:ring-blue-500 outline-none">
+                    <optgroup label="Akrab v2">
+                        <option value="AKRABV2">Akrab v2 (XDA Khusus)</option>
+                    </optgroup>
                     <optgroup label="Server ICS">
                         <option value="ICS_XDA">Akrab Fresh (XDA)</option>
                         <option value="ICS_CIRCLE">XL Circle</option>
@@ -1838,8 +1841,17 @@ if(tabId === 'pricing') loadPricingData();
             
             let productsToRender = [];
 
-            // 2. Cek Sumber Data (ICS vs Khfy)
-            if (provider.startsWith('ICS_')) {
+            if (provider === 'AKRABV2') {
+                const allowedCodes = ['XDA13', 'XDA19', 'XDA25', 'XDA31', 'XDA38', 'XDA47', 'XDA55', 'XDA63', 'XDA88'];
+                if(globalProducts.length === 0) {
+                    const res = await callApi('/list_product');
+                    if(res.ok) globalProducts = res.data.data || res.data;
+                }
+                productsToRender = globalProducts.filter(p => {
+                    const pCode = (p.code || p.kode_produk || p.buyer_sku_code || '').toUpperCase();
+                    return allowedCodes.includes(pCode);
+                });
+            } else if (provider.startsWith('ICS_')) {
                 // --- LOGIKA ICS ---
                 let icsType = 'xda'; // Default
                 if (provider === 'ICS_CIRCLE') icsType = 'circle';

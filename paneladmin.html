@@ -235,7 +235,7 @@
                 <div class="flex items-center gap-3">
                     <button onclick="switchTab('dashboard')" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition"><i class="fas fa-arrow-left"></i></button>
                     <div>
-                        <h2 class="text-lg font-bold text-gray-800 leading-none">Pending & Gagal</h2>
+                        <h2 class="text-lg font-bold text-gray-800 leading-none">Pending & Topup Manual</h2>
                         <p class="text-[10px] text-gray-500">Manajemen Transaksi Manual</p>
                     </div>
                 </div>
@@ -1391,27 +1391,40 @@ if(tabId === 'pricing') loadPricingData();
                     const dObj = t.date ? new Date(t.date) : null;
                     const timeStr = dObj ? dObj.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : '--:--';
                     
+                                        const isTopUp = t.type === 'in';
+                    const productName = isTopUp ? `<span class='text-emerald-600 font-bold'><i class='fas fa-arrow-down mr-1'></i>${t.title}</span>` : t.title;
+                    
+                    let actionButtons = '';
+                    if (isTopUp) {
+                        actionButtons = `<div class="flex flex-col gap-1 w-full">
+                            <button onclick="approveTopUp('${t.parentUid}', '${t.id}', ${t.amount})" class="bg-emerald-600 text-white px-2 py-1.5 rounded text-[10px] font-bold hover:bg-emerald-700 transition w-full"><i class="fas fa-check-circle mr-1"></i>TERIMA UANG</button>
+                            <button onclick="rejectTopUp('${t.parentUid}', '${t.id}')" class="bg-red-50 text-red-600 border border-red-200 px-2 py-1.5 rounded text-[10px] font-bold hover:bg-red-100 transition w-full"><i class="fas fa-times-circle mr-1"></i>TOLAK</button>
+                        </div>`;
+                    } else {
+                        actionButtons = `<div class="flex items-center justify-center gap-1">
+                                <button onclick="manualSuccess('${t.parentUid}', '${t.id}')" class="bg-green-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-green-700" title="Sukseskan Manual"><i class="fas fa-check"></i></button>
+                                <button onclick="manualFail('${t.parentUid}', '${t.id}', ${t.amount})" class="bg-red-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-red-700" title="Gagalkan & Refund"><i class="fas fa-times"></i></button>
+                                <button onclick="recheckServerTrx('${t.parentUid}', '${t.id}')" class="bg-slate-700 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-slate-800" title="Cek Server"><i class="fas fa-search"></i></button>
+                                <button onclick='showAdminTrxDetail(${JSON.stringify(t)})' class="bg-blue-50 text-blue-600 px-2 py-1 rounded text-[9px] font-bold border border-blue-200" title="Detail JSON"><i class="fas fa-code"></i></button>
+                            </div>`;
+                    }
+
                     html += `<tr class="border-b border-gray-50">
                         <td class="p-3">
                             <div class="font-bold">${userName}</div>
                             <div class="text-[9px] text-gray-400 font-mono">${timeStr} WIB</div>
                         </td>
                         <td class="p-3">
-                            <div class="font-bold">${t.title}</div>
+                            <div class="font-bold">${productName}</div>
                             <div class="text-[9px] text-gray-500">${t.api_msg || '-'}</div>
                             ${t.trx_code ? `<div class="text-[9px] font-mono text-blue-600 font-bold mt-1"><i class="fas fa-hashtag mr-1"></i>${t.trx_code}</div>` : ''}
                         </td>
-                        <td class="p-3 text-right font-bold text-blue-600">${window.formatRp(t.amount)}</td>
+                        <td class="p-3 text-right font-bold ${isTopUp ? 'text-emerald-600' : 'text-blue-600'}">${window.formatRp(t.amount)}</td>
                         <td class="p-3 text-center">
                              <span class="px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700 text-[10px] font-bold">${t.status}</span>
                         </td>
                         <td class="p-3 text-center">
-                            <div class="flex items-center justify-center gap-1">
-                                <button onclick="manualSuccess('${t.parentUid}', '${t.id}')" class="bg-green-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-green-700" title="Sukseskan Manual"><i class="fas fa-check"></i></button>
-                                <button onclick="manualFail('${t.parentUid}', '${t.id}', ${t.amount})" class="bg-red-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-red-700" title="Gagalkan & Refund"><i class="fas fa-times"></i></button>
-                                <button onclick="recheckServerTrx('${t.parentUid}', '${t.id}')" class="bg-slate-700 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-slate-800" title="Cek Server"><i class="fas fa-search"></i></button>
-                                <button onclick='showAdminTrxDetail(${JSON.stringify(t)})' class="bg-blue-50 text-blue-600 px-2 py-1 rounded text-[9px] font-bold border border-blue-200" title="Detail JSON"><i class="fas fa-code"></i></button>
-                            </div>
+                            ${actionButtons}
                         </td>
                     </tr>`;
                 });
@@ -1425,7 +1438,69 @@ if(tabId === 'pricing') loadPricingData();
 
         // [Fungsi Duplikat Dihapus]
 
-                window.manualFail = async (uid, trxId, amount) => {
+                window.approveTopUp = async (uid, trxId, amount) => {
+            const { isConfirmed } = await Swal.fire({
+                title: 'Konfirmasi Top Up',
+                text: `Terima dana Rp ${window.formatRp(amount)} dan tambahkan ke saldo user?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#059669',
+                confirmButtonText: 'Ya, Terima Uang'
+            });
+
+            if (isConfirmed) {
+                try {
+                    Swal.showLoading();
+                    await runTransaction(db, async (t) => {
+                        const userRef = doc(db, "users", uid);
+                        const trxRef = doc(db, "users", uid, "history", trxId);
+                        
+                        const uDoc = await t.get(userRef);
+                        const tDoc = await t.get(trxRef);
+
+                        if (!tDoc.exists()) throw "Transaksi hilang";
+                        if (tDoc.data().status !== 'Pending') throw "Status transaksi sudah berubah";
+
+                        const newBal = (uDoc.data().balance || 0) + amount;
+                        t.update(userRef, { balance: newBal });
+                        t.update(trxRef, { 
+                            status: 'Sukses', 
+                            api_msg: 'Top Up Manual Diterima Admin',
+                            balance_after: newBal,
+                            date_updated: new Date().toISOString()
+                        });
+                    });
+                    Swal.fire('Berhasil', 'Saldo telah ditambahkan.', 'success');
+                    loadPendingTransactions();
+                } catch (e) { Swal.fire('Error', e.message || e, 'error'); }
+            }
+        };
+
+        window.rejectTopUp = async (uid, trxId) => {
+            const { value: reason } = await Swal.fire({
+                title: 'Tolak Top Up',
+                input: 'text',
+                inputPlaceholder: 'Alasan penolakan (misal: Dana belum masuk)',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Tolak Transaksi'
+            });
+
+            if (reason !== undefined) {
+                try {
+                    Swal.showLoading();
+                    await updateDoc(doc(db, "users", uid, "history", trxId), {
+                        status: 'Gagal',
+                        api_msg: reason || 'Ditolak Admin',
+                        date_updated: new Date().toISOString()
+                    });
+                    Swal.fire('Ditolak', 'Transaksi Top Up digagalkan.', 'success');
+                    loadPendingTransactions();
+                } catch (e) { Swal.fire('Error', e.message, 'error'); }
+            }
+        };
+
+        window.manualFail = async (uid, trxId, amount) => {
             const { value: reason } = await Swal.fire({
                 title: 'Gagalkan & Refund',
                 input: 'text', 

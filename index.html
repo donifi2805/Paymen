@@ -2600,7 +2600,7 @@ window.openAkrabV2 = () => {
                     await updateDoc(doc(db, "users", currentUser.uid, "history", reffId), {
                         api_msg: apiMsg,
                         provider_id: provId,
-                        raw_json: JSON.stringify(result.data || {})
+                        raw_json: JSON.stringify(result.data || result || {})
                     });
                 } else {
                     throw new Error(apiMsg);
@@ -2819,7 +2819,7 @@ window.openAkrabV2 = () => {
                 if (safeMsg.includes('password=') || safeMsg.includes('pin=')) {
                     safeMsg = safeMsg.split('#').pop() || 'Tujuan Diluar Wilayah';
                 }
-                await updateDoc(trxRef, { status: 'Pending', api_msg: safeMsg, provider_id: providerId, raw_json: JSON.stringify(result.data || {}) });
+                await updateDoc(trxRef, { status: 'Pending', api_msg: safeMsg, provider_id: providerId, raw_json: JSON.stringify(result.data || result || {}) });
                 alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                 window.nav('homePage');
             } else {

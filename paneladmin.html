@@ -200,6 +200,14 @@
                     </div>
                     <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-wallet"></i></div>
                 </div>
+<div onclick="switchTab('transactions')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-purple-400">
+    <div>
+        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Menu Transaksi</p>
+        <h3 class="text-lg font-black text-purple-600">Buka</h3>
+        <p class="text-[9px] text-purple-500 font-bold mt-1">Riwayat Harian</p>
+    </div>
+    <div class="w-10 h-10 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-list-ul"></i></div>
+</div>
             </div>
 
             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between w-full md:w-1/4 mb-5">
@@ -350,11 +358,10 @@
                     <button onclick="downloadTrxPDF()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 text-[10px] font-bold rounded-md shadow-sm transition flex items-center gap-1">
                         <i class="fas fa-file-pdf"></i> PDF
                     </button>
-                    <div class="flex bg-gray-50 rounded-lg p-0.5 border border-gray-200">
-                        <button onclick="filterTrx('today')" class="px-3 py-1 text-[10px] font-bold rounded-md bg-white text-blue-600 shadow-sm transition" id="btn-today">Hari Ini</button>
-                        <button onclick="filterTrx('week')" class="px-3 py-1 text-[10px] font-bold rounded-md text-gray-500 hover:bg-gray-200 transition" id="btn-week">7 Hari</button>
-                        <button onclick="filterTrx('all')" class="px-3 py-1 text-[10px] font-bold rounded-md text-gray-500 hover:bg-gray-200 transition" id="btn-all">Semua</button>
-                    </div>
+                    <div class="flex items-center gap-2">
+    <input type="date" id="globalTrxDate" onchange="loadGlobalTransactions()" class="bg-gray-50 border border-gray-300 text-gray-900 text-[10px] rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-1.5 shadow-sm">
+    <button onclick="loadGlobalTransactions()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold text-[10px]"><i class="fas fa-sync-alt"></i></button>
+</div>
                 </div>
             </div>
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -366,6 +373,7 @@
                                 <th class="p-3 font-bold">User</th>
                                 <th class="p-3 font-bold">Ket</th>
                                 <th class="p-3 font-bold">Info Saldo</th>
+<th class="p-3 font-bold text-center">Riwayat JSON</th>
                                 <th class="p-3 font-bold text-right">Nominal</th>
                                 <th class="p-3 font-bold text-center">Status</th>
                             </tr>
@@ -565,7 +573,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup, sendPasswordResetEmail, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { runTransaction, getFirestore, getDoc, collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy, collectionGroup, setDoc, where, onSnapshot, serverTimestamp, addDoc, limit, startAfter, startAt } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { runTransaction, getFirestore, getDoc, collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy, collectionGroup, setDoc, where, onSnapshot, serverTimestamp, addDoc, limit, startAfter, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
         const firebaseConfig = {
@@ -660,6 +668,25 @@
         };
 
         window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+
+        window.viewRawJson = (t) => {
+            let content = 'Data JSON tidak ditemukan.';
+            try {
+                if(t.raw_json) content = JSON.stringify(JSON.parse(t.raw_json), null, 2);
+                else if(t.api_msg) content = 'API Msg: ' + t.api_msg;
+            } catch(e) { content = t.raw_json || e.message; }
+            
+            Swal.fire({
+                title: 'Riwayat JSON Mentah',
+                html: `<div class="text-left bg-slate-900 p-4 rounded-xl overflow-auto max-h-[60vh] custom-scroll relative group">
+                        <button onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText); Swal.showValidationMessage('Disalin!'); setTimeout(()=>Swal.resetValidationMessage(), 800)" class="absolute top-2 right-2 bg-white/10 hover:bg-white/20 text-white p-1 rounded text-[10px] transition"><i class="fas fa-copy"></i></button>
+                        <pre class="text-[10px] text-green-400 font-mono whitespace-pre-wrap leading-relaxed">${content}</pre>
+                       </div>`,
+                confirmButtonText: 'Tutup',
+                confirmButtonColor: '#334155'
+            });
+        };
+
         
         window.handleLogin = async () => {
             const email = document.getElementById('adminEmail').value, pass = document.getElementById('adminPass').value;
@@ -1586,36 +1613,7 @@ if(tabId === 'pricing') loadPricingData();
             }
         };
 
-        window.filterTrx = (range) => {
-            const now = new Date();
-            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-            const weekStart = todayStart - (7 * 24 * 60 * 60 * 1000);
-
-            let filtered = [];
-            if (range === 'today') {
-                filtered = allTransactions.filter(t => new Date(t.date).getTime() >= todayStart);
-            } else if (range === 'week') {
-                filtered = allTransactions.filter(t => new Date(t.date).getTime() >= weekStart);
-            } else {
-                filtered = allTransactions;
-            }
-
-            const btnIds = ['today', 'week', 'all'];
-            btnIds.forEach(r => {
-                const btn = document.getElementById('btn-' + r);
-                if(btn) {
-                    if(r === range) {
-                        btn.classList.add('bg-white', 'text-blue-600', 'shadow-sm');
-                        btn.classList.remove('text-gray-500', 'hover:bg-gray-200');
-                    } else {
-                        btn.classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
-                        btn.classList.add('text-gray-500', 'hover:bg-gray-200');
-                    }
-                }
-            });
-
-            renderTransactions(filtered);
-        };
+        
 
         window.changeTrxPage = (page) => {
             trxCurrentPage = page;
@@ -1646,6 +1644,11 @@ if(tabId === 'pricing') loadPricingData();
                     <td class="p-3">
                         <button onclick='showAdminTrxDetail(${JSON.stringify(t)})' class="text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 px-2 py-1 rounded">
                             <i class="fas fa-search-dollar"></i> <span class="text-[9px]">Detail</span>
+                        </button>
+                    </td>
+<td class="p-3 text-center">
+                        <button onclick='viewRawJson(${JSON.stringify(t)})' class="text-purple-600 hover:text-purple-800 flex items-center justify-center gap-1 bg-purple-50 px-2 py-1 rounded border border-purple-100 transition">
+                            <i class="fas fa-code"></i> <span class="text-[9px]">Mentah</span>
                         </button>
                     </td>
                     <td class="p-3 text-right"><span class="font-bold ${isOut?'text-red-500':'text-green-500'}">${isOut?'-':'+'}${window.formatRp(t.amount)}</span></td>
@@ -2107,10 +2110,27 @@ if(tabId === 'pricing') loadPricingData();
         };
         window.loadGlobalTransactions = async () => {
             const tbody = document.getElementById('trxTableBody');
-            tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Mengambil data...</td></tr>';
+            const dateInput = document.getElementById('globalTrxDate');
+
+            if (!dateInput.value) {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                dateInput.value = `${year}-${month}-${day}`;
+            }
+            const selectedDate = dateInput.value;
+
+            tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Mengambil data tanggal ' + selectedDate + '...</td></tr>';
             try {
-                const q = query(collectionGroup(db, 'history'), orderBy("date", "desc"), limit(100));
+                // Menggunakan Range Time 00:00 - 23:59 Local Time untuk query Firestore
+                const startDt = new Date(selectedDate + 'T00:00:00');
+                const endDt = new Date(selectedDate + 'T23:59:59');
+                
+                // Query Range (Desc: End -> Start karena orderBy desc)
+                const q = query(collectionGroup(db, 'history'), orderBy("date", "desc"), startAt(endDt.toISOString()), endAt(startDt.toISOString()));
                 const snap = await getDocs(q);
+                
                 allTransactions = [];
                 snap.forEach(d => {
                     allTransactions.push({ id: d.id, uid: d.ref.parent.parent ? d.ref.parent.parent.id : 'Unk', ...d.data() });
@@ -2123,8 +2143,13 @@ if(tabId === 'pricing') loadPricingData();
                      await Promise.all(missing.map(async (uid) => { try { const u = await getDoc(doc(db, "users", uid)); if(u.exists()) allUsers.push({id:uid, ...u.data()}); } catch(e){} }));
                 }
 
-                trxCurrentPage = 1;
-                renderTransactions(allTransactions);
+                if(allTransactions.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-gray-400">Tidak ada transaksi pada tanggal ' + selectedDate + '</td></tr>';
+                    document.getElementById('trxPagination').classList.add('hide');
+                } else {
+                    trxCurrentPage = 1;
+                    renderTransactions(allTransactions);
+                }
                 
             } catch(e) {
                 console.error("Err Load Trx:", e);

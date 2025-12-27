@@ -864,7 +864,11 @@
         </div>
         <div class="space-y-2 max-h-[60vh] overflow-y-auto no-scrollbar pb-8">
             
-                        <div id="prov_ICS_XDA" onclick="checkProv('ICS_XDA') && selectProvider('ICS_XDA', 'Akrab Fresh (XDA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                                    <div id="prov_AKRABV2" onclick="checkProv('XDA') && selectProvider('AKRABV2', 'Akrab v2')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <div class="flex items-center"><span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Akrab v2</span><span class="mt-badge">GANGGUAN</span></div>
+                <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
+            </div>
+<div id="prov_ICS_XDA" onclick="checkProv('ICS_XDA') && selectProvider('ICS_XDA', 'Akrab Fresh (XDA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
                 <div class="flex items-center"><span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Akrab Fresh (XDA)</span><span class="mt-badge">GANGGUAN</span></div>
                 <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
             </div>
@@ -2524,7 +2528,54 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
         listContainer.innerHTML = '';
 
         // --- LOGIKA BARU: ICS HANDLER ---
-        if (providerCode.startsWith('ICS_')) {
+                if (providerCode === 'AKRABV2') {
+            const allowedCodes = ['XDA13', 'XDA19', 'XDA25', 'XDA31', 'XDA38', 'XDA47', 'XDA55', 'XDA63', 'XDA88'];
+            const akrabV2Products = globalProducts.filter(p => {
+                const pCode = (p.code || p.kode_produk || p.buyer_sku_code || '').toUpperCase();
+                return allowedCodes.includes(pCode);
+            });
+
+            if (akrabV2Products.length > 0) {
+                if(btnProd) {
+                    btnProd.classList.remove('cursor-not-allowed', 'opacity-50');
+                    btnProd.classList.add('bg-white', 'hover:bg-gray-50');
+                }
+                if(txtProd) txtProd.innerText = '-- Klik Untuk Pilih Produk --';
+
+                akrabV2Products.sort((a, b) => (a.price || a.buyer_price || 0) - (b.price || b.buyer_price || 0));
+
+                akrabV2Products.forEach(p => {
+                    let price = p.price || p.harga_final || p.buyer_price || 0;
+                    const code = p.code || p.kode_produk || p.buyer_sku_code;
+                    let name = p.name || p.nama_produk || p.product_name;
+                    
+                    if(pricingRules[code]) {
+                        const r = pricingRules[code];
+                        if(typeof r === 'object') {
+                            if(r.price) price += parseInt(r.price);
+                            if(r.name) name = r.name;
+                        } else {
+                            price += parseInt(r);
+                        }
+                    }
+
+                    const div = document.createElement('div');
+                    div.className = `p-4 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 cursor-pointer transition active:scale-[0.98] mb-2 flex justify-between items-center group`;
+                    div.onclick = () => window.selectProduct(code, name, price, p.deskripsi || '', encodeURIComponent(name));
+                    div.innerHTML = `
+                        <div class="flex-1 pr-2">
+                            <p class="text-xs font-bold text-gray-700 dark:text-gray-200 leading-tight group-hover:text-blue-600 transition">${name}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm font-black text-blue-600 dark:text-blue-400">Rp ${window.formatRp(price).replace('Rp', '')}</p>
+                        </div>`;
+                    listContainer.appendChild(div);
+                });
+                return;
+            }
+        }
+
+if (providerCode.startsWith('ICS_')) {
              if(txtProd) txtProd.innerText = 'Memuat Dari Server';
              if(btnProd) btnProd.classList.add('cursor-not-allowed', 'opacity-50');
 

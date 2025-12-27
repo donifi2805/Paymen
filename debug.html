@@ -3,215 +3,209 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DEBUG CONSOLE - Pandawa Store</title>
+    <title>BYPASS DEBUG CONSOLE - Pandawa Store</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background-color: #0f172a; color: #f8fafc; font-family: 'Consolas', monospace; }
-        .log-container { height: 200px; overflow-y: auto; background: #000; padding: 10px; border-radius: 8px; font-size: 12px; border: 1px solid #334155; }
-        .success { color: #4ade80; }
-        .error { color: #f87171; }
-        .info { color: #60a5fa; }
-        input, select { background: #1e293b !important; color: white !important; border: 1px solid #334155 !important; }
+        body { background-color: #030712; color: #e2e8f0; font-family: 'Consolas', 'Courier New', monospace; }
+        .console-box { background-color: #000000; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; height: 300px; overflow-y: auto; font-size: 11px; line-height: 1.5; }
+        .log-time { color: #64748b; margin-right: 8px; }
+        .log-info { color: #38bdf8; }
+        .log-success { color: #4ade80; }
+        .log-error { color: #f43f5e; }
+        .log-warning { color: #fbbf24; }
+        input { background: #0f172a !important; border: 1px solid #334155 !important; color: #fff !important; }
+        input:focus { border-color: #3b82f6 !important; outline: none; }
+        .btn-action { transition: all 0.2s; text-transform: uppercase; letter-spacing: 1px; }
+        .btn-action:active { transform: scale(0.95); }
     </style>
 </head>
-<body class="p-4">
+<body class="p-4 md:p-8">
 
-    <div class="max-w-2xl mx-auto">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold text-blue-400"><i class="fas fa-terminal mr-2"></i>DEBUG SYSTEM V3</h1>
-            <div id="authStatus" class="text-xs bg-red-900/30 text-red-400 px-3 py-1 rounded-full border border-red-800">Disconnected</div>
-        </div>
-
-        <div class="mb-6">
-            <p class="text-xs font-bold text-gray-500 mb-2">SYSTEM LOGS</p>
-            <div id="logs" class="log-container">
-                <div class="info">> System initialized. Waiting for Auth...</div>
+    <div class="max-w-4xl mx-auto">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div>
+                <h1 class="text-2xl font-black text-white italic">PANDAWA <span class="text-blue-500">DEBUG</span></h1>
+                <p class="text-xs text-gray-500">Mode: Direct Bypass API (Tanpa Firebase Login)</p>
+            </div>
+            <div id="vendorStatus" class="flex gap-2">
+                <span class="text-[10px] bg-orange-500/10 text-orange-500 border border-orange-500/20 px-3 py-1 rounded-full font-bold">BYPASS ACTIVE</span>
+                <span class="text-[10px] bg-blue-500/10 text-blue-500 border border-blue-500/20 px-3 py-1 rounded-full font-bold">PROXY READY</span>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
-                <h2 class="text-sm font-bold mb-3 border-b border-slate-800 pb-2 text-blue-300">USER INFO</h2>
-                <div class="space-y-2 text-xs">
-                    <div class="flex justify-between"><span>Username:</span> <span id="uName">-</span></div>
-                    <div class="flex justify-between"><span>Balance:</span> <span id="uBal" class="text-green-400">Rp 0</span></div>
-                    <div class="flex justify-between"><span>UID:</span> <span id="uUid" class="text-[10px] text-gray-500">-</span></div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <div class="lg:col-span-1 space-y-6">
+                <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 shadow-xl">
+                    <h2 class="text-sm font-bold text-gray-400 mb-4 flex items-center gap-2">
+                        <i class="fas fa-edit"></i> INPUT TRANSAKSI
+                    </h2>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 mb-1 ml-1">NOMOR TUJUAN</label>
+                            <input type="tel" id="targetNum" class="w-full h-11 px-4 rounded-xl text-sm" placeholder="Contoh: 08123456789">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 mb-1 ml-1">KODE PRODUK (SKU)</label>
+                            <input type="text" id="productCode" class="w-full h-11 px-4 rounded-xl text-sm" placeholder="Contoh: XDA13, XLA25, dsb">
+                        </div>
+
+                        <div class="pt-2 space-y-2">
+                            <button onclick="executeBypass('KHFY')" class="btn-action w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-xs shadow-lg shadow-blue-600/20">
+                                Kirim via KHFY
+                            </button>
+                            <button onclick="executeBypass('ICS')" class="btn-action w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 rounded-xl text-xs shadow-lg shadow-cyan-600/20">
+                                Kirim via ICS (Akrab)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-blue-500/5 p-4 rounded-2xl border border-blue-500/10">
+                    <h3 class="text-[10px] font-black text-blue-500 uppercase mb-2">Peringatan Teknis</h3>
+                    <p class="text-[10px] text-gray-400 leading-relaxed">
+                        Mode bypass ini langsung memotong saldo **Pusat/Vendor**. Gunakan hanya untuk pengetesan jika system login Firebase bermasalah. Transaksi tidak akan muncul di riwayat aplikasi utama.
+                    </p>
                 </div>
             </div>
 
-            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
-                <h2 class="text-sm font-bold mb-3 border-b border-slate-800 pb-2 text-orange-300">FORCE TRANSACTION</h2>
-                <div class="space-y-3">
-                    <div>
-                        <label class="block text-[10px] text-gray-400 mb-1">Target Number</label>
-                        <input type="tel" id="targetNum" class="w-full p-2 rounded text-sm" placeholder="08xxx">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] text-gray-400 mb-1">Product SKU / Code</label>
-                        <input type="text" id="productCode" class="w-full p-2 rounded text-sm" placeholder="Contoh: XDA13">
-                    </div>
+            <div class="lg:col-span-2 space-y-4">
+                <div class="flex justify-between items-end">
+                    <h2 class="text-sm font-bold text-gray-400 flex items-center gap-2">
+                        <i class="fas fa-code"></i> LIVE DEBUG CONSOLE
+                    </h2>
+                    <button onclick="clearConsole()" class="text-[10px] text-gray-500 hover:text-white transition">CLEAR</button>
+                </div>
+                
+                <div id="consoleLog" class="console-box">
+                    <div class="log-info">-- Pandawa System Debug Terminal Ready --</div>
+                    <div class="log-info">-- Proxy: CodeTabs/CorsProxy Active --</div>
+                </div>
+
+                <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+                    <h3 class="text-xs font-bold text-gray-400 mb-3">Pengecekan Cepat</h3>
                     <div class="flex gap-2">
-                        <button onclick="executeDebugTrx('KHFY')" class="flex-1 bg-blue-600 hover:bg-blue-700 py-2 rounded text-xs font-bold">BYPASS KHFY</button>
-                        <button onclick="executeDebugTrx('ICS')" class="flex-1 bg-cyan-600 hover:bg-cyan-700 py-2 rounded text-xs font-bold">BYPASS ICS</button>
+                        <input type="text" id="checkReff" class="flex-1 h-9 px-3 rounded-lg text-[10px]" placeholder="Masukkan Reff ID untuk cek status">
+                        <button onclick="checkStatusManual()" class="bg-slate-800 hover:bg-slate-700 px-4 rounded-lg text-[10px] font-bold transition">CEK STATUS</button>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <div class="mt-6 bg-slate-900 p-4 rounded-xl border border-slate-800">
-            <h2 class="text-sm font-bold mb-3 text-purple-300">RECENT RAW DATA</h2>
-            <div id="rawHistory" class="space-y-2 max-h-60 overflow-y-auto pr-2">
-                <p class="text-[10px] text-gray-500 italic">No recent transaction data found.</p>
             </div>
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, orderBy, limit, onSnapshot, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        // Identical Config from index.html
-        const firebaseConfig = {
-            apiKey: "AIzaSyBnVxgxkS8InH1PQCMGe3cY8IvPqSN6dLo",
-            authDomain: "ppob-3ea96.firebaseapp.com",
-            projectId: "ppob-3ea96",
-            storageBucket: "ppob-3ea96.firebasestorage.app",
-            messagingSenderId: "181320175094",
-            appId: "1:181320175094:web:306b79071018410b910bd7"
+    <script>
+        // Konfigurasi API 100% sama dengan index (1).html
+        const KHFY_CONFIG = {
+            apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A",
+            baseUrl: "https://panel.khfy-store.com/api_v2"
+        };
+        const ICS_CONFIG = {
+            apiKey: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3",
+            baseUrl: "https://reseller.ics-store.my.id"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        // Urutan Proxy untuk stabilitas
+        const PROXY_LIST = [
+            "https://api.codetabs.com/v1/proxy?quest=",
+            "https://corsproxy.io/?",
+            "https://api.allorigins.win/raw?url="
+        ];
 
-        const PROXY = "https://api.codetabs.com/v1/proxy?quest=";
-        const KHFY_CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
-        const ICS_CONFIG = { apiKey: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3", baseUrl: "https://reseller.ics-store.my.id" };
-
-        let currentUser = null;
-        let userData = null;
-
-        function addLog(msg, type = 'info') {
-            const logs = document.getElementById('logs');
-            const time = new Date().toLocaleTimeString();
-            logs.innerHTML += `<div class="${type}">[${time}] ${msg}</div>`;
-            logs.scrollTop = logs.scrollHeight;
+        function log(msg, type = 'info') {
+            const consoleLog = document.getElementById('consoleLog');
+            const now = new Date();
+            const timeStr = now.getHours().toString().padStart(2, '0') + ":" + 
+                            now.getMinutes().toString().padStart(2, '0') + ":" + 
+                            now.getSeconds().toString().padStart(2, '0');
+            
+            const div = document.createElement('div');
+            div.innerHTML = `<span class="log-time">[${timeStr}]</span> <span class="log-${type}">${msg}</span>`;
+            consoleLog.appendChild(div);
+            consoleLog.scrollTop = consoleLog.scrollHeight;
         }
 
-        onAuthStateChanged(auth, (user) => {
-            const status = document.getElementById('authStatus');
-            if (user) {
-                currentUser = user;
-                status.innerText = "Connected: " + user.email;
-                status.className = "text-xs bg-green-900/30 text-green-400 px-3 py-1 rounded-full border border-green-800";
-                addLog(`User authenticated: ${user.uid}`, 'success');
-                listenUserData(user.uid);
-            } else {
-                status.innerText = "Disconnected";
-                addLog("No user session found. Please login at index.html", 'error');
-            }
-        });
+        function clearConsole() {
+            document.getElementById('consoleLog').innerHTML = '<div class="log-info">-- Console Cleared --</div>';
+        }
 
-        function listenUserData(uid) {
-            onSnapshot(doc(db, "users", uid), (snap) => {
-                if (snap.exists()) {
-                    userData = snap.data();
-                    document.getElementById('uName').innerText = userData.username || 'N/A';
-                    document.getElementById('uBal').innerText = `Rp ${parseInt(userData.balance).toLocaleString()}`;
-                    document.getElementById('uUid').innerText = uid;
+        async function fetchWithProxy(targetUrl) {
+            let lastError = "";
+            for (const proxy of PROXY_LIST) {
+                try {
+                    log(`Mencoba via proxy: ${proxy.split('/')[2]}...`, 'info');
+                    const response = await fetch(proxy + encodeURIComponent(targetUrl));
+                    if (response.ok) {
+                        const text = await response.text();
+                        return JSON.parse(text);
+                    }
+                } catch (e) {
+                    lastError = e.message;
+                    log(`Gagal via ${proxy.split('/')[2]}: ${e.message}`, 'warning');
                 }
-            });
-
-            // Listen History
-            const q = query(collection(db, "users", uid, "history"), orderBy("date", "desc"), limit(5));
-            onSnapshot(q, (snap) => {
-                const container = document.getElementById('rawHistory');
-                container.innerHTML = '';
-                snap.forEach(d => {
-                    const t = d.data();
-                    container.innerHTML += `
-                        <div class="bg-black/40 p-2 rounded border border-slate-800 text-[10px]">
-                            <div class="flex justify-between font-bold">
-                                <span class="text-blue-400">${t.title}</span>
-                                <span class="${t.status === 'Sukses' ? 'text-green-400' : 'text-orange-400'}">${t.status}</span>
-                            </div>
-                            <div class="text-gray-500 mt-1">ID: ${t.trx_id} | MSG: ${t.api_msg || '-'}</div>
-                        </div>
-                    `;
-                });
-            });
+            }
+            throw new Error("Semua proxy gagal. " + lastError);
         }
 
-        window.executeDebugTrx = async (system) => {
+        async function executeBypass(system) {
             const num = document.getElementById('targetNum').value;
             const code = document.getElementById('productCode').value;
 
-            if (!num || !code) return alert("Nomor dan Kode wajib diisi!");
-            if (!currentUser) return alert("Auth Session Error!");
+            if (!num || !code) {
+                alert("Nomor dan SKU wajib diisi!");
+                return;
+            }
 
-            addLog(`Starting ${system} Transaction for ${code}...`);
-            
-            const reffId = `DBG-${Date.now()}`;
-            const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
+            const reffId = `BYPASS-${Date.now()}`;
+            log(`Mengeksekusi ${system} - SKU: ${code}, Target: ${num}`, 'warning');
+            log(`Reff ID: ${reffId}`, 'info');
+
+            let targetUrl = "";
+            if (system === 'KHFY') {
+                targetUrl = `${KHFY_CONFIG.baseUrl}/trx?api_key=${KHFY_CONFIG.apiKey}&produk=${code}&tujuan=${num}&reff_id=${reffId}`;
+            } else {
+                targetUrl = `${ICS_CONFIG.baseUrl}/?action=createTransaction&apikey=${ICS_CONFIG.apiKey}&kode_produk=${code}&nomor_tujuan=${num}&refid=${reffId}`;
+            }
 
             try {
-                // 1. Database Deduction
-                await runTransaction(db, async (t) => {
-                    const uRef = doc(db, "users", currentUser.uid);
-                    const uSnap = await t.get(uRef);
-                    const bal = uSnap.data().balance;
-                    
-                    addLog(`Current balance: Rp ${bal}`);
-                    
-                    // Note: Pada mode debug kita tidak tahu harga pasti sebelum API hit, 
-                    // tapi sistem asli butuh pengurangan saldo. Kita asumsikan harga input manual 0 untuk debug bypass jika mau.
-                    // Namun agar identik, kita catat di history sebagai 'PROSES'.
-                    
-                    const hRef = doc(db, "users", currentUser.uid, "history", reffId);
-                    t.set(hRef, {
-                        title: `[DEBUG] ${code}`,
-                        amount: 0,
-                        type: 'out',
-                        date: new Date().toISOString(),
-                        status: 'Proses',
-                        api_msg: 'Debug Bypass Sent',
-                        trx_id: reffId,
-                        trx_code: trxCode,
-                        dest_num: num
-                    });
-                });
-
-                // 2. Call API
-                let result;
-                if (system === 'KHFY') {
-                    const url = `${KHFY_CONFIG.baseUrl}/trx?api_key=${KHFY_CONFIG.apiKey}&produk=${code}&tujuan=${num}&reff_id=${reffId}`;
-                    const res = await fetch(PROXY + encodeURIComponent(url));
-                    result = await res.json();
-                } else {
-                    const url = `${ICS_CONFIG.baseUrl}/?action=createTransaction&apikey=${ICS_CONFIG.apiKey}&kode_produk=${code}&nomor_tujuan=${num}&refid=${reffId}`;
-                    const res = await fetch(PROXY + encodeURIComponent(url));
-                    result = await res.json();
-                }
-
-                addLog(`API Response: ${JSON.stringify(result)}`, 'info');
+                const data = await fetchWithProxy(targetUrl);
+                log(`RESPON: ${JSON.stringify(data)}`, data.status === true || data.success === true ? 'success' : 'error');
                 
-                if (result.success || result.status === 'success' || result.status === true) {
-                    addLog("Transaction Accepted by Server!", 'success');
-                    await updateDoc(doc(db, "users", currentUser.uid, "history", reffId), {
-                        status: 'Pending',
-                        api_msg: result.message || 'Processing'
-                    });
+                if (data.status === true || data.success === true) {
+                    alert(`BERHASIL!\nSistem: ${system}\nMsg: ${data.message || 'Transaksi diproses'}`);
                 } else {
-                    addLog("API Rejected: " + (result.message || result.error), 'error');
+                    alert(`DITOLAK VENDOR!\nMsg: ${data.message || data.error || 'Gagal'}`);
                 }
-
-            } catch (e) {
-                addLog("Debug Execution Error: " + e.message, 'error');
+            } catch (err) {
+                log(`FATAL ERROR: ${err.message}`, 'error');
+                alert("Kesalahan Jaringan/Proxy. Cek Console.");
             }
-        };
+        }
 
+        async function checkStatusManual() {
+            const reff = document.getElementById('checkReff').value;
+            if (!reff) return alert("Masukkan Reff ID!");
+
+            log(`Mengecek status Reff ID: ${reff}...`, 'warning');
+            const targetUrl = `${KHFY_CONFIG.baseUrl}/history?api_key=${KHFY_CONFIG.apiKey}&refid=${reff}`;
+
+            try {
+                const data = await fetchWithProxy(targetUrl);
+                log(`STATUS DATA: ${JSON.stringify(data)}`, 'info');
+                
+                let info = data.data || data;
+                if(Array.isArray(info)) info = info[0];
+
+                if(info) {
+                    log(`STATUS AKHIR: ${info.status_text || info.status}`, 'success');
+                    log(`SN/KET: ${info.sn || info.keterangan || '-'}`, 'success');
+                }
+            } catch (err) {
+                log(`CEK STATUS GAGAL: ${err.message}`, 'error');
+            }
+        }
     </script>
 </body>
 </html>

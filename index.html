@@ -2743,7 +2743,7 @@ window.openAkrabV2 = () => {
 
             window.executeApiTransaction = async (code, dest, price, name) => {
         window.showLoader(true);
-        const reffId = crypto.randomUUID();
+        const reffId = 'TRX-' + Date.now() + '-' + Math.floor(1000 + Math.random() * 9000);
         const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
         const trxRef = doc(db, "users", currentUser.uid, "history", reffId);
         
@@ -2930,11 +2930,8 @@ window.openAkrabV2 = () => {
         
         for (const docSnap of snapshot.docs) {
             const trx = docSnap.data();
-            // Skip Manual. Untuk KHFY/General, kita delegasikan ke manualCheckTrx yang berbasis RefID.
-            if(trx.provider_id === 'MANUAL') continue;
+            if(trx.provider_id === 'MANUAL' || trx.provider_id === 'ICS' || String(trx.trx_id).startsWith('ICS-')) continue;
 
-            // UPDATE: Pengecekan status KHFY wajib menggunakan RefID (trx_id) via manualCheckTrx
-            // Jangan gunakan /status dengan provider_id.
             await window.manualCheckTrx(trx.trx_id, trx.provider_id);
         }
     };
@@ -3164,7 +3161,8 @@ window.renderTopUpHistory = () => {
                 } else if (freshStatus === 'Sukses') {
                     await updateDoc(doc(db, "users", currentUser.uid, "history", docId), {
                         status: 'Sukses',
-                        api_msg: sn || keterangan || 'Transaksi Berhasil',
+                        api_msg: 'Transaksi Berhasil',
+                        sn: sn || keterangan || 'Transaksi Berhasil',
                         raw_json: JSON.stringify(root)
                     });
                 }

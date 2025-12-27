@@ -628,7 +628,7 @@
             <div class="grid grid-cols-4 gap-4">
                 <div class="text-center group cursor-pointer" onclick="openPPOB('akrab')"><div class="bg-blue-100 dark:bg-blue-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-globe text-blue-600 dark:text-blue-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Data</span></div>
                 <div class="text-center group cursor-pointer" onclick="alert('Menu Paket OTP Segera Hadir')"><div class="bg-emerald-100 dark:bg-emerald-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-key text-emerald-600 dark:text-emerald-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Paket OTP</span></div>
-                <div class="text-center group cursor-pointer" onclick="alert('Menu Pre-Order Segera Hadir')"><div class="bg-purple-100 dark:bg-purple-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-clock text-purple-600 dark:text-purple-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Pre-Order</span></div>
+                <div class="text-center group cursor-pointer" onclick="nav('preorderPage')"><div class="bg-purple-100 dark:bg-purple-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-clock text-purple-600 dark:text-purple-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Pre-Order</span></div>
                 <div class="text-center group cursor-pointer" onclick="checkAkrabStock()"><div class="bg-orange-100 dark:bg-orange-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-cubes text-orange-600 dark:text-orange-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Stok Akrab</span></div>
                 <div class="text-center group cursor-pointer" onclick="alert('Menu Login OTP Segera Hadir')"><div class="bg-rose-100 dark:bg-rose-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-lock text-rose-600 dark:text-rose-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Login OTP</span></div>
                 <div class="text-center group cursor-pointer" onclick="nav('historyPage')"><div class="bg-indigo-100 dark:bg-indigo-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-history text-indigo-600 dark:text-indigo-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Riwayat</span></div>
@@ -696,7 +696,36 @@
         </div>
     </section>
 
-    <section id="ppobPage" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen z-40 absolute top-0 w-full max-w-[480px]">
+    <section id="preorderPage" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen z-40 absolute top-0 w-full max-w-[480px]">
+        <div class="p-4 bg-white dark:bg-gray-900 sticky top-0 z-20 shadow-sm flex items-center gap-4">
+            <button onclick="nav('homePage')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"><i class="fas fa-arrow-left text-gray-800 dark:text-white"></i></button>
+            <h2 class="font-bold text-lg text-gray-800 dark:text-white">Layanan Preorder</h2>
+        </div>
+        <div class="p-4 pb-24">
+            <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-800">
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Pilih Provider</label>
+                    <div onclick="openSheet('provider')" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white text-sm rounded-xl px-4 py-3 font-bold flex justify-between items-center cursor-pointer">
+                        <span id="displayProviderPO">-- Pilih Provider --</span>
+                        <i class="fas fa-chevron-down text-gray-400"></i>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Pilih Produk</label>
+                    <div onclick="openSheet('product')" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white text-sm rounded-xl px-4 py-3 font-bold flex justify-between items-center cursor-pointer">
+                        <span id="displayProductPO">-- Pilih Produk --</span>
+                        <i class="fas fa-chevron-down text-gray-400"></i>
+                    </div>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Nomor Tujuan</label>
+                    <input type="tel" id="poNumber" placeholder="08xxxx" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 text-sm font-bold dark:text-white">
+                </div>
+                <button onclick="submitPreorder()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3.5 rounded-xl shadow-lg">Kirim Pesanan (PO)</button>
+            </div>
+        </div>
+    </section>
+<section id="ppobPage" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen z-40 absolute top-0 w-full max-w-[480px]">
         <div class="p-4 bg-white dark:bg-gray-900 sticky top-0 z-20 shadow-sm flex items-center gap-4">
             <button onclick="closePPOB()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"><i class="fas fa-arrow-left text-gray-800 dark:text-white"></i></button>
             <h2 class="font-bold text-lg text-gray-800 dark:text-white" id="ppobTitle">Isi Pulsa (Live API)</h2>
@@ -864,11 +893,7 @@
         </div>
         <div class="space-y-2 max-h-[60vh] overflow-y-auto no-scrollbar pb-8">
             
-                                    <div id="prov_AKRABV2" onclick="checkProv('XDA') && selectProvider('AKRABV2', 'Akrab v2')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
-                <div class="flex items-center"><span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Akrab v2</span><span class="mt-badge">GANGGUAN</span></div>
-                <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
-            </div>
-<div id="prov_ICS_XDA" onclick="checkProv('ICS_XDA') && selectProvider('ICS_XDA', 'Akrab Fresh (XDA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                        <div id="prov_ICS_XDA" onclick="checkProv('ICS_XDA') && selectProvider('ICS_XDA', 'Akrab Fresh (XDA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
                 <div class="flex items-center"><span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Akrab Fresh (XDA)</span><span class="mt-badge">GANGGUAN</span></div>
                 <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
             </div>
@@ -2444,39 +2469,52 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
     };
 
     window.selectProvider = (code, name) => {
-        document.getElementById('formProvider').value = code;
-        document.getElementById('displayProvider').innerText = name;
-        document.getElementById('displayProvider').className = "text-gray-800 dark:text-white font-bold truncate pr-6";
+        const isPreorder = !document.getElementById('preorderPage').classList.contains('hide');
+        if (isPreorder) {
+            document.getElementById('displayProviderPO').innerText = name;
+            document.getElementById('formProvider').value = code;
+        } else {
+            document.getElementById('formProvider').value = code;
+            document.getElementById('displayProvider').innerText = name;
+        }
         
-        // Reset Product
-        document.getElementById('formProduct').value = '';
-        document.getElementById('displayProduct').innerText = 'Memuat Produk...';
-        document.getElementById('displayProduct').className = "text-gray-500 dark:text-gray-400";
-        document.getElementById('priceDisplay').innerText = '';
-        document.getElementById('productDescription').classList.add('hide');
+        if (!isPreorder) {
+            document.getElementById('formProduct').value = '';
+            document.getElementById('displayProduct').innerText = 'Memuat Produk...';
+            document.getElementById('priceDisplay').innerText = '';
+            document.getElementById('productDescription').classList.add('hide');
+        } else {
+            document.getElementById('displayProductPO').innerText = '-- Pilih Produk --';
+            document.getElementById('formProduct').value = '';
+        }
         
         closeAllSheets();
         window.updateProductDropdown();
     };
 
     window.selectProduct = (code, name, price, desc, encodedName) => {
+        const isPreorder = !document.getElementById('preorderPage').classList.contains('hide');
         const finalName = encodedName ? decodeURIComponent(encodedName) : name;
         
+        if (isPreorder) {
+            document.getElementById('displayProductPO').innerText = finalName;
+        } else {
+            document.getElementById('displayProduct').innerText = finalName;
+        }
+
         document.getElementById('formProduct').value = code;
-        document.getElementById('displayProduct').innerText = finalName;
-        document.getElementById('displayProduct').className = "text-gray-800 dark:text-white font-bold truncate pr-6";
-        
         document.getElementById('selectedProductName').value = finalName;
         document.getElementById('selectedProductPrice').value = price;
         
-        document.getElementById('priceDisplay').innerText = `Harga: Rp ${window.formatRp(price)}`;
-        
-        const descBox = document.getElementById('productDescription');
-        if(desc && desc !== 'undefined' && desc.trim() !== '') {
-             descBox.innerHTML = '<div class="font-bold mb-1 text-blue-600 dark:text-blue-400"><i class="fas fa-info-circle mr-1"></i>Detail Paket:</div>' + desc.replace(/\r?\n/g, '<br>');
-             descBox.classList.remove('hide');
-        } else {
-             descBox.classList.add('hide');
+        if (!isPreorder) {
+            document.getElementById('priceDisplay').innerText = `Harga: Rp ${window.formatRp(price)}`;
+            const descBox = document.getElementById('productDescription');
+            if(desc && desc !== 'undefined' && desc.trim() !== '') {
+                 descBox.innerHTML = '<div class="font-bold mb-1 text-blue-600 dark:text-blue-400"><i class="fas fa-info-circle mr-1"></i>Detail Paket:</div>' + desc.replace(/\r?\n/g, '<br>');
+                 descBox.classList.remove('hide');
+            } else {
+                 descBox.classList.add('hide');
+            }
         }
 
         closeAllSheets();
@@ -2528,54 +2566,7 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
         listContainer.innerHTML = '';
 
         // --- LOGIKA BARU: ICS HANDLER ---
-                if (providerCode === 'AKRABV2') {
-            const allowedCodes = ['XDA13', 'XDA19', 'XDA25', 'XDA31', 'XDA38', 'XDA47', 'XDA55', 'XDA63', 'XDA88'];
-            const akrabV2Products = globalProducts.filter(p => {
-                const pCode = (p.code || p.kode_produk || p.buyer_sku_code || '').toUpperCase();
-                return allowedCodes.includes(pCode);
-            });
-
-            if (akrabV2Products.length > 0) {
-                if(btnProd) {
-                    btnProd.classList.remove('cursor-not-allowed', 'opacity-50');
-                    btnProd.classList.add('bg-white', 'hover:bg-gray-50');
-                }
-                if(txtProd) txtProd.innerText = '-- Klik Untuk Pilih Produk --';
-
-                akrabV2Products.sort((a, b) => (a.price || a.buyer_price || 0) - (b.price || b.buyer_price || 0));
-
-                akrabV2Products.forEach(p => {
-                    let price = p.price || p.harga_final || p.buyer_price || 0;
-                    const code = p.code || p.kode_produk || p.buyer_sku_code;
-                    let name = p.name || p.nama_produk || p.product_name;
-                    
-                    if(pricingRules[code]) {
-                        const r = pricingRules[code];
-                        if(typeof r === 'object') {
-                            if(r.price) price += parseInt(r.price);
-                            if(r.name) name = r.name;
-                        } else {
-                            price += parseInt(r);
-                        }
-                    }
-
-                    const div = document.createElement('div');
-                    div.className = `p-4 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 cursor-pointer transition active:scale-[0.98] mb-2 flex justify-between items-center group`;
-                    div.onclick = () => window.selectProduct(code, name, price, p.deskripsi || '', encodeURIComponent(name));
-                    div.innerHTML = `
-                        <div class="flex-1 pr-2">
-                            <p class="text-xs font-bold text-gray-700 dark:text-gray-200 leading-tight group-hover:text-blue-600 transition">${name}</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-sm font-black text-blue-600 dark:text-blue-400">Rp ${window.formatRp(price).replace('Rp', '')}</p>
-                        </div>`;
-                    listContainer.appendChild(div);
-                });
-                return;
-            }
-        }
-
-if (providerCode.startsWith('ICS_')) {
+        if (providerCode.startsWith('ICS_')) {
              if(txtProd) txtProd.innerText = 'Memuat Dari Server';
              if(btnProd) btnProd.classList.add('cursor-not-allowed', 'opacity-50');
 
@@ -2709,10 +2700,11 @@ if (providerCode.startsWith('ICS_')) {
             if (p.seller_product_status === false || p.seller_product_status == 0) isGangguan = true;
             if (p.stock == 0 && p.unlimited_stock === false) isGangguan = true;
 
+            const isPreorder = !document.getElementById('preorderPage').classList.contains('hide');
             const div = document.createElement('div');
-            div.className = `p-4 rounded-2xl border ${isGangguan ? 'border-red-200 bg-red-50 dark:bg-red-900/10 cursor-not-allowed opacity-70' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 cursor-pointer transition active:scale-[0.98]'} mb-2 flex justify-between items-center group`;
+            div.className = `p-4 rounded-2xl border ${isGangguan && !isPreorder ? 'border-red-200 bg-red-50 dark:bg-red-900/10 cursor-not-allowed opacity-70' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 cursor-pointer transition active:scale-[0.98]'} mb-2 flex justify-between items-center group`;
             
-            if(isGangguan) {
+            if(isGangguan && !isPreorder) {
                 div.innerHTML = `
                     <div>
                         <p class="text-xs font-bold text-red-500 line-through">${name}</p>
@@ -2873,8 +2865,8 @@ if (providerCode.startsWith('ICS_')) {
 
             window.processFormTransaction = () => {
         const provider = document.getElementById('formProvider').value;
-        const code = document.getElementById('formProduct').value;
-        const name = document.getElementById('selectedProductName').value;
+        const code = document.getElementById('formProduct').value || document.getElementById('icsProductSelect')?.value;
+        const name = document.getElementById('selectedProductName').value || document.getElementById('icsProductSelect')?.options[document.getElementById('icsProductSelect').selectedIndex]?.dataset.name;
         const price = parseInt(document.getElementById('selectedProductPrice').value || 0);
         const number = document.getElementById('ppobNumber').value;
 
@@ -2981,7 +2973,75 @@ if (providerCode.startsWith('ICS_')) {
         window.showInvoice(code, name, price, num);
     };
 
-            window.executeApiTransaction = async (code, dest, price, name) => {
+            
+        window.submitPreorder = async () => {
+        const prov = document.getElementById('formProvider').value;
+        const code = document.getElementById('formProduct').value;
+        const name = document.getElementById('selectedProductName').value;
+        const price = parseInt(document.getElementById('selectedProductPrice').value) || parseInt(document.getElementById('icsProductSelect')?.options[document.getElementById('icsProductSelect').selectedIndex]?.dataset.price || 0);
+        const num = document.getElementById('poNumber').value;
+
+        if(!code || !num) return alert('Lengkapi data preorder!');
+        
+        window.showLoader(true);
+        try {
+            const trxId = 'PO-' + Date.now();
+            
+            await runTransaction(db, async (transaction) => {
+                const userRef = doc(db, "users", currentUser.uid);
+                const userSnap = await transaction.get(userRef);
+                
+                if (!userSnap.exists()) throw "User tidak ditemukan!";
+                
+                const currentBal = userSnap.data().balance || 0;
+                if (currentBal < price) throw "Saldo tidak cukup untuk preorder!";
+
+                const balanceAfter = currentBal - price;
+
+                // 1. Potong Saldo User
+                transaction.update(userRef, { balance: balanceAfter });
+
+                // 2. Tambah ke Antrean Admin
+                const poRef = doc(db, "preorders", trxId);
+                transaction.set(poRef, {
+                    uid: currentUser.uid,
+                    username: currentUsername,
+                    email: currentUser.email,
+                    targetNumber: num,
+                    provider: code,
+                    productName: name,
+                    price: price,
+                    status: "Pending",
+                    historyId: trxId,
+                    timestamp: serverTimestamp()
+                });
+
+                // 3. Catat di Riwayat User (Status Pending & Saldo Terpotong)
+                const historyRef = doc(db, "users", currentUser.uid, "history", trxId);
+                transaction.set(historyRef, {
+                    title: "Preorder: " + name,
+                    amount: price,
+                    type: 'out',
+                    date: new Date().toISOString(),
+                    status: 'Pending',
+                    api_msg: 'Pesanan sedang diproses admin',
+                    trx_id: trxId,
+                    dest_num: num,
+                    raw_code: code,
+                    balance_before: currentBal,
+                    balance_after: balanceAfter
+                });
+            });
+
+            window.showLoader(false);
+            alert('Pesanan Preorder dikirim! Saldo telah dipotong dan menunggu konfirmasi admin.');
+            window.nav('homePage');
+        } catch(e) {
+            window.showLoader(false);
+            alert(typeof e === 'string' ? e : e.message);
+        }
+    };
+window.executeApiTransaction = async (code, dest, price, name) => {
         window.showLoader(true);
         const reffId = 'TRX-' + Date.now() + '-' + Math.floor(1000 + Math.random() * 9000);
         const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -3385,10 +3445,28 @@ window.renderTopUpHistory = () => {
         infoEl.innerText = trx.api_msg || '-';
 
         // REFRESH OTOMATIS SAAT DETAIL DIBUKA JIKA STATUS PENDING
-        if(trx.status === 'Pending' || trx.status === 'Proses') {
+                if(trx.status === 'Pending' || trx.status === 'Proses') {
             document.getElementById('btnRefreshStatus').classList.remove('hide');
             document.getElementById('btnRefreshStatus').onclick = () => window.manualCheckTrx(trx.trx_id, trx.provider_id || trx.trx_id);
-            window.manualCheckTrx(trx.trx_id, trx.provider_id || trx.trx_id);
+            if(!trx.trx_id.startsWith('PO-')) window.manualCheckTrx(trx.trx_id, trx.provider_id || trx.trx_id);
+        }
+
+        if(trx.trx_id.startsWith('PO-')) {
+            const refundInfo = trx.status === 'Gagal' && trx.balance_final ? `<div class="mt-2 p-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg text-[9px] font-bold border border-green-200"><i class="fas fa-undo-alt mr-1"></i> Saldo di-refund: ${window.formatRp(trx.balance_final)}</div>` : '';
+            infoEl.innerHTML = `
+            <div class="space-y-1 text-[10px] font-mono">
+                <div class="border-b border-blue-200 dark:border-blue-800 pb-1 mb-1">
+                    <span class="block font-bold text-blue-700 dark:text-blue-300">Informasi Preorder:</span>
+                    <span>${trx.api_msg || 'Menunggu Admin'}</span>
+                </div>
+                <div class="grid grid-cols-1 gap-1">
+                    <div><span class="text-gray-500">Produk:</span> <span class="font-bold">${trx.title.replace('Preorder: ', '')}</span></div>
+                    <div><span class="text-gray-500">Kode:</span> <span class="font-bold">${trx.raw_code || '-'}</span></div>
+                    <div><span class="text-gray-500">Tujuan:</span> <span class="font-bold text-blue-600">${trx.dest_num || '-'}</span></div>
+                    <div><span class="text-gray-500">Waktu:</span> <span class="font-bold">${new Date(trx.date).toLocaleTimeString('id-ID')} WIB</span></div>
+                </div>
+                ${refundInfo}
+            </div>`;
         } else {
             document.getElementById('btnRefreshStatus').classList.add('hide');
             if (trx.raw_json && trx.raw_json !== '{}') {

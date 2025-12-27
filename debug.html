@@ -13,6 +13,7 @@
         .error { color: #f87171; }
         .info { color: #60a5fa; }
         input, select { background: #1e293b !important; color: white !important; border: 1px solid #334155 !important; }
+        .tab-content.hidden { display: none; }
     </style>
 </head>
 <body class="p-4">
@@ -30,31 +31,50 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
-                <h2 class="text-sm font-bold mb-3 border-b border-slate-800 pb-2 text-blue-300">USER INFO</h2>
-                <div class="space-y-2 text-xs">
-                    <div class="flex justify-between"><span>Username:</span> <span id="uName">-</span></div>
-                    <div class="flex justify-between"><span>Balance:</span> <span id="uBal" class="text-green-400">Rp 0</span></div>
-                    <div class="flex justify-between"><span>UID:</span> <span id="uUid" class="text-[10px] text-gray-500">-</span></div>
+        <div class="flex gap-2 mb-6 border-b border-slate-800 pb-2">
+            <button onclick="switchTab('user-tab')" id="btn-user-tab" class="px-4 py-2 text-xs font-bold rounded-t-lg bg-blue-600 text-white transition-all">USER INFO</button>
+            <button onclick="switchTab('preorder-tab')" id="btn-preorder-tab" class="px-4 py-2 text-xs font-bold rounded-t-lg bg-slate-800 text-gray-400 transition-all">REQUEST PREORDER</button>
+        </div>
+
+        <div id="user-tab-content" class="tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                    <h2 class="text-sm font-bold mb-3 border-b border-slate-800 pb-2 text-blue-300">USER INFO</h2>
+                    <div class="space-y-2 text-xs">
+                        <div class="flex justify-between"><span>Username:</span> <span id="uName">-</span></div>
+                        <div class="flex justify-between"><span>Balance:</span> <span id="uBal" class="text-green-400">Rp 0</span></div>
+                        <div class="flex justify-between"><span>UID:</span> <span id="uUid" class="text-[10px] text-gray-500">-</span></div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                    <h2 class="text-sm font-bold mb-3 border-b border-slate-800 pb-2 text-orange-300">FORCE TRANSACTION</h2>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-[10px] text-gray-400 mb-1">Target Number</label>
+                            <input type="tel" id="targetNum" class="w-full p-2 rounded text-sm" placeholder="08xxx">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-gray-400 mb-1">Product SKU / Code</label>
+                            <input type="text" id="productCode" class="w-full p-2 rounded text-sm" placeholder="Contoh: XDA13">
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="executeDebugTrx('KHFY')" class="flex-1 bg-blue-600 hover:bg-blue-700 py-2 rounded text-xs font-bold transition-all">BYPASS KHFY</button>
+                            <button onclick="executeDebugTrx('ICS')" class="flex-1 bg-cyan-600 hover:bg-cyan-700 py-2 rounded text-xs font-bold transition-all">BYPASS ICS</button>
+                        </div>
+                    </div>
                 </div>
             </div>
+        </div>
 
+        <div id="preorder-tab-content" class="tab-content hidden">
             <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
-                <h2 class="text-sm font-bold mb-3 border-b border-slate-800 pb-2 text-orange-300">FORCE TRANSACTION</h2>
-                <div class="space-y-3">
-                    <div>
-                        <label class="block text-[10px] text-gray-400 mb-1">Target Number</label>
-                        <input type="tel" id="targetNum" class="w-full p-2 rounded text-sm" placeholder="08xxx">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] text-gray-400 mb-1">Product SKU / Code</label>
-                        <input type="text" id="productCode" class="w-full p-2 rounded text-sm" placeholder="Contoh: XDA13">
-                    </div>
-                    <div class="flex gap-2">
-                        <button onclick="executeDebugTrx('KHFY')" class="flex-1 bg-blue-600 hover:bg-blue-700 py-2 rounded text-xs font-bold">BYPASS KHFY</button>
-                        <button onclick="executeDebugTrx('ICS')" class="flex-1 bg-cyan-600 hover:bg-cyan-700 py-2 rounded text-xs font-bold">BYPASS ICS</button>
-                    </div>
+                <h2 class="text-sm font-bold mb-4 text-purple-300 flex justify-between items-center">
+                    <span>LIST REQUEST PREORDER</span>
+                    <span id="po-count" class="bg-purple-900 text-purple-200 px-2 py-0.5 rounded text-[10px]">0 Antrean</span>
+                </h2>
+                <div id="preorder-list" class="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                    <p class="text-[10px] text-gray-500 italic">Menunggu data pre-order...</p>
                 </div>
             </div>
         </div>
@@ -70,9 +90,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, orderBy, limit, onSnapshot, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, orderBy, limit, onSnapshot, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // Identical Config from index.html
         const firebaseConfig = {
             apiKey: "AIzaSyBnVxgxkS8InH1PQCMGe3cY8IvPqSN6dLo",
             authDomain: "ppob-3ea96.firebaseapp.com",
@@ -108,11 +127,106 @@
                 status.className = "text-xs bg-green-900/30 text-green-400 px-3 py-1 rounded-full border border-green-800";
                 addLog(`User authenticated: ${user.uid}`, 'success');
                 listenUserData(user.uid);
+                listenPreOrders();
             } else {
                 status.innerText = "Disconnected";
                 addLog("No user session found. Please login at index.html", 'error');
             }
         });
+
+        window.switchTab = (tab) => {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(tab + '-content').classList.remove('hidden');
+            
+            document.getElementById('btn-user-tab').className = tab === 'user-tab' ? 'px-4 py-2 text-xs font-bold rounded-t-lg bg-blue-600 text-white' : 'px-4 py-2 text-xs font-bold rounded-t-lg bg-slate-800 text-gray-400';
+            document.getElementById('btn-preorder-tab').className = tab === 'preorder-tab' ? 'px-4 py-2 text-xs font-bold rounded-t-lg bg-purple-600 text-white' : 'px-4 py-2 text-xs font-bold rounded-t-lg bg-slate-800 text-gray-400';
+        };
+
+        function listenPreOrders() {
+            const q = query(collection(db, "preorders"), orderBy("timestamp", "desc"));
+            onSnapshot(q, (snap) => {
+                const container = document.getElementById('preorder-list');
+                document.getElementById('po-count').innerText = snap.size + " Antrean";
+                container.innerHTML = '';
+
+                if(snap.empty) {
+                    container.innerHTML = '<p class="text-[10px] text-gray-500 italic text-center py-10">Belum ada permintaan pre-order.</p>';
+                    return;
+                }
+
+                snap.forEach(docSnap => {
+                    const po = docSnap.data();
+                    const id = docSnap.id;
+                    const date = po.timestamp ? new Date(po.timestamp.toDate()).toLocaleString('id-ID') : '-';
+                    
+                    container.innerHTML += `
+                        <div class="bg-black/40 p-3 rounded-lg border border-slate-700 text-[11px] mb-3">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <span class="text-purple-400 font-bold">${po.productName}</span>
+                                    <span class="text-gray-500 block text-[9px]">${date}</span>
+                                </div>
+                                <span class="px-2 py-0.5 rounded text-[9px] font-bold ${po.status === 'Pending' ? 'bg-orange-900 text-orange-300' : 'bg-green-900 text-green-300'}">${po.status}</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 mb-3 bg-slate-800/50 p-2 rounded">
+                                <div><p class="text-gray-500 text-[9px]">Target:</p><p class="font-bold text-white">${po.targetNumber}</p></div>
+                                <div><p class="text-gray-500 text-[9px]">User:</p><p class="font-bold text-white">${po.username}</p></div>
+                                <div><p class="text-gray-500 text-[9px]">Provider:</p><p class="font-bold text-blue-400">${po.provider}</p></div>
+                                <div><p class="text-gray-500 text-[9px]">Harga:</p><p class="font-bold text-green-400">Rp ${parseInt(po.price).toLocaleString()}</p></div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="processPreOrderToSystem('${id}', '${po.targetNumber}', '${po.productCode}')" class="flex-1 bg-purple-600 hover:bg-purple-700 py-1.5 rounded text-[10px] font-bold flex items-center justify-center gap-1 transition-all"><i class="fas fa-bolt"></i> PROSES SISTEM</button>
+                                <button onclick="deletePo('${id}')" class="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-[10px] transition-all"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        window.processPreOrderToSystem = async (id, target, code) => {
+            if(!confirm(`Kirim transaksi Pre-Order ke sistem untuk nomor ${target}?`)) return;
+            
+            try {
+                const numInput = document.getElementById('targetNum');
+                const codeInput = document.getElementById('productCode');
+
+                if(!numInput || !codeInput) {
+                    throw new Error("Elemen input targetNum atau productCode tidak ditemukan.");
+                }
+
+                // 1. Isi form otomatis
+                numInput.value = target;
+                codeInput.value = code;
+                
+                addLog(`Auto-filling system for Pre-Order ${id}...`, 'info');
+                
+                // 2. Pindah tab untuk melihat proses
+                switchTab('user-tab');
+                
+                // 3. Jalankan transaksi bypass
+                await window.executeDebugTrx('KHFY');
+                
+                // 4. Update status di Firestore
+                await updateDoc(doc(db, "preorders", id), { 
+                    status: "Diproses",
+                    processedAt: serverTimestamp()
+                });
+                
+                addLog("Status Pre-Order: DIPROSES", 'success');
+            } catch(e) {
+                addLog("Gagal: " + e.message, 'error');
+                alert("Error: " + e.message);
+            }
+        };
+
+        window.deletePo = async (id) => {
+            if(!confirm('Hapus permanen data ini?')) return;
+            try {
+                await deleteDoc(doc(db, "preorders", id));
+                addLog("Preorder deleted: " + id, 'info');
+            } catch(e) { addLog("Error delete PO: " + e.message, 'error'); }
+        };
 
         function listenUserData(uid) {
             onSnapshot(doc(db, "users", uid), (snap) => {
@@ -124,7 +238,6 @@
                 }
             });
 
-            // Listen History
             const q = query(collection(db, "users", uid, "history"), orderBy("date", "desc"), limit(5));
             onSnapshot(q, (snap) => {
                 const container = document.getElementById('rawHistory');
@@ -132,7 +245,7 @@
                 snap.forEach(d => {
                     const t = d.data();
                     container.innerHTML += `
-                        <div class="bg-black/40 p-2 rounded border border-slate-800 text-[10px]">
+                        <div class="bg-black/40 p-2 rounded border border-slate-800 text-[10px] mb-2">
                             <div class="flex justify-between font-bold">
                                 <span class="text-blue-400">${t.title}</span>
                                 <span class="${t.status === 'Sukses' ? 'text-green-400' : 'text-orange-400'}">${t.status}</span>
@@ -157,17 +270,12 @@
             const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
 
             try {
-                // 1. Database Deduction
                 await runTransaction(db, async (t) => {
                     const uRef = doc(db, "users", currentUser.uid);
                     const uSnap = await t.get(uRef);
                     const bal = uSnap.data().balance;
                     
-                    addLog(`Current balance: Rp ${bal}`);
-                    
-                    // Note: Pada mode debug kita tidak tahu harga pasti sebelum API hit, 
-                    // tapi sistem asli butuh pengurangan saldo. Kita asumsikan harga input manual 0 untuk debug bypass jika mau.
-                    // Namun agar identik, kita catat di history sebagai 'PROSES'.
+                    addLog(`Deduction check balance: Rp ${bal}`);
                     
                     const hRef = doc(db, "users", currentUser.uid, "history", reffId);
                     t.set(hRef, {
@@ -183,7 +291,6 @@
                     });
                 });
 
-                // 2. Call API
                 let result;
                 if (system === 'KHFY') {
                     const url = `${KHFY_CONFIG.baseUrl}/trx?api_key=${KHFY_CONFIG.apiKey}&produk=${code}&tujuan=${num}&reff_id=${reffId}`;
@@ -211,7 +318,6 @@
                 addLog("Debug Execution Error: " + e.message, 'error');
             }
         };
-
     </script>
 </body>
 </html>

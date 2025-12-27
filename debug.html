@@ -111,6 +111,7 @@
 
         let currentUser = null;
         let userData = null;
+        let currentProcessingPoId = null;
 
         function addLog(msg, type = 'info') {
             const logs = document.getElementById('logs');
@@ -125,19 +126,17 @@
                 currentUser = user;
                 status.innerText = "Connected: " + user.email;
                 status.className = "text-xs bg-green-900/30 text-green-400 px-3 py-1 rounded-full border border-green-800";
-                addLog(`User authenticated: ${user.uid}`, 'success');
                 listenUserData(user.uid);
                 listenPreOrders();
             } else {
                 status.innerText = "Disconnected";
-                addLog("No user session found. Please login at index.html", 'error');
+                addLog("No user session found.", 'error');
             }
         });
 
         window.switchTab = (tab) => {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.getElementById(tab + '-content').classList.remove('hidden');
-            
             document.getElementById('btn-user-tab').className = tab === 'user-tab' ? 'px-4 py-2 text-xs font-bold rounded-t-lg bg-blue-600 text-white' : 'px-4 py-2 text-xs font-bold rounded-t-lg bg-slate-800 text-gray-400';
             document.getElementById('btn-preorder-tab').className = tab === 'preorder-tab' ? 'px-4 py-2 text-xs font-bold rounded-t-lg bg-purple-600 text-white' : 'px-4 py-2 text-xs font-bold rounded-t-lg bg-slate-800 text-gray-400';
         };
@@ -148,11 +147,6 @@
                 const container = document.getElementById('preorder-list');
                 document.getElementById('po-count').innerText = snap.size + " Antrean";
                 container.innerHTML = '';
-
-                if(snap.empty) {
-                    container.innerHTML = '<p class="text-[10px] text-gray-500 italic text-center py-10">Belum ada permintaan pre-order.</p>';
-                    return;
-                }
 
                 snap.forEach(docSnap => {
                     const po = docSnap.data();
@@ -171,11 +165,11 @@
                             <div class="grid grid-cols-2 gap-2 mb-3 bg-slate-800/50 p-2 rounded">
                                 <div><p class="text-gray-500 text-[9px]">Target:</p><p class="font-bold text-white">${po.targetNumber}</p></div>
                                 <div><p class="text-gray-500 text-[9px]">User:</p><p class="font-bold text-white">${po.username}</p></div>
-                                <div><p class="text-gray-500 text-[9px]">Provider:</p><p class="font-bold text-blue-400">${po.provider}</p></div>
+                                <div><p class="text-gray-500 text-[9px]">Provider (Code):</p><p class="font-bold text-blue-400">${po.provider}</p></div>
                                 <div><p class="text-gray-500 text-[9px]">Harga:</p><p class="font-bold text-green-400">Rp ${parseInt(po.price).toLocaleString()}</p></div>
                             </div>
                             <div class="flex gap-2">
-                                <button onclick="processPreOrderToSystem('${id}', '${po.targetNumber}', '${po.productCode}')" class="flex-1 bg-purple-600 hover:bg-purple-700 py-1.5 rounded text-[10px] font-bold flex items-center justify-center gap-1 transition-all"><i class="fas fa-bolt"></i> PROSES SISTEM</button>
+                                <button onclick="processPreOrderToSystem('${id}', '${po.targetNumber}', '${po.provider}')" class="flex-1 bg-purple-600 hover:bg-purple-700 py-1.5 rounded text-[10px] font-bold flex items-center justify-center gap-1 transition-all"><i class="fas fa-bolt"></i> PROSES SISTEM</button>
                                 <button onclick="deletePo('${id}')" class="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-[10px] transition-all"><i class="fas fa-trash"></i></button>
                             </div>
                         </div>
@@ -184,39 +178,30 @@
             });
         }
 
-        window.processPreOrderToSystem = async (id, target, code) => {
-            if(!confirm(`Kirim transaksi Pre-Order ke sistem untuk nomor ${target}?`)) return;
+        window.processPreOrderToSystem = async (id, target, providerCode) => {
+            if(!confirm(`Proses Pre-Order menggunakan kode ${providerCode}?`)) return;
             
             try {
+                currentProcessingPoId = id; // Simpan ID untuk auto-delete
                 const numInput = document.getElementById('targetNum');
                 const codeInput = document.getElementById('productCode');
 
-                if(!numInput || !codeInput) {
-                    throw new Error("Elemen input targetNum atau productCode tidak ditemukan.");
-                }
+                if(!numInput || !codeInput) throw new Error("Input tidak ditemukan.");
 
-                // 1. Isi form otomatis
                 numInput.value = target;
-                codeInput.value = code;
+                codeInput.value = providerCode; 
                 
-                addLog(`Auto-filling system for Pre-Order ${id}...`, 'info');
-                
-                // 2. Pindah tab untuk melihat proses
+                addLog(`Auto-fill: Target=${target}, Code=${providerCode}`, 'info');
                 switchTab('user-tab');
                 
-                // 3. Jalankan transaksi bypass
                 await window.executeDebugTrx('KHFY');
                 
-                // 4. Update status di Firestore
                 await updateDoc(doc(db, "preorders", id), { 
                     status: "Diproses",
                     processedAt: serverTimestamp()
                 });
-                
-                addLog("Status Pre-Order: DIPROSES", 'success');
             } catch(e) {
                 addLog("Gagal: " + e.message, 'error');
-                alert("Error: " + e.message);
             }
         };
 
@@ -224,8 +209,8 @@
             if(!confirm('Hapus permanen data ini?')) return;
             try {
                 await deleteDoc(doc(db, "preorders", id));
-                addLog("Preorder deleted: " + id, 'info');
-            } catch(e) { addLog("Error delete PO: " + e.message, 'error'); }
+                addLog("Data dihapus.", 'info');
+            } catch(e) { addLog("Error: " + e.message, 'error'); }
         };
 
         function listenUserData(uid) {
@@ -237,60 +222,17 @@
                     document.getElementById('uUid').innerText = uid;
                 }
             });
-
-            const q = query(collection(db, "users", uid, "history"), orderBy("date", "desc"), limit(5));
-            onSnapshot(q, (snap) => {
-                const container = document.getElementById('rawHistory');
-                container.innerHTML = '';
-                snap.forEach(d => {
-                    const t = d.data();
-                    container.innerHTML += `
-                        <div class="bg-black/40 p-2 rounded border border-slate-800 text-[10px] mb-2">
-                            <div class="flex justify-between font-bold">
-                                <span class="text-blue-400">${t.title}</span>
-                                <span class="${t.status === 'Sukses' ? 'text-green-400' : 'text-orange-400'}">${t.status}</span>
-                            </div>
-                            <div class="text-gray-500 mt-1">ID: ${t.trx_id} | MSG: ${t.api_msg || '-'}</div>
-                        </div>
-                    `;
-                });
-            });
         }
 
         window.executeDebugTrx = async (system) => {
             const num = document.getElementById('targetNum').value;
             const code = document.getElementById('productCode').value;
 
-            if (!num || !code) return alert("Nomor dan Kode wajib diisi!");
-            if (!currentUser) return alert("Auth Session Error!");
-
-            addLog(`Starting ${system} Transaction for ${code}...`);
+            if (!num || !code) return alert("Data tidak lengkap!");
+            addLog(`Eksekusi ${system} untuk kode ${code}...`);
             
             const reffId = `DBG-${Date.now()}`;
-            const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
-
             try {
-                await runTransaction(db, async (t) => {
-                    const uRef = doc(db, "users", currentUser.uid);
-                    const uSnap = await t.get(uRef);
-                    const bal = uSnap.data().balance;
-                    
-                    addLog(`Deduction check balance: Rp ${bal}`);
-                    
-                    const hRef = doc(db, "users", currentUser.uid, "history", reffId);
-                    t.set(hRef, {
-                        title: `[DEBUG] ${code}`,
-                        amount: 0,
-                        type: 'out',
-                        date: new Date().toISOString(),
-                        status: 'Proses',
-                        api_msg: 'Debug Bypass Sent',
-                        trx_id: reffId,
-                        trx_code: trxCode,
-                        dest_num: num
-                    });
-                });
-
                 let result;
                 if (system === 'KHFY') {
                     const url = `${KHFY_CONFIG.baseUrl}/trx?api_key=${KHFY_CONFIG.apiKey}&produk=${code}&tujuan=${num}&reff_id=${reffId}`;
@@ -302,20 +244,20 @@
                     result = await res.json();
                 }
 
-                addLog(`API Response: ${JSON.stringify(result)}`, 'info');
+                const rawResponse = JSON.stringify(result);
+                addLog(`API Response: ${rawResponse}`, (result.success || result.status === 'success' || result.status === true) ? 'success' : 'error');
                 
-                if (result.success || result.status === 'success' || result.status === true) {
-                    addLog("Transaction Accepted by Server!", 'success');
-                    await updateDoc(doc(db, "users", currentUser.uid, "history", reffId), {
-                        status: 'Pending',
-                        api_msg: result.message || 'Processing'
-                    });
-                } else {
-                    addLog("API Rejected: " + (result.message || result.error), 'error');
+                // AUTO-DELETE LOGIC
+                if (rawResponse.includes("#Gagal. Produk Salah")) {
+                    addLog("Indikasi Produk/Nomor Salah terdeteksi. Menghapus antrean...", 'error');
+                    if (currentProcessingPoId) {
+                        await deleteDoc(doc(db, "preorders", currentProcessingPoId));
+                        addLog(`Pre-Order ${currentProcessingPoId} dihapus otomatis.`, 'success');
+                        currentProcessingPoId = null;
+                    }
                 }
-
             } catch (e) {
-                addLog("Debug Execution Error: " + e.message, 'error');
+                addLog("Error API: " + e.message, 'error');
             }
         };
     </script>

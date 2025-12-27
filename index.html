@@ -1011,7 +1011,7 @@ window.openAkrabV2 = () => {
                 console.warn('ICS Proxy Error via ' + proxy.name, e); 
             }
         }
-        return { success: false, message: 'Gagal koneksi ke server ICS (Semua Proxy Gagal)' };
+        return { success: false, message: 'Gagal koneksi ke server  (Semua Proxy Gagal)' };
     }
 
 
@@ -2400,7 +2400,7 @@ window.openAkrabV2 = () => {
                     listContainer.appendChild(div);
                 });
              } else {
-                 if(txtProd) txtProd.innerText = 'Gagal Koneksi ICS';
+                 if(txtProd) txtProd.innerText = 'Gagal Koneksi ';
                  alert('Gagal memuat data : ' + (res.message || 'Unknown'));
              }
              return; // Stop, jangan jalankan logika Khfy

@@ -706,6 +706,16 @@
             try {
                 const q = query(collection(db, "users", uid, "history"), orderBy("date", "desc"));
                 const snap = await getDocs(q);
+
+        // AUTO PLAY SOUND (TRX.OGG)
+        if (window.lastPendingCount !== undefined && snap.size > window.lastPendingCount) {
+            const audio = document.getElementById('trxNotifySound');
+            if (audio) {
+                audio.currentTime = 0;
+                audio.play().catch(e => console.warn("Autoplay blocked:", e));
+            }
+        }
+        window.lastPendingCount = snap.size;
                 const container = document.getElementById('modalUserHistory');
                 
                 if(snap.empty) {
@@ -2351,5 +2361,6 @@ window.deactivateNotif = async () => {
         </div>
     </div>
 
+<audio id="trxNotifySound" src="trx.ogg" preload="auto"></audio>
 </body>
 </html>

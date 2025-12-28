@@ -513,7 +513,11 @@
         <div class="absolute top-0 left-0 w-full h-[45vh] bg-gradient-brand rounded-b-[50px] z-0"></div>
         <div class="relative z-10 px-8 pt-20 w-full">
             <div class="text-center mb-6 text-white">
-                <div class="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg border border-white/30"><i class="fas fa-wallet text-4xl text-white"></i></div>
+                <div class="w-24 h-24 bg-white rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-2xl border-4 border-white/20 overflow-hidden transform hover:scale-105 transition-transform duration-300">
+                <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj0fosGjHRqeGRj63MDerdrDw8AHgrP9qLpKg8f21SFnCQPjpHiQjUifDF8pMZwEPpVX7KWzLjgiMUHUmnzgSRRK4xjDa1ukm3Vwn6cZUARnuepXtSGHlXgsASE5UpoF4nKVLjMamAj7qR0wcP6qxR0UqIjw30OSUIhsjnrzwj8kE9HrgpE6cGMqvRRSLM/s1600/play_store_512.png" 
+                     class="w-20 h-20 object-contain" 
+                     alt="Pandawa Logo">
+            </div>
                 <h1 class="text-3xl font-bold tracking-tight">Pandawa Store</h1>
                 <p class="text-blue-100 text-sm mt-1">Agen Pulsa PPOB Terpercaya</p>
             </div>
@@ -629,10 +633,10 @@
             <h3 class="font-bold text-gray-800 dark:text-white mb-4 text-sm">Layanan</h3>
             <div class="grid grid-cols-4 gap-4">
                 <div class="text-center group cursor-pointer" onclick="openPPOB('akrab')"><div class="bg-blue-100 dark:bg-blue-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-globe text-blue-600 dark:text-blue-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Data</span></div>
-                <div class="text-center group cursor-pointer" onclick="alert('Menu Paket OTP Segera Hadir')"><div class="bg-emerald-100 dark:bg-emerald-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-key text-emerald-600 dark:text-emerald-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Paket OTP</span></div>
+                <div class="text-center group cursor-pointer" onclick="window.showAlert("Info", "Menu Paket OTP Segera Hadir", "info");"><div class="bg-emerald-100 dark:bg-emerald-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-key text-emerald-600 dark:text-emerald-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Paket OTP</span></div>
                 <div class="text-center group cursor-pointer" onclick="nav('preorderPage')"><div class="bg-purple-100 dark:bg-purple-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-clock text-purple-600 dark:text-purple-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Pre-Order</span></div>
                 <div class="text-center group cursor-pointer" onclick="checkAkrabStock()"><div class="bg-orange-100 dark:bg-orange-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-cubes text-orange-600 dark:text-orange-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Stok Akrab</span></div>
-                <div class="text-center group cursor-pointer" onclick="alert('Menu Login OTP Segera Hadir')"><div class="bg-rose-100 dark:bg-rose-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-lock text-rose-600 dark:text-rose-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Login OTP</span></div>
+                <div class="text-center group cursor-pointer" onclick="window.showAlert("Info", "Menu Login OTP Segera Hadir", "info");"><div class="bg-rose-100 dark:bg-rose-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-lock text-rose-600 dark:text-rose-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Login OTP</span></div>
                 <div class="text-center group cursor-pointer" onclick="nav('historyPage')"><div class="bg-indigo-100 dark:bg-indigo-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-history text-indigo-600 dark:text-indigo-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Riwayat</span></div>
             </div>
         </div>
@@ -1706,7 +1710,7 @@ window.openAkrabV2 = () => {
                 status: "pending",
                 timestamp: new Date().toISOString()
             });
-            alert("Permintaan berhasil dikirim ke " + targetUser.username);
+            window.showAlert("Berhasil", "Permintaan berhasil dikirim ke " + targetUser.username, "success");
             window.nav('homePage');
         } catch(e) {
             window.showLoader(false);
@@ -1928,7 +1932,7 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
     } catch (error) {
         window.showLoader(false);
         console.error("Google Login Error:", error);
-        alert("Gagal Memulai Login: " + error.message);
+        window.showAlert("Gagal Login", "Gagal Memulai Login: " + error.message, "error");
     }
 };
 
@@ -1938,7 +1942,7 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
         const gender = document.getElementById('setupGender').value;
         const dob = document.getElementById('setupDob').value;
 
-        if(!username || !gender || !dob) return alert("Mohon lengkapi semua data!");
+        if(!username || !gender || !dob) return window.showAlert("Lengkapi Data", "Mohon lengkapi semua data!", "error");
         
         window.showLoader(true);
         try {
@@ -2110,7 +2114,7 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
         const password = document.getElementById('passwordInput').value;
         const status = document.getElementById('statusMessage');
 
-        if(!email) return alert("Mohon isi Email!");
+        if(!email) return window.showAlert("Lengkapi Data", "Mohon isi Email!", "error");
         status.innerText = "Memproses...";
 
         // 1. HANDLER LUPA SANDI
@@ -2747,10 +2751,9 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
         window.showLoader(true);
         const totalRequired = numbers.length * price;
 
-        // 1. Validasi Saldo Kolektif di Awal
         if (currentBalance < totalRequired) {
             window.showLoader(false);
-            return alert(`Saldo tidak cukup untuk memproses ${numbers.length} transaksi.\nTotal dibutuhkan: ${window.formatRp(totalRequired)}`);
+            return window.showAlert("Saldo Kurang", `Saldo tidak cukup untuk memproses ${numbers.length} transaksi.\nTotal dibutuhkan: ${window.formatRp(totalRequired)}`, "error");
         }
 
         let successCount = 0;
@@ -2760,88 +2763,74 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
             const num = numbers[i].trim();
             if (num.length < 5) continue;
 
-            // Indikator Progress pada Loader
             document.getElementById('loaderText').innerText = `Memproses ${i + 1}/${numbers.length}: ${num}`;
-
             const reffId = 'BATCH-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
             const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
 
             try {
-                // 2. Jalankan Firestore Transaction untuk setiap nomor agar riwayat terpisah
                 await runTransaction(db, async (t) => {
                     const uRef = doc(db, "users", currentUser.uid);
                     const uDoc = await t.get(uRef);
                     const bal = uDoc.data().balance || 0;
 
-                    if (bal < price) throw new Error("Saldo tidak mencukupi di tengah antrean");
+                    if (bal < price) throw new Error("Saldo tidak mencukupi");
 
-                    const balanceAfter = bal - price;
-                    t.update(uRef, { balance: balanceAfter });
-
-                    const hRef = doc(db, "users", currentUser.uid, "history", reffId);
-                    t.set(hRef, {
+                    t.update(uRef, { balance: bal - price });
+                    t.set(doc(db, "users", currentUser.uid, "history", reffId), {
                         title: `${name} (${num})`,
                         amount: price,
                         type: 'out',
                         date: new Date().toISOString(),
                         status: 'Pending',
-                        api_msg: 'Menunggu respon API...',
+                        api_msg: 'Mengirim antrean...',
                         trx_id: reffId,
                         trx_code: trxCode,
-                        dest_num: num,
-                        balance_before: bal,
-                        balance_after: balanceAfter
+                        dest_num: num
                     });
                 });
 
-                // 3. Eksekusi API
                 const result = await callApi('/trx', { produk: code, tujuan: num, reff_id: reffId });
                 
                 let isOk = false;
-                let apiMsg = "Antrean dikirim";
-                let provId = "";
+                let apiMsg = "Pending";
 
                 if (result.ok && result.data) {
                     const d = result.data;
                     const dataObj = d.data || d;
-                    apiMsg = d.message || d.sn || dataObj.message || "Pending";
-                    provId = dataObj.id || "";
-                    isOk = d.status === true || d.success === true || d.status === 'success' || (d.data && d.data.status === 'Pending');
+                    // Anggap sukses kirim jika status true atau ada ID transaksi dari supplier
+                    if (d.status === true || d.success === true || (d.data && d.data.id)) {
+                        isOk = true;
+                        apiMsg = d.message || d.sn || "Diproses";
+                    }
                 }
 
                 if (isOk) {
                     successCount++;
                     await updateDoc(doc(db, "users", currentUser.uid, "history", reffId), {
                         api_msg: apiMsg,
-                        provider_id: provId,
-                        raw_json: JSON.stringify(result.data || result || {})
+                        raw_json: JSON.stringify(result.data || {})
                     });
                 } else {
-                    throw new Error(apiMsg);
+                    throw new Error(result.data?.message || "Ditolak server");
                 }
 
             } catch (e) {
                 failCount++;
-                // 4. Refund Otomatis jika satu nomor dalam batch gagal
                 await runTransaction(db, async (t) => {
                     const uRef = doc(db, "users", currentUser.uid);
                     const uDoc = await t.get(uRef);
-                    const currentBal = uDoc.data().balance || 0;
-                    t.update(uRef, { balance: currentBal + price });
+                    t.update(uRef, { balance: (uDoc.data().balance || 0) + price });
                     t.update(doc(db, "users", currentUser.uid, "history", reffId), {
                         status: 'Gagal',
-                        api_msg: 'Gagal/Refund: ' + e.message
+                        api_msg: 'Refund: ' + e.message
                     });
                 });
             }
-
-            // Jeda 1.5 detik per transaksi agar tidak terkena Rate Limit
-            await new Promise(r => setTimeout(r, 1500));
+            await new Promise(r => setTimeout(r, 1200));
         }
 
         window.showLoader(false);
-        document.getElementById('loaderText').innerText = "Memuat Data...";
-        alert(`Multi Transaksi Selesai!\nBerhasil: ${successCount}\nGagal: ${failCount}`);
+        window.showAlert("Proses Selesai", `Berhasil: ${successCount}\nGagal (Refund): ${failCount}`, "success");
         window.nav('homePage');
     };
 
@@ -2923,10 +2912,10 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
                 let displayMsg = (data.message || data.sn).replace(/\//g, '\n');
                 window.customConfirm('TAGIHAN DITEMUKAN', `Detail Pelanggan:\n------------------\n${displayMsg}\n\n(Silakan lakukan pembayaran manual)`, () => window.closeConfirm());
             } else {
-                alert('PENGGUNA TIDAK TERDAFTAR\n\nSilakan periksa kembali Nomor ID Pelanggan PLN anda.');
+                window.showAlert("Tidak Ditemukan", "PENGGUNA TIDAK TERDAFTAR\n\nSilakan periksa kembali Nomor ID Pelanggan PLN anda.", "error");
             }
         } else {
-            alert('Gagal Terhubung ke Server:\n' + result.error);
+            window.showAlert("Gagal Koneksi", "Gagal Terhubung ke Server:\n" + result.error, "error");
         }
     };
 
@@ -2958,47 +2947,42 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
             
         
     window.cancelPreorder = async (trxId) => {
-        if (!confirm("Apakah Anda yakin ingin membatalkan preorder ini?\nSaldo akan dikembalikan otomatis.")) return;
-        
-        window.showLoader(true);
-        try {
-            await runTransaction(db, async (transaction) => {
-                const userRef = doc(db, "users", currentUser.uid);
-                const trxRef = doc(db, "users", currentUser.uid, "history", trxId);
-                const poRef = doc(db, "preorders", trxId);
+        window.customConfirm("Batalkan Preorder", "Apakah Anda yakin ingin membatalkan preorder ini?\nSaldo akan dikembalikan otomatis.", async () => {
+            window.showLoader(true);
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const userRef = doc(db, "users", currentUser.uid);
+                    const trxRef = doc(db, "users", currentUser.uid, "history", trxId);
+                    const poRef = doc(db, "preorders", trxId);
 
-                const userSnap = await transaction.get(userRef);
-                const trxSnap = await transaction.get(trxRef);
+                    const userSnap = await transaction.get(userRef);
+                    const trxSnap = await transaction.get(trxRef);
 
-                if (!trxSnap.exists() || trxSnap.data().status !== 'Pending') {
-                    throw "Transaksi tidak dapat dibatalkan.";
-                }
+                    if (!trxSnap.exists() || trxSnap.data().status !== 'Pending') {
+                        throw "Transaksi tidak dapat dibatalkan.";
+                    }
 
-                const refundAmount = trxSnap.data().amount || 0;
-                const currentBal = userSnap.data().balance || 0;
+                    const refundAmount = trxSnap.data().amount || 0;
+                    const currentBal = userSnap.data().balance || 0;
 
-                // 1. Kembalikan Saldo
-                transaction.update(userRef, { balance: currentBal + refundAmount });
-
-                // 2. Update Status Riwayat
-                transaction.update(trxRef, {
-                    status: 'Dibatalkan',
-                    api_msg: 'Dibatalkan oleh pengguna (Auto Refund)',
-                    balance_final: currentBal + refundAmount
+                    transaction.update(userRef, { balance: currentBal + refundAmount });
+                    transaction.update(trxRef, {
+                        status: 'Dibatalkan',
+                        api_msg: 'Dibatalkan oleh pengguna (Auto Refund)',
+                        balance_final: currentBal + refundAmount
+                    });
+                    transaction.delete(poRef);
                 });
 
-                // 3. Hapus dari Antrean Admin
-                transaction.delete(poRef);
-            });
-
-            window.showLoader(false);
-            alert("Preorder berhasil dibatalkan dan saldo telah dikembalikan.");
-            window.closeTrxDetail();
-            window.renderHistoryList();
-        } catch (e) {
-            window.showLoader(false);
-            alert("Gagal membatalkan: " + (typeof e === 'string' ? e : e.message));
-        }
+                window.showLoader(false);
+                window.showAlert("Berhasil", "Preorder berhasil dibatalkan dan saldo telah dikembalikan.", "success");
+                window.closeTrxDetail();
+                window.renderHistoryList();
+            } catch (e) {
+                window.showLoader(false);
+                window.showAlert("Gagal", (typeof e === 'string' ? e : e.message), "error");
+            }
+        });
     };
 
 window.submitPreorder = async () => {
@@ -3101,7 +3085,7 @@ window.executeApiTransaction = async (code, dest, price, name) => {
             });
         } catch(e) {
             window.showLoader(false);
-            return alert("Gagal memproses transaksi: " + e);
+            return window.showAlert("Gagal", "Gagal memproses transaksi: " + e, "error");
         }
 
         // Update UI Lokal
@@ -3188,7 +3172,7 @@ window.executeApiTransaction = async (code, dest, price, name) => {
                                 // --- PESAN AMAN UNTUK USER ---
                 // UPDATE: Tampilkan pesan 'Server Sedang Sibuk' jika terdeteksi error proxy
                 const displayMsg = (msg === "Server Sedang Sibuk" || isLockTimeout) ? msg : "Transaksi Gagal / Stok Kosong";
-                alert(`${displayMsg}\n\nSaldo telah dikembalikan otomatis.`);
+                window.showAlert("Transaksi Gagal", displayMsg + "\n\nSaldo telah dikembalikan otomatis.", "error");
                 window.nav('homePage');
             }
 
@@ -3417,7 +3401,7 @@ window.renderTopUpHistory = () => {
             document.getElementById('stockList').innerHTML = html;
             document.getElementById('stockModal').classList.remove('hide');
         } else {
-            alert("Gagal mengambil data stok. Pastikan koneksi internet stabil.");
+            window.showAlert("Gagal", "Gagal mengambil data stok. Pastikan koneksi internet stabil.", "error");
         }
     };
     window.closeStockModal = () => document.getElementById('stockModal').classList.add('hide');

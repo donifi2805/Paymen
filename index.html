@@ -2763,8 +2763,10 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
             const num = numbers[i].trim();
             if (num.length < 5) continue;
 
-            document.getElementById('loaderText').innerText = `Memproses ${i + 1}/${numbers.length}: ${num}`;
-            const reffId = 'BATCH-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+            document.getElementById('loaderText').innerText = `Batch ${i + 1}/${numbers.length}: ${num}`;
+            
+            const uniqueId = Math.random().toString(36).substring(2, 7).toUpperCase();
+            const reffId = `BTCH-${Date.now()}-${uniqueId}`;
             const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
 
             try {
@@ -2782,7 +2784,7 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
                         type: 'out',
                         date: new Date().toISOString(),
                         status: 'Pending',
-                        api_msg: 'Mengirim antrean...',
+                        api_msg: 'Menunggu respon server...',
                         trx_id: reffId,
                         trx_code: trxCode,
                         dest_num: num
@@ -2792,15 +2794,15 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
                 const result = await callApi('/trx', { produk: code, tujuan: num, reff_id: reffId });
                 
                 let isOk = false;
-                let apiMsg = "Pending";
+                let apiMsg = "Diproses";
 
                 if (result.ok && result.data) {
                     const d = result.data;
                     const dataObj = d.data || d;
-                    // Anggap sukses kirim jika status true atau ada ID transaksi dari supplier
-                    if (d.status === true || d.success === true || (d.data && d.data.id)) {
+                    const rawMsg = String(d.message || d.sn || "").toLowerCase();
+                    if (d.status === true || d.success === true || (d.data && d.data.id) || rawMsg.includes('proses') || rawMsg.includes('pending')) {
                         isOk = true;
-                        apiMsg = d.message || d.sn || "Diproses";
+                        apiMsg = d.message || d.sn || "Transaksi Berhasil Dikirim";
                     }
                 }
 
@@ -2811,7 +2813,7 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
                         raw_json: JSON.stringify(result.data || {})
                     });
                 } else {
-                    throw new Error(result.data?.message || "Ditolak server");
+                    throw new Error(result.data?.message || result.error || "Ditolak Server");
                 }
 
             } catch (e) {
@@ -2826,11 +2828,12 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
                     });
                 });
             }
-            await new Promise(r => setTimeout(r, 1200));
+            
+            await new Promise(r => setTimeout(r, 2000));
         }
 
         window.showLoader(false);
-        window.showAlert("Proses Selesai", `Berhasil: ${successCount}\nGagal (Refund): ${failCount}`, "success");
+        window.showAlert("Selesai", `Berhasil: ${successCount}\nGagal/Refund: ${failCount}`, successCount > 0 ? "success" : "error");
         window.nav('homePage');
     };
 

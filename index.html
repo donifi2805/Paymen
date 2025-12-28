@@ -1920,48 +1920,15 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
     const provider = new GoogleAuthProvider();
     provider.addScope('profile');
     provider.addScope('email');
-    // FIX: Paksa select_account untuk merefresh sesi dan menghindari error 'missing initial state' di WebView
-    provider.setCustomParameters({ prompt: 'select_account' });
 
     try {
-        // Menggunakan signInWithPopup (Modal Mengambang) agar tidak terjadi redirect halaman
-        const result = await signInWithPopup(auth, provider);
-        const user = result.user;
-        
-        const userDocRef = doc(db, "users", user.uid);
-        const userDoc = await getDoc(userDocRef);
-
-        if (userDoc.exists()) {
-            console.log("User lama login via Google");
-            // Tidak perlu aksi, onAuthStateChanged akan menangani navigasi
-        } else {
-            await setDoc(userDocRef, {
-                email: user.email,
-                balance: 0,
-                profile_pic: user.photoURL, 
-                createdAt: new Date().toISOString(),
-                authMethod: 'google'
-            }, { merge: true });
-
-            document.getElementById('setupProfileModal').classList.remove('hide');
-            const setupPreview = document.getElementById('setupProfilePreview');
-            if(setupPreview) {
-                setupPreview.src = user.photoURL;
-                setupPreview.style.display = 'block';
-                document.getElementById('setupUploadPlaceholder').style.display = 'none';
-            }
-            window.showLoader(false);
-        }
+        // KEMBALI KE REDIRECT (Versi Stabil untuk WebView dengan Cookie Flush)
+        // Pastikan MainActivity.java sudah menggunakan kode baru (CookieManager.flush)
+        await signInWithRedirect(auth, provider);
     } catch (error) {
         window.showLoader(false);
         console.error("Google Login Error:", error);
-        if (error.code === 'auth/account-exists-with-different-credential') { 
-            alert("Email ini sudah terdaftar. Silakan login menggunakan Password."); 
-        } else if (error.code === 'auth/popup-closed-by-user') { 
-            alert("Login dibatalkan."); 
-        } else { 
-            alert("Gagal Login Google: " + error.message); 
-        }
+        alert("Gagal Memulai Login: " + error.message);
     }
 };
 

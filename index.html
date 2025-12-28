@@ -2278,7 +2278,7 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         
-        // Ambil data lengkap dari cache atau transactions
+        // Ambil data lengkap dari cache
         const cacheKey = `trx_cache_${currentUser.uid}`;
         let allData = JSON.parse(localStorage.getItem(cacheKey) || '[]');
         
@@ -2313,7 +2313,17 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
             styles: { fontSize: 9 }
         });
 
-        doc.save(`Riwayat_PandawaStore_${currentUsername}.pdf`);
+        const fileName = `Riwayat_PandawaStore_${currentUsername}.pdf`;
+
+        // DETEKSI APAKAH DI DALAM APLIKASI ANDROID (AIDE)?
+        if (window.AndroidApp && window.AndroidApp.savePdfFromBase64) {
+             // JIKA DI APLIKASI: Kirim data PDF (Base64) ke Java untuk disimpan
+             const pdfData = doc.output('datauristring');
+             window.AndroidApp.savePdfFromBase64(pdfData, fileName);
+        } else {
+             // JIKA DI BROWSER BIASA: Download normal
+             doc.save(fileName);
+        }
     };
     window.filterHistory = (t) => { currentFilter=t; renderHistoryList(); };
         window.filterHistoryByDate = (selectedDate) => {

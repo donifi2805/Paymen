@@ -1329,71 +1329,7 @@ window.openAkrabV2 = () => {
     }
     const auth = getAuth(app);
 
-    // [FIX] HANDLE REDIRECT GOOGLE
-    // Kode ini wajib ada untuk menangkap login setelah halaman refresh
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result && result.user) {
-            console.log("Login Redirect Berhasil: ", result.user.email);
-            // Jangan matikan loader, biarkan onAuthStateChanged mengarahkan ke menu utama
-            window.showLoader(true);
-        }
-      })
-      .catch((error) => {
-        window.showLoader(false);
-        console.error("Login Redirect Error: ", error);
-        alert("Gagal Login Google: " + error.message);
-      });
-
     const db = getFirestore(app);
-
-    // [FIX KRITIS] MENANGKAP HASIL LOGIN GOOGLE SETELAH REDIRECT
-    // Tanpa kode ini, aplikasi hanya akan reload dan diam di halaman login
-    getRedirectResult(auth)
-        .then((result) => {
-            if (result && result.user) {
-                console.log("Sukses menangkap data Google:", result.user.email);
-                // Tampilkan loader sampai onAuthStateChanged mengambil alih
-                window.showLoader(true);
-            }
-        })
-        .catch((error) => {
-            window.showLoader(false);
-            // Abaikan error null/undefined yang wajar saat bukan login redirect
-            if (error && error.code) {
-                console.error("Gagal menangkap data Google:", error);
-                alert("Gagal Login Google: " + error.message);
-            }
-        });
-
-
-    // FIX UTAMA: Menangkap data login Google setelah halaman refresh
-    // Ini wajib ada agar signInWithRedirect tidak stuck di halaman login
-    getRedirectResult(auth).then((result) => {
-        if (result && result.user) {
-            console.log("Redirect Login Sukses:", result.user.email);
-            window.showLoader(true);
-            // onAuthStateChanged akan otomatis mengarahkan ke homePage
-        }
-    }).catch((error) => {
-        window.showLoader(false);
-        console.error("Redirect Error:", error);
-        window.showAlert("Gagal Login", "Google Error: " + error.message, "error");
-    });
-
-
-    // FIX: Handle Google Redirect Result (Wajib untuk signInWithRedirect)
-    getRedirectResult(auth).then(async (result) => {
-        if (result && result.user) {
-            console.log("Google Redirect Success:", result.user.email);
-            // Tampilkan loader, biarkan onAuthStateChanged menangani navigasi
-            window.showLoader(true);
-        }
-    }).catch((error) => {
-        window.showLoader(false);
-        console.error("Google Redirect Error:", error);
-        window.showAlert("Gagal Login", "Gagal memproses login Google: " + error.message, "error");
-    });
 
 
     // Provider Maintenance Logic
@@ -1513,7 +1449,9 @@ window.openAkrabV2 = () => {
     const CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
 
     // AUTH & DATA
-    onAuthStateChanged(auth, (user) => {
+
+
+onAuthStateChanged(auth, (user) => {
         if (user) {
             currentUser = user;
             console.log("Logged In:", user.uid);
@@ -1985,7 +1923,11 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
     document.getElementById('confirmYesBtn').onclick = () => window.closeConfirm(true);
 
     // AUTH LOGIC
-    window.loginWithGoogle = async () => {
+    
+    
+
+
+window.loginWithGoogle = async () => {
     window.showLoader(true);
     const provider = new GoogleAuthProvider();
     provider.addScope('profile');
@@ -4084,7 +4026,25 @@ window.openQios = () => {
         return new Date(ts.toDate()).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
     }
 
-    // Tampilkan tombol chat hanya jika login
+    
+    // [FIX FINAL - VALID] MENANGKAP LOGIN GOOGLE
+    // Diletakkan di sini (module script) agar 'auth' dan 'window.showLoader' dikenali.
+    getRedirectResult(auth).then((result) => {
+        if (result && result.user) {
+            console.log("Login Redirect Sukses:", result.user.email);
+            if (typeof window.showLoader === 'function') {
+                window.showLoader(true);
+            }
+        }
+    }).catch((error) => {
+        console.error("Redirect Error:", error);
+        if (typeof window.showLoader === 'function') window.showLoader(false);
+        if (error.code && error.code !== 'auth/null-user') {
+             alert("Login Gagal: " + error.message);
+        }
+    });
+
+// Tampilkan tombol chat hanya jika login
     onAuthStateChanged(auth, (user) => {
         if(user) {
             document.getElementById('chatFloatBtn').classList.remove('hide');

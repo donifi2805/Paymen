@@ -724,12 +724,13 @@ logs.scrollTop = logs.scrollHeight;
             const reffId = `DBG-${Date.now()}`;
             try {
                 let result;
-                                                                                if (system === 'KHFY') {
-                    // V3.7 Fix: Format Pesan disederhanakan menjadi KODE.TUJUAN (Tanpa ReffID di string pesan)
-                    // Ini mengatasi error 'Format tidak dikenali' pada backend parser standar.
-                    const trxMsg = `${code}.${num}`;
+                                                                                                if (system === 'KHFY') {
+                    // V3.8 Fix: Format Pesan Disesuaikan dengan Regex Backend (RC=Hex TrxID=Digit ...)
+                    // ReffID 'DBG-' diganti 'abc-' agar valid Hex (karena Regex menolak huruf G-Z)
+                    const hexRef = reffId.replace(/[^a-f0-9-]/gi, 'a'); 
+                    const trxMsg = `RC=${hexRef} TrxID=${Date.now()} ${code}.${num} Sukses Bypass_Admin`;
                     
-                    const res = await fetch(`/api/khfy?message=${encodeURIComponent(trxMsg)}&produk=${code}&tujuan=${num}&reff_id=${reffId}`, {
+                    const res = await fetch(`/api/khfy?message=${encodeURIComponent(trxMsg)}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 

@@ -1330,6 +1330,20 @@ window.openAkrabV2 = () => {
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    // FIX: Handle Google Redirect Result (Wajib untuk signInWithRedirect)
+    getRedirectResult(auth).then(async (result) => {
+        if (result && result.user) {
+            console.log("Google Redirect Success:", result.user.email);
+            // Tampilkan loader, biarkan onAuthStateChanged menangani navigasi
+            window.showLoader(true);
+        }
+    }).catch((error) => {
+        window.showLoader(false);
+        console.error("Google Redirect Error:", error);
+        window.showAlert("Gagal Login", "Gagal memproses login Google: " + error.message, "error");
+    });
+
+
     // Provider Maintenance Logic
     let providerStatus = {};
     window.checkProv = (code) => {
@@ -1926,13 +1940,21 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
     provider.addScope('email');
 
     try {
-        // KEMBALI KE REDIRECT (Versi Stabil untuk WebView dengan Cookie Flush)
-        // Pastikan MainActivity.java sudah menggunakan kode baru (CookieManager.flush)
-        await signInWithRedirect(auth, provider);
+        // PERBAIKAN: Menggunakan signInWithPopup (Sesuai patokan.html)
+        // Metode ini membuka jendela login tanpa me-refresh halaman utama
+        // sehingga state aplikasi terjaga dan langsung masuk menu utama
+        await signInWithPopup(auth, provider);
+        console.log("Login Google Berhasil (Popup Mode)");
+        
     } catch (error) {
         window.showLoader(false);
         console.error("Google Login Error:", error);
-        window.showAlert("Gagal Login", "Gagal Memulai Login: " + error.message, "error");
+        
+        if (error.code === 'auth/popup-closed-by-user') {
+            window.showAlert("Batal", "Proses login dibatalkan.", "info");
+        } else {
+            window.showAlert("Gagal Login", error.message, "error");
+        }
     }
 };
 

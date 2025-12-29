@@ -724,9 +724,11 @@ logs.scrollTop = logs.scrollHeight;
             const reffId = `DBG-${Date.now()}`;
             try {
                 let result;
-                                                                if (system === 'KHFY') {
-                    // V3.6 Fix: Menambahkan field 'message' agar lolos validasi backend
-                    const trxMsg = `${code}.${num}.${reffId}`;
+                                                                                if (system === 'KHFY') {
+                    // V3.7 Fix: Format Pesan disederhanakan menjadi KODE.TUJUAN (Tanpa ReffID di string pesan)
+                    // Ini mengatasi error 'Format tidak dikenali' pada backend parser standar.
+                    const trxMsg = `${code}.${num}`;
+                    
                     const res = await fetch(`/api/khfy?message=${encodeURIComponent(trxMsg)}&produk=${code}&tujuan=${num}&reff_id=${reffId}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },

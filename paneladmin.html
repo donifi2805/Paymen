@@ -293,7 +293,8 @@
             </div>
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left">
+                    <div id="successPagination" class="p-3 border-b border-gray-100 bg-gray-50 flex justify-center items-center gap-1 hide transition-all"></div>
+<table class="w-full text-left">
                         <thead>
                             <tr class="bg-gray-50 text-gray-500 text-[9px] uppercase tracking-wider border-b">
                                 <th class="p-3 font-bold">Waktu</th>
@@ -307,7 +308,7 @@
                              <tr><td colspan="5" class="p-6 text-center text-gray-400">Klik refresh untuk memuat data...</td></tr>
                         </tbody>
                     </table>
-                    <div id="successPagination" class="p-3 border-t border-gray-100 bg-gray-50 flex justify-center items-center gap-1 hide transition-all"></div>
+                    
                 </div>
             </div>
         </div>
@@ -338,7 +339,10 @@
             </div>
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="overflow-x-auto custom-scroll">
-                    <table class="w-full text-left border-collapse">
+                    <div id="userPaginationArea" class="p-3 border-b border-gray-100 bg-gray-50 flex justify-center items-center gap-2 hide">
+                    <button onclick="loadUsers(false)" class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold shadow-sm hover:bg-blue-50 text-blue-600 transition">Muat Lebih Banyak...</button>
+                </div>
+<table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="bg-gray-50 text-gray-500 text-[9px] uppercase tracking-wider border-b border-gray-100">
                                 <th class="p-3 font-bold">Profile</th>
@@ -352,9 +356,7 @@
                         </tbody>
                     </table>
                 </div>
-                <div id="userPaginationArea" class="p-3 border-t border-gray-100 bg-gray-50 flex justify-center items-center gap-2 hide">
-                    <button onclick="loadUsers(false)" class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold shadow-sm hover:bg-blue-50 text-blue-600 transition">Muat Lebih Banyak...</button>
-                </div>
+                
             </div>
         </div>
 
@@ -397,7 +399,8 @@
             </div>
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="overflow-x-auto custom-scroll">
-                    <table class="w-full text-left">
+                    <div id="trxPagination" class="p-3 border-b border-gray-100 bg-gray-50 flex justify-center items-center gap-1 hide transition-all"></div>
+<table class="w-full text-left">
                         <thead>
                             <tr class="bg-gray-50 text-gray-500 text-[9px] uppercase tracking-wider border-b border-gray-100">
                                 <th class="p-3 font-bold">Waktu</th>
@@ -413,7 +416,7 @@
                              <tr><td colspan="5" class="p-6 text-center text-gray-400">Menunggu data...</td></tr>
                         </tbody>
                     </table>
-                <div id="trxPagination" class="p-3 border-t border-gray-100 bg-gray-50 flex justify-center items-center gap-1 hide transition-all"></div>
+                
                 </div>
             </div>
         </div>

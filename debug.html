@@ -1328,6 +1328,23 @@ window.openAkrabV2 = () => {
         }
     }
     const auth = getAuth(app);
+
+    // [FIX] HANDLE REDIRECT GOOGLE
+    // Kode ini wajib ada untuk menangkap login setelah halaman refresh
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result && result.user) {
+            console.log("Login Redirect Berhasil: ", result.user.email);
+            // Jangan matikan loader, biarkan onAuthStateChanged mengarahkan ke menu utama
+            window.showLoader(true);
+        }
+      })
+      .catch((error) => {
+        window.showLoader(false);
+        console.error("Login Redirect Error: ", error);
+        alert("Gagal Login Google: " + error.message);
+      });
+
     const db = getFirestore(app);
 
     // FIX UTAMA: Menangkap data login Google setelah halaman refresh
@@ -1955,12 +1972,12 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
     provider.addScope('email');
 
     try {
-        // Menggunakan Redirect (Halaman akan refresh ke Google)
+        // Menggunakan signInWithRedirect (Sesuai permintaan)
         await signInWithRedirect(auth, provider);
     } catch (error) {
         window.showLoader(false);
-        console.error("Google Login Error:", error);
-        window.showAlert("Gagal Login", "Gagal Memulai Login: " + error.message, "error");
+        console.error("Google Init Error:", error);
+        alert("Gagal Memulai Login: " + error.message);
     }
 };
 

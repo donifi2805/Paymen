@@ -703,32 +703,33 @@ logs.scrollTop = logs.scrollHeight;
             });
         };
 
-                window.autoRunPreorder = async (id, target, providerCode, type) => {
+                        window.autoRunPreorder = async (id, target, providerCode, type) => {
             currentProcessingPoId = id;
             document.getElementById('debugTargetNum').value = target;
             document.getElementById('debugProductCode').value = providerCode;
             
             if (type === 'KHFY' || type === 'ICS') {
-                addDebugLog(`[AUTO-RUN] Executing ${type} Bypass...`, 'info');
-                await executeDebugTrx(type);
+                addDebugLog(`[AUTO-RUN] Executing ${type} Bypass (Ref: ${id})...`, 'info');
+                await executeDebugTrx(type, id);
             } else {
                 addDebugLog(`[MANUAL] Data loaded: ${target}. Select BYPASS button below.`, 'info');
             }
         };
 
-        window.executeDebugTrx = async (system) => {
+                window.executeDebugTrx = async (system, manualRefId = null) => {
             const num = document.getElementById('debugTargetNum').value;
             const code = document.getElementById('debugProductCode').value;
             if (!num || !code) return alert("Data tidak lengkap!");
             addDebugLog(`Executing ${system} Bypass for ${code}...`);
-            const reffId = `DBG-${Date.now()}`;
+            
+            // V3.9 Fix: Gunakan ID Asli (PO-...) agar terbaca di Database Backend
+            const reffId = manualRefId || `DBG-${Date.now()}`;
+            
             try {
                 let result;
                                                                                                 if (system === 'KHFY') {
-                    // V3.8 Fix: Format Pesan Disesuaikan dengan Regex Backend (RC=Hex TrxID=Digit ...)
-                    // ReffID 'DBG-' diganti 'abc-' agar valid Hex (karena Regex menolak huruf G-Z)
-                    const hexRef = reffId.replace(/[^a-f0-9-]/gi, 'a'); 
-                    const trxMsg = `RC=${hexRef} TrxID=${Date.now()} ${code}.${num} Sukses Bypass_Admin`;
+                    // Format Pesan Standar: Menggunakan ID Transaksi yang Valid (PO-...)
+                    const trxMsg = `RC=${reffId} TrxID=${Date.now()} ${code}.${num} Sukses Bypass_Admin`;
                     
                     const res = await fetch(`/api/khfy?message=${encodeURIComponent(trxMsg)}`, {
                         method: 'POST',

@@ -1347,6 +1347,26 @@ window.openAkrabV2 = () => {
 
     const db = getFirestore(app);
 
+    // [FIX KRITIS] MENANGKAP HASIL LOGIN GOOGLE SETELAH REDIRECT
+    // Tanpa kode ini, aplikasi hanya akan reload dan diam di halaman login
+    getRedirectResult(auth)
+        .then((result) => {
+            if (result && result.user) {
+                console.log("Sukses menangkap data Google:", result.user.email);
+                // Tampilkan loader sampai onAuthStateChanged mengambil alih
+                window.showLoader(true);
+            }
+        })
+        .catch((error) => {
+            window.showLoader(false);
+            // Abaikan error null/undefined yang wajar saat bukan login redirect
+            if (error && error.code) {
+                console.error("Gagal menangkap data Google:", error);
+                alert("Gagal Login Google: " + error.message);
+            }
+        });
+
+
     // FIX UTAMA: Menangkap data login Google setelah halaman refresh
     // Ini wajib ada agar signInWithRedirect tidak stuck di halaman login
     getRedirectResult(auth).then((result) => {

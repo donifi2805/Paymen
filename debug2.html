@@ -724,16 +724,12 @@ logs.scrollTop = logs.scrollHeight;
             const reffId = `DBG-${Date.now()}`;
             try {
                 let result;
-                                if (system === 'KHFY') {
-                    // V3.4: Menggunakan Endpoint Backend Sendiri (Secure)
-                    const res = await fetch('/api/khfy', {
+                                                if (system === 'KHFY') {
+                    // V3.5 Fix: Kirim Parameter di URL & Body (Hybrid) untuk kompatibilitas Backend
+                    const res = await fetch(`/api/khfy?produk=${code}&tujuan=${num}&reff_id=${reffId}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            produk: code, 
-                            tujuan: num, 
-                            reff_id: reffId 
-                        })
+                        body: JSON.stringify({ produk: code, tujuan: num, reff_id: reffId })
                     });
                     result = await res.json();
                 } else {

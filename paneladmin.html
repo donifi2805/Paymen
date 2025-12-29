@@ -374,7 +374,23 @@
                         <i class="fas fa-file-pdf"></i> PDF
                     </button>
                     <div class="flex items-center gap-2">
-    <input type="date" id="globalTrxDate" onchange="loadGlobalTransactions()" class="bg-gray-50 border border-gray-300 text-gray-900 text-[10px] rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-1.5 shadow-sm">
+    <input type="text" id="trxUserFilter" onkeyup="renderTransactions()" placeholder="Cari User..." class="bg-gray-50 border border-gray-300 text-gray-900 text-[10px] rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-1.5 shadow-sm w-24">
+                    
+<div class="relative">
+                    <button onclick="toggleTrxFilterMenu()" class="bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg font-bold text-[10px] shadow-sm hover:bg-gray-50 flex items-center gap-2">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+                    <div id="trxFilterMenu" class="hide absolute top-full left-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-xl z-50 p-2">
+                        <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Semua" checked class="trx-filter-cb"> <span class="text-[10px]">Semua</span></label>
+                        <hr class="my-1">
+                        <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Sukses" class="trx-filter-cb"> <span class="text-[10px]">Sukses</span></label>
+                        <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Gagal" class="trx-filter-cb"> <span class="text-[10px]">Gagal</span></label>
+                        <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Pending" class="trx-filter-cb"> <span class="text-[10px]">Pending</span></label>
+                        <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Refund" class="trx-filter-cb"> <span class="text-[10px]">Refund</span></label>
+                        <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Topup" class="trx-filter-cb"> <span class="text-[10px]">Topup</span></label>
+                    </div>
+                </div>
+<input type="date" id="globalTrxDate" onchange="loadGlobalTransactions()" class="bg-gray-50 border border-gray-300 text-gray-900 text-[10px] rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-1.5 shadow-sm">
     <button onclick="loadGlobalTransactions()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold text-[10px]"><i class="fas fa-sync-alt"></i></button>
 </div>
                 </div>
@@ -388,7 +404,7 @@
                                 <th class="p-3 font-bold">User</th>
                                 <th class="p-3 font-bold">Ket</th>
                                 <th class="p-3 font-bold">Info Saldo</th>
-<th class="p-3 font-bold text-center">Riwayat JSON</th>
+<th class="p-3 font-bold text-center">Cek Server</th>
                                 <th class="p-3 font-bold text-right">Nominal</th>
                                 <th class="p-3 font-bold text-center">Status</th>
                             </tr>
@@ -760,6 +776,37 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
             } 
         });
 
+        window.checkRealtimeJson = async (uid, trxId) => {
+            Swal.fire({ title: 'Koneksi ke Pusat', html: 'Sedang mengambil raw data...', didOpen: () => Swal.showLoading() });
+            try {
+                const snap = await getDoc(doc(db, "users", uid, "history", trxId));
+                if(!snap.exists()) throw "Data lokal tidak ditemukan";
+                const d = snap.data();
+                const refId = d.trx_id;
+                if(!refId) throw "Ref ID tidak ditemukan pada transaksi ini.";
+
+                let res = await callIcsApi('checkTransaction', { refid: refId });
+                let source = "ICS Store";
+                if(!res || (!res.data && !res.status)) {
+                     const resKhfy = await callApi('/history', { refid: refId });
+                     if(resKhfy.ok && resKhfy.data) {
+                         res = resKhfy.data;
+                         source = "Khfy Store";
+                     }
+                }
+                
+                Swal.fire({
+                    title: 'Raw JSON (' + source + ')',
+                    html: `<div class="text-left"><div class="bg-slate-900 p-3 rounded-lg overflow-auto max-h-[60vh] custom-scroll relative group">
+                            <button onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)" class="absolute top-2 right-2 text-gray-500 hover:text-white transition"><i class="fas fa-copy"></i></button>
+                            <pre class="text-[10px] text-green-400 font-mono whitespace-pre-wrap">${JSON.stringify(res, null, 2)}</pre>
+                           </div></div>`,
+                    width: '600px',
+                    confirmButtonText: 'Tutup'
+                });
+            } catch(e) { Swal.fire('Error', e.message || e, 'error'); }
+        };
+
         window.showAdminTrxDetail = (t) => {
             // Ambil User terbaru dari memory untuk cek saldo saat ini
             const user = allUsers.find(u => u.id === t.uid);
@@ -975,7 +1022,14 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
                             <div><p class="text-[9px] text-gray-400">Produk</p><p class="font-bold">${trx.title}</p></div>
                             <div class="text-right"><p class="text-[9px] text-gray-400">Status</p><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${trx.status === 'Sukses' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${trx.status}</span></div>
                          </div>
-                         <div class="space-y-2 text-[11px] bg-blue-50/50 p-3 rounded-xl">
+                         <div class="grid grid-cols-2 gap-2 mb-3 text-[10px]">
+                            <div class="bg-gray-50 p-2 rounded border"><p class="text-gray-400">Nomor Tujuan</p><p class="font-bold font-mono">${trx.dest_num || trx.target || '-'}</p></div>
+                            <div class="bg-gray-50 p-2 rounded border"><p class="text-gray-400">Ref ID (Server)</p><p class="font-bold font-mono truncate">${trx.trx_id || '-'}</p></div>
+                            <div class="bg-gray-50 p-2 rounded border"><p class="text-gray-400">Trx ID (System)</p><p class="font-bold font-mono truncate">${snap.docs[0].id}</p></div>
+                            <div class="bg-gray-50 p-2 rounded border"><p class="text-gray-400">Jenis / Kode</p><p class="font-bold font-mono">${trx.product_code || trx.code || '-'}</p></div>
+                         </div>
+                         
+<div class="space-y-2 text-[11px] bg-blue-50/50 p-3 rounded-xl">
                             <div class="flex justify-between"><span>Saldo Awal (User):</span><span class="font-bold">${window.formatRp(trx.balance_before || 0)}</span></div>
                             <div class="flex justify-between"><span>Biaya:</span><span class="font-bold text-red-500">- ${window.formatRp(trx.amount)}</span></div>
                             <div class="flex justify-between"><span>Saldo Akhir (User):</span><span class="font-bold text-green-600">${window.formatRp(trx.balance_after || 0)}</span></div>
@@ -1462,11 +1516,11 @@ if(tabId === 'pricing') loadPricingData();
                     </td>
                     <td class="p-3">
                         <div class="font-bold text-gray-800">${t.title || '-'}</div>
-                        <div class="text-[9px] text-blue-500 font-mono">${t.dest_num || '-'}</div>
+                        <div class="text-[9px] text-blue-500 font-mono">${t.type === 'in' ? '<span class="text-emerald-600 font-bold"><i class="fas fa-wallet mr-1"></i>Deposit / Topup</span>' : (t.dest_num || t.target || t.nomor_tujuan || t.no_hp || t.customer_no || t.phone || t.pelanggan || '-')}</div>
                     </td>
                     <td class="p-3 text-right font-bold text-emerald-600">${window.formatRp(t.amount || 0)}</td>
                     <td class="p-3 text-center">
-                        <button onclick='showAdminTrxDetail(${JSON.stringify(t)})' class="bg-indigo-50 text-indigo-600 px-2 py-1 rounded text-[9px] font-bold border border-indigo-200 hover:bg-indigo-100 transition shadow-sm whitespace-nowrap"><i class="fas fa-server mr-1"></i>Cek Server</button>
+                        <button onclick='checkRealtimeJson("${t.uid}", "${t.id}")' class="bg-indigo-50 text-indigo-600 px-2 py-1 rounded text-[9px] font-bold border border-indigo-200 hover:bg-indigo-100 transition shadow-sm whitespace-nowrap"><i class="fas fa-satellite-dish mr-1"></i>Cek Server (JSON)</button>
                     </td>
                 </tr>`;
             });
@@ -1866,9 +1920,38 @@ if(tabId === 'pricing') loadPricingData();
             renderTransactions();
         };
 
-        function renderTransactions(data = null) {
-            if(data) { trxCurrentData = data; trxCurrentPage = 1; }
+                function renderTransactions(data = null) {
+            if(data) { allTransactions = data; trxCurrentPage = 1; }
             
+            // Filter Logic
+            const chk = document.querySelectorAll('.trx-filter-cb:checked');
+            const filters = Array.from(chk).map(c => c.value);
+                        const userSearch = document.getElementById('trxUserFilter') ? document.getElementById('trxUserFilter').value.toLowerCase() : '';
+            let filteredData = allTransactions.filter(t => {
+                // 1. Filter User Name
+                if (userSearch) {
+                    const uObj = allUsers.find(u => u.id === t.uid);
+                    const uName = uObj ? (uObj.username || '') : (t.username || '');
+                    if (!uName.toLowerCase().includes(userSearch)) return false;
+                }
+
+                // 2. Filter Category
+                if (filters.includes('Semua') || filters.length === 0) return true;
+
+                const s = t.status;
+                const isRefund = s === 'Gagal' && t.balance_final;
+                const isTopup = t.type === 'in';
+                
+                if (filters.includes('Topup') && isTopup) return true;
+                if (filters.includes('Refund') && isRefund) return true;
+                if (filters.includes('Sukses') && s === 'Sukses') return true;
+                if (filters.includes('Gagal') && s === 'Gagal' && !isRefund) return true;
+                if (filters.includes('Pending') && (s === 'Pending' || s === 'Proses')) return true;
+                
+                return false;
+            });
+            trxCurrentData = filteredData;
+
             const start = (trxCurrentPage - 1) * trxItemsPerPage;
             const end = start + trxItemsPerPage;
             const pageData = trxCurrentData.slice(start, end);
@@ -1876,32 +1959,35 @@ if(tabId === 'pricing') loadPricingData();
 
             let html = '';
             pageData.forEach(t => {
-                const isOut = t.type === 'out', user = allUsers.find(u => u.id === t.uid); const userName = user ? (user.username || 'User') : (t.username || 'User ' + (t.uid || '').substring(0,5)); const dObj = t.date ? new Date(t.date) : null; const date = dObj ? dObj.toLocaleDateString('id-ID', {day:'numeric', month:'short'}) : '-'; const time = dObj ? dObj.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : '';
-                let statusHtml = '';
-                if (t.status === 'Sukses') statusHtml = '<span class="px-1.5 py-0.5 rounded bg-green-100 text-green-700">Sukses</span>';
-                else if (t.status === 'Gagal' && t.balance_final) statusHtml = '<span class="px-1.5 py-0.5 rounded bg-red-100 text-red-700">Gagal</span><div class="text-[9px] text-green-600 font-bold mt-1"><i class="fas fa-undo mr-1"></i>REFUND</div>';
-                else if (t.status === 'Gagal') statusHtml = '<span class="px-1.5 py-0.5 rounded bg-red-100 text-red-700">Gagal</span>';
-                else statusHtml = `<span class="px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700">${t.status}</span>`;
+                const isOut = t.type === 'out', user = allUsers.find(u => u.id === t.uid); const userName = user ? (user.username || 'User') : (t.username || 'User ' + (t.uid || '').substring(0,5)); const dObj = t.date ? new Date(t.date) : null; const date = dObj ? dObj.toLocaleDateString('id-ID', {day:'numeric', month:'short'}) : '-'; const time = dObj ? dObj.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '';
+                
+                let statusColor = 'bg-yellow-100 text-yellow-700 border-yellow-200';
+                if (t.status === 'Sukses') { statusColor = 'bg-green-100 text-green-700 border-green-200'; }
+                else if (t.status === 'Gagal') { statusColor = 'bg-red-100 text-red-700 border-red-200'; }
+                const isRefund = t.status === 'Gagal' && t.balance_final;
+                const statusHtml = `<button onclick="openStatusChangeModal('${t.uid}', '${t.id}')" class="px-2 py-0.5 rounded border ${statusColor} text-[10px] font-bold hover:brightness-95 transition shadow-sm">${t.status} <i class="fas fa-edit ml-1 opacity-50"></i></button>${isRefund ? '<div class="text-[9px] text-green-600 font-bold mt-1 bg-green-50 rounded px-1"><i class="fas fa-undo mr-1"></i>REFUND</div>' : ''}`;
+                
+                const destNum = t.dest_num || t.target || t.nomor_tujuan || t.phone || '-';
 
                 html += `<tr class="border-b border-gray-50">
                     <td class="p-3"><div class="font-bold">${date}</div><div class="text-[10px] text-gray-400 font-mono">${time} WIB</div></td>
                     <td class="p-3"><div class="font-bold">${userName}</div><button onclick="viewUserHistory('${t.uid}', '${userName}')" class="text-[9px] text-orange-500 font-bold hover:underline"><i class="fas fa-history mr-1"></i>Lihat Riwayat</button></td>
-                    <td class="p-3"><div>${t.title}</div>${t.trx_code ? `<div class="text-[9px] font-mono text-blue-600 font-bold mt-1"><i class="fas fa-hashtag mr-1"></i>${t.trx_code}</div>` : ''}</td>
+                    <td class="p-3"><div>${t.title}</div><div class="text-[9px] text-gray-500 font-mono mt-0.5"><i class="fas fa-phone-alt mr-1 text-[8px]"></i>${destNum}</div>${t.trx_code ? `<div class="text-[9px] font-mono text-blue-600 font-bold mt-1"><i class="fas fa-hashtag mr-1"></i>${t.trx_code}</div>` : ''}</td>
                     <td class="p-3">
                         <button onclick='showAdminTrxDetail(${JSON.stringify(t)})' class="text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 px-2 py-1 rounded">
                             <i class="fas fa-search-dollar"></i> <span class="text-[9px]">Detail</span>
                         </button>
                     </td>
-<td class="p-3 text-center">
-                        <button onclick='viewRawJson(${JSON.stringify(t)})' class="text-purple-600 hover:text-purple-800 flex items-center justify-center gap-1 bg-purple-50 px-2 py-1 rounded border border-purple-100 transition">
-                            <i class="fas fa-code"></i> <span class="text-[9px]">Mentah</span>
+                    <td class="p-3 text-center">
+                        <button onclick='checkRealtimeJson("${t.uid}", "${t.id}")' class="text-purple-600 hover:text-purple-800 flex items-center justify-center gap-1 bg-purple-50 px-2 py-1 rounded border border-purple-100 transition whitespace-nowrap">
+                            <i class="fas fa-satellite-dish"></i> <span class="text-[9px]">Cek Server</span>
                         </button>
                     </td>
                     <td class="p-3 text-right"><span class="font-bold ${isOut?'text-red-500':'text-green-500'}">${isOut?'-':'+'}${window.formatRp(t.amount)}</span></td>
                     <td class="p-3 text-center">${statusHtml}</td>
                 </tr>`;
             });
-            document.getElementById('trxTableBody').innerHTML = html || '<tr><td colspan="5" class="p-4 text-center">Kosong</td></tr>';
+            document.getElementById('trxTableBody').innerHTML = html || '<tr><td colspan="7" class="p-4 text-center text-gray-400">Data tidak ditemukan (Cek Filter).</td></tr>';
 
             const container = document.getElementById('trxPagination');
             if(container) {
@@ -1929,7 +2015,26 @@ if(tabId === 'pricing') loadPricingData();
             }
         }
 
-        window.downloadTrxPDF = () => {
+                window.toggleTrxFilterMenu = () => { document.getElementById('trxFilterMenu').classList.toggle('hide'); };
+        window.applyTrxFilter = () => { renderTransactions(); };
+        window.openStatusChangeModal = (uid, trxId) => {
+            document.getElementById('statusChangeUid').value = uid;
+            document.getElementById('statusChangeTrxId').value = trxId;
+            document.getElementById('statusChangeModal').classList.remove('hide');
+        };
+        window.saveStatusChange = async (newStatus) => {
+            const uid = document.getElementById('statusChangeUid').value, trxId = document.getElementById('statusChangeTrxId').value;
+            if(!uid || !trxId) return;
+            try {
+                Swal.showLoading();
+                await updateDoc(doc(db, "users", uid, "history", trxId), { status: newStatus, api_msg: 'Status diubah manual oleh Admin ke ' + newStatus, date_updated: new Date().toISOString() });
+                const idx = allTransactions.findIndex(t => t.id === trxId); if(idx > -1) allTransactions[idx].status = newStatus;
+                renderTransactions(); document.getElementById('statusChangeModal').classList.add('hide'); Swal.fire('Berhasil', 'Status diubah.', 'success');
+            } catch(e) { Swal.fire('Error', e.message, 'error'); }
+        };
+
+
+window.downloadTrxPDF = () => {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             const table = document.getElementById("trxTableBody");
@@ -2608,7 +2713,20 @@ window.deactivateNotif = async () => {
 
     </script>
     
-    <div id="searchTrxModal" class="hide fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 fade-in">
+        <div id="statusChangeModal" class="hide fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 fade-in">
+        <div class="bg-white rounded-xl w-full max-w-xs shadow-2xl p-4">
+            <h3 class="text-sm font-bold text-gray-800 mb-3 text-center">Ubah Status Manual</h3>
+            <input type="hidden" id="statusChangeUid"><input type="hidden" id="statusChangeTrxId">
+            <div class="space-y-2">
+                <button onclick="saveStatusChange('Sukses')" class="w-full bg-green-100 text-green-700 py-2 rounded-lg font-bold text-xs hover:bg-green-200 border border-green-200">Set Sukses</button>
+                <button onclick="saveStatusChange('Pending')" class="w-full bg-yellow-100 text-yellow-700 py-2 rounded-lg font-bold text-xs hover:bg-yellow-200 border border-yellow-200">Set Pending</button>
+                <button onclick="saveStatusChange('Gagal')" class="w-full bg-red-100 text-red-700 py-2 rounded-lg font-bold text-xs hover:bg-red-200 border border-red-200">Set Gagal</button>
+                <button onclick="document.getElementById('statusChangeModal').classList.add('hide')" class="w-full bg-gray-100 text-gray-600 py-2 rounded-lg font-bold text-xs hover:bg-gray-200 mt-2">Batal</button>
+            </div>
+        </div>
+    </div>
+
+<div id="searchTrxModal" class="hide fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 fade-in">
         <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
             <div class="bg-gray-50 px-4 py-4 border-b border-gray-100 flex justify-between items-center">
                 <h3 class="text-sm font-bold text-gray-800"><i class="fas fa-search-dollar mr-2 text-orange-500"></i>Pelacak Transaksi Sistem</h3>

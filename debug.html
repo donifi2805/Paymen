@@ -23,10 +23,7 @@
         .hide { display: none !important; }
         .page { animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        @keyframes pop-in { from { opacity: 0; transform: scale(0.9) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-        .animate-pop-in { animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-@keyframes fadeInDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in-down { animation: fadeInDown 0.3s ease-out forwards; }
         .bg-gradient-brand { background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%); }
         html.dark .bg-gradient-brand { background: linear-gradient(135deg, #1d4ed8 0%, #172554 100%); }
@@ -80,21 +77,7 @@
 
         
     
-    
-    
-    <div id="customAlertModal" class="hide fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
-        <div class="bg-white dark:bg-gray-900 w-full max-w-xs rounded-[2.5rem] p-8 shadow-2xl border border-white/20 dark:border-gray-800 transform transition-all animate-pop-in relative overflow-hidden">
-            <div id="alertIconContainer" class="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-                <i id="alertIcon" class="text-4xl text-white"></i>
-            </div>
-            <div class="text-center">
-                <h3 id="alertTitle" class="text-xl font-black text-gray-800 dark:text-white mb-2 tracking-tight uppercase"></h3>
-                <p id="alertMessage" class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-8 px-2"></p>
-                <button onclick="closeAlert()" class="w-full py-4 bg-gradient-brand text-white font-black rounded-2xl shadow-xl shadow-blue-600/30 active:scale-95 transition-all uppercase tracking-wider text-xs">Oke, Mengerti</button>
-            </div>
-        </div>
-    </div>
-<div id="updateNoticeModal" class="hide fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-md p-6">
+    <div id="updateNoticeModal" class="hide fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-md p-6">
         <div class="bg-white dark:bg-gray-900 w-full max-w-sm rounded-[2.5rem] overflow-hidden shadow-2xl relative border-2 border-orange-500 animate-pop-in">
             <button onclick="closeUpdateNotice()" class="absolute top-4 right-4 w-10 h-10 bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-red-500 rounded-full flex items-center justify-center transition-all z-10 shadow-sm">
                 <i class="fas fa-times text-lg"></i>
@@ -275,9 +258,7 @@
 
             <div class="flex gap-2 mt-4">
                  <button onclick="copyToClipboard(document.getElementById('dtSn').innerText)" class="flex-1 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-bold text-xs hover:bg-gray-200"><i class="fas fa-copy mr-1"></i> Salin Info</button>
-                 
-                 <button id="btnCancelPreorder" onclick="" class="hide flex-1 py-3 rounded-xl bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-bold text-xs hover:bg-red-200 transition"><i class="fas fa-ban mr-1"></i> Batalkan PO</button>
-<button onclick="closeTrxDetail()" class="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold text-xs shadow-lg">Tutup</button>
+                 <button onclick="closeTrxDetail()" class="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold text-xs shadow-lg">Tutup</button>
             </div>
         </div>
     </div>
@@ -423,87 +404,14 @@
         </div>
     </div>
 
-            <div id="manualTopUpModal" class="hide fixed inset-0 z-[160] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 fade-enter">
-        <div class="bg-white dark:bg-gray-900 w-full max-w-xs rounded-3xl p-6 shadow-2xl relative">
-            <button onclick="closeManualTopUp()" class="absolute top-4 right-4 text-gray-400 hover:text-red-500"><i class="fas fa-times text-xl"></i></button>
-            
-            <div id="mtStep1">
-                <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-1">Top Up Manual</h3>
-                <p class="text-xs text-gray-500 mb-4">Metode Transfer Bank (Cek Manual)</p>
-                
-                <div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800 mb-4 text-center">
-                    <p class="text-[10px] text-gray-500">Bank Tujuan</p>
-                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTOXd7uJlgyXODfLIhtY64i_e5FRtHLSIE7KwhQ9c_MZg&s=10" class="h-6 mx-auto my-1">
-                    <p class="text-sm font-bold text-gray-800 dark:text-white">901338749488</p>
-                    <p class="text-[10px] text-gray-600 dark:text-gray-400 font-medium">a.n Denissa Ermadianis Tarisna Dewi</p>
-                    <button onclick="copyToClipboard('901338749488')" class="mt-2 text-[10px] text-blue-600 font-bold bg-white dark:bg-gray-800 px-2 py-1 rounded border shadow-sm">Salin No. Rek</button>
-                </div>
-
-                <div class="input-group mb-4">
-                    <input type="number" id="mtInputAmount" placeholder="Masukkan Nominal (Min 10.000)" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 pl-11 dark:text-white text-lg font-bold">
-                    <i class="fas fa-money-bill-wave"></i>
-                </div>
-                <button onclick="submitManualTopUp()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg mb-2">LANJUTKAN</button>
-            </div>
-
-            <div id="mtStep2" class="hide">
-                <div class="text-center mb-6">
-                    <div class="w-20 h-20 bg-white rounded-full shadow-lg mx-auto flex items-center justify-center -mt-10 mb-3 relative z-10 border-4 border-white dark:border-gray-800">
-                         <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTOXd7uJlgyXODfLIhtY64i_e5FRtHLSIE7KwhQ9c_MZg&s=10" alt="Seabank" class="w-16">
-                    </div>
-                    <h3 class="text-xl font-black text-gray-800 dark:text-white">Menunggu Pembayaran</h3>
-                    <p class="text-xs text-gray-500">Selesaikan pembayaran sebelum waktu habis</p>
-                </div>
-
-                <div class="bg-orange-50 dark:bg-orange-900/20 rounded-2xl p-4 mb-4 border border-orange-100 dark:border-orange-800 flex justify-between items-center">
-                    <span class="text-xs text-orange-600 dark:text-orange-400 font-bold"><i class="fas fa-stopwatch mr-1.5"></i>Sisa Waktu</span>
-                    <span id="mtTimer" class="text-lg font-mono font-black text-orange-600 dark:text-orange-400">03:00:00</span>
-                </div>
-
-                <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 space-y-4 mb-6">
-                    <div>
-                        <p class="text-[10px] uppercase tracking-widest text-gray-400 font-bold mb-1">Total Transfer (Wajib Sama)</p>
-                        <div class="flex justify-between items-end">
-                            <h2 class="text-3xl font-black text-blue-600 dark:text-blue-400 leading-none" id="mtTotalDisplay">Rp 0</h2>
-                            <button onclick="copyToClipboard(document.getElementById('mtTotalDisplay').innerText.replace(/[^0-9]/g,''))" class="text-xs font-bold text-blue-600 bg-blue-100 hover:bg-blue-200 px-3 py-1 rounded-lg transition">Salin</button>
-                        </div>
-                        <p class="text-[10px] text-red-400 italic mt-1">*Termasuk kode unik 3 digit terakhir</p>
-                    </div>
-                    <div class="border-t border-dashed border-gray-200 dark:border-gray-600"></div>
-                    <div>
-                        <p class="text-[10px] uppercase tracking-widest text-gray-400 font-bold mb-1">Rekening Tujuan</p>
-                        <div class="flex items-center gap-3">
-                            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTOXd7uJlgyXODfLIhtY64i_e5FRtHLSIE7KwhQ9c_MZg&s=10" class="h-8">
-                            <div class="flex-1">
-                                <p class="text-sm font-bold text-gray-800 dark:text-white">901338749488</p>
-                                <p class="text-[10px] text-gray-500">a.n Denissa Ermadianis Tarisna Dewi</p>
-                            </div>
-                            <button onclick="copyToClipboard('901338749488')" class="text-gray-400 hover:text-blue-600"><i class="fas fa-copy text-lg"></i></button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="space-y-3">
-                    <button onclick="closeManualTopUp()" class="w-full py-3.5 rounded-xl bg-gradient-brand text-white font-bold text-sm shadow-lg shadow-blue-600/30 active:scale-95 transition-transform">Saya Sudah Transfer</button>
-                    <button onclick="cancelManualTopUp()" class="w-full py-3.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 hover:text-red-500 font-bold text-xs transition">Batalkan Transaksi</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div id="topUpSheet" class="hide fixed inset-0 z-50 flex flex-col justify-end bg-black/60 backdrop-blur-sm">
         <div class="bg-white dark:bg-gray-900 w-full rounded-t-[30px] p-6 modal-enter max-w-[480px] mx-auto">
             <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-6"></div>
             <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-4">Pilih Metode Top Up</h3>
-            <div class="space-y-3">
-                <div onclick="openManualTopUp()" class="flex items-center gap-4 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition mb-3">
-                    <div class="w-10 h-10 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center"><i class="fas fa-university"></i></div>
-                    <div class="flex-1"><h4 class="font-bold text-gray-800 dark:text-white text-sm">Seabank (Manual)</h4><p class="text-xs text-gray-500">Konfirmasi Admin (Max 3 Jam)</p></div><i class="fas fa-chevron-right text-gray-300"></i>
-                </div>
-                <div onclick="openQios()" class="flex items-center gap-4 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition mb-3">
-                    <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center"><i class="fas fa-qrcode"></i></div>
-                    <div class="flex-1"><h4 class="font-bold text-gray-800 dark:text-white text-sm">QRIS (Otomatis)</h4><p class="text-xs text-gray-500">Metode QiosPay (Cek Otomatis)</p></div><i class="fas fa-chevron-right text-gray-300"></i>
-                </div>
+            <div class="space-y-3"></div>
+            <div onclick="openQios()" class="flex items-center gap-4 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition mb-3">
+                <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center"><i class="fas fa-qrcode"></i></div>
+                <div class="flex-1"><h4 class="font-bold text-gray-800 dark:text-white text-sm">QRIS (Otomatis)</h4><p class="text-xs text-gray-500">Metode QiosPay (Cek Otomatis)</p></div><i class="fas fa-chevron-right text-gray-300"></i>
             </div>
             <button onclick="closeTopUp()" class="mt-6 w-full py-3 text-gray-500 dark:text-gray-400 font-semibold text-sm">Tutup</button>
         </div>
@@ -600,7 +508,7 @@
             <div class="flex justify-between items-center mb-6 relative z-10">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-full border-2 border-white/30 p-0.5 overflow-hidden"><img id="headerProfileImg" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="User" class="w-full h-full object-cover rounded-full bg-white dark:bg-gray-800"></div>
-                    <div><p class="text-xs text-blue-100">Selamat Datang,</p><p class="font-bold text-lg leading-tight" id="headerUsername">Loading...</p></div>
+                    <div><p class="text-xs text-blue-100">Selamat Pagi,</p><p class="font-bold text-lg leading-tight" id="headerUsername">Loading...</p></div>
                 </div>
                 <div class="flex items-center gap-4">
                     <button onclick="toggleDarkMode()" class="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center hover:bg-white/30 transition active:scale-95"><i id="themeIcon" class="fas fa-moon text-white"></i></button>
@@ -630,7 +538,7 @@
             <div class="grid grid-cols-4 gap-4">
                 <div class="text-center group cursor-pointer" onclick="openPPOB('akrab')"><div class="bg-blue-100 dark:bg-blue-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-globe text-blue-600 dark:text-blue-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Data</span></div>
                 <div class="text-center group cursor-pointer" onclick="alert('Menu Paket OTP Segera Hadir')"><div class="bg-emerald-100 dark:bg-emerald-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-key text-emerald-600 dark:text-emerald-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Paket OTP</span></div>
-                <div class="text-center group cursor-pointer" onclick="nav('preorderPage')"><div class="bg-purple-100 dark:bg-purple-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-clock text-purple-600 dark:text-purple-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Pre-Order</span></div>
+                <div class="text-center group cursor-pointer" onclick="alert('Menu Pre-Order Segera Hadir')"><div class="bg-purple-100 dark:bg-purple-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-clock text-purple-600 dark:text-purple-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Pre-Order</span></div>
                 <div class="text-center group cursor-pointer" onclick="checkAkrabStock()"><div class="bg-orange-100 dark:bg-orange-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-cubes text-orange-600 dark:text-orange-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Stok Akrab</span></div>
                 <div class="text-center group cursor-pointer" onclick="alert('Menu Login OTP Segera Hadir')"><div class="bg-rose-100 dark:bg-rose-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-lock text-rose-600 dark:text-rose-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Login OTP</span></div>
                 <div class="text-center group cursor-pointer" onclick="nav('historyPage')"><div class="bg-indigo-100 dark:bg-indigo-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-history text-indigo-600 dark:text-indigo-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Riwayat</span></div>
@@ -698,36 +606,7 @@
         </div>
     </section>
 
-    <section id="preorderPage" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen z-40 absolute top-0 w-full max-w-[480px]">
-        <div class="p-4 bg-white dark:bg-gray-900 sticky top-0 z-20 shadow-sm flex items-center gap-4">
-            <button onclick="nav('homePage')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"><i class="fas fa-arrow-left text-gray-800 dark:text-white"></i></button>
-            <h2 class="font-bold text-lg text-gray-800 dark:text-white">Layanan Preorder</h2>
-        </div>
-        <div class="p-4 pb-24">
-            <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-800">
-                <div class="mb-4">
-                    <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Pilih Provider</label>
-                    <div onclick="openSheet('provider')" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white text-sm rounded-xl px-4 py-3 font-bold flex justify-between items-center cursor-pointer">
-                        <span id="displayProviderPO">-- Pilih Provider --</span>
-                        <i class="fas fa-chevron-down text-gray-400"></i>
-                    </div>
-                </div>
-                <div class="mb-4">
-                    <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Pilih Produk</label>
-                    <div onclick="openSheet('product')" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white text-sm rounded-xl px-4 py-3 font-bold flex justify-between items-center cursor-pointer">
-                        <span id="displayProductPO">-- Pilih Produk --</span>
-                        <i class="fas fa-chevron-down text-gray-400"></i>
-                    </div>
-                </div>
-                <div class="mb-6">
-                    <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Nomor Tujuan</label>
-                    <input type="tel" id="poNumber" placeholder="08xxxx" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 text-sm font-bold dark:text-white">
-                </div>
-                <button onclick="submitPreorder()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3.5 rounded-xl shadow-lg">Kirim Pesanan (PO)</button>
-            </div>
-        </div>
-    </section>
-<section id="ppobPage" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen z-40 absolute top-0 w-full max-w-[480px]">
+    <section id="ppobPage" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen z-40 absolute top-0 w-full max-w-[480px]">
         <div class="p-4 bg-white dark:bg-gray-900 sticky top-0 z-20 shadow-sm flex items-center gap-4">
             <button onclick="closePPOB()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"><i class="fas fa-arrow-left text-gray-800 dark:text-white"></i></button>
             <h2 class="font-bold text-lg text-gray-800 dark:text-white" id="ppobTitle">Isi Pulsa (Live API)</h2>
@@ -804,10 +683,7 @@
     <section id="historyPage" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen">
         <div class="p-4 bg-white dark:bg-gray-900 sticky top-0 z-10 shadow-sm dark:shadow-gray-800">
             <div class="flex justify-between items-center mb-4"><h2 class="font-bold text-lg text-gray-800 dark:text-white">Riwayat</h2><div class="flex gap-2"><button onclick="downloadHistoryPDF()" class="text-xs bg-blue-100 text-blue-600 px-3 py-1.5 rounded-lg font-bold hover:bg-blue-200 transition"><i class="fas fa-file-pdf mr-1"></i> PDF</button></div></div>
-                        <div class="flex gap-2 items-center bg-gray-50 dark:bg-gray-800 p-2 rounded-xl border border-gray-100 dark:border-gray-700 mt-2">
-                <span class="text-[10px] font-bold text-gray-500 ml-1">Pilih Tanggal:</span>
-                <input type="date" id="historyDateFilter" onchange="filterHistoryByDate(this.value)" class="flex-1 bg-transparent text-xs font-bold text-blue-600 focus:outline-none">
-            </div>
+            <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1"><button onclick="filterHistory('all')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold bg-blue-600 text-white shadow-md" id="filter-all">Semua</button><button onclick="filterHistory('today')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold bg-gray-100 text-gray-500" id="filter-today">Hari Ini</button><button onclick="filterHistory('week')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold bg-gray-100 text-gray-500" id="filter-week">Minggu Ini</button></div>
         </div>
         <div id="fullHistory" class="p-4 space-y-3 pb-24"></div>
     </section>
@@ -1859,55 +1735,7 @@ window.openAkrabV2 = () => {
 
     // --- EXISTING CODE (AUTH, UI, ETC) ---
 
-    
-    window.showAlert = (title, message, type = 'info') => {
-        const modal = document.getElementById('customAlertModal');
-        const iconContainer = document.getElementById('alertIconContainer');
-        const icon = document.getElementById('alertIcon');
-        const titleEl = document.getElementById('alertTitle');
-        const msgEl = document.getElementById('alertMessage');
-
-        titleEl.innerText = title;
-        msgEl.innerText = message;
-
-        iconContainer.className = 'w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg ';
-        
-        if (type === 'success') {
-            iconContainer.classList.add('bg-green-500', 'shadow-green-500/30');
-            icon.className = 'fas fa-check-circle text-4xl text-white';
-        } else if (type === 'error') {
-            iconContainer.classList.add('bg-red-500', 'shadow-red-500/30');
-            icon.className = 'fas fa-exclamation-triangle text-4xl text-white';
-        } else {
-            iconContainer.classList.add('bg-blue-600', 'shadow-blue-600/30');
-            icon.className = 'fas fa-info-circle text-4xl text-white';
-        }
-
-        modal.classList.remove('hide');
-    };
-
-    window.closeAlert = () => {
-        document.getElementById('customAlertModal').classList.add('hide');
-    };
-
-    // Override default alert browser
-    const nativeAlert = window.alert;
-    window.alert = (msg) => {
-        let title = 'Informasi';
-        let type = 'info';
-        const lowMsg = String(msg).toLowerCase();
-
-        if (lowMsg.includes('berhasil') || lowMsg.includes('sukses')) {
-            title = 'Berhasil';
-            type = 'success';
-        } else if (lowMsg.includes('gagal') || lowMsg.includes('kurang') || lowMsg.includes('salah') || lowMsg.includes('tidak') || lowMsg.includes('error')) {
-            title = 'Perhatian';
-            type = 'error';
-        }
-
-        window.showAlert(title, msg, type);
-    };
-window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+    window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
     window.showLoader = (show) => document.getElementById('globalLoader').classList.toggle('hide', !show);
     window.toggleDarkMode = () => { document.documentElement.classList.toggle('dark'); };
     window.customConfirm = (t, m, c) => { document.getElementById('confirmTitle').innerText = t; document.getElementById('confirmMessage').innerText = m; document.getElementById('customConfirmModal').classList.remove('hide'); window.confirmCallback = c; };
@@ -1916,21 +1744,51 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
 
     // AUTH LOGIC
     window.loginWithGoogle = async () => {
-    window.showLoader(true);
-    const provider = new GoogleAuthProvider();
-    provider.addScope('profile');
-    provider.addScope('email');
+        window.showLoader(true);
+        const provider = new GoogleAuthProvider();
+        provider.addScope('profile');
+        provider.addScope('email');
 
-    try {
-        // KEMBALI KE REDIRECT (Versi Stabil untuk WebView dengan Cookie Flush)
-        // Pastikan MainActivity.java sudah menggunakan kode baru (CookieManager.flush)
-        await signInWithRedirect(auth, provider);
-    } catch (error) {
-        window.showLoader(false);
-        console.error("Google Login Error:", error);
-        alert("Gagal Memulai Login: " + error.message);
-    }
-};
+        try {
+            const result = await signInWithPopup(auth, provider);
+            const user = result.user;
+            // (MODIFIKASI: Pemblokiran dihapus untuk mengizinkan Account Linking)
+            console.log("Login Google diproses. Jika email sama, Firebase akan otomatis menggabungkan akun (sesuai setting Console).");
+
+            const userDocRef = doc(db, "users", user.uid);
+            const userDoc = await getDoc(userDocRef);
+
+            if (userDoc.exists()) {
+                // PROTEKSI: Cek apakah ini akun email/password
+                const userData = userDoc.data();
+                // Akun lama terdeteksi (Baik Sandi maupun Google), izinkan masuk.
+                console.log("User lama login via Google (Account Linking)");
+                console.log("User Google lama login kembali");
+            } else {
+                await setDoc(userDocRef, {
+                    email: user.email,
+                    balance: 0,
+                    profile_pic: user.photoURL, 
+                    createdAt: new Date().toISOString(),
+                    authMethod: 'google'
+                }, { merge: true });
+
+                document.getElementById('setupProfileModal').classList.remove('hide');
+                const setupPreview = document.getElementById('setupProfilePreview');
+                if(setupPreview) {
+                    setupPreview.src = user.photoURL;
+                    setupPreview.style.display = 'block';
+                    document.getElementById('setupUploadPlaceholder').style.display = 'none';
+                }
+                window.showLoader(false);
+            }
+        } catch (error) {
+            window.showLoader(false);
+            console.error("Google Login Error:", error);
+            if (error.code === 'auth/account-exists-with-different-credential') { alert("Akun sudah terdaftar menggunakan sandi, harap login menggunakan sandi."); } else if (error.code === 'auth/popup-closed-by-user') alert("Login dibatalkan.");
+            else alert("Gagal Login Google: " + error.message);
+        }
+    };
 
 
         window.saveProfileSetup = async () => {
@@ -2274,85 +2132,27 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
     };
 
     // HISTORY & PDF
-    window.downloadHistoryPDF = () => {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        
-        // Ambil data lengkap dari cache
-        const cacheKey = `trx_cache_${currentUser.uid}`;
-        let allData = JSON.parse(localStorage.getItem(cacheKey) || '[]');
-        
-        if (allData.length === 0) {
-            alert("Tidak ada data transaksi untuk diunduh.");
-            return;
-        }
-
-        // Judul PDF
-        doc.setFontSize(18);
-        doc.text("Laporan Riwayat Transaksi - Pandawa Store", 14, 20);
-        doc.setFontSize(11);
-        doc.text(`Nama Pengguna: ${currentUsername}`, 14, 30);
-        doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, 14, 37);
-
-        // Persiapkan baris tabel
-        const rows = allData.map(t => [
-            new Date(t.date).toLocaleString('id-ID'),
-            t.title,
-            t.dest_num || "-",
-            window.formatRp(t.amount),
-            t.status
-        ]);
-
-        // Generate Tabel
-        doc.autoTable({
-            startY: 45,
-            head: [['Tanggal', 'Produk/Layanan', 'Tujuan', 'Nominal', 'Status']],
-            body: rows,
-            theme: 'striped',
-            headStyles: { fillColor: [37, 99, 235] },
-            styles: { fontSize: 9 }
-        });
-
-        const fileName = `Riwayat_PandawaStore_${currentUsername}.pdf`;
-
-        // DETEKSI APAKAH DI DALAM APLIKASI ANDROID (AIDE)?
-        if (window.AndroidApp && window.AndroidApp.savePdfFromBase64) {
-             // JIKA DI APLIKASI: Kirim data PDF (Base64) ke Java untuk disimpan
-             const pdfData = doc.output('datauristring');
-             window.AndroidApp.savePdfFromBase64(pdfData, fileName);
-        } else {
-             // JIKA DI BROWSER BIASA: Download normal
-             doc.save(fileName);
-        }
-    };
+    window.downloadHistoryPDF = () => { /* ... existing PDF logic ... */ };
     window.filterHistory = (t) => { currentFilter=t; renderHistoryList(); };
-        window.filterHistoryByDate = (selectedDate) => {
-        if(!selectedDate) return;
-        renderHistoryList(selectedDate);
-    };
-
-    window.renderHistoryList = (filterDate = null) => {
+        function renderHistoryList() {
         const cacheKey = `trx_cache_${currentUser.uid}`;
         let cachedData = JSON.parse(localStorage.getItem(cacheKey) || '[]');
 
+        // Sinkronisasi: Jika cache kosong tapi firebase ada data, isi cache
         if (cachedData.length === 0 && transactions.length > 0) {
             cachedData = [...transactions];
             localStorage.setItem(cacheKey, JSON.stringify(cachedData));
         }
 
-        // Default ke hari ini jika tidak ada filter
-        const today = new Date().toISOString().split('T')[0];
-        const dateToFilter = filterDate || today;
-        
-        // Update UI Input Date agar sinkron
-        const dateInput = document.getElementById('historyDateFilter');
-        if(dateInput) dateInput.value = dateToFilter;
-
-        // Filter data berdasarkan tanggal (YYYY-MM-DD)
-        const filtered = cachedData.filter(t => {
-            const trxDate = new Date(t.date).toISOString().split('T')[0];
-            return trxDate === dateToFilter;
-        });
+        // --- FILTERING ---
+        let filtered = cachedData;
+        if (currentFilter === 'today') {
+            const today = new Date().toISOString().split('T')[0];
+            filtered = cachedData.filter(t => t.date.startsWith(today));
+        } else if (currentFilter === 'week') {
+            const d = new Date(); d.setDate(d.getDate() - 7);
+            filtered = cachedData.filter(t => t.date >= d.toISOString().split('T')[0]);
+        }
 
         // --- RENDER FULL HISTORY (PAGE RIWAYAT) ---
         let html = '';
@@ -2451,52 +2251,39 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
     };
 
     window.selectProvider = (code, name) => {
-        const isPreorder = !document.getElementById('preorderPage').classList.contains('hide');
-        if (isPreorder) {
-            document.getElementById('displayProviderPO').innerText = name;
-            document.getElementById('formProvider').value = code;
-        } else {
-            document.getElementById('formProvider').value = code;
-            document.getElementById('displayProvider').innerText = name;
-        }
+        document.getElementById('formProvider').value = code;
+        document.getElementById('displayProvider').innerText = name;
+        document.getElementById('displayProvider').className = "text-gray-800 dark:text-white font-bold truncate pr-6";
         
-        if (!isPreorder) {
-            document.getElementById('formProduct').value = '';
-            document.getElementById('displayProduct').innerText = 'Memuat Produk...';
-            document.getElementById('priceDisplay').innerText = '';
-            document.getElementById('productDescription').classList.add('hide');
-        } else {
-            document.getElementById('displayProductPO').innerText = '-- Pilih Produk --';
-            document.getElementById('formProduct').value = '';
-        }
+        // Reset Product
+        document.getElementById('formProduct').value = '';
+        document.getElementById('displayProduct').innerText = 'Memuat Produk...';
+        document.getElementById('displayProduct').className = "text-gray-500 dark:text-gray-400";
+        document.getElementById('priceDisplay').innerText = '';
+        document.getElementById('productDescription').classList.add('hide');
         
         closeAllSheets();
         window.updateProductDropdown();
     };
 
     window.selectProduct = (code, name, price, desc, encodedName) => {
-        const isPreorder = !document.getElementById('preorderPage').classList.contains('hide');
         const finalName = encodedName ? decodeURIComponent(encodedName) : name;
         
-        if (isPreorder) {
-            document.getElementById('displayProductPO').innerText = finalName;
-        } else {
-            document.getElementById('displayProduct').innerText = finalName;
-        }
-
         document.getElementById('formProduct').value = code;
+        document.getElementById('displayProduct').innerText = finalName;
+        document.getElementById('displayProduct').className = "text-gray-800 dark:text-white font-bold truncate pr-6";
+        
         document.getElementById('selectedProductName').value = finalName;
         document.getElementById('selectedProductPrice').value = price;
         
-        if (!isPreorder) {
-            document.getElementById('priceDisplay').innerText = `Harga: Rp ${window.formatRp(price)}`;
-            const descBox = document.getElementById('productDescription');
-            if(desc && desc !== 'undefined' && desc.trim() !== '') {
-                 descBox.innerHTML = '<div class="font-bold mb-1 text-blue-600 dark:text-blue-400"><i class="fas fa-info-circle mr-1"></i>Detail Paket:</div>' + desc.replace(/\r?\n/g, '<br>');
-                 descBox.classList.remove('hide');
-            } else {
-                 descBox.classList.add('hide');
-            }
+        document.getElementById('priceDisplay').innerText = `Harga: Rp ${window.formatRp(price)}`;
+        
+        const descBox = document.getElementById('productDescription');
+        if(desc && desc !== 'undefined' && desc.trim() !== '') {
+             descBox.innerHTML = '<div class="font-bold mb-1 text-blue-600 dark:text-blue-400"><i class="fas fa-info-circle mr-1"></i>Detail Paket:</div>' + desc.replace(/\r?\n/g, '<br>');
+             descBox.classList.remove('hide');
+        } else {
+             descBox.classList.add('hide');
         }
 
         closeAllSheets();
@@ -2682,11 +2469,10 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
             if (p.seller_product_status === false || p.seller_product_status == 0) isGangguan = true;
             if (p.stock == 0 && p.unlimited_stock === false) isGangguan = true;
 
-            const isPreorder = !document.getElementById('preorderPage').classList.contains('hide');
             const div = document.createElement('div');
-            div.className = `p-4 rounded-2xl border ${isGangguan && !isPreorder ? 'border-red-200 bg-red-50 dark:bg-red-900/10 cursor-not-allowed opacity-70' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 cursor-pointer transition active:scale-[0.98]'} mb-2 flex justify-between items-center group`;
+            div.className = `p-4 rounded-2xl border ${isGangguan ? 'border-red-200 bg-red-50 dark:bg-red-900/10 cursor-not-allowed opacity-70' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 cursor-pointer transition active:scale-[0.98]'} mb-2 flex justify-between items-center group`;
             
-            if(isGangguan && !isPreorder) {
+            if(isGangguan) {
                 div.innerHTML = `
                     <div>
                         <p class="text-xs font-bold text-red-500 line-through">${name}</p>
@@ -2847,8 +2633,8 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
 
             window.processFormTransaction = () => {
         const provider = document.getElementById('formProvider').value;
-        const code = document.getElementById('formProduct').value || document.getElementById('icsProductSelect')?.value;
-        const name = document.getElementById('selectedProductName').value || document.getElementById('icsProductSelect')?.options[document.getElementById('icsProductSelect').selectedIndex]?.dataset.name;
+        const code = document.getElementById('formProduct').value;
+        const name = document.getElementById('selectedProductName').value;
         const price = parseInt(document.getElementById('selectedProductPrice').value || 0);
         const number = document.getElementById('ppobNumber').value;
 
@@ -2955,120 +2741,7 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
         window.showInvoice(code, name, price, num);
     };
 
-            
-        
-    window.cancelPreorder = async (trxId) => {
-        if (!confirm("Apakah Anda yakin ingin membatalkan preorder ini?\nSaldo akan dikembalikan otomatis.")) return;
-        
-        window.showLoader(true);
-        try {
-            await runTransaction(db, async (transaction) => {
-                const userRef = doc(db, "users", currentUser.uid);
-                const trxRef = doc(db, "users", currentUser.uid, "history", trxId);
-                const poRef = doc(db, "preorders", trxId);
-
-                const userSnap = await transaction.get(userRef);
-                const trxSnap = await transaction.get(trxRef);
-
-                if (!trxSnap.exists() || trxSnap.data().status !== 'Pending') {
-                    throw "Transaksi tidak dapat dibatalkan.";
-                }
-
-                const refundAmount = trxSnap.data().amount || 0;
-                const currentBal = userSnap.data().balance || 0;
-
-                // 1. Kembalikan Saldo
-                transaction.update(userRef, { balance: currentBal + refundAmount });
-
-                // 2. Update Status Riwayat
-                transaction.update(trxRef, {
-                    status: 'Dibatalkan',
-                    api_msg: 'Dibatalkan oleh pengguna (Auto Refund)',
-                    balance_final: currentBal + refundAmount
-                });
-
-                // 3. Hapus dari Antrean Admin
-                transaction.delete(poRef);
-            });
-
-            window.showLoader(false);
-            alert("Preorder berhasil dibatalkan dan saldo telah dikembalikan.");
-            window.closeTrxDetail();
-            window.renderHistoryList();
-        } catch (e) {
-            window.showLoader(false);
-            alert("Gagal membatalkan: " + (typeof e === 'string' ? e : e.message));
-        }
-    };
-
-window.submitPreorder = async () => {
-        const prov = document.getElementById('formProvider').value;
-        const code = document.getElementById('formProduct').value;
-        const name = document.getElementById('selectedProductName').value;
-        const price = parseInt(document.getElementById('selectedProductPrice').value) || parseInt(document.getElementById('icsProductSelect')?.options[document.getElementById('icsProductSelect').selectedIndex]?.dataset.price || 0);
-        const num = document.getElementById('poNumber').value;
-
-        if(!code || !num) return alert('Lengkapi data preorder!');
-        
-        window.showLoader(true);
-        try {
-            const trxId = 'PO-' + Date.now();
-            
-            await runTransaction(db, async (transaction) => {
-                const userRef = doc(db, "users", currentUser.uid);
-                const userSnap = await transaction.get(userRef);
-                
-                if (!userSnap.exists()) throw "User tidak ditemukan!";
-                
-                const currentBal = userSnap.data().balance || 0;
-                if (currentBal < price) throw "Saldo tidak cukup untuk preorder!";
-
-                const balanceAfter = currentBal - price;
-
-                // 1. Potong Saldo User
-                transaction.update(userRef, { balance: balanceAfter });
-
-                // 2. Tambah ke Antrean Admin
-                const poRef = doc(db, "preorders", trxId);
-                transaction.set(poRef, {
-                    uid: currentUser.uid,
-                    username: currentUsername,
-                    email: currentUser.email,
-                    targetNumber: num,
-                    provider: code,
-                    productName: name,
-                    price: price,
-                    status: "Pending",
-                    historyId: trxId,
-                    timestamp: serverTimestamp()
-                });
-
-                // 3. Catat di Riwayat User (Status Pending & Saldo Terpotong)
-                const historyRef = doc(db, "users", currentUser.uid, "history", trxId);
-                transaction.set(historyRef, {
-                    title: "Preorder: " + name,
-                    amount: price,
-                    type: 'out',
-                    date: new Date().toISOString(),
-                    status: 'Pending',
-                    api_msg: 'Pesanan sedang diproses admin',
-                    trx_id: trxId,
-                    dest_num: num,
-                    raw_code: code,
-                    balance_before: currentBal,
-                    balance_after: balanceAfter
-                });
-            });
-
-            window.showLoader(false);
-            alert('Pesanan Preorder dikirim! Saldo telah dipotong dan menunggu konfirmasi admin.');
-            window.nav('homePage');
-        } catch(e) {
-            window.showLoader(false);
-            alert(typeof e === 'string' ? e : e.message);
-        }
-    };
-window.executeApiTransaction = async (code, dest, price, name) => {
+            window.executeApiTransaction = async (code, dest, price, name) => {
         window.showLoader(true);
         const reffId = 'TRX-' + Date.now() + '-' + Math.floor(1000 + Math.random() * 9000);
         const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -3306,63 +2979,11 @@ window.renderTopUpHistory = () => {
         }
     };
 
-        window.checkPendingManualSeabank = async () => {
-        if(!currentUser) return false;
-        try {
-            const q = query(collection(db, "users", currentUser.uid, "history"), 
-                where("status", "==", "Pending"), 
-                where("provider_id", "==", "MANUAL_SEABANK")
-            );
-            const snap = await getDocs(q);
-            return !snap.empty;
-        } catch(e) { return false; }
-    };
-
-    window.openTopUpSheet = async () => {
-        // 1. Cek Qios (Lokal)
+    window.openTopUpSheet = () => {
         if(window.checkPendingTopUp()) {
-            window.openQios(); 
-            return;
-        }
-
-        // 2. Cek Manual Seabank (Database)
-        // Tampilkan loader sebentar karena butuh koneksi internet
-        window.showLoader(true);
-        const hasPendingManual = await window.checkPendingManualSeabank();
-        window.showLoader(false);
-
-        if(hasPendingManual) {
-            window.openManualTopUp();
+            window.openQios(); // Resume pending transaction
         } else {
             document.getElementById('topUpSheet').classList.remove('hide');
-        }
-    };
-
-        window.openManualTopUp = async () => {
-        document.getElementById('topUpSheet').classList.add('hide');
-        document.getElementById('manualTopUpModal').classList.remove('hide');
-        
-        const q = query(collection(db, "users", currentUser.uid, "history"), 
-            where("status", "==", "Pending"), 
-            where("provider_id", "==", "MANUAL_SEABANK")
-        );
-        const snap = await getDocs(q);
-        
-        if (!snap.empty) {
-            const trx = snap.docs.sort((a,b) => new Date(b.data().date) - new Date(a.data().date))[0].data();
-            const trxTime = new Date(trx.date).getTime();
-            const now = Date.now();
-            const diff = now - trxTime;
-            const limit = 3 * 60 * 60 * 1000; 
-
-            if (diff < limit) {
-                currentMtTrxId = snap.docs[0].id;
-                window.showMtStep2(trx.amount, trxTime + limit);
-            } else {
-                window.resetMtUI();
-            }
-        } else {
-            window.resetMtUI();
         }
     };
     
@@ -3446,18 +3067,12 @@ window.renderTopUpHistory = () => {
         </div>`;
     };
 
-                    window.openTrxDetail = (trxId) => {
+    window.openTrxDetail = (trxId) => {
         const cacheKey = `trx_cache_${currentUser.uid}`;
         let cachedData = JSON.parse(localStorage.getItem(cacheKey) || '[]');
         let trx = cachedData.find(t => t.trx_id === trxId) || transactions.find(t => t.trx_id === trxId);
         
         if(!trx) return;
-
-        // FITUR BARU: Redirect ke Modal Topup Manual jika status Pending
-        if(trx.provider_id === 'MANUAL_SEABANK' && trx.status === 'Pending') {
-            window.openManualTopUp();
-            return;
-        }
 
         document.getElementById('dtTitle').innerText = trx.title;
         document.getElementById('dtTrxCode').innerText = trx.trx_code || '------';
@@ -3472,28 +3087,10 @@ window.renderTopUpHistory = () => {
         infoEl.innerText = trx.api_msg || '-';
 
         // REFRESH OTOMATIS SAAT DETAIL DIBUKA JIKA STATUS PENDING
-                if(trx.status === 'Pending' || trx.status === 'Proses') {
+        if(trx.status === 'Pending' || trx.status === 'Proses') {
             document.getElementById('btnRefreshStatus').classList.remove('hide');
             document.getElementById('btnRefreshStatus').onclick = () => window.manualCheckTrx(trx.trx_id, trx.provider_id || trx.trx_id);
-            if(!trx.trx_id.startsWith('PO-')) window.manualCheckTrx(trx.trx_id, trx.provider_id || trx.trx_id);
-        }
-
-        if(trx.trx_id.startsWith('PO-')) {
-            const refundInfo = trx.status === 'Gagal' && trx.balance_final ? `<div class="mt-2 p-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg text-[9px] font-bold border border-green-200"><i class="fas fa-undo-alt mr-1"></i> Saldo di-refund: ${window.formatRp(trx.balance_final)}</div>` : '';
-            infoEl.innerHTML = `
-            <div class="space-y-1 text-[10px] font-mono">
-                <div class="border-b border-blue-200 dark:border-blue-800 pb-1 mb-1">
-                    <span class="block font-bold text-blue-700 dark:text-blue-300">Informasi Preorder:</span>
-                    <span>${trx.api_msg || 'Menunggu Admin'}</span>
-                </div>
-                <div class="grid grid-cols-1 gap-1">
-                    <div><span class="text-gray-500">Produk:</span> <span class="font-bold">${trx.title.replace('Preorder: ', '')}</span></div>
-                    <div><span class="text-gray-500">Kode:</span> <span class="font-bold">${trx.raw_code || '-'}</span></div>
-                    <div><span class="text-gray-500">Tujuan:</span> <span class="font-bold text-blue-600">${trx.dest_num || '-'}</span></div>
-                    <div><span class="text-gray-500">Waktu:</span> <span class="font-bold">${new Date(trx.date).toLocaleTimeString('id-ID')} WIB</span></div>
-                </div>
-                ${refundInfo}
-            </div>`;
+            window.manualCheckTrx(trx.trx_id, trx.provider_id || trx.trx_id);
         } else {
             document.getElementById('btnRefreshStatus').classList.add('hide');
             if (trx.raw_json && trx.raw_json !== '{}') {
@@ -3504,16 +3101,7 @@ window.renderTopUpHistory = () => {
             }
         }
 
-        
-        const btnCancelPo = document.getElementById('btnCancelPreorder');
-        if(trx.trx_id.startsWith('PO-') && trx.status === 'Pending') {
-            btnCancelPo.classList.remove('hide');
-            btnCancelPo.onclick = () => window.cancelPreorder(trx.trx_id);
-        } else {
-            btnCancelPo.classList.add('hide');
-        }
-
-document.getElementById('detailTrxModal').classList.remove('hide');
+        document.getElementById('detailTrxModal').classList.remove('hide');
     };
 
         window.manualCheckTrx = async (docId, providerId) => {
@@ -3614,125 +3202,7 @@ document.getElementById('detailTrxModal').classList.remove('hide');
     // --- QIOSPAY SYSTEM V2 (Timer & History) ---
     let qiosInterval = null;
 
-        let mtInterval = null;
-    let currentMtTrxId = null;
-
-    window.openManualTopUp = async () => {
-        document.getElementById('topUpSheet').classList.add('hide');
-        document.getElementById('manualTopUpModal').classList.remove('hide');
-        
-        // Cek apakah ada pending trx
-        const q = query(collection(db, "users", currentUser.uid, "history"), 
-            where("status", "==", "Pending"), 
-            where("provider_id", "==", "MANUAL_SEABANK")
-        );
-        const snap = await getDocs(q);
-        
-        if (!snap.empty) {
-            // Ambil trx terbaru
-            const trx = snap.docs.sort((a,b) => new Date(b.data().date) - new Date(a.data().date))[0].data();
-            const trxTime = new Date(trx.date).getTime();
-            const now = Date.now();
-            const diff = now - trxTime;
-            const limit = 3 * 60 * 60 * 1000; // 3 Jam
-
-            if (diff < limit) {
-                currentMtTrxId = snap.docs[0].id;
-                window.showMtStep2(trx.amount, trxTime + limit);
-            } else {
-                // Expired, auto cancel logic could go here, for now just show input
-                window.resetMtUI();
-            }
-        } else {
-            window.resetMtUI();
-        }
-    };
-
-    window.resetMtUI = () => {
-        document.getElementById('mtStep1').classList.remove('hide');
-        document.getElementById('mtStep2').classList.add('hide');
-        document.getElementById('mtInputAmount').value = '';
-        currentMtTrxId = null;
-        if(mtInterval) clearInterval(mtInterval);
-    };
-
-    window.closeManualTopUp = () => document.getElementById('manualTopUpModal').classList.add('hide');
-
-    window.submitManualTopUp = async () => {
-        const amount = parseInt(document.getElementById('mtInputAmount').value);
-        if(!amount || amount < 10000) return alert('Minimal top up Rp 10.000');
-
-        const unique = Math.floor(Math.random() * 999);
-        const total = amount + unique;
-        const trxId = 'MANUAL-' + Date.now();
-
-        try {
-            window.showLoader(true);
-            const hRef = doc(db, "users", currentUser.uid, "history", trxId);
-            await setDoc(hRef, {
-                title: "Top Up Manual (Seabank)",
-                amount: total,
-                type: "in",
-                date: new Date().toISOString(),
-                status: "Pending",
-                method: "Seabank",
-                provider_id: "MANUAL_SEABANK",
-                trx_id: trxId,
-                api_msg: "Menunggu konfirmasi admin"
-            });
-            
-            currentMtTrxId = trxId;
-            window.showLoader(false);
-            window.showMtStep2(total, Date.now() + (3 * 60 * 60 * 1000));
-            
-        } catch(e) {
-            window.showLoader(false);
-            alert("Gagal membuat transaksi: " + e.message);
-        }
-    };
-
-    window.showMtStep2 = (amount, endTime) => {
-        document.getElementById('mtStep1').classList.add('hide');
-        document.getElementById('mtStep2').classList.remove('hide');
-        document.getElementById('mtTotalDisplay').innerText = window.formatRp(amount);
-
-        if(mtInterval) clearInterval(mtInterval);
-        mtInterval = setInterval(() => {
-            const now = Date.now();
-            const diff = endTime - now;
-            if(diff <= 0) {
-                clearInterval(mtInterval);
-                document.getElementById('mtTimer').innerText = "00:00:00";
-                // Bisa tambah auto cancel disini
-                return;
-            }
-            const h = Math.floor(diff / (1000 * 60 * 60));
-            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            const s = Math.floor((diff % (1000 * 60)) / 1000);
-            document.getElementById('mtTimer').innerText = `${h}:${m<10?'0'+m:m}:${s<10?'0'+s:s}`;
-        }, 1000);
-    };
-
-    window.cancelManualTopUp = async () => {
-        if(!currentMtTrxId) return;
-        if(!confirm("Batalkan transaksi ini?")) return;
-
-        try {
-            window.showLoader(true);
-            await updateDoc(doc(db, "users", currentUser.uid, "history", currentMtTrxId), {
-                status: "Dibatalkan",
-                api_msg: "Dibatalkan oleh User"
-            });
-            window.showLoader(false);
-            alert("Transaksi dibatalkan.");
-            window.resetMtUI();
-        } catch(e) {
-            window.showLoader(false);
-            alert("Gagal membatalkan: " + e.message);
-        }
-    };
-
-window.openQios = () => {
+    window.openQios = () => {
         document.getElementById('topUpSheet').classList.add('hide');
         document.getElementById('qiosModal').classList.remove('hide');
         window.renderTopUpHistory(); 

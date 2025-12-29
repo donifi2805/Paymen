@@ -1330,6 +1330,21 @@ window.openAkrabV2 = () => {
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    // FIX UTAMA: Menangkap data login Google setelah halaman refresh
+    // Ini wajib ada agar signInWithRedirect tidak stuck di halaman login
+    getRedirectResult(auth).then((result) => {
+        if (result && result.user) {
+            console.log("Redirect Login Sukses:", result.user.email);
+            window.showLoader(true);
+            // onAuthStateChanged akan otomatis mengarahkan ke homePage
+        }
+    }).catch((error) => {
+        window.showLoader(false);
+        console.error("Redirect Error:", error);
+        window.showAlert("Gagal Login", "Google Error: " + error.message, "error");
+    });
+
+
     // FIX: Handle Google Redirect Result (Wajib untuk signInWithRedirect)
     getRedirectResult(auth).then(async (result) => {
         if (result && result.user) {
@@ -1940,21 +1955,12 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
     provider.addScope('email');
 
     try {
-        // PERBAIKAN: Menggunakan signInWithPopup (Sesuai patokan.html)
-        // Metode ini membuka jendela login tanpa me-refresh halaman utama
-        // sehingga state aplikasi terjaga dan langsung masuk menu utama
-        await signInWithPopup(auth, provider);
-        console.log("Login Google Berhasil (Popup Mode)");
-        
+        // Menggunakan Redirect (Halaman akan refresh ke Google)
+        await signInWithRedirect(auth, provider);
     } catch (error) {
         window.showLoader(false);
         console.error("Google Login Error:", error);
-        
-        if (error.code === 'auth/popup-closed-by-user') {
-            window.showAlert("Batal", "Proses login dibatalkan.", "info");
-        } else {
-            window.showAlert("Gagal Login", error.message, "error");
-        }
+        window.showAlert("Gagal Login", "Gagal Memulai Login: " + error.message, "error");
     }
 };
 

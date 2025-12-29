@@ -3121,6 +3121,31 @@ window.executeApiTransaction = async (code, dest, price, name) => {
         try {
                         const result = await callApi('/trx', { produk: code, tujuan: dest, reff_id: reffId });
             window.showLoader(false);
+
+            // --- FIX BUG FALSE NEGATIVE (Anti Refund saat RTO) ---
+            const errStr = result.error ? String(result.error) : "";
+            if (!result.ok && (errStr.includes('Failed to fetch') || errStr.includes('NetworkError') || errStr.includes('Gagal Koneksi'))) {
+                console.warn("Network Error Detected - Holding Refund");
+                
+                await updateDoc(trxRef, { 
+                    status: 'Pending', 
+                    api_msg: 'Koneksi Terputus (Verifikasi Otomatis)...',
+                    raw_json: JSON.stringify(result)
+                });
+                
+                window.customConfirm(
+                    'Koneksi Terganggu',
+                    'Sinyal terputus saat kirim data. JANGAN transaksi ulang! Sistem sedang memverifikasi status transaksi Anda ke server.',
+                    () => window.manualCheckTrx(reffId, null)
+                );
+
+                // Auto Cek Status ke Server Pusat (Delay 3 detik)
+                setTimeout(() => window.manualCheckTrx(reffId, null), 3000);
+                
+                window.nav('homePage');
+                return; // STOP: Jangan lanjut ke logika refund!
+            }
+            // ------------------------------------------------------
             
             let isSuccess = false;
             let msg = 'Tidak ada respon server';

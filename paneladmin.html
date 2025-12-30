@@ -89,13 +89,16 @@
                         <a onclick="switchTab('pricing')" id="nav-pricing" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
                 <i class="fas fa-tags w-4 mr-3 group-hover:scale-110 transition"></i> Kelola Harga
             </a>
-            <a onclick="switchTab('preorder')" id="nav-preorder"
-            <a onclick="switchTab('preorder-run')" id="nav-preorder-run" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
+                        <a onclick="switchTab('preorder-run')" id="nav-preorder-run" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
                 <i class="fas fa-terminal w-4 mr-3 group-hover:scale-110 transition"></i> Preorder Run
-            </a> class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
+            </a>
+            <a onclick="switchTab('preorder')" id="nav-preorder" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
                 <i class="fas fa-clock w-4 mr-3 group-hover:scale-110 transition"></i> Preorder
             </a>
-<a onclick="switchTab('notification')" id="nav-notification" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
+            <a onclick="switchTab('settings')" id="nav-settings" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
+                <i class="fas fa-cogs w-4 mr-3 group-hover:scale-110 transition"></i> Pengaturan
+            </a>
+            <a onclick="switchTab('notification')" id="nav-notification" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
                 <i class="fas fa-bullhorn w-4 mr-3 group-hover:scale-110 transition"></i> Notifikasi
             </a>
         </nav>
@@ -108,7 +111,7 @@
 
     <main class="md:ml-[14rem] w-full p-4 md:p-6 transition-all duration-300 h-screen overflow-y-auto custom-scroll bg-gray-100">
         
-                <div class="md:hidden flex justify-between items-center mb-4 bg-white p-3 rounded-lg shadow-sm">
+                <div class="md:hidden flex justify-between items-center mb-4 bg-white p-3 rounded-lg shadow-sm sticky top-0 z-[60]">
             <div class="flex items-center gap-3">
                 <button onclick="toggleMobileMenu()" class="text-gray-600 focus:outline-none">
                     <i class="fas fa-bars text-lg"></i>
@@ -131,7 +134,10 @@
                     <a onclick="switchTab('livechat'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-comments w-4 mr-3"></i> Live Chat </a>
                     <a onclick="switchTab('transactions'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-receipt w-4 mr-3"></i> Transaksi </a>
                     <a onclick="switchTab('pricing'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-tags w-4 mr-3"></i> Kelola Harga </a>
-                    <a onclick="switchTab('notification'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-bullhorn w-4 mr-3"></i> Notifikasi </a>
+                                        <a onclick="switchTab('preorder-run'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-terminal w-4 mr-3"></i> Preorder Run </a>
+                    <a onclick="switchTab('preorder'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-clock w-4 mr-3"></i> Preorder </a>
+                    <a onclick="switchTab('settings'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-cogs w-4 mr-3"></i> Pengaturan </a>
+<a onclick="switchTab('notification'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-bullhorn w-4 mr-3"></i> Notifikasi </a>
                 </nav>
             </div>
         </div>
@@ -501,7 +507,7 @@
                 </div>
                 <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                     <h3 class="text-sm font-bold mb-3 border-b pb-2 text-purple-600">Preorder Queue (Debug Mode)</h3>
-                    <div id="debugPoList" class="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scroll text-[10px]">
+                    <div id="debugPoList" class="space-y-2 overflow-y-auto pr-2 custom-scroll text-[10px]" style="height: 60vh;">
                         <p class="text-gray-400 italic">No queue found.</p>
                     </div>
                 </div>
@@ -530,7 +536,44 @@
                 </table>
             </div>
         </div>
-<div id="tab-notification" class="tab-content hide fade-in pb-10">
+        <div id="tab-settings" class="tab-content hide fade-in pb-10">
+            <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100 sticky top-0 z-20">
+                <div class="flex items-center gap-3">
+                    <button onclick="switchTab('dashboard')" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition"><i class="fas fa-arrow-left"></i></button>
+                    <div><h2 class="text-lg font-bold text-gray-800 leading-none">Pengaturan Sistem</h2><p class="text-[10px] text-gray-500">Kelola status layanan</p></div>
+                </div>
+                <button onclick="saveTopupSettings()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-[10px] shadow hover:bg-blue-700 transition"><i class="fas fa-save mr-1"></i> SIMPAN</button>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                <h3 class="font-bold text-gray-800 mb-4 border-b pb-2">Status Layanan Top Up</h3>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div class="p-4 border border-gray-200 rounded-xl bg-gray-50">
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="font-bold text-gray-700"><i class="fas fa-university mr-2 text-orange-500"></i>Top Up Manual (Seabank)</div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="toggleManual" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                            </label>
+                        </div>
+                        <p class="text-[10px] text-gray-500">Jika dimatikan, menu Top Up Manual tidak bisa dibuka oleh user (Mode Maintenance).</p>
+                    </div>
+
+                    <div class="p-4 border border-gray-200 rounded-xl bg-gray-50">
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="font-bold text-gray-700"><i class="fas fa-qrcode mr-2 text-blue-500"></i>Top Up Otomatis (QRIS)</div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="toggleQios" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                            </label>
+                        </div>
+                        <p class="text-[10px] text-gray-500">Jika dimatikan, menu QRIS tidak bisa dibuka oleh user (Mode Maintenance).</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-notification" class="tab-content hide fade-in pb-10">
             <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100 sticky top-0 z-20">
                 <div class="flex items-center gap-3">
                     <button onclick="switchTab('dashboard')" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition"><i class="fas fa-arrow-left"></i></button>
@@ -675,45 +718,51 @@
         let currentProcessingPoId = null;
         let currentAutoServer = 'KHFY'; // Data Baru: Auto Detect Server
 
-        function addDebugLog(msg, type = 'info') {
-            const logs = document.getElementById('debugLogs');
+                function addDebugLog(msg, type = 'info', targetId = 'debugLogs') {
+            const logs = document.getElementById(targetId) || document.getElementById('debugLogs');
+            if(!logs) return;
             const time = new Date().toLocaleTimeString();
             const color = type === 'error' ? 'text-red-400' : (type === 'success' ? 'text-green-400' : 'text-blue-300');
             logs.innerHTML += `<div class="${color}">[${time}] ${msg}</div>`;
             logs.scrollTop = logs.scrollHeight;
         }
 
-        window.listenDebugPreOrders = () => {
+                        window.listenDebugPreOrders = () => {
             onSnapshot(query(collection(db, "preorders"), orderBy("timestamp", "desc")), (snap) => {
                 const container = document.getElementById('debugPoList');
                 container.innerHTML = '';
                 if(snap.empty) { container.innerHTML = '<p class="text-gray-400 italic">No queue found.</p>'; return; }
                 snap.forEach(docSnap => {
                     const po = docSnap.data();
-                    container.innerHTML += `<div class="p-2 bg-gray-50 border rounded-lg mb-2 flex justify-between items-center">
-                        <div class="truncate mr-2">
-                            <div class="flex items-center gap-1.5">
-                                <i class="fas fa-user text-blue-500"></i>
-                                <span class="font-bold">${po.username || 'Unknown'}</span>
+                    const logId = `log-po-${docSnap.id}`;
+                    container.innerHTML += `<div class="p-3 bg-gray-50 border rounded-lg mb-3">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="truncate mr-2">
+                                <div class="flex items-center gap-1.5">
+                                    <i class="fas fa-user text-blue-500"></i>
+                                    <span class="font-bold">${po.username || 'Unknown'}</span>
+                                </div>
+                                <div class="text-gray-500 font-mono text-[9px]">${po.targetNumber} - ${po.provider}</div>
                             </div>
-                            <div class="text-gray-500 font-mono text-[9px]">${po.targetNumber} - ${po.provider}</div>
+                            <div class="flex gap-1">
+                                <button onclick="processPreOrderToSystem('${docSnap.id}', '${po.targetNumber}', '${po.provider}', '${po.serverType || 'KHFY'}')" class="bg-purple-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-purple-700 transition">RUN DEBUG</button>
+                                <button onclick="handlePreorderDebugAction('${docSnap.id}', 'Sukses')" class="bg-emerald-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-emerald-700 transition"><i class="fas fa-check"></i></button>
+                                <button onclick="handlePreorderDebugAction('${docSnap.id}', 'Tolak')" class="bg-red-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-red-700 transition"><i class="fas fa-times"></i></button>
+                            </div>
                         </div>
-                        <div class="flex gap-1">
-                            <button onclick="handlePreorderDebugAction('${docSnap.id}', 'Sukses')" class="bg-emerald-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-emerald-700 transition">BERHASIL</button>
-                            <button onclick="handlePreorderDebugAction('${docSnap.id}', 'Tolak')" class="bg-red-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-red-700 transition">GAGALKAN</button>
-                            <button onclick="processPreOrderToSystem('${docSnap.id}', '${po.targetNumber}', '${po.provider}', '${po.serverType || 'KHFY'}')" class="bg-purple-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-purple-700 transition">RUN</button>
+                        <div id="${logId}" class="h-24 overflow-y-auto bg-slate-900 text-gray-300 p-2 rounded font-mono text-[9px] border border-slate-700 custom-scroll">
+                            <div class="opacity-50">> Ready to debug...</div>
                         </div>
                     </div>`;
                 });
             });
         };
 
-                window.processPreOrderToSystem = async (id, target, providerCode, serverType = 'KHFY') => {
+        window.processPreOrderToSystem = async (id, target, providerCode, serverType = 'KHFY') => {
             currentProcessingPoId = id;
             document.getElementById('debugTargetNum').value = target;
             document.getElementById('debugProductCode').value = providerCode;
             
-            // Set Auto Server Global & UI
             currentAutoServer = serverType;
             const badge = document.getElementById('autoServerBadge');
             if(badge) {
@@ -721,106 +770,98 @@
                 badge.className = serverType === 'ICS' ? 'ml-2 px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700' : 'ml-2 px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700';
             }
 
-            addDebugLog(`Auto-fill: ${target} [${providerCode}] Server: ${serverType}`, 'info');
+            const targetLogId = `log-po-${id}`;
+            addDebugLog(`Auto-fill: ${target} [${providerCode}] Server: ${serverType}`, 'info', targetLogId);
             
-            // SCROLL & EKSEKUSI OTOMATIS (Delay 500ms)
-            const actionArea = document.getElementById('debugActionArea');
-            if(actionArea) actionArea.scrollIntoView({ behavior: 'smooth' });
-
             setTimeout(() => {
-                addDebugLog('Memulai eksekusi otomatis...', 'info');
-                executeDebugTrx(currentAutoServer);
-            }, 800);
+                addDebugLog('Memulai eksekusi otomatis...', 'info', targetLogId);
+                executeDebugTrx(currentAutoServer, id);
+            }, 500);
         };
 
         window.executeAutoBypass = () => executeDebugTrx(currentAutoServer);
 
-            window.executeDebugTrx = async (system) => {
-        const num = document.getElementById('debugTargetNum').value;
-        const code = document.getElementById('debugProductCode').value;
-        if (!num || !code) return Swal.fire('Error', 'Data target/produk kosong', 'warning');
-        
-        const reffId = `DBG-${Date.now()}`;
-        addDebugLog(`[${system}] Mengirim permintaan: ${code} -> ${num}...`);
-        
-        try {
-            let result;
-            // 1. Request Utama
-            if (system === 'KHFY') {
-                const url = `${KHFY_CONFIG_DBG.baseUrl}/trx?api_key=${KHFY_CONFIG_DBG.apiKey}&produk=${code}&tujuan=${num}&reff_id=${reffId}`;
-                const res = await fetch(DEBUG_PROXY + encodeURIComponent(url));
-                result = await res.json();
-            } else {
-                const url = `${ICS_CONFIG_DBG.baseUrl}/?action=createTransaction&apikey=${ICS_CONFIG_DBG.apiKey}&kode_produk=${code}&nomor_tujuan=${num}&refid=${reffId}`;
-                const res = await fetch(DEBUG_PROXY + encodeURIComponent(url));
-                result = await res.json();
-            }
+        window.executeDebugTrx = async (system, poId = null) => {
+            const num = document.getElementById('debugTargetNum').value;
+            const code = document.getElementById('debugProductCode').value;
+            const targetLogId = poId ? `log-po-${poId}` : 'debugLogs';
 
-            const rawResponse = JSON.stringify(result);
-            const msg = (result.msg || result.message || '').toLowerCase();
-            const isOk = (result.ok || result.success || result.status === 'success' || result.status === true);
+            if (!num || !code) return Swal.fire('Error', 'Data target/produk kosong', 'warning');
+            
+            const reffId = `DBG-${Date.now()}`;
+            addDebugLog(`[${system}] Mengirim permintaan: ${code} -> ${num}...`, 'info', targetLogId);
+            
+            try {
+                let result;
+                if (system === 'KHFY') {
+                    const url = `${KHFY_CONFIG_DBG.baseUrl}/trx?api_key=${KHFY_CONFIG_DBG.apiKey}&produk=${code}&tujuan=${num}&reff_id=${reffId}`;
+                    const res = await fetch(DEBUG_PROXY + encodeURIComponent(url));
+                    result = await res.json();
+                } else {
+                    const url = `${ICS_CONFIG_DBG.baseUrl}/?action=createTransaction&apikey=${ICS_CONFIG_DBG.apiKey}&kode_produk=${code}&nomor_tujuan=${num}&refid=${reffId}`;
+                    const res = await fetch(DEBUG_PROXY + encodeURIComponent(url));
+                    result = await res.json();
+                }
 
-            // Log Respon Awal
-            addDebugLog(`API Response: ${rawResponse}`, isOk ? 'info' : 'error');
+                const rawResponse = JSON.stringify(result);
+                const msg = (result.msg || result.message || '').toLowerCase();
+                const isOk = (result.ok || result.success || result.status === 'success' || result.status === true);
 
-            // 2. LOGIKA BARU: Handle "Akan Di Proses" + Auto Re-Check 3 Detik
-            if (isOk && msg.includes('akan di proses')) {
-                const serverTrxId = result.reffid || result.trxid || reffId;
-                addDebugLog(`Status: PROCESSING. Menunggu 3 detik untuk Cek Realtime (ID: ${serverTrxId})...`, 'blue-300');
-                
-                setTimeout(async () => {
-                    addDebugLog(`[Auto-Check] Mengecek status final ke pusat...`);
-                    try {
-                        let checkData;
-                        // Cek ke API Pusat (Logic sama dengan Universal Check)
-                        if (system === 'KHFY') {
-                            const cRes = await callApi('/history', { refid: serverTrxId });
-                            if (cRes.ok && cRes.data && cRes.data.data) checkData = Array.isArray(cRes.data.data) ? cRes.data.data[0] : cRes.data.data;
-                        } else {
-                            const cRes = await callIcsApi('checkTransaction', { refid: serverTrxId });
-                            if (cRes.data) checkData = cRes.data;
-                        }
+                addDebugLog(`API Response: ${rawResponse}`, isOk ? 'info' : 'error', targetLogId);
 
-                        if (checkData) {
-                            const finalStatus = (checkData.status || 'Pending').toUpperCase();
-                            const sn = checkData.sn || checkData.message || '-';
-                            const color = finalStatus === 'SUKSES' || finalStatus === 'SUCCESS' ? 'success' : (finalStatus === 'GAGAL' ? 'error' : 'info');
-                            
-                            addDebugLog(`>> FINAL STATUS: ${finalStatus} | SN: ${sn}`, color);
-
-                            // Opsional: Jika Sukses, update Preorder otomatis (jika ada currentProcessingPoId)
-                            if((finalStatus === 'SUKSES' || finalStatus === 'SUCCESS') && currentProcessingPoId) {
-                                window.handlePreorderDebugAction(currentProcessingPoId, 'Sukses', sn);
-                                currentProcessingPoId = null;
+                if (isOk && msg.includes('akan di proses')) {
+                    const serverTrxId = result.reffid || result.trxid || reffId;
+                    addDebugLog(`Status: PROCESSING. Menunggu 3 detik untuk Cek Realtime (ID: ${serverTrxId})...`, 'blue-300', targetLogId);
+                    
+                    setTimeout(async () => {
+                        addDebugLog(`[Auto-Check] Mengecek status final ke pusat...`, 'info', targetLogId);
+                        try {
+                            let checkData;
+                            if (system === 'KHFY') {
+                                const cRes = await callApi('/history', { refid: serverTrxId });
+                                if (cRes.ok && cRes.data && cRes.data.data) checkData = Array.isArray(cRes.data.data) ? cRes.data.data[0] : cRes.data.data;
+                            } else {
+                                const cRes = await callIcsApi('checkTransaction', { refid: serverTrxId });
+                                if (cRes.data) checkData = cRes.data;
                             }
-                        } else {
-                             addDebugLog(`[Auto-Check] Data tidak ditemukan di pusat.`, 'error');
-                        }
-                    } catch (err) {
-                        addDebugLog(`[Auto-Check Error] ${err.message}`, 'error');
-                    }
-                }, 3000);
-                return; // Stop flow utama, biarkan timeout bekerja
-            }
 
-            // Logika Error Standar (Jika bukan "akan di proses")
-            if (!isOk && rawResponse.includes("Diluar Wilayah")) {
-                addDebugLog("Terdeteksi Diluar Wilayah! Membatalkan otomatis...", "error");
-                if (currentProcessingPoId) {
-                    await window.handlePreorderDebugAction(currentProcessingPoId, 'Tolak', "#Gagal. Tujuan Diluar Wilayah");
+                            if (checkData) {
+                                const finalStatus = (checkData.status || 'Pending').toUpperCase();
+                                const sn = checkData.sn || checkData.message || '-';
+                                const color = finalStatus === 'SUKSES' || finalStatus === 'SUCCESS' ? 'success' : (finalStatus === 'GAGAL' ? 'error' : 'info');
+                                
+                                addDebugLog(`>> FINAL STATUS: ${finalStatus} | SN: ${sn}`, color, targetLogId);
+
+                                if((finalStatus === 'SUKSES' || finalStatus === 'SUCCESS') && currentProcessingPoId === poId) {
+                                    window.handlePreorderDebugAction(poId, 'Sukses', sn);
+                                    currentProcessingPoId = null;
+                                }
+                            } else {
+                                addDebugLog(`[Auto-Check] Data tidak ditemukan di pusat.`, 'error', targetLogId);
+                            }
+                        } catch (err) {
+                            addDebugLog(`[Auto-Check Error] ${err.message}`, 'error', targetLogId);
+                        }
+                    }, 3000);
+                    return;
+                }
+
+                if (!isOk && rawResponse.includes("Diluar Wilayah")) {
+                    addDebugLog("Terdeteksi Diluar Wilayah! Membatalkan otomatis...", "error", targetLogId);
+                    if (currentProcessingPoId === poId) {
+                        await window.handlePreorderDebugAction(poId, 'Tolak', "#Gagal. Tujuan Diluar Wilayah");
+                        currentProcessingPoId = null;
+                    }
+                } else if (rawResponse.includes("#Gagal. Produk Salah") && currentProcessingPoId === poId) {
+                    await deleteDoc(doc(db, "preorders", poId));
+                    addDebugLog(`Auto-removed failed Pre-Order: ${poId}`, 'success', targetLogId);
                     currentProcessingPoId = null;
                 }
-            } else if (rawResponse.includes("#Gagal. Produk Salah") && currentProcessingPoId) {
-                await deleteDoc(doc(db, "preorders", currentProcessingPoId));
-                addDebugLog(`Auto-removed failed Pre-Order: ${currentProcessingPoId}`, 'success');
-                currentProcessingPoId = null;
+
+            } catch (e) { 
+                addDebugLog("Error API: " + e.message, 'error', targetLogId); 
             }
-
-        } catch (e) { 
-            addDebugLog("Error API: " + e.message, 'error'); 
-        }
-    };
-
+        };
 const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
         const firebaseConfig = {
             apiKey: "AIzaSyBnVxgxkS8InH1PQCMGe3cY8IvPqSN6dLo",
@@ -1132,7 +1173,8 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
             document.querySelectorAll('nav a').forEach(el => el.classList.remove('active-nav', 'text-white'));
             const activeLink = document.getElementById('nav-' + tabId);
             if(activeLink) activeLink.classList.add('active-nav', 'text-white');
-                        if(tabId === 'notification') loadActiveNotif();
+                                if(tabId === 'settings') loadTopupSettings();
+            if(tabId === 'notification') loadActiveNotif();
             if(tabId === 'users') { if(!lastUserDoc && !isAllUsersLoaded) loadUsers(true); }
 if(tabId === 'pricing') loadPricingData();
             if(tabId === 'livechat') loadChatList();
@@ -2629,7 +2671,65 @@ window.loadChatList = () => {
             } catch(e) { Swal.fire('Error', e.message, 'error'); }
         };
 
-        window.loadActiveNotif = async () => {
+            window.loadTopupSettings = async () => {
+        const mToggle = document.getElementById('toggleManual');
+        const qToggle = document.getElementById('toggleQios');
+        mToggle.parentElement.classList.add('opacity-50');
+        qToggle.parentElement.classList.add('opacity-50');
+        try {
+            const docSnap = await getDoc(doc(db, "settings", "topup"));
+            if (docSnap.exists()) {
+                const d = docSnap.data();
+                mToggle.checked = d.manual !== false; 
+                qToggle.checked = d.qios !== false;   
+            } else {
+                mToggle.checked = true; qToggle.checked = true;
+            }
+        } catch (e) { Swal.fire('Error', e.message, 'error'); }
+        mToggle.parentElement.classList.remove('opacity-50');
+        qToggle.parentElement.classList.remove('opacity-50');
+    };
+
+    window.saveTopupSettings = async () => {
+        const m = document.getElementById('toggleManual').checked;
+        const q = document.getElementById('toggleQios').checked;
+        try {
+            Swal.showLoading();
+            await setDoc(doc(db, "settings", "topup"), { manual: m, qios: q }, { merge: true });
+            Swal.fire('Berhasil', 'Status layanan top up diperbarui!', 'success');
+        } catch(e) { Swal.fire('Gagal', e.message, 'error'); }
+    };
+
+        window.loadTopupSettings = async () => {
+        const mToggle = document.getElementById('toggleManual');
+        const qToggle = document.getElementById('toggleQios');
+        mToggle.parentElement.classList.add('opacity-50');
+        qToggle.parentElement.classList.add('opacity-50');
+        try {
+            const docSnap = await getDoc(doc(db, "settings", "topup"));
+            if (docSnap.exists()) {
+                const d = docSnap.data();
+                mToggle.checked = d.manual !== false; 
+                qToggle.checked = d.qios !== false;   
+            } else {
+                mToggle.checked = true; qToggle.checked = true;
+            }
+        } catch (e) { Swal.fire('Error', e.message, 'error'); }
+        mToggle.parentElement.classList.remove('opacity-50');
+        qToggle.parentElement.classList.remove('opacity-50');
+    };
+
+    window.saveTopupSettings = async () => {
+        const m = document.getElementById('toggleManual').checked;
+        const q = document.getElementById('toggleQios').checked;
+        try {
+            Swal.showLoading();
+            await setDoc(doc(db, "settings", "topup"), { manual: m, qios: q }, { merge: true });
+            Swal.fire('Berhasil', 'Status layanan top up diperbarui!', 'success');
+        } catch(e) { Swal.fire('Gagal', e.message, 'error'); }
+    };
+
+    window.loadActiveNotif = async () => {
             const container = document.getElementById('activeNotifContainer');
             try {
                 const snap = await getDoc(doc(db, "global_notif", "active"));

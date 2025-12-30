@@ -1341,6 +1341,13 @@ window.openAkrabV2 = () => {
 
     // Provider Maintenance Logic
     let providerStatus = {};
+
+    let topupStatus = { manual: true, qios: true };
+    function initTopupSettingsListener() {
+        onSnapshot(doc(db, "settings", "topup"), (docSnap) => {
+            if (docSnap.exists()) topupStatus = docSnap.data();
+        });
+    }
     window.checkProv = (code) => {
         if(providerStatus[code] === true) {
             alert('Layanan sedang dalam perbaikan (Maintenance).\nSilakan coba lagi nanti.');
@@ -1366,6 +1373,7 @@ window.openAkrabV2 = () => {
         });
     }
     initProviderListener();
+initTopupSettingsListener();
 
     auth.languageCode = 'id';
 
@@ -3373,6 +3381,7 @@ window.renderTopUpHistory = () => {
     };
 
         window.openManualTopUp = async () => {
+        if (topupStatus && topupStatus.manual === false) return window.showAlert("Maintenance", "Layanan Top Up Manual sedang dalam perbaikan.", "error");
         document.getElementById('topUpSheet').classList.add('hide');
         document.getElementById('manualTopUpModal').classList.remove('hide');
         
@@ -3767,6 +3776,7 @@ document.getElementById('detailTrxModal').classList.remove('hide');
     };
 
 window.openQios = () => {
+        if (topupStatus && topupStatus.qios === false) return window.showAlert("Maintenance", "Layanan QRIS sedang dalam perbaikan.", "error");
         document.getElementById('topUpSheet').classList.add('hide');
         document.getElementById('qiosModal').classList.remove('hide');
         window.renderTopUpHistory(); 

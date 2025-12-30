@@ -765,14 +765,8 @@
                             <i class="fas fa-address-book text-gray-400 absolute left-4 top-1/2 -translate-y-1/2 z-10"></i>
                         </div>
                         <div id="productDescription" class="hide mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-xs text-gray-600 dark:text-gray-300 border border-blue-100 dark:border-blue-800 leading-relaxed transition-all animate-fade-in-down"></div>
-<div id="multiNumContainer" class="hide space-y-2 mt-2"></div>
-                        <button id="btnAddNum" onclick="addMultiInput()" class="hide mt-2 w-full py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl text-xs font-bold border border-blue-200 dark:border-blue-800 border-dashed hover:bg-blue-100 dark:hover:bg-blue-900/40 transition"><i class="fas fa-plus mr-1"></i> Tambah Nomor Tujuan</button>
                     </div>
                     <button onclick="processFormTransaction()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/30 active:scale-95 transition-transform flex justify-center items-center gap-2"><span>Beli Paket</span><i class="fas fa-arrow-right"></i></button>
-                    <div class="flex items-center gap-2 mt-4 cursor-pointer p-1" onclick="toggleMultiTrx()">
-                        <div id="multiTrxCheck" class="w-5 h-5 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-white transition-colors"><i class="fas fa-check text-[10px] opacity-0 transition-opacity"></i></div>
-                        <span class="text-xs font-bold text-gray-500 dark:text-gray-400 select-none">Aktifkan Multi Transaksi (Banyak Nomor)</span>
-                    </div>
                 </div>
             </div>
         </div>
@@ -998,9 +992,10 @@
         // 1. PROXY LIST (Global) - Prioritaskan CorsProxyIO untuk POST Request
         // 1. PROXY LIST (Global) - Update dengan CodeTabs sebagai cadangan handal
         // 1. PROXY LIST (Global) - Update dengan CodeTabs (Paling Stabil)
-    const PROXY_LIST = [
-        { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
+        const PROXY_LIST = [
         { name: 'CorsProxyIO', url: 'https://corsproxy.io/?' },
+        { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
+        { name: 'ThingProxy', url: 'https://thingproxy.freeboard.io/fetch/' },
         { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
         { name: 'Direct', url: '' }
     ];

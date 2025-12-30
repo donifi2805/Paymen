@@ -1278,19 +1278,45 @@ window.openAkrabV2 = () => {
             alert("Transaksi Berhasil Dikirim!\nKode Trx: " + trxCode + "\nStatus: Pending.");
             window.nav('homePage');
         } else {
-            // Refund Otomatis
-            await runTransaction(db, async (t) => {
-                const uRef = doc(db, "users", currentUser.uid);
-                const uDoc = await t.get(uRef);
-                const balNow = uDoc.data().balance || 0;
-                t.update(uRef, { balance: balNow + price });
-                t.update(doc(db, "users", currentUser.uid, "history", reffId), {
-                    status: 'Gagal',
-                    api_msg: 'Refund: ' + (apiRes.error || apiRes.message || 'Gagal dari pusat'),
-                    balance_final: balNow + price
+            // --- FIX BUG FALSE NEGATIVE ICS (Anti Refund saat RTO) ---
+            const errStr = (apiRes.error || apiRes.message || "").toString();
+            const isNetworkError = errStr.includes('Failed to fetch') || 
+                                 errStr.includes('NetworkError') || 
+                                 errStr.includes('Gagal koneksi') ||
+                                 errStr.includes('timeout') ||
+                                 errStr.includes('upstream');
+
+            if (isNetworkError) {
+                console.warn("ICS Network Error - Holding Refund");
+                await updateDoc(doc(db, "users", currentUser.uid, "history", reffId), {
+                    status: 'Pending',
+                    api_msg: 'Koneksi Terputus (Menunggu Konfirmasi)...',
+                    raw_json: JSON.stringify(apiRes)
                 });
-            });
-            alert("Transaksi Gagal: " + (apiRes.error || apiRes.message || "Unknown") + "\nSaldo dikembalikan.");
+                
+                // Trigger auto check manual via existing function logic
+                setTimeout(() => window.checkIcsStatus(
+                    { trx_id: reffId, amount: price }, 
+                    { ref: doc(db, "users", currentUser.uid, "history", reffId) }
+                ), 3000);
+                
+                alert("Koneksi Terputus! Transaksi dianggap PENDING.\nSistem akan mengecek status otomatis.");
+                window.nav('homePage');
+            } else {
+                // Refund Otomatis (Hanya jika error murni dari server)
+                await runTransaction(db, async (t) => {
+                    const uRef = doc(db, "users", currentUser.uid);
+                    const uDoc = await t.get(uRef);
+                    const balNow = uDoc.data().balance || 0;
+                    t.update(uRef, { balance: balNow + price });
+                    t.update(doc(db, "users", currentUser.uid, "history", reffId), {
+                        status: 'Gagal',
+                        api_msg: 'Refund: ' + errStr,
+                        balance_final: balNow + price
+                    });
+                });
+                alert("Transaksi Gagal: " + errStr + "\nSaldo dikembalikan.");
+            }
         }
     };
 
@@ -3130,9 +3156,17 @@ window.executeApiTransaction = async (code, dest, price, name) => {
                         const result = await callApi('/trx', { produk: code, tujuan: dest, reff_id: reffId });
             window.showLoader(false);
 
-            // --- FIX BUG FALSE NEGATIVE (Anti Refund saat RTO) ---
+            // --- FIX BUG FALSE NEGATIVE (Anti Refund saat RTO & Network Glitch) ---
+            // UPDATE: Menambahkan deteksi 'Load failed' dan error generik proxy untuk mencegah refund prematur
             const errStr = result.error ? String(result.error) : "";
-            if (!result.ok && (errStr.includes('Failed to fetch') || errStr.includes('NetworkError') || errStr.includes('Gagal Koneksi'))) {
+            const isNetworkError = errStr.includes('Failed to fetch') || 
+                                 errStr.includes('NetworkError') || 
+                                 errStr.includes('Gagal Koneksi') ||
+                                 errStr.includes('Load failed') ||
+                                 errStr.includes('upstream') ||
+                                 (!result.ok && !result.data && !result.error); // Respon kosong/gelap
+
+            if (!result.ok && isNetworkError) {
                 console.warn("Network Error Detected - Holding Refund");
                 
                 await updateDoc(trxRef, { 
@@ -3170,17 +3204,33 @@ window.executeApiTransaction = async (code, dest, price, name) => {
             const rawRes = JSON.stringify(result).toLowerCase();
             const isLockTimeout = rawRes.includes('lock_timeout');
 
+            // --- FIX: Handle Lock Timeout sebagai PENDING (Anti-Refund) ---
+            if (isLockTimeout) {
+                 console.warn("Lock Timeout Detected - Holding Refund");
+                 await updateDoc(trxRef, { 
+                    status: 'Pending', 
+                    api_msg: 'Server Busy (Lock Timeout). Mengecek status...',
+                    raw_json: rawRes
+                });
+                
+                // Auto Cek Status (Delay 3 detik)
+                setTimeout(() => window.manualCheckTrx(reffId, null), 3000);
+
+                window.customConfirm(
+                    'Server Sedang Sibuk',
+                    'Transaksi masuk antrean (Lock Timeout). Sistem akan mengecek status otomatis. Mohon tunggu sebentar.',
+                    () => window.manualCheckTrx(reffId, null)
+                );
+                
+                window.nav('homePage');
+                return; // STOP: Jangan lanjut ke logika sukses/gagal biasa
+            }
+
             if(result.ok && result.data) {
                  const d = result.data;
                  msg = d.message || d.msg || d.sn || (d.data ? d.data.message : '') || msg;
                  if(d.data && d.data.id) providerId = d.data.id;
                  isSuccess = d.status === true || d.success === true || d.status === 'success' || (d.data && d.data.status === 'Pending') || String(msg).toLowerCase().includes('proses');
-            }
-
-            // PAKSA GAGAL JIKA LOCK TIMEOUT
-            if(isLockTimeout) {
-                isSuccess = false;
-                msg = "Server Busy (Lock Timeout). Silakan coba lagi sebentar.";
             }
 
             if(isSuccess) {
@@ -3261,7 +3311,7 @@ window.executeApiTransaction = async (code, dest, price, name) => {
         window.startBackgroundService = () => {
         if(window.autoCheckInterval) clearInterval(window.autoCheckInterval);
         
-        // UPDATE: Interval 30 Detik sesuai permintaan
+        // UPDATE: Interval 10 Detik (Lebih Cepat)
         window.autoCheckInterval = setInterval(async () => {
             if(!currentUser) return;
             const cacheKey = `trx_cache_${currentUser.uid}`;
@@ -3274,7 +3324,7 @@ window.executeApiTransaction = async (code, dest, price, name) => {
                 // UPDATE: Cek menggunakan TRX ID (RefID) untuk akurasi data KHFY
                 window.manualCheckTrx(trx.trx_id, null);
             }
-        }, 30000);
+        }, 10000);
     };
 
     window.checkPendingTopUp = () => {

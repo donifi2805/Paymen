@@ -486,10 +486,17 @@
                             <label class="block text-[10px] text-gray-400 mb-1">Product SKU / Code</label>
                             <input type="text" id="debugProductCode" class="w-full p-2 border rounded text-xs" placeholder="Contoh: XDA13">
                         </div>
-                        <div class="flex gap-2">
-                            <button onclick="executeDebugTrx('KHFY')" class="flex-1 bg-blue-600 text-white py-2 rounded text-[10px] font-bold">BYPASS KHFY</button>
-                            <button onclick="executeDebugTrx('ICS')" class="flex-1 bg-cyan-600 text-white py-2 rounded text-[10px] font-bold">BYPASS ICS</button>
+                                            <div id="debugActionArea">
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-xs font-semibold text-gray-600">Action Control</label>
+                            <span id="autoServerBadge" class="ml-2 px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-500">WAITING...</span>
                         </div>
+                        <div class="grid grid-cols-1 gap-2">
+                             <button onclick="executeAutoBypass()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-2 rounded-lg text-xs font-bold shadow-lg hover:shadow-xl transition-all">
+                                <i class="fas fa-robot animate-pulse mr-1"></i> EKSEKUSI AUTO (DETECTED)
+                            </button>
+                        </div>
+                    </div>
                     </div>
                 </div>
                 <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
@@ -666,6 +673,7 @@
         const ICS_CONFIG_DBG = { apiKey: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3", baseUrl: "https://reseller.ics-store.my.id" };
         const DEBUG_PROXY = "https://api.codetabs.com/v1/proxy?quest=";
         let currentProcessingPoId = null;
+        let currentAutoServer = 'KHFY'; // Data Baru: Auto Detect Server
 
         function addDebugLog(msg, type = 'info') {
             const logs = document.getElementById('debugLogs');
@@ -693,55 +701,125 @@
                         <div class="flex gap-1">
                             <button onclick="handlePreorderDebugAction('${docSnap.id}', 'Sukses')" class="bg-emerald-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-emerald-700 transition">BERHASIL</button>
                             <button onclick="handlePreorderDebugAction('${docSnap.id}', 'Tolak')" class="bg-red-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-red-700 transition">GAGALKAN</button>
-                            <button onclick="processPreOrderToSystem('${docSnap.id}', '${po.targetNumber}', '${po.provider}')" class="bg-purple-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-purple-700 transition">RUN</button>
+                            <button onclick="processPreOrderToSystem('${docSnap.id}', '${po.targetNumber}', '${po.provider}', '${po.serverType || 'KHFY'}')" class="bg-purple-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-purple-700 transition">RUN</button>
                         </div>
                     </div>`;
                 });
             });
         };
 
-        window.processPreOrderToSystem = async (id, target, providerCode) => {
+                window.processPreOrderToSystem = async (id, target, providerCode, serverType = 'KHFY') => {
             currentProcessingPoId = id;
             document.getElementById('debugTargetNum').value = target;
             document.getElementById('debugProductCode').value = providerCode;
-            addDebugLog(`Auto-fill: ${target} [${providerCode}]`, 'info');
+            
+            // Set Auto Server Global & UI
+            currentAutoServer = serverType;
+            const badge = document.getElementById('autoServerBadge');
+            if(badge) {
+                badge.innerText = serverType;
+                badge.className = serverType === 'ICS' ? 'ml-2 px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700' : 'ml-2 px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700';
+            }
+
+            addDebugLog(`Auto-fill: ${target} [${providerCode}] Server: ${serverType}`, 'info');
+            
+            // SCROLL & EKSEKUSI OTOMATIS (Delay 500ms)
+            const actionArea = document.getElementById('debugActionArea');
+            if(actionArea) actionArea.scrollIntoView({ behavior: 'smooth' });
+
+            setTimeout(() => {
+                addDebugLog('Memulai eksekusi otomatis...', 'info');
+                executeDebugTrx(currentAutoServer);
+            }, 800);
         };
 
-        window.executeDebugTrx = async (system) => {
-            const num = document.getElementById('debugTargetNum').value;
-            const code = document.getElementById('debugProductCode').value;
-            if (!num || !code) return alert("Data tidak lengkap!");
-            addDebugLog(`Executing ${system} Bypass for ${code}...`);
-            const reffId = `DBG-${Date.now()}`;
-            try {
-                let result;
-                if (system === 'KHFY') {
-                    const url = `${KHFY_CONFIG_DBG.baseUrl}/trx?api_key=${KHFY_CONFIG_DBG.apiKey}&produk=${code}&tujuan=${num}&reff_id=${reffId}`;
-                    const res = await fetch(DEBUG_PROXY + encodeURIComponent(url));
-                    result = await res.json();
-                } else {
-                    const url = `${ICS_CONFIG_DBG.baseUrl}/?action=createTransaction&apikey=${ICS_CONFIG_DBG.apiKey}&kode_produk=${code}&nomor_tujuan=${num}&refid=${reffId}`;
-                    const res = await fetch(DEBUG_PROXY + encodeURIComponent(url));
-                    result = await res.json();
-                }
-                const rawResponse = JSON.stringify(result);
-                const isSuccess = (result.success || result.status === 'success' || result.status === true);
-                addDebugLog(`API Response: ${rawResponse}`, isSuccess ? 'success' : 'error');
+        window.executeAutoBypass = () => executeDebugTrx(currentAutoServer);
 
-                // LOGIKA PEMBATALAN OTOMATIS BERDASARKAN RESPON SERVER
-                if (!isSuccess && rawResponse.includes("Tujuan Diluar Wilayah")) {
-                    addDebugLog("Terdeteksi Diluar Wilayah! Membatalkan otomatis...", "error");
-                    if (currentProcessingPoId) {
-                        await window.handlePreorderDebugAction(currentProcessingPoId, 'Tolak', "#Gagal. Tujuan Diluar Wilayah");
-                        currentProcessingPoId = null;
+            window.executeDebugTrx = async (system) => {
+        const num = document.getElementById('debugTargetNum').value;
+        const code = document.getElementById('debugProductCode').value;
+        if (!num || !code) return Swal.fire('Error', 'Data target/produk kosong', 'warning');
+        
+        const reffId = `DBG-${Date.now()}`;
+        addDebugLog(`[${system}] Mengirim permintaan: ${code} -> ${num}...`);
+        
+        try {
+            let result;
+            // 1. Request Utama
+            if (system === 'KHFY') {
+                const url = `${KHFY_CONFIG_DBG.baseUrl}/trx?api_key=${KHFY_CONFIG_DBG.apiKey}&produk=${code}&tujuan=${num}&reff_id=${reffId}`;
+                const res = await fetch(DEBUG_PROXY + encodeURIComponent(url));
+                result = await res.json();
+            } else {
+                const url = `${ICS_CONFIG_DBG.baseUrl}/?action=createTransaction&apikey=${ICS_CONFIG_DBG.apiKey}&kode_produk=${code}&nomor_tujuan=${num}&refid=${reffId}`;
+                const res = await fetch(DEBUG_PROXY + encodeURIComponent(url));
+                result = await res.json();
+            }
+
+            const rawResponse = JSON.stringify(result);
+            const msg = (result.msg || result.message || '').toLowerCase();
+            const isOk = (result.ok || result.success || result.status === 'success' || result.status === true);
+
+            // Log Respon Awal
+            addDebugLog(`API Response: ${rawResponse}`, isOk ? 'info' : 'error');
+
+            // 2. LOGIKA BARU: Handle "Akan Di Proses" + Auto Re-Check 3 Detik
+            if (isOk && msg.includes('akan di proses')) {
+                const serverTrxId = result.reffid || result.trxid || reffId;
+                addDebugLog(`Status: PROCESSING. Menunggu 3 detik untuk Cek Realtime (ID: ${serverTrxId})...`, 'blue-300');
+                
+                setTimeout(async () => {
+                    addDebugLog(`[Auto-Check] Mengecek status final ke pusat...`);
+                    try {
+                        let checkData;
+                        // Cek ke API Pusat (Logic sama dengan Universal Check)
+                        if (system === 'KHFY') {
+                            const cRes = await callApi('/history', { refid: serverTrxId });
+                            if (cRes.ok && cRes.data && cRes.data.data) checkData = Array.isArray(cRes.data.data) ? cRes.data.data[0] : cRes.data.data;
+                        } else {
+                            const cRes = await callIcsApi('checkTransaction', { refid: serverTrxId });
+                            if (cRes.data) checkData = cRes.data;
+                        }
+
+                        if (checkData) {
+                            const finalStatus = (checkData.status || 'Pending').toUpperCase();
+                            const sn = checkData.sn || checkData.message || '-';
+                            const color = finalStatus === 'SUKSES' || finalStatus === 'SUCCESS' ? 'success' : (finalStatus === 'GAGAL' ? 'error' : 'info');
+                            
+                            addDebugLog(`>> FINAL STATUS: ${finalStatus} | SN: ${sn}`, color);
+
+                            // Opsional: Jika Sukses, update Preorder otomatis (jika ada currentProcessingPoId)
+                            if((finalStatus === 'SUKSES' || finalStatus === 'SUCCESS') && currentProcessingPoId) {
+                                window.handlePreorderDebugAction(currentProcessingPoId, 'Sukses', sn);
+                                currentProcessingPoId = null;
+                            }
+                        } else {
+                             addDebugLog(`[Auto-Check] Data tidak ditemukan di pusat.`, 'error');
+                        }
+                    } catch (err) {
+                        addDebugLog(`[Auto-Check Error] ${err.message}`, 'error');
                     }
-                } else if (rawResponse.includes("#Gagal. Produk Salah") && currentProcessingPoId) {
-                    await deleteDoc(doc(db, "preorders", currentProcessingPoId));
-                    addDebugLog(`Auto-removed failed Pre-Order: ${currentProcessingPoId}`, 'success');
+                }, 3000);
+                return; // Stop flow utama, biarkan timeout bekerja
+            }
+
+            // Logika Error Standar (Jika bukan "akan di proses")
+            if (!isOk && rawResponse.includes("Diluar Wilayah")) {
+                addDebugLog("Terdeteksi Diluar Wilayah! Membatalkan otomatis...", "error");
+                if (currentProcessingPoId) {
+                    await window.handlePreorderDebugAction(currentProcessingPoId, 'Tolak', "#Gagal. Tujuan Diluar Wilayah");
                     currentProcessingPoId = null;
                 }
-            } catch (e) { addDebugLog("Error API: " + e.message, 'error'); }
-        };
+            } else if (rawResponse.includes("#Gagal. Produk Salah") && currentProcessingPoId) {
+                await deleteDoc(doc(db, "preorders", currentProcessingPoId));
+                addDebugLog(`Auto-removed failed Pre-Order: ${currentProcessingPoId}`, 'success');
+                currentProcessingPoId = null;
+            }
+
+        } catch (e) { 
+            addDebugLog("Error API: " + e.message, 'error'); 
+        }
+    };
 
 const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
         const firebaseConfig = {

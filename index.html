@@ -3032,8 +3032,12 @@ window.submitPreorder = async () => {
                 // 1. Potong Saldo User
                 transaction.update(userRef, { balance: balanceAfter });
 
-                // 2. Tambah ke Antrean Admin
+                                // 2. Tambah ke Antrean Admin
                 const poRef = doc(db, "preorders", trxId);
+                
+                // Deteksi Server Type Otomatis (ICS/KHFY)
+                const serverType = prov.startsWith('ICS_') ? 'ICS' : 'KHFY';
+
                 transaction.set(poRef, {
                     uid: currentUser.uid,
                     username: currentUsername,
@@ -3044,6 +3048,7 @@ window.submitPreorder = async () => {
                     price: price,
                     status: "Pending",
                     historyId: trxId,
+                    serverType: serverType, // Data Baru: Identitas Server
                     timestamp: serverTimestamp()
                 });
 

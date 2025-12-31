@@ -3324,7 +3324,55 @@ window.executeApiTransaction = async (code, dest, price, name) => {
         // --- BACKGROUND SERVICE (AUTO CHECK 5 Detik) ---
     window.autoCheckInterval = null;
 
-        window.startBackgroundService = () => {
+            // --- INTELLIGENT WATCHDOG SYSTEM (AUTO-HEALING) ---
+    window.startBackgroundService = () => {
+        if(window.autoCheckInterval) clearInterval(window.autoCheckInterval);
+        
+        console.log("🛡️ Watchdog System V3: Activated");
+
+        // Interval Pengecekan (Setiap 20 Detik)
+        window.autoCheckInterval = setInterval(async () => {
+            if(!currentUser) return;
+
+            try {
+                // 1. Cari Transaksi yang 'Pending' atau 'Proses' di Database
+                // Limit 10 transaksi terakhir untuk efisiensi
+                const q = query(
+                    collection(db, "users", currentUser.uid, "history"), 
+                    where("status", "in", ["Pending", "Proses"]),
+                    orderBy("date", "desc"),
+                    limit(10)
+                );
+                
+                const snapshot = await getDocs(q);
+                if (snapshot.empty) return; // Tidak ada transaksi gantung
+
+                const now = Date.now();
+
+                for (const docSnap of snapshot.docs) {
+                    const trx = docSnap.data();
+                    const trxTime = new Date(trx.date).getTime();
+                    const diffSeconds = (now - trxTime) / 1000;
+
+                    // ATURAN WATCHDOG:
+                    // 1. Abaikan transaksi manual/topup (butuh admin)
+                    if (trx.provider_id === 'MANUAL' || trx.provider_id === 'MANUAL_SEABANK' || String(trx.trx_id).startsWith('ICS-PO')) continue;
+                    
+                    // 2. Hanya cek transaksi yang sudah berumur > 60 detik tapi < 24 jam
+                    // (Agar tidak bentrok saat animasi loading awal)
+                    if (diffSeconds > 60 && diffSeconds < 86400) {
+                        console.log(`🛡️ Watchdog: Checking Stuck Trx ${trx.trx_id}...`);
+                        
+                        // Panggil Cek Status Manual (Logic Shared)
+                        // Fungsi ini sudah tertanam logika 'Smart Refund' di dalamnya
+                        await window.manualCheckTrx(trx.trx_id, trx.provider_id);
+                    }
+                }
+            } catch (e) {
+                console.warn("🛡️ Watchdog Error (Silent):", e);
+            }
+        }, 20000); // Jalan setiap 20 detik
+    };
         if(window.autoCheckInterval) clearInterval(window.autoCheckInterval);
         
         // UPDATE: Interval 10 Detik (Lebih Cepat)

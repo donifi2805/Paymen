@@ -1302,13 +1302,20 @@ window.openAkrabV2 = () => {
                 
                 alert("Koneksi Terputus! Transaksi dianggap PENDING.\nSistem akan mengecek status otomatis.");
                 window.nav('homePage');
-                        } else {
-                // Refund Otomatis (Hanya jika error murni dari server) - LEDGER V2
-                // Fungsi ini sudah otomatis mengembalikan saldo & update status ke Gagal
-                const refundResult = await window.processSmartRefund(currentUser.uid, reffId, 'Refund: ' + errStr);
-                
-                alert("Transaksi Gagal: " + errStr + "\n" + (refundResult.msg || "Saldo dikembalikan."));
-                window.nav('homePage');
+            } else {
+                // Refund Otomatis (Hanya jika error murni dari server)
+                await runTransaction(db, async (t) => {
+                    const uRef = doc(db, "users", currentUser.uid);
+                    const uDoc = await t.get(uRef);
+                    const balNow = uDoc.data().balance || 0;
+                    t.update(uRef, { balance: balNow + price });
+                    t.update(doc(db, "users", currentUser.uid, "history", reffId), {
+                        status: 'Gagal',
+                        api_msg: 'Refund: ' + errStr,
+                        balance_final: balNow + price
+                    });
+                });
+                alert("Transaksi Gagal: " + errStr + "\nSaldo dikembalikan.");
             }
         }
     };
@@ -1343,54 +1350,6 @@ window.openAkrabV2 = () => {
     }
     const auth = getAuth(app);
     const db = getFirestore(app);
-    // --- LEDGER SYSTEM START ---
-    window.processSmartRefund = async (uid, trxId, reason = "Refund Sistem") => {
-        const userRef = doc(db, "users", uid);
-        const historyRef = doc(db, "users", uid, "history", trxId);
-
-        try {
-            await runTransaction(db, async (t) => {
-                // 1. BACA DULU (READ) - Integritas Data
-                const trxDoc = await t.get(historyRef);
-                const userDoc = await t.get(userRef);
-
-                if (!trxDoc.exists()) throw "Data transaksi tidak ditemukan";
-                if (!userDoc.exists()) throw "Data user tidak ditemukan";
-
-                const trxData = trxDoc.data();
-
-                // 2. VALIDASI GANDA (Anti Double Refund)
-                // Jika status sudah Gagal ATAU flag is_refunded true, batalkan proses.
-                if (trxData.status === 'Gagal' || trxData.is_refunded === true) {
-                    throw "REFUND DITOLAK: Transaksi ini sudah dikembalikan sebelumnya.";
-                }
-
-                // 3. HITUNG PENGEMBALIAN (Ledger Calculation)
-                const refundAmount = parseInt(trxData.amount) || 0; 
-                const currentBalance = userDoc.data().balance || 0;
-                const newBalance = currentBalance + refundAmount;
-
-                // 4. EKSEKUSI UPDATE (WRITE)
-                t.update(userRef, { balance: newBalance });
-
-                t.update(historyRef, {
-                    status: 'Gagal',
-                    api_msg: reason,
-                    balance_final: newBalance,
-                    is_refunded: true, // Flag Kunci
-                    refund_date: new Date().toISOString()
-                });
-            });
-
-            console.log("Smart Refund Berhasil: " + trxId);
-            return { success: true, msg: "Saldo berhasil dikembalikan." };
-
-        } catch (e) {
-            console.warn("Smart Refund Prevented:", e);
-            return { success: false, msg: typeof e === 'string' ? e : e.message };
-        }
-    };
-    // --- LEDGER SYSTEM END ---
 
     // FIX: Handle Google Redirect Result (Wajib untuk signInWithRedirect)
     getRedirectResult(auth).then(async (result) => {
@@ -3282,21 +3241,46 @@ window.executeApiTransaction = async (code, dest, price, name) => {
                 await updateDoc(trxRef, { status: 'Pending', api_msg: safeMsg, provider_id: providerId, raw_json: JSON.stringify(result.data || result || {}) });
                 alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                 window.nav('homePage');
-                        } else {
-                // GAGAL DARI RESPON API -> LAKUKAN REFUND OTOMATIS (LEDGER V2)
-                // Logic Baru: Bersih & Aman
-                const finalMsg = isLockTimeout ? msg : (msg.includes('wilayah') ? 'Gagal Tujuan di luar wilayah' : msg);
+            } else {
+                // GAGAL DARI RESPON API -> LAKUKAN REFUND OTOMATIS
+                await runTransaction(db, async (t) => {
+                    const uRef = doc(db, "users", currentUser.uid);
+                    const uDoc = await t.get(uRef);
+                    const currentBal = uDoc.data().balance || 0;
+                    const balanceFinal = currentBal + price;
+                    t.update(uRef, { balance: balanceFinal });
+                    
+                    // Gunakan pesan error dinamis
+                    const finalMsg = isLockTimeout ? msg : (msg.includes('wilayah') ? 'Gagal Tujuan di luar wilayah' : msg);
+
+                    t.update(trxRef, { 
+                        status: 'Gagal', 
+                        api_msg: finalMsg, 
+                        balance_final: balanceFinal,
+                        raw_json: JSON.stringify(result.data || result.error || {})
+                    });
+                    // Catat Riwayat Refund Terpisah
+                    const refundId = 'REF-' + Date.now();
+                    const refundRef = doc(db, "users", currentUser.uid, "history", refundId);
+                    t.set(refundRef, {
+                        title: "Refund: " + name,
+                        amount: price,
+                        type: 'in',
+                        date: new Date().toISOString(),
+                        status: 'Sukses',
+                        api_msg: isLockTimeout ? 'Auto Refund (Server Busy)' : 'Pengembalian saldo otomatis',
+                        trx_id: refundId,
+                        trx_code: trxCode
+                    });
+                });
                 
-                // 1. Panggil Sistem Ledger untuk Refund Database
-                const refundResult = await window.processSmartRefund(currentUser.uid, reffId, finalMsg);
-                
-                // 2. Update Tampilan Saldo (Visual Saja)
                 currentBalance += price;
                 if(document.getElementById('displayBalance')) document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
-
-                // 3. Tampilkan Pesan ke User
+                
+                                // --- PESAN AMAN UNTUK USER ---
+                // UPDATE: Tampilkan pesan 'Server Sedang Sibuk' jika terdeteksi error proxy
                 const displayMsg = (msg === "Server Sedang Sibuk" || isLockTimeout) ? msg : "Transaksi Gagal / Stok Kosong";
-                window.showAlert("Transaksi Gagal", displayMsg + "\n\n" + (refundResult.msg || "Saldo telah dikembalikan otomatis."), "error");
+                window.showAlert("Transaksi Gagal", displayMsg + "\n\nSaldo telah dikembalikan otomatis.", "error");
                 window.nav('homePage');
             }
 
@@ -3324,55 +3308,7 @@ window.executeApiTransaction = async (code, dest, price, name) => {
         // --- BACKGROUND SERVICE (AUTO CHECK 5 Detik) ---
     window.autoCheckInterval = null;
 
-            // --- INTELLIGENT WATCHDOG SYSTEM (AUTO-HEALING) ---
-    window.startBackgroundService = () => {
-        if(window.autoCheckInterval) clearInterval(window.autoCheckInterval);
-        
-        console.log("🛡️ Watchdog System V3: Activated");
-
-        // Interval Pengecekan (Setiap 20 Detik)
-        window.autoCheckInterval = setInterval(async () => {
-            if(!currentUser) return;
-
-            try {
-                // 1. Cari Transaksi yang 'Pending' atau 'Proses' di Database
-                // Limit 10 transaksi terakhir untuk efisiensi
-                const q = query(
-                    collection(db, "users", currentUser.uid, "history"), 
-                    where("status", "in", ["Pending", "Proses"]),
-                    orderBy("date", "desc"),
-                    limit(10)
-                );
-                
-                const snapshot = await getDocs(q);
-                if (snapshot.empty) return; // Tidak ada transaksi gantung
-
-                const now = Date.now();
-
-                for (const docSnap of snapshot.docs) {
-                    const trx = docSnap.data();
-                    const trxTime = new Date(trx.date).getTime();
-                    const diffSeconds = (now - trxTime) / 1000;
-
-                    // ATURAN WATCHDOG:
-                    // 1. Abaikan transaksi manual/topup (butuh admin)
-                    if (trx.provider_id === 'MANUAL' || trx.provider_id === 'MANUAL_SEABANK' || String(trx.trx_id).startsWith('ICS-PO')) continue;
-                    
-                    // 2. Hanya cek transaksi yang sudah berumur > 60 detik tapi < 24 jam
-                    // (Agar tidak bentrok saat animasi loading awal)
-                    if (diffSeconds > 60 && diffSeconds < 86400) {
-                        console.log(`🛡️ Watchdog: Checking Stuck Trx ${trx.trx_id}...`);
-                        
-                        // Panggil Cek Status Manual (Logic Shared)
-                        // Fungsi ini sudah tertanam logika 'Smart Refund' di dalamnya
-                        await window.manualCheckTrx(trx.trx_id, trx.provider_id);
-                    }
-                }
-            } catch (e) {
-                console.warn("🛡️ Watchdog Error (Silent):", e);
-            }
-        }, 20000); // Jalan setiap 20 detik
-    };
+        window.startBackgroundService = () => {
         if(window.autoCheckInterval) clearInterval(window.autoCheckInterval);
         
         // UPDATE: Interval 10 Detik (Lebih Cepat)
@@ -3702,9 +3638,31 @@ document.getElementById('detailTrxModal').classList.remove('hide');
                 // 2. Cek Status Gagal (Menggunakan status_text: "GAGAL")
                 else if (statusText === 'GAGAL') {
                     freshStatus = 'Gagal';
-                }                // EKSEKUSI UPDATE DATABASE (LEDGER V2)
+                }
+
+                // EKSEKUSI UPDATE DATABASE
                 if (freshStatus === 'Gagal') {
-                    await window.processSmartRefund(currentUser.uid, docId, 'Refund: ' + (keterangan || 'Transaksi Gagal'));
+                    await runTransaction(db, async (t) => {
+                        const trxRef = doc(db, "users", currentUser.uid, "history", docId);
+                        const freshDoc = await t.get(trxRef);
+                        // Cegah refund ganda
+                        if (!freshDoc.exists() || (freshDoc.data().status !== 'Pending' && freshDoc.data().status !== 'Proses')) return;
+
+                        const uRef = doc(db, "users", currentUser.uid);
+                        const uDoc = await t.get(uRef);
+                        const currentBal = uDoc.data().balance || 0;
+                        const refundAmount = freshDoc.data().amount || 0;
+
+                        // Refund Saldo
+                        t.update(uRef, { balance: currentBal + refundAmount });
+                        // Simpan Keterangan Gagal (misal: "stock transaksi habis")
+                        t.update(trxRef, {
+                            status: 'Gagal',
+                            api_msg: 'Refund: ' + (keterangan || 'Transaksi Gagal'),
+                            balance_final: currentBal + refundAmount,
+                            raw_json: JSON.stringify(root)
+                        });
+                    });
                 } else if (freshStatus === 'Sukses') {
                     await updateDoc(doc(db, "users", currentUser.uid, "history", docId), {
                         status: 'Sukses',

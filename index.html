@@ -3270,6 +3270,21 @@ window.executeApiTransaction = async (code, dest, price, name) => {
             if(result.ok && result.data) {
                  const d = result.data;
                  msg = d.message || d.msg || d.sn || (d.data ? d.data.message : '') || msg;
+                 // --- SENSOR DATA SENSITIF (Anti-Leak) ---
+                 // Menghapus total parameter kodereseller, password, dan pin agar tidak tampil
+                 if(typeof msg === 'string') {
+                    // 1. Hapus key=value untuk data sensitif (termasuk & di belakangnya)
+                    msg = msg.replace(/(kodereseller|password|pin)=[^&\s#]*&?/gi, "");
+                    
+                    // 2. Hapus sisa 'trx?' atau '?' di awal string agar rapi (misal: trx?produk=... jadi produk=...)
+                    msg = msg.replace(/^(trx)?\?/i, "");
+                 }
+
+                 // --- SENSOR DATA SENSITIF (Anti-Leak) ---
+                 // Menyembunyikan kodereseller, password, dan pin dari pesan error
+                 if(typeof msg === 'string') {
+                    msg = msg.replace(/(kodereseller|password|pin)=([^&\s#]*)/gi, '$1=******');
+                 }
                  if(d.data && d.data.id) providerId = d.data.id;
                  isSuccess = d.status === true || d.success === true || d.status === 'success' || (d.data && d.data.status === 'Pending') || String(msg).toLowerCase().includes('proses');
             }
@@ -3294,8 +3309,9 @@ window.executeApiTransaction = async (code, dest, price, name) => {
                 currentBalance += price;
                 if(document.getElementById('displayBalance')) document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
 
-                // 3. Tampilkan Pesan ke User
-                const displayMsg = (msg === "Server Sedang Sibuk" || isLockTimeout) ? msg : "Transaksi Gagal / Stok Kosong";
+                                // 3. Tampilkan Pesan ke User
+                // PERBAIKAN: Gunakan 'finalMsg' agar pesan asli server (Misal: Nomor Salah/Suspect) muncul
+                const displayMsg = finalMsg || msg || "Transaksi Gagal";
                 window.showAlert("Transaksi Gagal", displayMsg + "\n\n" + (refundResult.msg || "Saldo telah dikembalikan otomatis."), "error");
                 window.nav('homePage');
             }

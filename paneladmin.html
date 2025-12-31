@@ -506,7 +506,12 @@
                     </div>
                 </div>
                 <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                    <h3 class="text-sm font-bold mb-3 border-b pb-2 text-purple-600">Preorder Queue (Debug Mode)</h3>
+                    <div class="flex justify-between items-center mb-3 border-b pb-2">
+                    <h3 class="text-sm font-bold text-purple-600">Preorder Queue (Debug Mode)</h3>
+                    <button onclick="runMassalPreorders(this)" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-[10px] font-bold transition shadow-sm flex items-center gap-1">
+                        <i class="fas fa-play-circle"></i> RUN MASSAL
+                    </button>
+                </div>
                     <div id="debugPoList" class="space-y-2 overflow-y-auto pr-2 custom-scroll text-[10px]" style="height: 60vh;">
                         <p class="text-gray-400 italic">No queue found.</p>
                     </div>
@@ -727,7 +732,39 @@
             logs.scrollTop = logs.scrollHeight;
         }
 
-                        window.listenDebugPreOrders = () => {
+                                window.runMassalPreorders = async (btn) => {
+            const container = document.getElementById('debugPoList');
+            if(!container) return;
+            const runButtons = container.querySelectorAll('button[onclick^="processPreOrderToSystem"]');
+            if(runButtons.length === 0) return Swal.fire('Info', 'Antrian kosong.', 'info');
+            
+            if(!confirm('Jalankan ' + runButtons.length + ' antrian secara otomatis (Jeda 3 detik)?')) return;
+
+            const originText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running...';
+
+            for(let i = 0; i < runButtons.length; i++) {
+                const currentBtn = runButtons[i];
+                currentBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                currentBtn.click();
+                
+                btn.innerHTML = `<i class="fas fa-cog fa-spin"></i> ${i+1}/${runButtons.length}`;
+
+                if(i < runButtons.length - 1) {
+                    await new Promise(r => setTimeout(r, 3000));
+                }
+            }
+
+            btn.innerHTML = '<i class="fas fa-check"></i> Selesai';
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = originText;
+            }, 2000);
+        };
+
+
+window.listenDebugPreOrders = () => {
             onSnapshot(query(collection(db, "preorders"), orderBy("timestamp", "desc")), (snap) => {
                 const container = document.getElementById('debugPoList');
                 container.innerHTML = '';
@@ -811,7 +848,7 @@
 
                 if (isOk && msg.includes('akan di proses')) {
                     const serverTrxId = result.reffid || result.trxid || reffId;
-                    addDebugLog(`Status: PROCESSING. Menunggu 3 detik untuk Cek Realtime (ID: ${serverTrxId})...`, 'blue-300', targetLogId);
+                    addDebugLog(`Status: PROCESSING. Menunggu 6 detik untuk Cek Realtime (ID: ${serverTrxId})...`, 'blue-300', targetLogId);
                     
                     setTimeout(async () => {
                         addDebugLog(`[Auto-Check] Mengecek status final ke pusat...`, 'info', targetLogId);
@@ -828,9 +865,14 @@
                             if (checkData) {
                                 const finalStatus = (checkData.status || 'Pending').toUpperCase();
                                 const sn = checkData.sn || checkData.message || '-';
+                                const serverMsg = checkData.keterangan || checkData.message || '-';
+                                const price = checkData.price || checkData.harga || 0;
                                 const color = finalStatus === 'SUKSES' || finalStatus === 'SUCCESS' ? 'success' : (finalStatus === 'GAGAL' ? 'error' : 'info');
                                 
-                                addDebugLog(`>> FINAL STATUS: ${finalStatus} | SN: ${sn}`, color, targetLogId);
+                                addDebugLog(`>> FINAL STATUS: ${finalStatus}`, color, targetLogId);
+                                addDebugLog(`>> SN: ${sn}`, 'text-gray-400', targetLogId);
+                                addDebugLog(`>> MSG: ${serverMsg}`, 'text-gray-400', targetLogId);
+                                addDebugLog(`>> PRICE: Rp ${parseInt(price).toLocaleString('id-ID')}`, 'text-blue-400', targetLogId);
 
                                 if((finalStatus === 'SUKSES' || finalStatus === 'SUCCESS') && currentProcessingPoId === poId) {
                                     window.handlePreorderDebugAction(poId, 'Sukses', sn);
@@ -842,7 +884,7 @@
                         } catch (err) {
                             addDebugLog(`[Auto-Check Error] ${err.message}`, 'error', targetLogId);
                         }
-                    }, 3000);
+                    }, 6000);
                     return;
                 }
 

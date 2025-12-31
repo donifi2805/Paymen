@@ -1275,7 +1275,8 @@ window.openAkrabV2 = () => {
                 supplier_id: apiRes.supplier_trxid || '-',
                 raw_json: JSON.stringify(apiRes)
             });
-            alert("Transaksi Berhasil Dikirim!\nKode Trx: " + trxCode + "\nStatus: Pending.");
+                        window.sendTelegramNotif('ORDER', { title: name, amount: price, dest: number, trxId: reffId });
+alert("Transaksi Berhasil Dikirim!\nKode Trx: " + trxCode + "\nStatus: Pending.");
             window.nav('homePage');
         } else {
             // --- FIX BUG FALSE NEGATIVE ICS (Anti Refund saat RTO) ---
@@ -3295,6 +3296,7 @@ window.executeApiTransaction = async (code, dest, price, name) => {
                     safeMsg = safeMsg.split('#').pop() || 'Tujuan Diluar Wilayah';
                 }
                 await updateDoc(trxRef, { status: 'Pending', api_msg: safeMsg, provider_id: providerId, raw_json: JSON.stringify(result.data || result || {}) });
+                window.sendTelegramNotif('ORDER', { title: name, amount: price, dest: dest, trxId: reffId });
                 alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                 window.nav('homePage');
                         } else {

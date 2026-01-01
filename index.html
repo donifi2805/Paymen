@@ -1232,7 +1232,7 @@ window.openAkrabV2 = () => {
         }
     };
 
-            window.executeIcsTransaction = async (code, number, price, name) => {
+            window.executeIcsTransaction = async (code, number, price, name, provCode) => {
         window.showLoader(true);
         const reffId = 'ICS-' + Date.now();
         const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -1258,6 +1258,7 @@ window.openAkrabV2 = () => {
                     trx_id: reffId,
                     trx_code: trxCode,
                     provider_id: 'ICS',
+                    provider_code: provCode || 'ICS',
                     raw_code: code,
                     dest_num: number,
                     balance_before: bal,
@@ -2975,7 +2976,7 @@ if (providerCode === 'FMX') return (code.startsWith('FMX') || code === 'CFMX') &
             if(currentBalance < price) return alert("Saldo tidak cukup!");
             
             window.customConfirm('Apakah anda ingin melanjutkan?', `Produk: ${name}\nNomor: ${number}\nHarga: ${window.formatRp(price)}`, async () => {
-                window.executeIcsTransaction(code, number, price, name);
+                window.executeIcsTransaction(code, number, price, name, provider);
             });
             return;
         }
@@ -3030,7 +3031,7 @@ if (providerCode === 'FMX') return (code.startsWith('FMX') || code === 'CFMX') &
         }
     };
 
-    window.showInvoice = (code, name, price, dest) => {
+    window.showInvoice = (code, name, price, dest, provCode) => {
         const fmtPrice = window.formatRp(price);
         document.getElementById('invTotalMain').innerText = fmtPrice;
         document.getElementById('invTotalBottom').innerText = fmtPrice;
@@ -3041,7 +3042,7 @@ if (providerCode === 'FMX') return (code.startsWith('FMX') || code === 'CFMX') &
         const btnPay = document.getElementById('btnPayInvoice');
         btnPay.onclick = () => {
             window.closeInvoice();
-            window.executeApiTransaction(code, dest, price, name);
+            window.executeApiTransaction(code, dest, price, name, provCode);
         };
 
         document.getElementById('invoiceModal').classList.remove('hide');
@@ -3052,7 +3053,8 @@ if (providerCode === 'FMX') return (code.startsWith('FMX') || code === 'CFMX') &
     window.confirmTransaction = (code, name, price) => {
         if(currentBalance < price) return alert('Saldo Aplikasi Kurang! (Top Up Manual dulu)'); 
         const num = document.getElementById('ppobNumber').value;
-        window.showInvoice(code, name, price, num);
+        const prov = document.getElementById('formProvider').value;
+        window.showInvoice(code, name, price, num, prov);
     };
 
             
@@ -3168,7 +3170,7 @@ window.submitPreorder = async () => {
             alert(typeof e === 'string' ? e : e.message);
         }
     };
-window.executeApiTransaction = async (code, dest, price, name) => {
+    window.executeApiTransaction = async (code, dest, price, name, provCode) => {
         window.showLoader(true);
         const reffId = 'TRX-' + Date.now() + '-' + Math.floor(1000 + Math.random() * 9000);
         const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -3194,7 +3196,10 @@ window.executeApiTransaction = async (code, dest, price, name) => {
                     api_msg: 'Menghubungkan ke server...',
                     trx_id: reffId,
                     trx_code: trxCode,
-                    provider_id: '',
+                    provider_id: '', // ID Server (Akan diupdate)
+                    provider_code: provCode || '', // Kode Provider App
+                    raw_code: code, // Kode Produk
+                    dest_num: dest, // Nomor Tujuan
                     balance_before: balanceBefore,
                     balance_after: balanceAfter
                 });

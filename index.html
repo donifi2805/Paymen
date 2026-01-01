@@ -567,7 +567,7 @@
     <section id="akrabV2Page" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen z-40 absolute top-0 w-full max-w-[480px]">
         <div class="p-4 bg-white dark:bg-gray-900 sticky top-0 z-20 shadow-sm flex items-center gap-4">
             <button onclick="nav('homePage')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"><i class="fas fa-arrow-left text-gray-800 dark:text-white"></i></button>
-            <h2 class="font-bold text-lg text-gray-800 dark:text-white">Akrab v2 (ICS)</h2>
+                    <h2 class="font-bold text-lg text-gray-800 dark:text-white">Akrab v2 (Premium)</h2>
         </div>
         <div class="p-4 pb-24">
             <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-800">
@@ -593,7 +593,7 @@
                     </div>
                 </div>
                 <button onclick="processAkrabV2Transaction()" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-cyan-500/30 active:scale-95 transition-transform flex justify-center items-center gap-2"><span>Beli Paket</span><i class="fas fa-arrow-right"></i></button>
-                <p class="text-[10px] text-gray-400 mt-4 text-center">Powered by ICS Store API</p>
+                                <p class="text-[10px] text-gray-400 mt-4 text-center">Powered by Official API</p>
             </div>
         </div>
     </section>
@@ -775,7 +775,7 @@
     <section id="akrabV2Page" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen z-40 absolute top-0 w-full max-w-[480px]">
         <div class="p-4 bg-white dark:bg-gray-900 sticky top-0 z-20 shadow-sm flex items-center gap-4">
             <button onclick="nav('homePage')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"><i class="fas fa-arrow-left text-gray-800 dark:text-white"></i></button>
-            <h2 class="font-bold text-lg text-gray-800 dark:text-white">Akrab v2 (ICS)</h2>
+                    <h2 class="font-bold text-lg text-gray-800 dark:text-white">Akrab v2 (Premium)</h2>
         </div>
         <div class="p-4 pb-24">
             <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-800">
@@ -794,7 +794,7 @@
                     </div>
                 </div>
                 <button onclick="processAkrabV2Transaction()" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-cyan-500/30 active:scale-95 transition-transform flex justify-center items-center gap-2"><span>Beli Paket</span><i class="fas fa-arrow-right"></i></button>
-                <p class="text-[10px] text-gray-400 mt-4 text-center">Powered by ICS Store API</p>
+                                <p class="text-[10px] text-gray-400 mt-4 text-center">Powered by Official API</p>
             </div>
         </div>
     </section>
@@ -901,7 +901,11 @@
                 <div class="flex items-center"><span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">XL Circle</span><span class="mt-badge">GANGGUAN</span></div>
                 <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
             </div>
-            <div id="prov_XLA" onclick="checkProv('XLA') && selectProvider('XLA', 'Akrab Fresh (XLA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                        <div id="prov_XDA" onclick="checkProv('XDA') && selectProvider('XDA', 'Akrab V2 (XDA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <div class="flex items-center"><span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Akrab V2 (XDA)</span><span class="mt-badge">GANGGUAN</span></div>
+                <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
+            </div>
+<div id="prov_XLA" onclick="checkProv('XLA') && selectProvider('XLA', 'Akrab Fresh (XLA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
                 <div class="flex items-center"><span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Akrab Fresh (XLA)</span><span class="mt-badge">GANGGUAN</span></div>
                 <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
             </div>
@@ -1006,12 +1010,18 @@
         chatId: "-1002997407612"
     };
 
-    window.sendTelegramNotif = async (type, data) => {
+                    window.sendTelegramNotif = async (type, data) => {
         let message = "";
         let topicId = null;
         const now = new Date();
         const options = { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
         const formattedDate = now.toLocaleDateString('id-ID', options).replace(/ pukul /g, ' | ');
+
+        // LOGIKA SENSOR 4 DIGIT BELAKANG
+        let safeDest = data.dest || "-";
+        if (safeDest && safeDest.length > 4) {
+             safeDest = safeDest.substring(0, safeDest.length - 4) + "****";
+        }
 
         if (type === 'TOPUP') {
             topicId = 7;
@@ -1031,7 +1041,7 @@
             message = `✅ TRANSAKSI BERHASIL \n` +
                       `━━━━━━━━━━━━━━━━━━\n` +
                       `📦 Produk : ${data.title}\n` +
-                      `🎯 Tujuan : ${data.dest}\n` +
+                      `🎯 Tujuan : ${safeDest}\n` +
                       `💸 Harga : Rp ${window.formatRp(data.amount).replace('Rp', '').trim()}\n` +
                       `🕒 Waktu : ${formattedDate}\n` +
                       `👤 User : ${currentUsername}\n` +
@@ -1275,7 +1285,7 @@ window.openAkrabV2 = () => {
                 supplier_id: apiRes.supplier_trxid || '-',
                 raw_json: JSON.stringify(apiRes)
             });
-                        window.sendTelegramNotif('ORDER', { title: name, amount: price, dest: number, trxId: reffId });
+                        
 alert("Transaksi Berhasil Dikirim!\nKode Trx: " + trxCode + "\nStatus: Pending.");
             window.nav('homePage');
         } else {
@@ -1330,13 +1340,17 @@ alert("Transaksi Berhasil Dikirim!\nKode Trx: " + trxCode + "\nStatus: Pending."
                     const freshDoc = await t.get(docSnap.ref);
                     if(freshDoc.data().status !== 'Pending') return;
 
-                    if(newStatus === 'Gagal') {
+                                        if(newStatus === 'Gagal') {
                         const uRef = doc(db, "users", currentUser.uid);
                         const uDoc = await t.get(uRef);
                         t.update(uRef, { balance: (uDoc.data().balance || 0) + trx.amount });
                         t.update(docSnap.ref, { status: 'Gagal', api_msg: 'Refund: ' + (res.message || 'Gagal') });
                     } else {
                         t.update(docSnap.ref, { status: 'Sukses', api_msg: res.message || res.sn || 'Sukses' });
+                        // NOTIFIKASI SUKSES (ICS)
+                        if(typeof window.sendTelegramNotif === 'function') {
+                             window.sendTelegramNotif('ORDER', { title: trx.title, amount: trx.amount, dest: trx.dest_num, trxId: trx.trx_id });
+                        }
                     }
                 });
             }
@@ -2728,7 +2742,8 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
             const name = (p.name || p.nama_produk || p.product_name || '').toUpperCase();
             const brand = (p.brand || p.kode_provider || p.operator || '').toUpperCase();
             
-            if (providerCode === 'FMX') return (code.startsWith('FMX') || code === 'CFMX') && brand === 'FMAX';
+                        if (providerCode === 'XDA') return code.startsWith('XDA');
+if (providerCode === 'FMX') return (code.startsWith('FMX') || code === 'CFMX') && brand === 'FMAX';
             if (providerCode === 'XLR') return brand === 'XLREGULER';
             if (providerCode === 'PLN') return brand.includes('PLN') || code.includes('PLN') || name.includes('TOKEN');
 
@@ -3296,7 +3311,7 @@ window.executeApiTransaction = async (code, dest, price, name) => {
                     safeMsg = safeMsg.split('#').pop() || 'Tujuan Diluar Wilayah';
                 }
                 await updateDoc(trxRef, { status: 'Pending', api_msg: safeMsg, provider_id: providerId, raw_json: JSON.stringify(result.data || result || {}) });
-                window.sendTelegramNotif('ORDER', { title: name, amount: price, dest: dest, trxId: reffId });
+                
                 alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                 window.nav('homePage');
                         } else {
@@ -3706,13 +3721,17 @@ document.getElementById('detailTrxModal').classList.remove('hide');
                 }                // EKSEKUSI UPDATE DATABASE (LEDGER V2)
                 if (freshStatus === 'Gagal') {
                     await window.processSmartRefund(currentUser.uid, docId, 'Refund: ' + (keterangan || 'Transaksi Gagal'));
-                } else if (freshStatus === 'Sukses') {
+                                } else if (freshStatus === 'Sukses') {
                     await updateDoc(doc(db, "users", currentUser.uid, "history", docId), {
                         status: 'Sukses',
                         api_msg: 'Transaksi Berhasil',
                         sn: sn || keterangan || 'Transaksi Berhasil',
                         raw_json: JSON.stringify(root)
                     });
+                    // NOTIFIKASI SUKSES (PPOB & MANUAL)
+                    if(typeof window.sendTelegramNotif === 'function') {
+                        window.sendTelegramNotif('ORDER', { title: item.produk || item.code || 'Produk', amount: item.price || 0, dest: item.tujuan || '', trxId: docId });
+                    }
                 }
 
                 // UPDATE UI LIVE (Jika Modal Terbuka)

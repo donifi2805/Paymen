@@ -1234,7 +1234,12 @@ window.openAkrabV2 = () => {
 
             window.executeIcsTransaction = async (code, number, price, name, provCode) => {
         window.showLoader(true);
-        const reffId = 'ICS-' + Date.now();
+        // Format Baru ICS: ICS-08xx-JamMenitDetik
+        const d = new Date();
+        const timeStr = String(d.getHours()).padStart(2, '0') + String(d.getMinutes()).padStart(2, '0') + String(d.getSeconds()).padStart(2, '0');
+        const cleanNum = number.replace(/[^0-9]/g, '');
+        const reffId = 'ICS-' + cleanNum + '-' + timeStr;
+
         const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
         
         try {
@@ -3172,7 +3177,12 @@ window.submitPreorder = async () => {
     };
     window.executeApiTransaction = async (code, dest, price, name, provCode) => {
         window.showLoader(true);
-        const reffId = 'TRX-' + Date.now() + '-' + Math.floor(1000 + Math.random() * 9000);
+        // Format Baru: TRX-08xx-JamMenitDetik
+        const d = new Date();
+        const timeStr = String(d.getHours()).padStart(2, '0') + String(d.getMinutes()).padStart(2, '0') + String(d.getSeconds()).padStart(2, '0');
+        const cleanDest = dest.replace(/[^0-9]/g, '');
+        const reffId = 'TRX-' + cleanDest + '-' + timeStr;
+        
         const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
         const trxRef = doc(db, "users", currentUser.uid, "history", reffId);
         

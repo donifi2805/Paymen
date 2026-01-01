@@ -520,6 +520,7 @@
             </div>
                 <h1 class="text-3xl font-bold tracking-tight">Pandawa Store</h1>
                 <p class="text-blue-100 text-sm mt-1">Agen Pulsa PPOB Terpercaya</p>
+<p class="text-blue-200/70 text-[10px] mt-2 font-mono tracking-widest bg-white/10 px-2 py-0.5 rounded-lg inline-block" id="versionDisplay">v2.8</p>
             </div>
             
             <div class="bg-white dark:bg-gray-900 p-8 rounded-3xl shadow-xl shadow-blue-900/10 dark:shadow-black/30 transition-all duration-300">
@@ -991,6 +992,75 @@
     };
 
     const app = initializeApp(firebaseConfig);
+
+    // --- FITUR AUTO UPDATE & PWA ---
+    const APP_VERSION_CODE = 'v2.8'; // Versi saat ini
+
+    // Update Label Versi di Login
+    setTimeout(() => {
+        const vEl = document.getElementById('versionDisplay');
+        if(vEl) vEl.innerText = APP_VERSION_CODE;
+    }, 500);
+
+    // Fungsi Cek Update ke Firebase
+    async function checkSystemUpdate() {
+        console.log("Checking system update...");
+        try {
+            const db = getFirestore(app);
+            const docRef = doc(db, "settings", "app_info");
+            const snapshot = await getDoc(docRef);
+
+            if (snapshot.exists()) {
+                const serverData = snapshot.data();
+                const serverVersion = serverData.version; // Field 'version' di Firebase
+
+                if (serverVersion && serverVersion !== APP_VERSION_CODE) {
+                    console.warn(`Update Ditemukan: ${APP_VERSION_CODE} -> ${serverVersion}`);
+                    
+                    // Tampilkan Loader
+                    const loader = document.getElementById('globalLoader');
+                    if(loader) {
+                        document.getElementById('loaderText').innerText = `Update Sistem ke ${serverVersion}...`;
+                        loader.classList.remove('hide');
+                    }
+
+                    // Hapus Service Worker (PWA Cache)
+                    if ('serviceWorker' in navigator) {
+                        const registrations = await navigator.serviceWorker.getRegistrations();
+                        for (const registration of registrations) {
+                            await registration.unregister();
+                        }
+                    }
+
+                    // Hapus Cache Storage
+                    if ('caches' in window) {
+                        const keys = await caches.keys();
+                        await Promise.all(keys.map(key => caches.delete(key)));
+                    }
+
+                    // Paksa Reload dari Server (True)
+                    setTimeout(() => window.location.reload(true), 2000);
+                } else {
+                    console.log("Sistem sudah versi terbaru.");
+                }
+            }
+        } catch (e) {
+            console.error("Gagal cek update:", e);
+        }
+    }
+
+    // Jalankan Pengecekan
+    checkSystemUpdate();
+
+    // Register Service Worker (Template PWA)
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => console.log('SW Ready:', reg.scope))
+                .catch(err => console.log('SW Fail:', err));
+        });
+    }
+
 
     // 1. PROXY LIST (Global)
         // 1. PROXY LIST (Global) - Prioritaskan CorsProxyIO untuk POST Request

@@ -2130,7 +2130,13 @@ if(tabId === 'pricing') loadPricingData();
                 html += `<tr class="border-b border-gray-50">
                     <td class="p-3"><div class="font-bold">${date}</div><div class="text-[10px] text-gray-400 font-mono">${time} WIB</div></td>
                     <td class="p-3"><div class="font-bold">${userName}</div><button onclick="viewUserHistory('${t.uid}', '${userName}')" class="text-[9px] text-orange-500 font-bold hover:underline"><i class="fas fa-history mr-1"></i>Lihat Riwayat</button></td>
-                    <td class="p-3"><div>${t.title}</div><div class="text-[9px] text-gray-500 font-mono mt-0.5"><i class="fas fa-phone-alt mr-1 text-[8px]"></i>${destNum}</div>${t.trx_code ? `<div class="text-[9px] font-mono text-blue-600 font-bold mt-1"><i class="fas fa-hashtag mr-1"></i>${t.trx_code}</div>` : ''}</td>
+                    <td class="p-3">
+    <div class="font-bold text-gray-900">${t.title}</div>
+    <div class="flex flex-wrap gap-1 mt-1.5">
+        ${t.provider_code ? `<span class="px-1.5 py-0.5 text-[10px] rounded bg-blue-50 text-blue-700 border border-blue-100 font-medium tracking-wide" title="Provider">${t.provider_code}</span>` : ''}
+        ${t.raw_code ? `<span class="px-1.5 py-0.5 text-[10px] rounded bg-indigo-50 text-indigo-700 border border-indigo-100 font-mono" title="Kode Produk">${t.raw_code}</span>` : ''}
+        ${t.dest_num ? `<span class="px-1.5 py-0.5 text-[10px] rounded bg-gray-50 text-gray-600 border border-gray-100 font-mono" title="No. Tujuan"><i class="fas fa-phone-alt text-[9px] mr-1"></i>${t.dest_num}</span>` : `<span class="px-1.5 py-0.5 text-[10px] rounded bg-gray-50 text-gray-600 border border-gray-100 font-mono"><i class="fas fa-phone-alt text-[9px] mr-1"></i>${destNum}</span>`}
+    </div>${t.trx_code ? `<div class="text-[9px] font-mono text-blue-600 font-bold mt-1"><i class="fas fa-hashtag mr-1"></i>${t.trx_code}</div>` : ''}</td>
                     <td class="p-3">
                         <button onclick='showAdminTrxDetail(${JSON.stringify(t)})' class="text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 px-2 py-1 rounded">
                             <i class="fas fa-search-dollar"></i> <span class="text-[9px]">Detail</span>

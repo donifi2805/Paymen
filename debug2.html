@@ -1252,7 +1252,7 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
         };
 
             // --- FUNGSI BARU (BYPASS) UNTUK MEMPERBAIKI TAMPILAN PRODUK ---
-            window.loadPricingDataV2 = async () => {
+                window.loadPricingDataV2 = async () => {
         const table = document.getElementById('pricingTableBody');
         const provider = document.getElementById('pricingProvider').value;
         if (!provider) return;
@@ -1260,7 +1260,7 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
         table.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Memuat data dan settingan...</td></tr>';
 
         try {
-            // 1. AMBIL RULES DARI FIREBASE (Agar settingan lama tidak hilang)
+            // 1. AMBIL RULES DARI FIREBASE
             let localRules = {};
             try {
                 const rulesSnap = await getDoc(doc(db, "settings", "pricing"));
@@ -1289,9 +1289,8 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
                         }));
                 }
             } 
-            // 3. SUMBER DATA: KHFY (Fix NaN & Field Mapping)
+            // 3. SUMBER DATA: KHFY (Fix Zero Price Issue)
             else {
-                // API Key KHFY Hardcoded untuk keamanan jalur Vercel
                 const apiKey = "8F1199C1-483A-4C96-825E-F5EBD33AC60A";
                 const res = await fetch(`/api/khfy/list_product?api_key=${apiKey}`);
                 const json = await res.json();
@@ -1300,7 +1299,6 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
                     let raw = Array.isArray(json.data) ? json.data : (json.data.data || []);
                     
                     products = raw.filter(p => {
-                        // Normalisasi kode & brand uppercase
                         const c = (p.code || p.kode_produk || p.buyer_sku_code || '').toString().toUpperCase();
                         const b = (p.brand || p.kode_provider || p.operator || '').toString().toUpperCase();
                         
@@ -1310,23 +1308,25 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
                         if (provider === 'PLN') return b.includes('PLN');
                         return b.includes(provider) || c.includes(provider);
                     }).map(p => {
-                        // LOGIKA PERBAIKAN HARGA (Anti-NaN)
-                        let rawPrice = p.price || p.harga || p.harga_jual || p.basic_price || 0;
-                        // Bersihkan karakter non-angka jika string (misal: "Rp 10.000")
+                        // LOGIKA PERBAIKAN HARGA (Sesuai Index.html)
+                        // Prioritas: harga_final > buyer_price > price > harga
+                        let rawPrice = p.harga_final || p.buyer_price || p.price || p.harga || p.basic_price || 0;
+                        
+                        // Bersihkan karakter non-angka jika string
                         if (typeof rawPrice === 'string') rawPrice = rawPrice.replace(/[^0-9]/g, '');
                         
                         return {
                             code: p.code || p.kode_produk || p.buyer_sku_code,
                             name: p.name || p.nama_produk || p.product_name,
-                            price: Number(rawPrice), // Pastikan jadi Number
+                            price: Number(rawPrice),
                             stock: p.stock || 99,
-                            status: (p.status === 1 || p.status === 'available') ? 1 : 0
+                            status: (p.status === 1 || p.status === 'available' || p.gangguan == 0) ? 1 : 0
                         };
                     });
                 }
             }
 
-            // 4. RENDER KE TABEL (Dengan Input Edit)
+            // 4. RENDER KE TABEL
             if (products.length === 0) {
                 table.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-orange-500 bg-orange-50">Tidak ada produk ditemukan. Cek koneksi / kategori.</td></tr>';
             } else {
@@ -1338,7 +1338,6 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
                     const code = p.code;
                     const rawPrice = p.price;
                     
-                    // Ambil setting tersimpan (Rule)
                     let savedRule = localRules[code] || 0;
                     let markup = 0;
                     let customName = '';

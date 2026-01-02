@@ -526,7 +526,7 @@
             </div>
                 <h1 class="text-3xl font-bold tracking-tight">Pandawa Store</h1>
                 <p class="text-blue-100 text-sm mt-1">Agen Pulsa PPOB Terpercaya</p>
-<p class="text-blue-200/70 text-[10px] mt-2 font-mono tracking-widest bg-white/10 px-2 py-0.5 rounded-lg inline-block" id="versionDisplay">v2.9</p>
+<p class="text-blue-200/70 text-[10px] mt-2 font-mono tracking-widest bg-white/10 px-2 py-0.5 rounded-lg inline-block" id="versionDisplay">v3.1</p>
             </div>
             
             <div class="bg-white dark:bg-gray-900 p-8 rounded-3xl shadow-xl shadow-blue-900/10 dark:shadow-black/30 transition-all duration-300">
@@ -1000,7 +1000,7 @@
     const app = initializeApp(firebaseConfig);
 
     // --- FITUR AUTO UPDATE & PWA ---
-        const APP_VERSION_CODE = 'v2.9'; // Versi saat ini
+        const APP_VERSION_CODE = 'v3.1'; // Versi saat ini
 
     // Update Label Versi di Login
     setTimeout(() => {
@@ -1086,28 +1086,23 @@
         chatId: "-1002997407612"
     };
 
-                        window.sendTelegramNotif = async (type, data) => {
+                            window.sendTelegramNotif = async (type, data) => {
         let message = "";
         let topicId = null;
         const now = new Date();
         const options = { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
         const formattedDate = now.toLocaleDateString('id-ID', options).replace(/ pukul /g, ' | ');
 
-        // LOGIKA SENSOR 4 DIGIT BELAKANG (NOMOR TUJUAN)
         let safeDest = data.dest || "-";
         if (safeDest && safeDest.length > 4) {
              safeDest = safeDest.substring(0, safeDest.length - 4) + "****";
         }
 
-        // LOGIKA BARU: SENSOR TRX ID (Format: TRX-NoHP-Time)
         let safeTrxId = data.trxId || "-";
         try {
-            // Cek apakah formatnya dipisahkan strip (-)
             const parts = safeTrxId.split('-');
-            // Format TRX-08xx-xxxx atau ICS-08xx-xxxx (Minimal 3 bagian)
             if (parts.length >= 3 && (parts[0] === 'TRX' || parts[0] === 'ICS')) {
                 const phoneSegment = parts[1];
-                // Pastikan bagian tengah adalah angka dan cukup panjang untuk disensor
                 if (phoneSegment.length > 4 && /^\d+$/.test(phoneSegment)) {
                     const maskedPhone = phoneSegment.substring(0, phoneSegment.length - 4) + "****";
                     parts[1] = maskedPhone;
@@ -1144,21 +1139,24 @@
                       `https://www.pandawa-digital.store`;
         }
 
-        const targetUrl = `https://api.telegram.org/bot${TELEGRAM_CONFIG.token}/sendMessage`;
+        // METODE GET + URL PARAMETERS (FIX PROXY)
+        const baseUrl = `https://api.telegram.org/bot${TELEGRAM_CONFIG.token}/sendMessage`;
+        const params = new URLSearchParams({
+            chat_id: TELEGRAM_CONFIG.chatId,
+            text: message,
+            message_thread_id: topicId
+        });
+        
+        const targetUrl = `${baseUrl}?${params.toString()}`;
 
         for (const proxy of PROXY_LIST) {
             try {
                 const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
-                const res = await fetch(fullUrl, {
-                    method: 'POST', 
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        chat_id: TELEGRAM_CONFIG.chatId, 
-                        text: message, 
-                        message_thread_id: topicId 
-                    })
-                });
-                if(res.ok) break;
+                const res = await fetch(fullUrl);
+                if(res.ok) {
+                    console.log("Telegram Notif Sent via " + proxy.name);
+                    break;
+                }
             } catch (e) { console.warn("Telegram Proxy Error via " + proxy.name, e); }
         }
     };
@@ -3837,9 +3835,11 @@ document.getElementById('detailTrxModal').classList.remove('hide');
                              await window.processSmartRefund(currentUser.uid, docId, 'Refund: ' + (keterangan || 'Transaksi Gagal'));
                         }
                     } else if (freshStatus === 'Sukses') {
-                        // LOGIKA PENTING: Hanya update & notif jika status sebelumnya BUKAN Sukses
-                        // Ini mencegah notifikasi ganda (spam) saat auto-check berjalan
-                        if(localData.status !== 'Sukses') {
+                        // FIX DOUBLE NOTIF: Cek ulang status TERBARU dari database tepat sebelum eksekusi
+                        // Ini mencegah Race Condition jika ada 2 proses berjalan bersamaan
+                        const latestSnap = await getDoc(trxRef);
+                        
+                        if (latestSnap.exists() && latestSnap.data().status !== 'Sukses') {
                             await updateDoc(trxRef, {
                                 status: 'Sukses',
                                 api_msg: 'Transaksi Berhasil',
@@ -3847,7 +3847,6 @@ document.getElementById('detailTrxModal').classList.remove('hide');
                                 raw_json: JSON.stringify(root)
                             });
                             
-                            // FIX: Ambil Nama Produk & Harga dari Data Lokal (bukan dari API yang sering kosong)
                             if(typeof window.sendTelegramNotif === 'function') {
                                 window.sendTelegramNotif('ORDER', { 
                                     title: localData.title || 'Produk', 

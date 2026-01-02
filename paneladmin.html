@@ -853,11 +853,11 @@ window.listenDebugPreOrders = () => {
                     result = await res.json();
                 }
 
-                const rawResponse = JSON.stringify(result);
+                const rawResponse = JSON.stringify(result, null, 2);
                 const msg = (result.msg || result.message || '').toLowerCase();
                 const isOk = (result.ok || result.success || result.status === 'success' || result.status === true);
 
-                addDebugLog(`API Response: ${rawResponse}`, isOk ? 'info' : 'error', targetLogId);
+                addDebugLog(`API Response:<br><pre class="mt-1 p-2 bg-black/40 border border-white/10 rounded text-[9px] font-mono whitespace-pre-wrap leading-tight select-all text-left">${rawResponse}</pre>`, isOk ? 'info' : 'error', targetLogId);
 
                 if (isOk && msg.includes('akan di proses')) {
                     const serverTrxId = result.reffid || result.trxid || reffId;

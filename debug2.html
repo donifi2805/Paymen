@@ -1510,8 +1510,7 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
                         // Logika ICS Baru (/trx/:refid)
                         // Jika input mengandung ICS-, gunakan itu. Jika tidak, coba sebagai RefID langsung
                         const ticket = checkParams.refid || input;
-                        // FIX: Menggunakan endpoint checkTransaction agar tidak Ghost Trx
-                        const res = await callIcsApi('checkTransaction', { refid: ticket });
+                        const res = await callIcsApi(`/trx/${ticket}`);
                         
                         if (res.success && res.data) {
                             foundData = res.data;

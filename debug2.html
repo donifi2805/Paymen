@@ -1252,7 +1252,7 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
         };
 
             // --- FUNGSI BARU (BYPASS) UNTUK MEMPERBAIKI TAMPILAN PRODUK ---
-        window.loadPricingDataV2 = async () => {
+            window.loadPricingDataV2 = async () => {
         const table = document.getElementById('pricingTableBody');
         const provider = document.getElementById('pricingProvider').value;
         if (!provider) return;
@@ -1265,7 +1265,7 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
             try {
                 const rulesSnap = await getDoc(doc(db, "settings", "pricing"));
                 if (rulesSnap.exists()) localRules = rulesSnap.data().rules || {};
-            } catch(e) { console.log("Gagal load rules", e); }
+            } catch(e) { console.warn("Gagal load rules db", e); }
 
             let products = [];
             
@@ -1283,56 +1283,61 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
                         .map(p => ({
                             code: p.code,
                             name: p.name,
-                            price: p.price,
+                            price: Number(p.price || 0),
                             stock: p.stock,
                             status: p.status === 'available' ? 1 : 0
                         }));
                 }
             } 
-            // 3. SUMBER DATA: KHFY (Fix NaN Issue)
+            // 3. SUMBER DATA: KHFY (Fix NaN & Field Mapping)
             else {
+                // API Key KHFY Hardcoded untuk keamanan jalur Vercel
                 const apiKey = "8F1199C1-483A-4C96-825E-F5EBD33AC60A";
                 const res = await fetch(`/api/khfy/list_product?api_key=${apiKey}`);
                 const json = await res.json();
                 
                 if (json.data) {
                     let raw = Array.isArray(json.data) ? json.data : (json.data.data || []);
+                    
                     products = raw.filter(p => {
-                        const c = (p.code || p.kode_produk || '').toUpperCase();
-                        const b = (p.brand || p.kode_provider || '').toUpperCase();
+                        // Normalisasi kode & brand uppercase
+                        const c = (p.code || p.kode_produk || p.buyer_sku_code || '').toString().toUpperCase();
+                        const b = (p.brand || p.kode_provider || p.operator || '').toString().toUpperCase();
+                        
                         if (provider === 'XDA') return c.startsWith('XDA');
                         if (provider === 'FMX') return (c.startsWith('FMX') || c === 'CFMX') && b === 'FMAX';
                         if (provider === 'XLR') return b === 'XLREGULER';
                         if (provider === 'PLN') return b.includes('PLN');
                         return b.includes(provider) || c.includes(provider);
-                    }).map(p => ({
-                        code: p.code || p.kode_produk,
-                        name: p.name || p.nama_produk,
-                        // Anti-NaN: Cek berbagai field harga & default ke 0 jika gagal
-                        price: p.price || p.harga || p.harga_jual || 0,
-                        stock: p.stock || 99,
-                        status: p.status === 1 || p.status === 'available' ? 1 : 0
-                    }));
+                    }).map(p => {
+                        // LOGIKA PERBAIKAN HARGA (Anti-NaN)
+                        let rawPrice = p.price || p.harga || p.harga_jual || p.basic_price || 0;
+                        // Bersihkan karakter non-angka jika string (misal: "Rp 10.000")
+                        if (typeof rawPrice === 'string') rawPrice = rawPrice.replace(/[^0-9]/g, '');
+                        
+                        return {
+                            code: p.code || p.kode_produk || p.buyer_sku_code,
+                            name: p.name || p.nama_produk || p.product_name,
+                            price: Number(rawPrice), // Pastikan jadi Number
+                            stock: p.stock || 99,
+                            status: (p.status === 1 || p.status === 'available') ? 1 : 0
+                        };
+                    });
                 }
             }
 
-            // 4. RENDER KE TABEL (Restore Input Edit)
+            // 4. RENDER KE TABEL (Dengan Input Edit)
             if (products.length === 0) {
-                table.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-orange-500 bg-orange-50">Tidak ada produk ditemukan.</td></tr>';
+                table.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-orange-500 bg-orange-50">Tidak ada produk ditemukan. Cek koneksi / kategori.</td></tr>';
             } else {
-                // Sort Harga Termurah (Safe Parse)
-                products.sort((a, b) => {
-                     const pA = parseInt(String(a.price).replace(/[^0-9]/g, '')) || 0;
-                     const pB = parseInt(String(b.price).replace(/[^0-9]/g, '')) || 0;
-                     return pA - pB;
-                });
+                // Sort Harga Termurah
+                products.sort((a, b) => a.price - b.price);
 
                 let html = '';
                 products.forEach(p => {
-                    // Fix NaN: Bersihkan karakter non-angka sebelum parse
-                    const rawPrice = parseInt(String(p.price).replace(/[^0-9]/g, '')) || 0;
                     const code = p.code;
-
+                    const rawPrice = p.price;
+                    
                     // Ambil setting tersimpan (Rule)
                     let savedRule = localRules[code] || 0;
                     let markup = 0;
@@ -1352,13 +1357,13 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
                         <td class="p-3">
                             <div class="font-bold text-gray-800">${p.name}</div>
                             <div class="text-[9px] text-gray-400 font-mono">${code}</div>
-                            ${isHabis ? '<span class="text-[9px] text-red-500 font-bold">GANGGUAN / HABIS</span>' : ''}
+                            ${isHabis ? '<span class="text-[9px] text-red-500 font-bold bg-red-50 px-1 rounded">GANGGUAN</span>' : ''}
                         </td>
                         <td class="p-3">
                             <input type="text" 
                                    data-code="${code}" 
                                    value="${customName}" 
-                                   placeholder="(Default)" 
+                                   placeholder="(Nama Asli)" 
                                    class="name-input w-full border border-gray-300 rounded-lg p-1.5 text-xs focus:ring-1 focus:ring-blue-500 outline-none placeholder-gray-300">
                         </td>
                         <td class="p-3 text-right font-mono text-gray-500">Rp ${rawPrice.toLocaleString('id-ID')}</td>
@@ -1376,7 +1381,7 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
             }
         } catch (e) {
             console.error("Load Error:", e);
-            table.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-red-500">Error: ${e.message}<br><small>Pastikan vercel.json sudah diupload</small></td></tr>`;
+            table.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-red-500">Error: ${e.message}</td></tr>`;
         }
     };
 

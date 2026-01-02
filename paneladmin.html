@@ -785,23 +785,31 @@ window.listenDebugPreOrders = () => {
                 snap.forEach(docSnap => {
                     const po = docSnap.data();
                     const logId = `log-po-${docSnap.id}`;
+                    // Modifikasi: Cek status sukses tersimpan & log tersimpan
+                    const successBadge = po.debugStatus === 'SUCCESS' ? '<i class="fas fa-check-circle text-green-500 ml-2 text-sm" title="Sukses & Logs Tersimpan"></i>' : '';
+                    const savedLogs = po.debugLogs || '<div class="opacity-50">> Ready to debug...</div>';
+
+                    // Modifikasi: Tombol RUN hilang jika SUKSES (Skip Run Massal)
+                    const runBtn = po.debugStatus === 'SUCCESS' ? '' : `<button onclick="processPreOrderToSystem('${docSnap.id}', '${po.targetNumber}', '${po.provider}', '${po.serverType || 'KHFY'}')" class="bg-purple-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-purple-700 transition">RUN DEBUG</button>`;
+
                     container.innerHTML += `<div class="p-3 bg-gray-50 border rounded-lg mb-3">
                         <div class="flex justify-between items-start mb-2">
                             <div class="truncate mr-2">
                                 <div class="flex items-center gap-1.5">
                                     <i class="fas fa-user text-blue-500"></i>
                                     <span class="font-bold">${po.username || 'Unknown'}</span>
+                                    ${successBadge}
                                 </div>
                                 <div class="text-gray-500 font-mono text-[9px]">${po.targetNumber} - ${po.provider}</div>
                             </div>
                             <div class="flex gap-1">
-                                <button onclick="processPreOrderToSystem('${docSnap.id}', '${po.targetNumber}', '${po.provider}', '${po.serverType || 'KHFY'}')" class="bg-purple-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-purple-700 transition">RUN DEBUG</button>
+                                ${runBtn}
                                 <button onclick="handlePreorderDebugAction('${docSnap.id}', 'Sukses')" class="bg-emerald-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-emerald-700 transition"><i class="fas fa-check"></i></button>
                                 <button onclick="handlePreorderDebugAction('${docSnap.id}', 'Tolak')" class="bg-red-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-red-700 transition"><i class="fas fa-times"></i></button>
                             </div>
                         </div>
                         <div id="${logId}" class="h-24 overflow-y-auto bg-slate-900 text-gray-300 p-2 rounded font-mono text-[9px] border border-slate-700 custom-scroll">
-                            <div class="opacity-50">> Ready to debug...</div>
+                            ${savedLogs}
                         </div>
                     </div>`;
                 });
@@ -876,7 +884,8 @@ window.listenDebugPreOrders = () => {
                             }
 
                             if (checkData) {
-                                const finalStatus = (checkData.status || 'Pending').toUpperCase();
+                                // Modifikasi: Support 'status_text' dan Auto-Save Logs ke Firebase
+                                const finalStatus = (checkData.status_text || checkData.status || 'Pending').toUpperCase();
                                 const sn = checkData.sn || checkData.message || '-';
                                 const serverMsg = checkData.keterangan || checkData.message || '-';
                                 const price = checkData.price || checkData.harga || 0;
@@ -887,8 +896,18 @@ window.listenDebugPreOrders = () => {
                                 addDebugLog(`>> MSG: ${serverMsg}`, 'text-gray-400', targetLogId);
                                 addDebugLog(`>> PRICE: Rp ${parseInt(price).toLocaleString('id-ID')}`, 'text-blue-400', targetLogId);
 
-                                if((finalStatus === 'SUKSES' || finalStatus === 'SUCCESS') && currentProcessingPoId === poId) {
-                                    window.handlePreorderDebugAction(poId, 'Sukses', sn);
+                                // LOGIKA BARU: Simpan Status & Log ke Firebase jika Sukses
+                                if (poId && (finalStatus === 'SUKSES' || finalStatus === 'SUCCESS')) {
+                                    const currentLogsHTML = document.getElementById(targetLogId) ? document.getElementById(targetLogId).innerHTML : '';
+                                    // Update doc tanpa menghapusnya agar admin bisa lihat logo sukses
+                                    updateDoc(doc(db, "preorders", poId), {
+                                        debugStatus: 'SUCCESS',
+                                        debugLogs: currentLogsHTML,
+                                        sn: sn // Simpan SN juga untuk referensi
+                                    }).then(() => {
+                                        addDebugLog('Log & Status Tersimpan di Database.', 'success', targetLogId);
+                                    }).catch(e => console.error("Gagal simpan log:", e));
+                                    
                                     currentProcessingPoId = null;
                                 }
                             } else {

@@ -1085,12 +1085,8 @@
         // 1. PROXY LIST (Global) - Prioritaskan CorsProxyIO untuk POST Request
         // 1. PROXY LIST (Global) - Update dengan CodeTabs sebagai cadangan handal
         // 1. PROXY LIST (Global) - Update dengan CodeTabs (Paling Stabil)
-        const PROXY_LIST = [
-        { name: 'CorsProxyIO', url: 'https://corsproxy.io/?' },
-        { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
-        { name: 'ThingProxy', url: 'https://thingproxy.freeboard.io/fetch/' },
-        { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
-        { name: 'Direct', url: '' }
+            const PROXY_LIST = [
+        { name: 'Vercel Rewrite', url: '' }
     ];
 
         // 3. TELEGRAM NOTIFICATION SYSTEM
@@ -1175,10 +1171,11 @@
     };
 
 // 2. ICS STORE INTEGRATION
-        const ICS_CONFIG = {
-        token: "YOUR_SECRET_KEY", // GANTI DENGAN API KEY BARU ANDA
-        baseUrl: "https://api.ics-store.my.id/api/reseller"
+            const ICS_CONFIG = {
+        token: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3",
+        baseUrl: "/api/ics"
     };
+
 
     let currentIcsType = 'xla';
 

@@ -3,6 +3,10 @@
     {
       "source": "/api/ics/:path*",
       "destination": "https://api.ics-store.my.id/api/reseller/:path*"
+    },
+    {
+      "source": "/api/khfy/:path*",
+      "destination": "https://panel.khfy-store.com/api_v2/:path*"
     }
   ]
 }

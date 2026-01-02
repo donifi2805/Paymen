@@ -888,10 +888,7 @@ window.listenDebugPreOrders = () => {
                         addDebugLog(`[Auto-Check] Mengecek status final ke pusat...`, 'info', targetLogId);
                         try {
                             let checkData;
-                            // Modifikasi: Auto Detect Server berdasarkan ReffID (TRX->Khfy, ICS->Ics)
-                            const detectSys = serverTrxId.startsWith('ICS') ? 'ICS' : 'KHFY';
-
-                            if (detectSys === 'KHFY') {
+                            if (system === 'KHFY') {
                                 const cRes = await callApi('/history', { refid: serverTrxId });
                                 if (cRes.ok && cRes.data && cRes.data.data) checkData = Array.isArray(cRes.data.data) ? cRes.data.data[0] : cRes.data.data;
                             } else {
@@ -1495,10 +1492,9 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
             } catch(e) { console.log("Local check skipped", e); }
 
             // Prioritas Cek Provider
-            let tasks = ['KHFY', 'ICS'];
-            if (input.startsWith('ICS')) tasks = ['ICS'];
-            else if (input.startsWith('TRX')) tasks = ['KHFY'];
-            else if (input.toUpperCase().includes('PLN')) tasks = ['ICS', 'KHFY'];
+            let tasks = (input.toUpperCase().includes('ICS') || input.toUpperCase().includes('PLN')) 
+                ? ['ICS', 'KHFY'] 
+                : ['KHFY', 'ICS'];
 
             let foundData = null;
             let providerName = '';
@@ -1510,7 +1506,8 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
                         // Logika ICS Baru (/trx/:refid)
                         // Jika input mengandung ICS-, gunakan itu. Jika tidak, coba sebagai RefID langsung
                         const ticket = checkParams.refid || input;
-                        const res = await callIcsApi(`/trx/${ticket}`);
+                        // FIX: Menggunakan endpoint checkTransaction agar tidak Ghost Trx
+                        const res = await callIcsApi('checkTransaction', { refid: ticket });
                         
                         if (res.success && res.data) {
                             foundData = res.data;

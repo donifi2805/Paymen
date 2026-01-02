@@ -3278,7 +3278,18 @@ window.submitPreorder = async () => {
                 });
             });
 
-            window.showLoader(false);
+                        // Kirim Notif Telegram Preorder
+            if(typeof window.sendTelegramNotif === 'function') {
+                 window.sendTelegramNotif('ORDER', { 
+                    title: "PREORDER - " + name, 
+                    amount: price, 
+                    dest: num, 
+                    trxId: trxId 
+                });
+            }
+
+            
+window.showLoader(false);
             alert('Pesanan Preorder dikirim! Saldo telah dipotong dan menunggu konfirmasi admin.');
             window.nav('homePage');
         } catch(e) {

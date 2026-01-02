@@ -1409,10 +1409,17 @@ window.openAkrabV2 = () => {
             
             alert("Transaksi Berhasil Dikirim!\nKode Trx: " + trxCode + "\nStatus: Pending.");
             window.nav('homePage');
-        } else {
+                } else {
             // Gagal Create Trx
-            const errStr = (apiRes.message || "Gagal Request").toString();
-            const isNetworkError = errStr.includes('Failed to fetch') || errStr.includes('NetworkError');
+            let errStr = (apiRes.message || "Gagal Request").toString();
+
+            // --- SENSOR PESAN SALDO (Agar user tidak panik) ---
+            if (errStr.toLowerCase().includes('saldo tidak cukup') || errStr.toLowerCase().includes('insufficient balance')) {
+                errStr = "Paket ini sedang bermasalah mohon hubungi admin untuk segera mengecek server";
+            }
+            // --------------------------------------------------
+
+            const isNetworkError = errStr.includes('Failed to fetch') || errStr.includes('NetworkError'); errStr.includes('Failed to fetch') || errStr.includes('NetworkError');
 
             if (isNetworkError) {
                 await updateDoc(doc(db, "users", currentUser.uid, "history", localRefId), {

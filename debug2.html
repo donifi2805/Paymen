@@ -730,9 +730,9 @@
         import { runTransaction, getFirestore, getDoc, collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy, collectionGroup, setDoc, where, onSnapshot, serverTimestamp, addDoc, limit, startAfter, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         
-                        const KHFY_CONFIG_DBG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://pandawa-digital.store/api/khfy" };
-        const ICS_CONFIG_DBG = { token: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3", baseUrl: "https://pandawa-digital.store/api/ics" };
-        const DEBUG_PROXY = "https://api.codetabs.com/v1/proxy?quest=";
+                        const KHFY_CONFIG_DBG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "/api/khfy" };
+                const ICS_CONFIG_DBG = { token: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3", baseUrl: "/api/ics" }; // GANTI API KEY
+        const DEBUG_PROXY = "https://corsproxy.io/?";
         let currentProcessingPoId = null;
         let currentAutoServer = 'KHFY'; // Data Baru: Auto Detect Server
 
@@ -2406,14 +2406,11 @@ window.downloadTrxPDF = () => {
             doc.save(`Transaksi_${Date.now()}.pdf`);
         };
 
-                                        const API_CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://pandawa-digital.store/api/khfy" };
-        const ICS_CONFIG = { token: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3", baseUrl: "https://pandawa-digital.store/api/ics" };
+                                        const API_CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "/api/khfy" };
+                const ICS_CONFIG = { token: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3", baseUrl: "/api/ics" };
         
-        const PROXY_LIST = [
-            { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
-            { name: 'CorsProxyIO', url: 'https://corsproxy.io/?' },
-            { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
-            { name: 'Direct', url: '' }
+                const PROXY_LIST = [
+            { name: 'Vercel Rewrite', url: '' }
         ];
 
                         async function callIcsApi(endpoint, data = {}, method = 'GET') {

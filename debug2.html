@@ -731,7 +731,7 @@
 
         
                         const KHFY_CONFIG_DBG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "/api/khfy" };
-        const ICS_CONFIG_DBG = { token: "YOUR_SECRET_KEY", baseUrl: "https://api.ics-store.my.id/api/reseller" }; // GANTI API KEY
+                const ICS_CONFIG_DBG = { token: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3", baseUrl: "/api/ics" }; // GANTI API KEY
         const DEBUG_PROXY = "https://corsproxy.io/?";
         let currentProcessingPoId = null;
         let currentAutoServer = 'KHFY'; // Data Baru: Auto Detect Server
@@ -2269,10 +2269,10 @@ window.downloadTrxPDF = () => {
             doc.save(`Transaksi_${Date.now()}.pdf`);
         };
 
-                                const API_CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "/api/khfy" };
-        const ICS_CONFIG = { token: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3", baseUrl: "/api/ics" };
+                                        const API_CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "/api/khfy" };
+                const ICS_CONFIG = { token: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3", baseUrl: "/api/ics" };
         
-        const PROXY_LIST = [
+                const PROXY_LIST = [
             { name: 'Vercel Rewrite', url: '' }
         ];
 

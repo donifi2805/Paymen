@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/ics/:path*",
+      "destination": "https://api.ics-store.my.id/api/reseller/:path*"
+    }
+  ]
+}

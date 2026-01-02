@@ -1203,11 +1203,9 @@ window.openAkrabV2 = () => {
         window.initAkrabV2Data();
     };
 
-                            async function callIcsApi(endpoint, data = {}, method = 'GET') {
-        // STRATEGI ANTI-BLOKIR: Kirim Token lewat 3 jalur (Header, URL, Body)
-        // Agar jika proxy membuang Header, server tetap bisa baca dari URL/Body
-        data.token = ICS_CONFIG.token;
-        data.api_key = ICS_CONFIG.token; 
+                                async function callIcsApi(endpoint, data = {}, method = 'GET') {
+        // Hapus injeksi token ke body agar request lebih bersih (Cukup Header)
+        // data.token = ICS_CONFIG.token; 
 
         let targetUrl = `${ICS_CONFIG.baseUrl}${endpoint}`;
         let options = {
@@ -1228,35 +1226,40 @@ window.openAkrabV2 = () => {
 
         for (const proxy of PROXY_LIST) {
             try {
-                // Encode URL target agar aman saat melewati proxy
                 const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
-                
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 15000);
+                const timeoutId = setTimeout(() => controller.abort(), 25000); // Timeout diperpanjang
 
                 const res = await fetch(fullUrl, { ...options, signal: controller.signal });
                 clearTimeout(timeoutId);
 
+                // PERBAIKAN: Selalu baca respon teks, baik Sukses maupun Error
+                const text = await res.text();
+                let json;
+                try {
+                    json = JSON.parse(text);
+                    // Handle jika proxy membungkus response
+                    if (json.contents) { try { json = JSON.parse(json.contents); } catch(e) { json = json.contents; } }
+                } catch (e) {
+                    // Jika bukan JSON, ambil potongan teks errornya
+                    json = { success: false, message: text.substring(0, 150) || `HTTP Error ${res.status}` };
+                }
+
                 if (res.ok) {
-                    const text = await res.text();
-                    try {
-                        let json = JSON.parse(text);
-                        // Handle jika proxy membungkus response
-                        if (json.contents) { try { json = JSON.parse(json.contents); } catch(e) { json = json.contents; } }
-                        // Handle jika response status false tapi HTTP 200
-                        if (json.status === false && json.message) { 
-                             console.warn('ICS API Error:', json.message); 
-                        }
-                        return json;
-                    } catch (e) {
-                        console.warn('ICS JSON Parse Error via ' + proxy.name, e);
-                    }
+                    return json;
+                } else {
+                    // Jika Server merespon Error (400, 401, 500), kembalikan pesan aslinya
+                    console.warn('ICS Server Error:', json);
+                    return { 
+                        success: false, 
+                        message: json.message || json.msg || `Server Error: ${res.status}` 
+                    };
                 }
             } catch (e) {
-                console.warn('ICS Proxy Error via ' + proxy.name, e);
+                console.warn('ICS Network Error via ' + proxy.name, e);
             }
         }
-        return { success: false, message: 'Gagal koneksi ke server (Cek Internet/Proxy)' };
+        return { success: false, message: 'Gagal koneksi ke server (Network Unreachable)' };
     }
 
 

@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Pandawa Store</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = { darkMode: 'class' }
@@ -520,6 +526,7 @@
             </div>
                 <h1 class="text-3xl font-bold tracking-tight">Pandawa Store</h1>
                 <p class="text-blue-100 text-sm mt-1">Agen Pulsa PPOB Terpercaya</p>
+<p class="text-blue-200/70 text-[10px] mt-2 font-mono tracking-widest bg-white/10 px-2 py-0.5 rounded-lg inline-block" id="versionDisplay">v3.1</p>
             </div>
             
             <div class="bg-white dark:bg-gray-900 p-8 rounded-3xl shadow-xl shadow-blue-900/10 dark:shadow-black/30 transition-all duration-300">
@@ -567,7 +574,7 @@
     <section id="akrabV2Page" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen z-40 absolute top-0 w-full max-w-[480px]">
         <div class="p-4 bg-white dark:bg-gray-900 sticky top-0 z-20 shadow-sm flex items-center gap-4">
             <button onclick="nav('homePage')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"><i class="fas fa-arrow-left text-gray-800 dark:text-white"></i></button>
-            <h2 class="font-bold text-lg text-gray-800 dark:text-white">Akrab v2 (ICS)</h2>
+                    <h2 class="font-bold text-lg text-gray-800 dark:text-white">Akrab v2 (Premium)</h2>
         </div>
         <div class="p-4 pb-24">
             <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-800">
@@ -593,7 +600,7 @@
                     </div>
                 </div>
                 <button onclick="processAkrabV2Transaction()" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-cyan-500/30 active:scale-95 transition-transform flex justify-center items-center gap-2"><span>Beli Paket</span><i class="fas fa-arrow-right"></i></button>
-                <p class="text-[10px] text-gray-400 mt-4 text-center">Powered by ICS Store API</p>
+                                <p class="text-[10px] text-gray-400 mt-4 text-center">Powered by Official API</p>
             </div>
         </div>
     </section>
@@ -641,7 +648,20 @@
             </div>
         </div>
 
-        <div class="mt-8 bg-white dark:bg-gray-900 rounded-t-3xl shadow-[0_-5px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_-5px_20px_rgba(0,0,0,0.2)] p-6 min-h-[300px]">
+                <div class="mt-6 px-6 mb-2">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold text-gray-800 dark:text-white text-sm">Live Stok Akrab</h3>
+                <button id="btnRefreshStock" onclick="manualRefreshStock()" class="flex items-center gap-1 bg-blue-100 dark:bg-blue-900/30 px-3 py-1 rounded-lg active:scale-95 transition hover:bg-blue-200 dark:hover:bg-blue-800">
+                    <i class="fas fa-sync-alt text-[10px] text-blue-600 dark:text-blue-400"></i>
+                    <span class="text-[10px] text-blue-700 dark:text-blue-400 font-bold">Refresh Stok</span>
+                </button>
+            </div>
+            <div id="liveStockContainer" class="grid grid-cols-2 gap-2">
+                <div class="text-center text-[10px] text-gray-400 py-4 bg-white dark:bg-gray-900 rounded-xl border border-dashed border-gray-200 dark:border-gray-800">Memuat Data Stok...</div>
+            </div>
+        </div>
+
+        <div class="mt-2 bg-white dark:bg-gray-900 rounded-t-3xl shadow-[0_-5px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_-5px_20px_rgba(0,0,0,0.2)] p-6 min-h-[300px]">
             <div class="flex justify-between items-end mb-4"><h3 class="font-bold text-gray-800 dark:text-white">Transaksi Terakhir</h3><span class="text-xs text-blue-600 dark:text-blue-400 font-semibold cursor-pointer" onclick="nav('historyPage')">Lihat Semua</span></div>
             <div id="miniHistory" class="space-y-4"></div>
         </div>
@@ -765,14 +785,8 @@
                             <i class="fas fa-address-book text-gray-400 absolute left-4 top-1/2 -translate-y-1/2 z-10"></i>
                         </div>
                         <div id="productDescription" class="hide mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-xs text-gray-600 dark:text-gray-300 border border-blue-100 dark:border-blue-800 leading-relaxed transition-all animate-fade-in-down"></div>
-<div id="multiNumContainer" class="hide space-y-2 mt-2"></div>
-                        <button id="btnAddNum" onclick="addMultiInput()" class="hide mt-2 w-full py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl text-xs font-bold border border-blue-200 dark:border-blue-800 border-dashed hover:bg-blue-100 dark:hover:bg-blue-900/40 transition"><i class="fas fa-plus mr-1"></i> Tambah Nomor Tujuan</button>
                     </div>
                     <button onclick="processFormTransaction()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/30 active:scale-95 transition-transform flex justify-center items-center gap-2"><span>Beli Paket</span><i class="fas fa-arrow-right"></i></button>
-                    <div class="flex items-center gap-2 mt-4 cursor-pointer p-1" onclick="toggleMultiTrx()">
-                        <div id="multiTrxCheck" class="w-5 h-5 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-white transition-colors"><i class="fas fa-check text-[10px] opacity-0 transition-opacity"></i></div>
-                        <span class="text-xs font-bold text-gray-500 dark:text-gray-400 select-none">Aktifkan Multi Transaksi (Banyak Nomor)</span>
-                    </div>
                 </div>
             </div>
         </div>
@@ -781,7 +795,7 @@
     <section id="akrabV2Page" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen z-40 absolute top-0 w-full max-w-[480px]">
         <div class="p-4 bg-white dark:bg-gray-900 sticky top-0 z-20 shadow-sm flex items-center gap-4">
             <button onclick="nav('homePage')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"><i class="fas fa-arrow-left text-gray-800 dark:text-white"></i></button>
-            <h2 class="font-bold text-lg text-gray-800 dark:text-white">Akrab v2 (ICS)</h2>
+                    <h2 class="font-bold text-lg text-gray-800 dark:text-white">Akrab v2 (Premium)</h2>
         </div>
         <div class="p-4 pb-24">
             <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-800">
@@ -800,7 +814,7 @@
                     </div>
                 </div>
                 <button onclick="processAkrabV2Transaction()" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-cyan-500/30 active:scale-95 transition-transform flex justify-center items-center gap-2"><span>Beli Paket</span><i class="fas fa-arrow-right"></i></button>
-                <p class="text-[10px] text-gray-400 mt-4 text-center">Powered by ICS Store API</p>
+                                <p class="text-[10px] text-gray-400 mt-4 text-center">Powered by Official API</p>
             </div>
         </div>
     </section>
@@ -907,7 +921,11 @@
                 <div class="flex items-center"><span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">XL Circle</span><span class="mt-badge">GANGGUAN</span></div>
                 <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
             </div>
-            <div id="prov_XLA" onclick="checkProv('XLA') && selectProvider('XLA', 'Akrab Fresh (XLA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                        <div id="prov_XDA" onclick="checkProv('XDA') && selectProvider('XDA', 'Akrab V2 (XDA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+                <div class="flex items-center"><span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Akrab V2 (XDA)</span><span class="mt-badge">GANGGUAN</span></div>
+                <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
+            </div>
+<div id="prov_XLA" onclick="checkProv('XLA') && selectProvider('XLA', 'Akrab Fresh (XLA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
                 <div class="flex items-center"><span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Akrab Fresh (XLA)</span><span class="mt-badge">GANGGUAN</span></div>
                 <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
             </div>
@@ -994,13 +1012,83 @@
 
     const app = initializeApp(firebaseConfig);
 
+    // --- FITUR AUTO UPDATE & PWA ---
+        const APP_VERSION_CODE = 'v3.1'; // Versi saat ini
+
+    // Update Label Versi di Login
+    setTimeout(() => {
+        const vEl = document.getElementById('versionDisplay');
+        if(vEl) vEl.innerText = APP_VERSION_CODE;
+    }, 500);
+
+    // Fungsi Cek Update ke Firebase
+    async function checkSystemUpdate() {
+        console.log("Checking system update...");
+        try {
+            const db = getFirestore(app);
+            const docRef = doc(db, "settings", "app_info");
+            const snapshot = await getDoc(docRef);
+
+            if (snapshot.exists()) {
+                const serverData = snapshot.data();
+                const serverVersion = serverData.version; // Field 'version' di Firebase
+
+                if (serverVersion && serverVersion !== APP_VERSION_CODE) {
+                    console.warn(`Update Ditemukan: ${APP_VERSION_CODE} -> ${serverVersion}`);
+                    
+                    // Tampilkan Loader
+                    const loader = document.getElementById('globalLoader');
+                    if(loader) {
+                        document.getElementById('loaderText').innerText = `Update Sistem ke ${serverVersion}...`;
+                        loader.classList.remove('hide');
+                    }
+
+                    // Hapus Service Worker (PWA Cache)
+                    if ('serviceWorker' in navigator) {
+                        const registrations = await navigator.serviceWorker.getRegistrations();
+                        for (const registration of registrations) {
+                            await registration.unregister();
+                        }
+                    }
+
+                    // Hapus Cache Storage
+                    if ('caches' in window) {
+                        const keys = await caches.keys();
+                        await Promise.all(keys.map(key => caches.delete(key)));
+                    }
+
+                    // Paksa Reload dari Server (True)
+                    setTimeout(() => window.location.reload(true), 2000);
+                } else {
+                    console.log("Sistem sudah versi terbaru.");
+                }
+            }
+        } catch (e) {
+            console.error("Gagal cek update:", e);
+        }
+    }
+
+    // Jalankan Pengecekan
+    checkSystemUpdate();
+
+    // Register Service Worker (Template PWA)
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => console.log('SW Ready:', reg.scope))
+                .catch(err => console.log('SW Fail:', err));
+        });
+    }
+
+
     // 1. PROXY LIST (Global)
         // 1. PROXY LIST (Global) - Prioritaskan CorsProxyIO untuk POST Request
         // 1. PROXY LIST (Global) - Update dengan CodeTabs sebagai cadangan handal
         // 1. PROXY LIST (Global) - Update dengan CodeTabs (Paling Stabil)
-    const PROXY_LIST = [
-        { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
+        const PROXY_LIST = [
         { name: 'CorsProxyIO', url: 'https://corsproxy.io/?' },
+        { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
+        { name: 'ThingProxy', url: 'https://thingproxy.freeboard.io/fetch/' },
         { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
         { name: 'Direct', url: '' }
     ];
@@ -1011,12 +1099,30 @@
         chatId: "-1002997407612"
     };
 
-    window.sendTelegramNotif = async (type, data) => {
+                            window.sendTelegramNotif = async (type, data) => {
         let message = "";
         let topicId = null;
         const now = new Date();
         const options = { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
         const formattedDate = now.toLocaleDateString('id-ID', options).replace(/ pukul /g, ' | ');
+
+        let safeDest = data.dest || "-";
+        if (safeDest && safeDest.length > 4) {
+             safeDest = safeDest.substring(0, safeDest.length - 4) + "****";
+        }
+
+        let safeTrxId = data.trxId || "-";
+        try {
+            const parts = safeTrxId.split('-');
+            if (parts.length >= 3 && (parts[0] === 'TRX' || parts[0] === 'ICS')) {
+                const phoneSegment = parts[1];
+                if (phoneSegment.length > 4 && /^\d+$/.test(phoneSegment)) {
+                    const maskedPhone = phoneSegment.substring(0, phoneSegment.length - 4) + "****";
+                    parts[1] = maskedPhone;
+                    safeTrxId = parts.join('-');
+                }
+            }
+        } catch (e) { console.log("Masking TRX Error", e); }
 
         if (type === 'TOPUP') {
             topicId = 7;
@@ -1027,7 +1133,7 @@
                       `👤 User ID : ${currentUsername}\n` +
                       `📌 Status : BERHASIL\n` +
                       `🆔 ID Transaksi :\n` +
-                      `${data.trxId}\n` +
+                      `${safeTrxId}\n` +
                       `━━━━━━━━━━━━━━━━━━\n` +
                       `🏢 PANDAWA SYSTEM\n` +
                       `https://www.pandawa-digital.store`;
@@ -1036,36 +1142,45 @@
             message = `✅ TRANSAKSI BERHASIL \n` +
                       `━━━━━━━━━━━━━━━━━━\n` +
                       `📦 Produk : ${data.title}\n` +
-                      `🎯 Tujuan : ${data.dest}\n` +
+                      `🎯 Tujuan : ${safeDest}\n` +
                       `💸 Harga : Rp ${window.formatRp(data.amount).replace('Rp', '').trim()}\n` +
                       `🕒 Waktu : ${formattedDate}\n` +
                       `👤 User : ${currentUsername}\n` +
-                      `🆔 TRX ID : ${data.trxId}\n` +
+                      `🆔 TRX ID : ${safeTrxId}\n` +
                       `━━━━━━━━━━━━━━━━━━\n` +
                       `🏢 PANDAWA SYSTEM\n` +
                       `https://www.pandawa-digital.store`;
         }
 
-        try {
-            await fetch(`https://api.telegram.org/bot${TELEGRAM_CONFIG.token}/sendMessage`, {
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    chat_id: TELEGRAM_CONFIG.chatId, 
-                    text: message, 
-                    message_thread_id: topicId 
-                })
-            });
-        } catch (e) { console.error("Telegram Notif Error:", e); }
+        // METODE GET + URL PARAMETERS (FIX PROXY)
+        const baseUrl = `https://api.telegram.org/bot${TELEGRAM_CONFIG.token}/sendMessage`;
+        const params = new URLSearchParams({
+            chat_id: TELEGRAM_CONFIG.chatId,
+            text: message,
+            message_thread_id: topicId
+        });
+        
+        const targetUrl = `${baseUrl}?${params.toString()}`;
+
+        for (const proxy of PROXY_LIST) {
+            try {
+                const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
+                const res = await fetch(fullUrl);
+                if(res.ok) {
+                    console.log("Telegram Notif Sent via " + proxy.name);
+                    break;
+                }
+            } catch (e) { console.warn("Telegram Proxy Error via " + proxy.name, e); }
+        }
     };
 
 // 2. ICS STORE INTEGRATION
-    const ICS_CONFIG = {
-        apiKey: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3",
-        baseUrl: "https://reseller.ics-store.my.id"
+        const ICS_CONFIG = {
+        token: "YOUR_SECRET_KEY", // GANTI DENGAN API KEY BARU ANDA
+        baseUrl: "https://api.ics-store.my.id/api/reseller"
     };
 
-        let currentIcsType = 'xla';
+    let currentIcsType = 'xla';
 
     window.openIcsSheet = () => {
         document.getElementById('sheetIcsProvider').classList.remove('hide');
@@ -1091,30 +1206,34 @@ window.openAkrabV2 = () => {
         window.initAkrabV2Data();
     };
 
-                    async function callIcsApi(action, params = {}, method = 'GET') {
-        // FIX: Gunakan API Key di URL. Header sering dihapus oleh Proxy publik.
-                // FIX: Tambahkan timestamp (_t) untuk bypass Cache Proxy yang membandel
-        let targetUrl = `${ICS_CONFIG.baseUrl}/?action=${action}&apikey=${ICS_CONFIG.apiKey}&_t=${Date.now()}`;
-        let options = { method: method };
+                            async function callIcsApi(endpoint, data = {}, method = 'GET') {
+        // STRATEGI ANTI-BLOKIR: Kirim Token lewat 3 jalur (Header, URL, Body)
+        // Agar jika proxy membuang Header, server tetap bisa baca dari URL/Body
+        data.token = ICS_CONFIG.token;
+        data.api_key = ICS_CONFIG.token; 
 
-                        if (method === 'GET') {
-            const qs = new URLSearchParams(params).toString();
-            if(qs) targetUrl += `&${qs}`;
+        let targetUrl = `${ICS_CONFIG.baseUrl}${endpoint}`;
+        let options = {
+            method: method,
+            headers: {
+                'Authorization': `Bearer ${ICS_CONFIG.token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        };
+
+        if (method === 'GET') {
+            const qs = new URLSearchParams({ ...data, _t: Date.now() }).toString();
+            if (qs) targetUrl += `?${qs}`;
         } else if (method === 'POST') {
-             // FIX: Strategi Double-Send (URL + Body) agar kebal terhadap Proxy yang membuang Body
-             const qs = new URLSearchParams(params).toString();
-             if(qs) targetUrl += `&${qs}`; // Tempel juga di URL sebagai cadangan
-             
-             options.body = new URLSearchParams(params);
-             options.headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+            options.body = JSON.stringify(data);
         }
 
         for (const proxy of PROXY_LIST) {
             try {
-                // Encode URL target agar aman saat melewati URL proxy
+                // Encode URL target agar aman saat melewati proxy
                 const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
                 
-                // Timeout 15 detik
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 15000);
 
@@ -1123,63 +1242,62 @@ window.openAkrabV2 = () => {
 
                 if (res.ok) {
                     const text = await res.text();
-                    // Coba parsing JSON
-                    try { 
-                        let data = JSON.parse(text); 
-                        // Handle jika proxy membungkus response di dalam field 'contents'
-                        if (data.contents) {
-                             try { data = JSON.parse(data.contents); } catch(e) { data = data.contents; }
+                    try {
+                        let json = JSON.parse(text);
+                        // Handle jika proxy membungkus response
+                        if (json.contents) { try { json = JSON.parse(json.contents); } catch(e) { json = json.contents; } }
+                        // Handle jika response status false tapi HTTP 200
+                        if (json.status === false && json.message) { 
+                             console.warn('ICS API Error:', json.message); 
                         }
-                        return data;
-                    } catch (e) { 
-                        console.warn('ICS JSON Parse Error via ' + proxy.name, e); 
+                        return json;
+                    } catch (e) {
+                        console.warn('ICS JSON Parse Error via ' + proxy.name, e);
                     }
                 }
-            } catch (e) { 
-                console.warn('ICS Proxy Error via ' + proxy.name, e); 
+            } catch (e) {
+                console.warn('ICS Proxy Error via ' + proxy.name, e);
             }
         }
-        return { success: false, message: 'Gagal koneksi ke server  (Semua Proxy Gagal)' };
+        return { success: false, message: 'Gagal koneksi ke server (Cek Internet/Proxy)' };
     }
 
 
 
-        window.initAkrabV2Data = async () => {
+            window.initAkrabV2Data = async () => {
         const select = document.getElementById('icsProductSelect');
         select.innerHTML = '<option>Memuat...</option>';
         
-        // Muat Aturan Harga & Nama Custom
         try {
             const settingsSnap = await getDoc(doc(db, "settings", "pricing"));
             if (settingsSnap.exists()) pricingRules = settingsSnap.data().rules || {};
         } catch(e) { console.log("Load pricing rules error", e); }
 
-        const res = await callIcsApi('listProducts', { type: currentIcsType });
+        // Endpoint baru: /products
+        const res = await callIcsApi('/products', {}, 'GET');
         select.innerHTML = '';
 
-        // PERBAIKAN: Handle Respon Sukses (Gabung Ready + Empty)
-        if (res.success && res.data) {
-            const readyItems = res.data.ready || [];
-            const emptyItems = res.data.empty || [];
-            // 1. Gabungkan kedua array
-            const allProducts = [...readyItems, ...emptyItems];
+        if (res.success && res.data && Array.isArray(res.data)) {
+            // Filter berdasarkan kategori (type) yang dipilih user
+            // API baru mengembalikan semua produk, jadi kita filter manual di sini
+            const filteredProducts = res.data.filter(p => p.type && p.type.toLowerCase() === currentIcsType.toLowerCase());
 
-            if(allProducts.length === 0) {
+            if(filteredProducts.length === 0) {
                  select.innerHTML = '<option value="" disabled>Produk Kosong</option>';
                  return;
             }
 
-            // 2. Urutkan dari harga termurah
-            allProducts.sort((a, b) => a.harga - b.harga);
+            // Urutkan dari harga termurah
+            filteredProducts.sort((a, b) => a.price - b.price);
 
             select.innerHTML = '<option value="" disabled selected>-- Pilih Produk --</option>';
             
-            allProducts.forEach(p => {
-                let sellPrice = p.harga;
-                let name = p.nama_produk;
-                const code = p.kode_produk;
+            filteredProducts.forEach(p => {
+                let sellPrice = p.price;
+                let name = p.name;
+                const code = p.code;
 
-                // LOGIKA BARU: Markup & Rename (Akrab V2)
+                // Logic Markup Harga
                 if(pricingRules[code]) {
                     const r = pricingRules[code];
                     if(typeof r === 'object') {
@@ -1192,19 +1310,19 @@ window.openAkrabV2 = () => {
                     sellPrice += 2000; // Default Margin
                 }
                 
-                // Cek apakah produk ini berasal dari list 'empty' atau stoknya 0
-                const isHabis = p.stok === 0 || p.stok === '0' || emptyItems.includes(p);
+                // Cek Stok & Status dari API baru
+                const isHabis = p.status !== 'available' || p.stock <= 0;
 
                 const opt = document.createElement('option');
                 opt.value = code;
                 opt.dataset.name = name;
                 opt.dataset.price = sellPrice;
-                opt.dataset.rawPrice = p.harga;
+                opt.dataset.rawPrice = p.price;
                 
                 if (isHabis) {
                     opt.innerHTML = `❌ ${name} (Habis) - Rp ${window.formatRp(sellPrice)}`;
                     opt.disabled = true;
-                    opt.style.color = '#ef4444'; // Warna Merah
+                    opt.style.color = '#ef4444';
                 } else {
                     opt.innerHTML = `${name} - Rp ${window.formatRp(sellPrice)}`;
                 }
@@ -1227,9 +1345,13 @@ window.openAkrabV2 = () => {
         }
     };
 
-            window.executeIcsTransaction = async (code, number, price, name) => {
+                window.executeIcsTransaction = async (code, number, price, name, provCode) => {
         window.showLoader(true);
-        const reffId = 'ICS-' + Date.now();
+        // Format RefID Custom: ICS-Nomor-Timestamp
+        const d = new Date();
+        const timeStr = String(d.getHours()).padStart(2, '0') + String(d.getMinutes()).padStart(2, '0') + String(d.getSeconds()).padStart(2, '0');
+        const cleanNum = number.replace(/[^0-9]/g, '');
+        const localRefId = 'ICS-' + cleanNum + '-' + timeStr;
         const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
         
         try {
@@ -1242,7 +1364,7 @@ window.openAkrabV2 = () => {
                 const balanceAfter = bal - price;
                 t.update(uRef, { balance: balanceAfter });
                 
-                const hRef = doc(db, "users", currentUser.uid, "history", reffId);
+                const hRef = doc(db, "users", currentUser.uid, "history", localRefId);
                 t.set(hRef, {
                     title: name,
                     amount: price,
@@ -1250,9 +1372,10 @@ window.openAkrabV2 = () => {
                     date: new Date().toISOString(),
                     status: 'Proses',
                     api_msg: 'Menghubungkan ke server...',
-                    trx_id: reffId,
+                    trx_id: localRefId,
                     trx_code: trxCode,
                     provider_id: 'ICS',
+                    provider_code: provCode || 'ICS',
                     raw_code: code,
                     dest_num: number,
                     balance_before: bal,
@@ -1264,51 +1387,73 @@ window.openAkrabV2 = () => {
             return alert("Gagal proses database: " + e);
         }
         
-        // 2. Panggil API ICS
-        const apiRes = await callIcsApi('createTransaction', {
-            kode_produk: code,
-            nomor_tujuan: number,
-            refid: reffId
-        }, 'GET');
+        // Panggil API Transaction (POST /trx)
+        // Body: product_code, dest_number, ref_id_custom
+        const apiRes = await callIcsApi('/trx', {
+            product_code: code,
+            dest_number: number,
+            ref_id_custom: localRefId
+        }, 'POST');
 
         window.showLoader(false);
 
-        if(apiRes.success) {
-            await updateDoc(doc(db, "users", currentUser.uid, "history", reffId), {
+        if(apiRes.success && apiRes.data) {
+            // Sukses Create Trx
+            // Simpan RefID Server (TRX...) ke field 'supplier_id' untuk pengecekan status nanti
+            await updateDoc(doc(db, "users", currentUser.uid, "history", localRefId), {
                 status: 'Pending',
-                api_msg: apiRes.message || 'Sedang diproses',
-                supplier_id: apiRes.supplier_trxid || '-',
+                api_msg: apiRes.data.message || 'Transaksi sedang diproses',
+                supplier_id: apiRes.data.refid || '-', // PENTING: ID Tiket dari Server
                 raw_json: JSON.stringify(apiRes)
             });
+            
             alert("Transaksi Berhasil Dikirim!\nKode Trx: " + trxCode + "\nStatus: Pending.");
             window.nav('homePage');
         } else {
-            // Refund Otomatis
-            await runTransaction(db, async (t) => {
-                const uRef = doc(db, "users", currentUser.uid);
-                const uDoc = await t.get(uRef);
-                const balNow = uDoc.data().balance || 0;
-                t.update(uRef, { balance: balNow + price });
-                t.update(doc(db, "users", currentUser.uid, "history", reffId), {
-                    status: 'Gagal',
-                    api_msg: 'Refund: ' + (apiRes.error || apiRes.message || 'Gagal dari pusat'),
-                    balance_final: balNow + price
+            // Gagal Create Trx
+            const errStr = (apiRes.message || "Gagal Request").toString();
+            const isNetworkError = errStr.includes('Failed to fetch') || errStr.includes('NetworkError');
+
+            if (isNetworkError) {
+                await updateDoc(doc(db, "users", currentUser.uid, "history", localRefId), {
+                    status: 'Pending',
+                    api_msg: 'Koneksi Terputus (Menunggu Konfirmasi)...',
+                    raw_json: JSON.stringify(apiRes)
                 });
-            });
-            alert("Transaksi Gagal: " + (apiRes.error || apiRes.message || "Unknown") + "\nSaldo dikembalikan.");
+                // Trigger auto check manual via existing function logic
+                setTimeout(() => window.checkIcsStatus(
+                    { trx_id: localRefId, amount: price, supplier_id: null }, 
+                    { ref: doc(db, "users", currentUser.uid, "history", localRefId) }
+                ), 3000);
+                
+                alert("Koneksi Terputus! Transaksi dianggap PENDING.\nSistem akan mengecek status otomatis.");
+                window.nav('homePage');
+            } else {
+                // Refund Otomatis
+                const refundResult = await window.processSmartRefund(currentUser.uid, localRefId, 'Refund: ' + errStr);
+                alert("Transaksi Gagal: " + errStr + "\n" + (refundResult.msg || "Saldo dikembalikan."));
+                window.nav('homePage');
+            }
         }
     };
 
 
 
 
-    async function checkIcsStatus(trx, docSnap) {
-        const res = await callIcsApi('checkTransaction', { refid: trx.trx_id });
-        if(res.success) {
+        async function checkIcsStatus(trx, docSnap) {
+        // Gunakan supplier_id (RefID Server: TRX...) jika ada, jika tidak gunakan trx_id lokal (fallback)
+        const ticketId = trx.supplier_id && trx.supplier_id !== '-' ? trx.supplier_id : trx.trx_id;
+        
+        // Endpoint: /trx/:refid
+        const res = await callIcsApi(`/trx/${ticketId}`, {}, 'GET');
+
+        if(res.success && res.data) {
+            const data = res.data;
             let newStatus = 'Pending';
-            const statusRaw = (res.status || '').toLowerCase();
+            const statusRaw = (data.status || '').toLowerCase();
+            
             if(statusRaw === 'success') newStatus = 'Sukses';
-            else if(statusRaw === 'failed' || statusRaw === 'error' || statusRaw === 'unpaid') newStatus = 'Gagal';
+            else if(statusRaw === 'failed') newStatus = 'Gagal';
             
             if(newStatus !== 'Pending') {
                 await runTransaction(db, async (t) => {
@@ -1319,21 +1464,100 @@ window.openAkrabV2 = () => {
                         const uRef = doc(db, "users", currentUser.uid);
                         const uDoc = await t.get(uRef);
                         t.update(uRef, { balance: (uDoc.data().balance || 0) + trx.amount });
-                        t.update(docSnap.ref, { status: 'Gagal', api_msg: 'Refund: ' + (res.message || 'Gagal') });
+                        t.update(docSnap.ref, { 
+                            status: 'Gagal', 
+                            api_msg: 'Refund: ' + (data.message || 'Gagal dari Server'),
+                            sn: data.sn || null
+                        });
                     } else {
-                        t.update(docSnap.ref, { status: 'Sukses', api_msg: res.message || res.sn || 'Sukses' });
+                        t.update(docSnap.ref, { 
+                            status: 'Sukses', 
+                            api_msg: data.message || 'Transaksi Sukses',
+                            sn: data.sn || 'Sukses'
+                        });
+                        // NOTIFIKASI SUKSES (ICS)
+                        if(typeof window.sendTelegramNotif === 'function') {
+                             window.sendTelegramNotif('ORDER', { title: trx.title, amount: trx.amount, dest: trx.dest_num, trxId: trx.trx_id });
+                        }
                     }
                 });
             }
         }
     }
     const auth = getAuth(app);
-
     const db = getFirestore(app);
+    // --- LEDGER SYSTEM START ---
+    window.processSmartRefund = async (uid, trxId, reason = "Refund Sistem") => {
+        const userRef = doc(db, "users", uid);
+        const historyRef = doc(db, "users", uid, "history", trxId);
+
+        try {
+            await runTransaction(db, async (t) => {
+                // 1. BACA DULU (READ) - Integritas Data
+                const trxDoc = await t.get(historyRef);
+                const userDoc = await t.get(userRef);
+
+                if (!trxDoc.exists()) throw "Data transaksi tidak ditemukan";
+                if (!userDoc.exists()) throw "Data user tidak ditemukan";
+
+                const trxData = trxDoc.data();
+
+                // 2. VALIDASI GANDA (Anti Double Refund)
+                // Jika status sudah Gagal ATAU flag is_refunded true, batalkan proses.
+                if (trxData.status === 'Gagal' || trxData.is_refunded === true) {
+                    throw "REFUND DITOLAK: Transaksi ini sudah dikembalikan sebelumnya.";
+                }
+
+                // 3. HITUNG PENGEMBALIAN (Ledger Calculation)
+                const refundAmount = parseInt(trxData.amount) || 0; 
+                const currentBalance = userDoc.data().balance || 0;
+                const newBalance = currentBalance + refundAmount;
+
+                // 4. EKSEKUSI UPDATE (WRITE)
+                t.update(userRef, { balance: newBalance });
+
+                t.update(historyRef, {
+                    status: 'Gagal',
+                    api_msg: reason,
+                    balance_final: newBalance,
+                    is_refunded: true, // Flag Kunci
+                    refund_date: new Date().toISOString()
+                });
+            });
+
+            console.log("Smart Refund Berhasil: " + trxId);
+            return { success: true, msg: "Saldo berhasil dikembalikan." };
+
+        } catch (e) {
+            console.warn("Smart Refund Prevented:", e);
+            return { success: false, msg: typeof e === 'string' ? e : e.message };
+        }
+    };
+    // --- LEDGER SYSTEM END ---
+
+    // FIX: Handle Google Redirect Result (Wajib untuk signInWithRedirect)
+    getRedirectResult(auth).then(async (result) => {
+        if (result && result.user) {
+            console.log("Google Redirect Success:", result.user.email);
+            // Tampilkan loader, biarkan onAuthStateChanged menangani navigasi
+            window.showLoader(true);
+        }
+    }).catch((error) => {
+        window.showLoader(false);
+        console.error("Google Redirect Error:", error);
+        window.showAlert("Gagal Login", "Gagal memproses login Google: " + error.message, "error");
+    });
 
 
     // Provider Maintenance Logic
     let providerStatus = {};
+
+    let topupStatus = { manual: true, qios: true };
+    function initTopupSettingsListener() {
+        onSnapshot(doc(db, "settings", "topup"), (docSnap) => {
+            if (docSnap.exists()) topupStatus = docSnap.data();
+        });
+    }
     window.checkProv = (code) => {
         if(providerStatus[code] === true) {
             alert('Layanan sedang dalam perbaikan (Maintenance).\nSilakan coba lagi nanti.');
@@ -1359,6 +1583,7 @@ window.openAkrabV2 = () => {
         });
     }
     initProviderListener();
+initTopupSettingsListener();
 
     auth.languageCode = 'id';
 
@@ -1449,9 +1674,7 @@ window.openAkrabV2 = () => {
     const CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
 
     // AUTH & DATA
-
-
-onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, (user) => {
         if (user) {
             currentUser = user;
             console.log("Logged In:", user.uid);
@@ -1528,8 +1751,9 @@ onAuthStateChanged(auth, (user) => {
                 }
 
                 document.getElementById('setupProfileModal').classList.add('hide');
-                window.nav('homePage');
+                                window.nav('homePage');
                 window.showLoader(false);
+                window.startLiveStock(); // Mulai Auto Refresh Stok
 
                 currentBalance = data.balance || 0;
                 currentUsername = data.username || "User";
@@ -1923,23 +2147,28 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
     document.getElementById('confirmYesBtn').onclick = () => window.closeConfirm(true);
 
     // AUTH LOGIC
-    
-    
-
-
-window.loginWithGoogle = async () => {
+    window.loginWithGoogle = async () => {
     window.showLoader(true);
     const provider = new GoogleAuthProvider();
     provider.addScope('profile');
     provider.addScope('email');
 
     try {
-        // Menggunakan signInWithRedirect (Sesuai permintaan)
-        await signInWithRedirect(auth, provider);
+        // PERBAIKAN: Menggunakan signInWithPopup (Sesuai patokan.html)
+        // Metode ini membuka jendela login tanpa me-refresh halaman utama
+        // sehingga state aplikasi terjaga dan langsung masuk menu utama
+        await signInWithPopup(auth, provider);
+        console.log("Login Google Berhasil (Popup Mode)");
+        
     } catch (error) {
         window.showLoader(false);
-        console.error("Google Init Error:", error);
-        alert("Gagal Memulai Login: " + error.message);
+        console.error("Google Login Error:", error);
+        
+        if (error.code === 'auth/popup-closed-by-user') {
+            window.showAlert("Batal", "Proses login dibatalkan.", "info");
+        } else {
+            window.showAlert("Gagal Login", error.message, "error");
+        }
     }
 };
 
@@ -2642,7 +2871,8 @@ window.loginWithGoogle = async () => {
             const name = (p.name || p.nama_produk || p.product_name || '').toUpperCase();
             const brand = (p.brand || p.kode_provider || p.operator || '').toUpperCase();
             
-            if (providerCode === 'FMX') return (code.startsWith('FMX') || code === 'CFMX') && brand === 'FMAX';
+                        if (providerCode === 'XDA') return code.startsWith('XDA');
+if (providerCode === 'FMX') return (code.startsWith('FMX') || code === 'CFMX') && brand === 'FMAX';
             if (providerCode === 'XLR') return brand === 'XLREGULER';
             if (providerCode === 'PLN') return brand.includes('PLN') || code.includes('PLN') || name.includes('TOKEN');
 
@@ -2874,7 +3104,7 @@ window.loginWithGoogle = async () => {
             if(currentBalance < price) return alert("Saldo tidak cukup!");
             
             window.customConfirm('Apakah anda ingin melanjutkan?', `Produk: ${name}\nNomor: ${number}\nHarga: ${window.formatRp(price)}`, async () => {
-                window.executeIcsTransaction(code, number, price, name);
+                window.executeIcsTransaction(code, number, price, name, provider);
             });
             return;
         }
@@ -2929,7 +3159,7 @@ window.loginWithGoogle = async () => {
         }
     };
 
-    window.showInvoice = (code, name, price, dest) => {
+    window.showInvoice = (code, name, price, dest, provCode) => {
         const fmtPrice = window.formatRp(price);
         document.getElementById('invTotalMain').innerText = fmtPrice;
         document.getElementById('invTotalBottom').innerText = fmtPrice;
@@ -2940,7 +3170,7 @@ window.loginWithGoogle = async () => {
         const btnPay = document.getElementById('btnPayInvoice');
         btnPay.onclick = () => {
             window.closeInvoice();
-            window.executeApiTransaction(code, dest, price, name);
+            window.executeApiTransaction(code, dest, price, name, provCode);
         };
 
         document.getElementById('invoiceModal').classList.remove('hide');
@@ -2951,7 +3181,8 @@ window.loginWithGoogle = async () => {
     window.confirmTransaction = (code, name, price) => {
         if(currentBalance < price) return alert('Saldo Aplikasi Kurang! (Top Up Manual dulu)'); 
         const num = document.getElementById('ppobNumber').value;
-        window.showInvoice(code, name, price, num);
+        const prov = document.getElementById('formProvider').value;
+        window.showInvoice(code, name, price, num, prov);
     };
 
             
@@ -3022,8 +3253,12 @@ window.submitPreorder = async () => {
                 // 1. Potong Saldo User
                 transaction.update(userRef, { balance: balanceAfter });
 
-                // 2. Tambah ke Antrean Admin
+                                // 2. Tambah ke Antrean Admin
                 const poRef = doc(db, "preorders", trxId);
+                
+                // Deteksi Server Type Otomatis (ICS/KHFY)
+                const serverType = prov.startsWith('ICS_') ? 'ICS' : 'KHFY';
+
                 transaction.set(poRef, {
                     uid: currentUser.uid,
                     username: currentUsername,
@@ -3034,6 +3269,7 @@ window.submitPreorder = async () => {
                     price: price,
                     status: "Pending",
                     historyId: trxId,
+                    serverType: serverType, // Data Baru: Identitas Server
                     timestamp: serverTimestamp()
                 });
 
@@ -3054,7 +3290,18 @@ window.submitPreorder = async () => {
                 });
             });
 
-            window.showLoader(false);
+                        // Kirim Notif Telegram Preorder
+            if(typeof window.sendTelegramNotif === 'function') {
+                 window.sendTelegramNotif('ORDER', { 
+                    title: "PREORDER - " + name, 
+                    amount: price, 
+                    dest: num, 
+                    trxId: trxId 
+                });
+            }
+
+            
+window.showLoader(false);
             alert('Pesanan Preorder dikirim! Saldo telah dipotong dan menunggu konfirmasi admin.');
             window.nav('homePage');
         } catch(e) {
@@ -3062,9 +3309,14 @@ window.submitPreorder = async () => {
             alert(typeof e === 'string' ? e : e.message);
         }
     };
-window.executeApiTransaction = async (code, dest, price, name) => {
+    window.executeApiTransaction = async (code, dest, price, name, provCode) => {
         window.showLoader(true);
-        const reffId = 'TRX-' + Date.now() + '-' + Math.floor(1000 + Math.random() * 9000);
+        // Format Baru: TRX-08xx-JamMenitDetik
+        const d = new Date();
+        const timeStr = String(d.getHours()).padStart(2, '0') + String(d.getMinutes()).padStart(2, '0') + String(d.getSeconds()).padStart(2, '0');
+        const cleanDest = dest.replace(/[^0-9]/g, '');
+        const reffId = 'TRX-' + cleanDest + '-' + timeStr;
+        
         const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
         const trxRef = doc(db, "users", currentUser.uid, "history", reffId);
         
@@ -3088,7 +3340,10 @@ window.executeApiTransaction = async (code, dest, price, name) => {
                     api_msg: 'Menghubungkan ke server...',
                     trx_id: reffId,
                     trx_code: trxCode,
-                    provider_id: '',
+                    provider_id: '', // ID Server (Akan diupdate)
+                    provider_code: provCode || '', // Kode Provider App
+                    raw_code: code, // Kode Produk
+                    dest_num: dest, // Nomor Tujuan
                     balance_before: balanceBefore,
                     balance_after: balanceAfter
                 });
@@ -3106,6 +3361,39 @@ window.executeApiTransaction = async (code, dest, price, name) => {
         try {
                         const result = await callApi('/trx', { produk: code, tujuan: dest, reff_id: reffId });
             window.showLoader(false);
+
+            // --- FIX BUG FALSE NEGATIVE (Anti Refund saat RTO & Network Glitch) ---
+            // UPDATE: Menambahkan deteksi 'Load failed' dan error generik proxy untuk mencegah refund prematur
+            const errStr = result.error ? String(result.error) : "";
+            const isNetworkError = errStr.includes('Failed to fetch') || 
+                                 errStr.includes('NetworkError') || 
+                                 errStr.includes('Gagal Koneksi') ||
+                                 errStr.includes('Load failed') ||
+                                 errStr.includes('upstream') ||
+                                 (!result.ok && !result.data && !result.error); // Respon kosong/gelap
+
+            if (!result.ok && isNetworkError) {
+                console.warn("Network Error Detected - Holding Refund");
+                
+                await updateDoc(trxRef, { 
+                    status: 'Pending', 
+                    api_msg: 'Koneksi Terputus (Verifikasi Otomatis)...',
+                    raw_json: JSON.stringify(result)
+                });
+                
+                window.customConfirm(
+                    'Koneksi Terganggu',
+                    'Sinyal terputus saat kirim data. JANGAN transaksi ulang! Sistem sedang memverifikasi status transaksi Anda ke server.',
+                    () => window.manualCheckTrx(reffId, null)
+                );
+
+                // Auto Cek Status ke Server Pusat (Delay 3 detik)
+                setTimeout(() => window.manualCheckTrx(reffId, null), 3000);
+                
+                window.nav('homePage');
+                return; // STOP: Jangan lanjut ke logika refund!
+            }
+            // ------------------------------------------------------
             
             let isSuccess = false;
             let msg = 'Tidak ada respon server';
@@ -3122,17 +3410,48 @@ window.executeApiTransaction = async (code, dest, price, name) => {
             const rawRes = JSON.stringify(result).toLowerCase();
             const isLockTimeout = rawRes.includes('lock_timeout');
 
+            // --- FIX: Handle Lock Timeout sebagai PENDING (Anti-Refund) ---
+            if (isLockTimeout) {
+                 console.warn("Lock Timeout Detected - Holding Refund");
+                 await updateDoc(trxRef, { 
+                    status: 'Pending', 
+                    api_msg: 'Server Busy (Lock Timeout). Mengecek status...',
+                    raw_json: rawRes
+                });
+                
+                // Auto Cek Status (Delay 3 detik)
+                setTimeout(() => window.manualCheckTrx(reffId, null), 3000);
+
+                window.customConfirm(
+                    'Server Sedang Sibuk',
+                    'Transaksi masuk antrean (Lock Timeout). Sistem akan mengecek status otomatis. Mohon tunggu sebentar.',
+                    () => window.manualCheckTrx(reffId, null)
+                );
+                
+                window.nav('homePage');
+                return; // STOP: Jangan lanjut ke logika sukses/gagal biasa
+            }
+
             if(result.ok && result.data) {
                  const d = result.data;
                  msg = d.message || d.msg || d.sn || (d.data ? d.data.message : '') || msg;
+                 // --- SENSOR DATA SENSITIF (Anti-Leak) ---
+                 // Menghapus total parameter kodereseller, password, dan pin agar tidak tampil
+                 if(typeof msg === 'string') {
+                    // 1. Hapus key=value untuk data sensitif (termasuk & di belakangnya)
+                    msg = msg.replace(/(kodereseller|password|pin)=[^&\s#]*&?/gi, "");
+                    
+                    // 2. Hapus sisa 'trx?' atau '?' di awal string agar rapi (misal: trx?produk=... jadi produk=...)
+                    msg = msg.replace(/^(trx)?\?/i, "");
+                 }
+
+                 // --- SENSOR DATA SENSITIF (Anti-Leak) ---
+                 // Menyembunyikan kodereseller, password, dan pin dari pesan error
+                 if(typeof msg === 'string') {
+                    msg = msg.replace(/(kodereseller|password|pin)=([^&\s#]*)/gi, '$1=******');
+                 }
                  if(d.data && d.data.id) providerId = d.data.id;
                  isSuccess = d.status === true || d.success === true || d.status === 'success' || (d.data && d.data.status === 'Pending') || String(msg).toLowerCase().includes('proses');
-            }
-
-            // PAKSA GAGAL JIKA LOCK TIMEOUT
-            if(isLockTimeout) {
-                isSuccess = false;
-                msg = "Server Busy (Lock Timeout). Silakan coba lagi sebentar.";
             }
 
             if(isSuccess) {
@@ -3141,48 +3460,25 @@ window.executeApiTransaction = async (code, dest, price, name) => {
                     safeMsg = safeMsg.split('#').pop() || 'Tujuan Diluar Wilayah';
                 }
                 await updateDoc(trxRef, { status: 'Pending', api_msg: safeMsg, provider_id: providerId, raw_json: JSON.stringify(result.data || result || {}) });
+                
                 alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                 window.nav('homePage');
-            } else {
-                // GAGAL DARI RESPON API -> LAKUKAN REFUND OTOMATIS
-                await runTransaction(db, async (t) => {
-                    const uRef = doc(db, "users", currentUser.uid);
-                    const uDoc = await t.get(uRef);
-                    const currentBal = uDoc.data().balance || 0;
-                    const balanceFinal = currentBal + price;
-                    t.update(uRef, { balance: balanceFinal });
-                    
-                    // Gunakan pesan error dinamis
-                    const finalMsg = isLockTimeout ? msg : (msg.includes('wilayah') ? 'Gagal Tujuan di luar wilayah' : msg);
-
-                    t.update(trxRef, { 
-                        status: 'Gagal', 
-                        api_msg: finalMsg, 
-                        balance_final: balanceFinal,
-                        raw_json: JSON.stringify(result.data || result.error || {})
-                    });
-                    // Catat Riwayat Refund Terpisah
-                    const refundId = 'REF-' + Date.now();
-                    const refundRef = doc(db, "users", currentUser.uid, "history", refundId);
-                    t.set(refundRef, {
-                        title: "Refund: " + name,
-                        amount: price,
-                        type: 'in',
-                        date: new Date().toISOString(),
-                        status: 'Sukses',
-                        api_msg: isLockTimeout ? 'Auto Refund (Server Busy)' : 'Pengembalian saldo otomatis',
-                        trx_id: refundId,
-                        trx_code: trxCode
-                    });
-                });
+                        } else {
+                // GAGAL DARI RESPON API -> LAKUKAN REFUND OTOMATIS (LEDGER V2)
+                // Logic Baru: Bersih & Aman
+                const finalMsg = isLockTimeout ? msg : (msg.includes('wilayah') ? 'Gagal Tujuan di luar wilayah' : msg);
                 
+                // 1. Panggil Sistem Ledger untuk Refund Database
+                const refundResult = await window.processSmartRefund(currentUser.uid, reffId, finalMsg);
+                
+                // 2. Update Tampilan Saldo (Visual Saja)
                 currentBalance += price;
                 if(document.getElementById('displayBalance')) document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
-                
-                                // --- PESAN AMAN UNTUK USER ---
-                // UPDATE: Tampilkan pesan 'Server Sedang Sibuk' jika terdeteksi error proxy
-                const displayMsg = (msg === "Server Sedang Sibuk" || isLockTimeout) ? msg : "Transaksi Gagal / Stok Kosong";
-                window.showAlert("Transaksi Gagal", displayMsg + "\n\nSaldo telah dikembalikan otomatis.", "error");
+
+                                // 3. Tampilkan Pesan ke User
+                // PERBAIKAN: Gunakan 'finalMsg' agar pesan asli server (Misal: Nomor Salah/Suspect) muncul
+                const displayMsg = finalMsg || msg || "Transaksi Gagal";
+                window.showAlert("Transaksi Gagal", displayMsg + "\n\n" + (refundResult.msg || "Saldo telah dikembalikan otomatis."), "error");
                 window.nav('homePage');
             }
 
@@ -3210,24 +3506,55 @@ window.executeApiTransaction = async (code, dest, price, name) => {
         // --- BACKGROUND SERVICE (AUTO CHECK 5 Detik) ---
     window.autoCheckInterval = null;
 
-        window.startBackgroundService = () => {
+            // --- INTELLIGENT WATCHDOG SYSTEM (AUTO-HEALING) ---
+    window.startBackgroundService = () => {
         if(window.autoCheckInterval) clearInterval(window.autoCheckInterval);
         
-        // UPDATE: Interval 30 Detik sesuai permintaan
+        console.log("🛡️ Watchdog System V3: Activated");
+
+        // Interval Pengecekan (Setiap 20 Detik)
         window.autoCheckInterval = setInterval(async () => {
             if(!currentUser) return;
-            const cacheKey = `trx_cache_${currentUser.uid}`;
-            let cachedData = JSON.parse(localStorage.getItem(cacheKey) || '[]');
-            
-            const pendingTop5 = cachedData.slice(0, 5).filter(t => t.status === 'Pending' || t.status === 'Proses');
-            
-            for (const trx of pendingTop5) {
-                if(!trx.provider_id || trx.provider_id === 'MANUAL' || trx.provider_id === 'ICS') continue;
-                // UPDATE: Cek menggunakan TRX ID (RefID) untuk akurasi data KHFY
-                window.manualCheckTrx(trx.trx_id, null);
+
+            try {
+                // 1. Cari Transaksi yang 'Pending' atau 'Proses' di Database
+                // Limit 10 transaksi terakhir untuk efisiensi
+                const q = query(
+                    collection(db, "users", currentUser.uid, "history"), 
+                    where("status", "in", ["Pending", "Proses"]),
+                    orderBy("date", "desc"),
+                    limit(10)
+                );
+                
+                const snapshot = await getDocs(q);
+                if (snapshot.empty) return; // Tidak ada transaksi gantung
+
+                const now = Date.now();
+
+                for (const docSnap of snapshot.docs) {
+                    const trx = docSnap.data();
+                    const trxTime = new Date(trx.date).getTime();
+                    const diffSeconds = (now - trxTime) / 1000;
+
+                    // ATURAN WATCHDOG:
+                    // 1. Abaikan transaksi manual/topup (butuh admin)
+                    if (trx.provider_id === 'MANUAL' || trx.provider_id === 'MANUAL_SEABANK' || String(trx.trx_id).startsWith('ICS-PO')) continue;
+                    
+                    // 2. Hanya cek transaksi yang sudah berumur > 60 detik tapi < 24 jam
+                    // (Agar tidak bentrok saat animasi loading awal)
+                    if (diffSeconds > 60 && diffSeconds < 86400) {
+                        console.log(`🛡️ Watchdog: Checking Stuck Trx ${trx.trx_id}...`);
+                        
+                        // Panggil Cek Status Manual (Logic Shared)
+                        // Fungsi ini sudah tertanam logika 'Smart Refund' di dalamnya
+                        await window.manualCheckTrx(trx.trx_id, trx.provider_id);
+                    }
+                }
+            } catch (e) {
+                console.warn("🛡️ Watchdog Error (Silent):", e);
             }
-        }, 30000);
-    };
+        }, 20000); // Jalan setiap 20 detik
+        };
 
     window.checkPendingTopUp = () => {
         if(!currentUser) return false;
@@ -3333,6 +3660,7 @@ window.renderTopUpHistory = () => {
     };
 
         window.openManualTopUp = async () => {
+        if (topupStatus && topupStatus.manual === false) return window.showAlert("Maintenance", "Layanan Top Up Manual sedang dalam perbaikan.", "error");
         document.getElementById('topUpSheet').classList.add('hide');
         document.getElementById('manualTopUpModal').classList.remove('hide');
         
@@ -3364,6 +3692,78 @@ window.renderTopUpHistory = () => {
     
     // Auto Update Badge
     setInterval(window.updateTopUpBadge, 2000);
+
+        window.liveStockInterval = null;
+
+    window.fetchLiveStock = async () => {
+        // Hemat resource: Jangan fetch jika tidak di Home Page
+        if(document.getElementById('homePage').classList.contains('hide')) return;
+
+        const targetUrl = "https://panel.khfy-store.com/api_v3/cek_stock_akrab";
+        let data = null;
+
+        for (const proxy of PROXY_LIST) {
+            try {
+                const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3500);
+                
+                const res = await fetch(fullUrl, { signal: controller.signal });
+                clearTimeout(timeoutId);
+                
+                if(res.ok) {
+                    const json = await res.json();
+                    if(json.ok || json.message === "success") {
+                        data = json.data;
+                        break; 
+                    }
+                }
+            } catch(e) { }
+        }
+
+        const container = document.getElementById('liveStockContainer');
+        if(!container) return;
+
+        if(data && Array.isArray(data)) {
+            let html = '';
+                        data.forEach(item => {
+                 const isAvail = item.sisa_slot > 0;
+                 // Tampilan Super Ringkas (Grid Friendly)
+                 html += `<div class="flex justify-between items-center px-2 py-1.5 bg-white dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800">
+                    <div class="flex items-center gap-1.5 overflow-hidden">
+                         <div class="w-1.5 h-1.5 shrink-0 rounded-full ${isAvail ? 'bg-green-500' : 'bg-red-500'} "></div>
+                         <p class="text-[9px] font-bold text-gray-700 dark:text-gray-300 truncate leading-none">${item.nama}</p>
+                    </div>
+                    <span class="text-[9px] ${isAvail ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-gray-300'} shrink-0">${item.sisa_slot}</span>
+                 </div>`;
+            });
+            container.innerHTML = html;
+        }
+    };
+
+        window.startLiveStock = () => {
+        if(window.liveStockInterval) clearInterval(window.liveStockInterval);
+        window.fetchLiveStock(); // Fetch awal sekali saja saat load
+    };
+
+    window.manualRefreshStock = async () => {
+        const btn = document.getElementById('btnRefreshStock');
+        const originalContent = '<i class="fas fa-sync-alt text-[10px] text-blue-600 dark:text-blue-400"></i><span class="text-[10px] text-blue-700 dark:text-blue-400 font-bold">Refresh Stok</span>';
+        
+        // Ubah UI jadi loading
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin text-[10px] text-blue-600 dark:text-blue-400"></i><span class="text-[10px] text-blue-700 dark:text-blue-400 font-bold">Sedang merefresh...</span>';
+
+        // Tahan 1.5 detik sesuai request
+        await new Promise(r => setTimeout(r, 1500));
+
+        // Fetch Data
+        await window.fetchLiveStock();
+
+        // Kembalikan UI tombol
+        btn.innerHTML = originalContent;
+        btn.disabled = false;
+    };
 
     window.checkAkrabStock = async () => {
         window.showLoader(true);
@@ -3510,82 +3910,75 @@ window.renderTopUpHistory = () => {
 document.getElementById('detailTrxModal').classList.remove('hide');
     };
 
-        window.manualCheckTrx = async (docId, providerId) => {
+            window.manualCheckTrx = async (docId, providerId) => {
         const btn = document.getElementById('btnRefreshStatus');
         if(btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         
-        // UPDATE: Panggil API History berdasarkan RefID (TRX ID Lokal) mirip debugg cek.html
-        const res = await callApi('/history', { refid: docId });
-        
-        if(res.ok && res.data) {
-            // LOGIKA PARSING KHUSUS PANEL V2 (KHFY)
-            let root = res.data;
-            let item = root.data;
-            // Handle array wrapper bug
-            if (Array.isArray(item)) item = item[0];
+        try {
+            // 1. Ambil Data Lokal DULU (Penting untuk Nama Produk & Cek Status Lama)
+            const trxRef = doc(db, "users", currentUser.uid, "history", docId);
+            const trxSnap = await getDoc(trxRef);
+            if(!trxSnap.exists()) return;
+            const localData = trxSnap.data();
+
+            // 2. Panggil API History
+            const res = await callApi('/history', { refid: docId });
             
-            if (item) {
-                // Ambil parameter penting sesuai JSON KHFY
-                const statusText = (item.status_text || '').toUpperCase();
-                const keterangan = item.keterangan || '';
-                const sn = item.sn || '';
+            if(res.ok && res.data) {
+                let root = res.data;
+                let item = root.data;
+                if (Array.isArray(item)) item = item[0];
                 
-                let freshStatus = 'Pending';
+                if (item) {
+                    const statusText = (item.status_text || '').toUpperCase();
+                    const keterangan = item.keterangan || '';
+                    const sn = item.sn || '';
+                    
+                    let freshStatus = 'Pending';
+                    if (statusText === 'SUKSES') freshStatus = 'Sukses';
+                    else if (statusText === 'GAGAL') freshStatus = 'Gagal';
 
-                // 1. Cek Status Sukses
-                if (statusText === 'SUKSES') {
-                    freshStatus = 'Sukses';
-                } 
-                // 2. Cek Status Gagal (Menggunakan status_text: "GAGAL")
-                else if (statusText === 'GAGAL') {
-                    freshStatus = 'Gagal';
-                }
+                    if (freshStatus === 'Gagal') {
+                        // Cek agar tidak refund 2x
+                        if(localData.status !== 'Gagal') {
+                             await window.processSmartRefund(currentUser.uid, docId, 'Refund: ' + (keterangan || 'Transaksi Gagal'));
+                        }
+                    } else if (freshStatus === 'Sukses') {
+                        // FIX DOUBLE NOTIF: Cek ulang status TERBARU dari database tepat sebelum eksekusi
+                        // Ini mencegah Race Condition jika ada 2 proses berjalan bersamaan
+                        const latestSnap = await getDoc(trxRef);
+                        
+                        if (latestSnap.exists() && latestSnap.data().status !== 'Sukses') {
+                            await updateDoc(trxRef, {
+                                status: 'Sukses',
+                                api_msg: 'Transaksi Berhasil',
+                                sn: sn || keterangan || 'Transaksi Berhasil',
+                                raw_json: JSON.stringify(root)
+                            });
+                            
+                            if(typeof window.sendTelegramNotif === 'function') {
+                                window.sendTelegramNotif('ORDER', { 
+                                    title: localData.title || 'Produk', 
+                                    amount: localData.amount || 0, 
+                                    dest: localData.dest_num || '', 
+                                    trxId: docId 
+                                });
+                            }
+                        }
+                    }
 
-                // EKSEKUSI UPDATE DATABASE
-                if (freshStatus === 'Gagal') {
-                    await runTransaction(db, async (t) => {
-                        const trxRef = doc(db, "users", currentUser.uid, "history", docId);
-                        const freshDoc = await t.get(trxRef);
-                        // Cegah refund ganda
-                        if (!freshDoc.exists() || (freshDoc.data().status !== 'Pending' && freshDoc.data().status !== 'Proses')) return;
-
-                        const uRef = doc(db, "users", currentUser.uid);
-                        const uDoc = await t.get(uRef);
-                        const currentBal = uDoc.data().balance || 0;
-                        const refundAmount = freshDoc.data().amount || 0;
-
-                        // Refund Saldo
-                        t.update(uRef, { balance: currentBal + refundAmount });
-                        // Simpan Keterangan Gagal (misal: "stock transaksi habis")
-                        t.update(trxRef, {
-                            status: 'Gagal',
-                            api_msg: 'Refund: ' + (keterangan || 'Transaksi Gagal'),
-                            balance_final: currentBal + refundAmount,
-                            raw_json: JSON.stringify(root)
-                        });
-                    });
-                } else if (freshStatus === 'Sukses') {
-                    await updateDoc(doc(db, "users", currentUser.uid, "history", docId), {
-                        status: 'Sukses',
-                        api_msg: 'Transaksi Berhasil',
-                        sn: sn || keterangan || 'Transaksi Berhasil',
-                        raw_json: JSON.stringify(root)
-                    });
-                }
-
-                // UPDATE UI LIVE (Jika Modal Terbuka)
-                const statusEl = document.getElementById('dtStatus');
-                if (statusEl) {
-                    statusEl.innerText = freshStatus;
-                    statusEl.className = 'text-xs font-bold ' + (freshStatus === 'Sukses' ? 'text-green-600' : (freshStatus === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
-                    if(freshStatus !== 'Pending' && document.getElementById('dtSn')) {
-                         document.getElementById('dtSn').innerText = (freshStatus === 'Gagal' ? keterangan : sn);
+                    // Update UI (Visual) tanpa reload
+                    const statusEl = document.getElementById('dtStatus');
+                    if (statusEl) {
+                        statusEl.innerText = freshStatus;
+                        statusEl.className = 'text-xs font-bold ' + (freshStatus === 'Sukses' ? 'text-green-600' : (freshStatus === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
+                        if(freshStatus !== 'Pending' && document.getElementById('dtSn')) {
+                             document.getElementById('dtSn').innerText = (freshStatus === 'Gagal' ? keterangan : sn);
+                        }
                     }
                 }
             }
-        } else {
-             console.log("Gagal cek status manual:", res.error);
-        }
+        } catch(e) { console.log("Check manual error:", e); }
         
         if(btn) btn.innerHTML = '<i class="fas fa-sync-alt"></i>';
     };
@@ -3727,6 +4120,7 @@ document.getElementById('detailTrxModal').classList.remove('hide');
     };
 
 window.openQios = () => {
+        if (topupStatus && topupStatus.qios === false) return window.showAlert("Maintenance", "Layanan QRIS sedang dalam perbaikan.", "error");
         document.getElementById('topUpSheet').classList.add('hide');
         document.getElementById('qiosModal').classList.remove('hide');
         window.renderTopUpHistory(); 
@@ -4026,25 +4420,7 @@ window.openQios = () => {
         return new Date(ts.toDate()).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
     }
 
-    
-    // [FIX FINAL - VALID] MENANGKAP LOGIN GOOGLE
-    // Diletakkan di sini (module script) agar 'auth' dan 'window.showLoader' dikenali.
-    getRedirectResult(auth).then((result) => {
-        if (result && result.user) {
-            console.log("Login Redirect Sukses:", result.user.email);
-            if (typeof window.showLoader === 'function') {
-                window.showLoader(true);
-            }
-        }
-    }).catch((error) => {
-        console.error("Redirect Error:", error);
-        if (typeof window.showLoader === 'function') window.showLoader(false);
-        if (error.code && error.code !== 'auth/null-user') {
-             alert("Login Gagal: " + error.message);
-        }
-    });
-
-// Tampilkan tombol chat hanya jika login
+    // Tampilkan tombol chat hanya jika login
     onAuthStateChanged(auth, (user) => {
         if(user) {
             document.getElementById('chatFloatBtn').classList.remove('hide');

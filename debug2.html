@@ -653,7 +653,7 @@
             </div>
             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4">
                                 <label class="text-[10px] font-bold text-gray-500 block mb-1">Filter Kategori / Provider</label>
-                                <select id="pricingProvider" onchange="loadPricingData()" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs font-bold focus:ring-1 focus:ring-blue-500 outline-none">
+                                <select id="pricingProvider" onchange="loadPricingDataV2()" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs font-bold focus:ring-1 focus:ring-blue-500 outline-none">
                     <optgroup label="Server ICS">
                         <option value="ICS_XDA">Akrab Fresh (XDA)</option>
                         <option value="ICS_CIRCLE">XL Circle</option>
@@ -1251,7 +1251,93 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
             }
         };
 
-        window.switchTab = (tabId) => {
+            // --- FUNGSI BARU (BYPASS) UNTUK MEMPERBAIKI TAMPILAN PRODUK ---
+    window.loadPricingDataV2 = async () => {
+        const table = document.getElementById('pricingTableBody');
+        const provider = document.getElementById('pricingProvider').value;
+        if (!provider) return;
+        
+        table.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Memuat data dari server (V2)...</td></tr>';
+
+        try {
+            let products = [];
+            
+            // 1. SUMBER DATA: ICS (SERVER V2)
+            if (provider.startsWith('ICS_')) {
+                const res = await callIcsApi('/products');
+                if (res.success && res.data) {
+                    let targetType = 'xla'; 
+                    if (provider === 'ICS_XDA') targetType = 'xda';
+                    else if (provider === 'ICS_CIRCLE') targetType = 'circle';
+                    else if (provider === 'ICS_FMAX') targetType = 'fmax';
+                    else if (provider === 'ICS_BPA') targetType = 'bpa';
+
+                    products = res.data.filter(p => p.type && p.type.toLowerCase() === targetType)
+                        .map(p => ({
+                            code: p.code,
+                            name: p.name,
+                            price: p.price,
+                            stock: p.stock,
+                            status: p.status === 'available' ? 1 : 0
+                        }));
+                }
+            } 
+            // 2. SUMBER DATA: KHFY (PPOB VIA VERCEL)
+            else {
+                // Gunakan jalur Vercel Rewrite (/api/khfy) + API Key Hardcoded (Sesuai punya Anda)
+                const apiKey = "8F1199C1-483A-4C96-825E-F5EBD33AC60A";
+                const res = await fetch(`/api/khfy/list_product?api_key=${apiKey}`);
+                const json = await res.json();
+                
+                if (json.data) {
+                    let raw = Array.isArray(json.data) ? json.data : (json.data.data || []);
+                    products = raw.filter(p => {
+                        const c = (p.code || p.kode_produk || '').toUpperCase();
+                        const b = (p.brand || p.kode_provider || '').toUpperCase();
+                        if (provider === 'XDA') return c.startsWith('XDA');
+                        if (provider === 'FMX') return (c.startsWith('FMX') || c === 'CFMX') && b === 'FMAX';
+                        if (provider === 'XLR') return b === 'XLREGULER';
+                        if (provider === 'PLN') return b.includes('PLN');
+                        return b.includes(provider) || c.includes(provider);
+                    }).map(p => ({
+                        code: p.code || p.kode_produk,
+                        name: p.name || p.nama_produk,
+                        price: p.price || p.harga,
+                        stock: p.stock || 99,
+                        status: p.status === 1 || p.status === 'available' ? 1 : 0
+                    }));
+                }
+            }
+
+            // 3. RENDER KE TABEL
+            if (products.length === 0) {
+                table.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-orange-500 bg-orange-50">Tidak ada produk ditemukan.</td></tr>';
+            } else {
+                let html = '';
+                products.forEach(p => {
+                    // Cek Markup Harga Lokal
+                    let sellPrice = parseInt(p.price);
+                    // (Anda bisa menambahkan logika markup database di sini jika perlu)
+                    sellPrice += 2000; // Default Markup sementara
+
+                    html += `<tr class="border-b border-gray-50 hover:bg-gray-50 text-[11px]">
+                        <td class="p-3 font-bold text-gray-600">${p.name}</td>
+                        <td class="p-3"><span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] font-bold">${p.code}</span></td>
+                        <td class="p-3 text-right font-mono">Rp ${parseInt(p.price).toLocaleString()}</td>
+                        <td class="p-3 text-center font-bold text-green-600">+2.000</td>
+                        <td class="p-3 text-right font-bold text-blue-600">Rp ${sellPrice.toLocaleString()}</td>
+                    </tr>`;
+                });
+                table.innerHTML = html;
+            }
+        } catch (e) {
+            console.error("Load Error:", e);
+            table.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-red-500">Error: ${e.message}<br><small>Pastikan vercel.json sudah diupload</small></td></tr>`;
+        }
+    };
+
+    window.switchTab = (tabId) => {
+window.switchTab = (tabId) => {
                         if(tabId === 'pending-trx') loadPendingTransactions();
                         if(tabId === 'success-trx') loadSuccessTransactions();
             if(tabId === 'transactions') loadGlobalTransactions();
@@ -1263,7 +1349,7 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
                                 if(tabId === 'settings') { loadTopupSettings(); loadAppVersion(); }
             if(tabId === 'notification') loadActiveNotif();
             if(tabId === 'users') { if(!lastUserDoc && !isAllUsersLoaded) loadUsers(true); }
-if(tabId === 'pricing') loadPricingData();
+            if(tabId === 'pricing') loadPricingDataV2();
             if(tabId === 'livechat') loadChatList();
             if(tabId === 'preorder-run') listenDebugPreOrders();
         };

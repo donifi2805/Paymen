@@ -648,7 +648,20 @@
             </div>
         </div>
 
-        <div class="mt-8 bg-white dark:bg-gray-900 rounded-t-3xl shadow-[0_-5px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_-5px_20px_rgba(0,0,0,0.2)] p-6 min-h-[300px]">
+                <div class="mt-6 px-6 mb-2">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold text-gray-800 dark:text-white text-sm">Live Stok Akrab</h3>
+                <div class="flex items-center gap-1 bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded-md">
+                    <div class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                    <span class="text-[9px] text-green-700 dark:text-green-400 font-bold">Auto-Refresh 4s</span>
+                </div>
+            </div>
+            <div id="liveStockContainer" class="grid grid-cols-2 gap-2">
+                <div class="text-center text-[10px] text-gray-400 py-4 bg-white dark:bg-gray-900 rounded-xl border border-dashed border-gray-200 dark:border-gray-800">Memuat Data Stok...</div>
+            </div>
+        </div>
+
+        <div class="mt-2 bg-white dark:bg-gray-900 rounded-t-3xl shadow-[0_-5px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_-5px_20px_rgba(0,0,0,0.2)] p-6 min-h-[300px]">
             <div class="flex justify-between items-end mb-4"><h3 class="font-bold text-gray-800 dark:text-white">Transaksi Terakhir</h3><span class="text-xs text-blue-600 dark:text-blue-400 font-semibold cursor-pointer" onclick="nav('historyPage')">Lihat Semua</span></div>
             <div id="miniHistory" class="space-y-4"></div>
         </div>
@@ -1726,8 +1739,9 @@ initTopupSettingsListener();
                 }
 
                 document.getElementById('setupProfileModal').classList.add('hide');
-                window.nav('homePage');
+                                window.nav('homePage');
                 window.showLoader(false);
+                window.startLiveStock(); // Mulai Auto Refresh Stok
 
                 currentBalance = data.balance || 0;
                 currentUsername = data.username || "User";
@@ -3655,6 +3669,60 @@ window.renderTopUpHistory = () => {
     
     // Auto Update Badge
     setInterval(window.updateTopUpBadge, 2000);
+
+        window.liveStockInterval = null;
+
+    window.fetchLiveStock = async () => {
+        // Hemat resource: Jangan fetch jika tidak di Home Page
+        if(document.getElementById('homePage').classList.contains('hide')) return;
+
+        const targetUrl = "https://panel.khfy-store.com/api_v3/cek_stock_akrab";
+        let data = null;
+
+        for (const proxy of PROXY_LIST) {
+            try {
+                const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3500);
+                
+                const res = await fetch(fullUrl, { signal: controller.signal });
+                clearTimeout(timeoutId);
+                
+                if(res.ok) {
+                    const json = await res.json();
+                    if(json.ok || json.message === "success") {
+                        data = json.data;
+                        break; 
+                    }
+                }
+            } catch(e) { }
+        }
+
+        const container = document.getElementById('liveStockContainer');
+        if(!container) return;
+
+        if(data && Array.isArray(data)) {
+            let html = '';
+                        data.forEach(item => {
+                 const isAvail = item.sisa_slot > 0;
+                 // Tampilan Super Ringkas (Grid Friendly)
+                 html += `<div class="flex justify-between items-center px-2 py-1.5 bg-white dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800">
+                    <div class="flex items-center gap-1.5 overflow-hidden">
+                         <div class="w-1.5 h-1.5 shrink-0 rounded-full ${isAvail ? 'bg-green-500' : 'bg-red-500'} "></div>
+                         <p class="text-[9px] font-bold text-gray-700 dark:text-gray-300 truncate leading-none">${item.nama}</p>
+                    </div>
+                    <span class="text-[9px] ${isAvail ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-gray-300'} shrink-0">${item.sisa_slot}</span>
+                 </div>`;
+            });
+            container.innerHTML = html;
+        }
+    };
+
+    window.startLiveStock = () => {
+        if(window.liveStockInterval) clearInterval(window.liveStockInterval);
+        window.fetchLiveStock(); // Fetch awal
+        window.liveStockInterval = setInterval(window.fetchLiveStock, 4000); // Loop 4 detik
+    };
 
     window.checkAkrabStock = async () => {
         window.showLoader(true);

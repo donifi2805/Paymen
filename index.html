@@ -651,10 +651,10 @@
                 <div class="mt-6 px-6 mb-2">
             <div class="flex justify-between items-center mb-3">
                 <h3 class="font-bold text-gray-800 dark:text-white text-sm">Live Stok Akrab</h3>
-                <div class="flex items-center gap-1 bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded-md">
-                    <div class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-                    <span class="text-[9px] text-green-700 dark:text-green-400 font-bold">Auto-Refresh 4s</span>
-                </div>
+                <button id="btnRefreshStock" onclick="manualRefreshStock()" class="flex items-center gap-1 bg-blue-100 dark:bg-blue-900/30 px-3 py-1 rounded-lg active:scale-95 transition hover:bg-blue-200 dark:hover:bg-blue-800">
+                    <i class="fas fa-sync-alt text-[10px] text-blue-600 dark:text-blue-400"></i>
+                    <span class="text-[10px] text-blue-700 dark:text-blue-400 font-bold">Refresh Stok</span>
+                </button>
             </div>
             <div id="liveStockContainer" class="grid grid-cols-2 gap-2">
                 <div class="text-center text-[10px] text-gray-400 py-4 bg-white dark:bg-gray-900 rounded-xl border border-dashed border-gray-200 dark:border-gray-800">Memuat Data Stok...</div>
@@ -3718,10 +3718,28 @@ window.renderTopUpHistory = () => {
         }
     };
 
-    window.startLiveStock = () => {
+        window.startLiveStock = () => {
         if(window.liveStockInterval) clearInterval(window.liveStockInterval);
-        window.fetchLiveStock(); // Fetch awal
-        window.liveStockInterval = setInterval(window.fetchLiveStock, 4000); // Loop 4 detik
+        window.fetchLiveStock(); // Fetch awal sekali saja saat load
+    };
+
+    window.manualRefreshStock = async () => {
+        const btn = document.getElementById('btnRefreshStock');
+        const originalContent = '<i class="fas fa-sync-alt text-[10px] text-blue-600 dark:text-blue-400"></i><span class="text-[10px] text-blue-700 dark:text-blue-400 font-bold">Refresh Stok</span>';
+        
+        // Ubah UI jadi loading
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin text-[10px] text-blue-600 dark:text-blue-400"></i><span class="text-[10px] text-blue-700 dark:text-blue-400 font-bold">Sedang merefresh...</span>';
+
+        // Tahan 1.5 detik sesuai request
+        await new Promise(r => setTimeout(r, 1500));
+
+        // Fetch Data
+        await window.fetchLiveStock();
+
+        // Kembalikan UI tombol
+        btn.innerHTML = originalContent;
+        btn.disabled = false;
     };
 
     window.checkAkrabStock = async () => {

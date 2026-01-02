@@ -861,7 +861,12 @@ window.listenDebugPreOrders = () => {
                     result = await res.json();
                 }
 
-                const rawResponse = JSON.stringify(result, null, 2);
+                // Modifikasi: Filter tampilan log, hanya ambil isi 'data[0]' jika ada
+                let logData = result;
+                if (result.data && Array.isArray(result.data) && result.data.length > 0) {
+                    logData = result.data[0];
+                }
+                const rawResponse = JSON.stringify(logData, null, 2);
                 const msg = (result.msg || result.message || '').toLowerCase();
                 const isOk = (result.ok || result.success || result.status === 'success' || result.status === true);
 

@@ -1252,17 +1252,24 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
         };
 
             // --- FUNGSI BARU (BYPASS) UNTUK MEMPERBAIKI TAMPILAN PRODUK ---
-    window.loadPricingDataV2 = async () => {
+        window.loadPricingDataV2 = async () => {
         const table = document.getElementById('pricingTableBody');
         const provider = document.getElementById('pricingProvider').value;
         if (!provider) return;
         
-        table.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Memuat data dari server (V2)...</td></tr>';
+        table.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Memuat data dan settingan...</td></tr>';
 
         try {
+            // 1. AMBIL RULES DARI FIREBASE (Agar settingan lama tidak hilang)
+            let localRules = {};
+            try {
+                const rulesSnap = await getDoc(doc(db, "settings", "pricing"));
+                if (rulesSnap.exists()) localRules = rulesSnap.data().rules || {};
+            } catch(e) { console.log("Gagal load rules", e); }
+
             let products = [];
             
-            // 1. SUMBER DATA: ICS (SERVER V2)
+            // 2. SUMBER DATA: ICS
             if (provider.startsWith('ICS_')) {
                 const res = await callIcsApi('/products');
                 if (res.success && res.data) {
@@ -1282,9 +1289,8 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
                         }));
                 }
             } 
-            // 2. SUMBER DATA: KHFY (PPOB VIA VERCEL)
+            // 3. SUMBER DATA: KHFY (Fix NaN Issue)
             else {
-                // Gunakan jalur Vercel Rewrite (/api/khfy) + API Key Hardcoded (Sesuai punya Anda)
                 const apiKey = "8F1199C1-483A-4C96-825E-F5EBD33AC60A";
                 const res = await fetch(`/api/khfy/list_product?api_key=${apiKey}`);
                 const json = await res.json();
@@ -1302,30 +1308,68 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
                     }).map(p => ({
                         code: p.code || p.kode_produk,
                         name: p.name || p.nama_produk,
-                        price: p.price || p.harga,
+                        // Anti-NaN: Cek berbagai field harga & default ke 0 jika gagal
+                        price: p.price || p.harga || p.harga_jual || 0,
                         stock: p.stock || 99,
                         status: p.status === 1 || p.status === 'available' ? 1 : 0
                     }));
                 }
             }
 
-            // 3. RENDER KE TABEL
+            // 4. RENDER KE TABEL (Restore Input Edit)
             if (products.length === 0) {
                 table.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-orange-500 bg-orange-50">Tidak ada produk ditemukan.</td></tr>';
             } else {
+                // Sort Harga Termurah (Safe Parse)
+                products.sort((a, b) => {
+                     const pA = parseInt(String(a.price).replace(/[^0-9]/g, '')) || 0;
+                     const pB = parseInt(String(b.price).replace(/[^0-9]/g, '')) || 0;
+                     return pA - pB;
+                });
+
                 let html = '';
                 products.forEach(p => {
-                    // Cek Markup Harga Lokal
-                    let sellPrice = parseInt(p.price);
-                    // (Anda bisa menambahkan logika markup database di sini jika perlu)
-                    sellPrice += 2000; // Default Markup sementara
+                    // Fix NaN: Bersihkan karakter non-angka sebelum parse
+                    const rawPrice = parseInt(String(p.price).replace(/[^0-9]/g, '')) || 0;
+                    const code = p.code;
+
+                    // Ambil setting tersimpan (Rule)
+                    let savedRule = localRules[code] || 0;
+                    let markup = 0;
+                    let customName = '';
+
+                    if (typeof savedRule === 'object') {
+                        markup = parseInt(savedRule.price || 0);
+                        customName = savedRule.name || '';
+                    } else {
+                        markup = parseInt(savedRule || 0);
+                    }
+
+                    const sellPrice = rawPrice + markup;
+                    const isHabis = p.status === 0;
 
                     html += `<tr class="border-b border-gray-50 hover:bg-gray-50 text-[11px]">
-                        <td class="p-3 font-bold text-gray-600">${p.name}</td>
-                        <td class="p-3"><span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] font-bold">${p.code}</span></td>
-                        <td class="p-3 text-right font-mono">Rp ${parseInt(p.price).toLocaleString()}</td>
-                        <td class="p-3 text-center font-bold text-green-600">+2.000</td>
-                        <td class="p-3 text-right font-bold text-blue-600">Rp ${sellPrice.toLocaleString()}</td>
+                        <td class="p-3">
+                            <div class="font-bold text-gray-800">${p.name}</div>
+                            <div class="text-[9px] text-gray-400 font-mono">${code}</div>
+                            ${isHabis ? '<span class="text-[9px] text-red-500 font-bold">GANGGUAN / HABIS</span>' : ''}
+                        </td>
+                        <td class="p-3">
+                            <input type="text" 
+                                   data-code="${code}" 
+                                   value="${customName}" 
+                                   placeholder="(Default)" 
+                                   class="name-input w-full border border-gray-300 rounded-lg p-1.5 text-xs focus:ring-1 focus:ring-blue-500 outline-none placeholder-gray-300">
+                        </td>
+                        <td class="p-3 text-right font-mono text-gray-500">Rp ${rawPrice.toLocaleString('id-ID')}</td>
+                        <td class="p-3 text-center">
+                            <input type="number" 
+                                   onchange="updateCalc('${code}', ${rawPrice}, this)" 
+                                   data-code="${code}" 
+                                   value="${markup}" 
+                                   class="markup-input w-20 border border-gray-300 rounded-lg p-1.5 text-center font-bold focus:ring-1 focus:ring-blue-500 outline-none">
+                        </td>
+                        <td class="p-3 text-right font-black text-blue-600" id="final-${code}">Rp ${sellPrice.toLocaleString('id-ID')}</td>
                     </tr>`;
                 });
                 table.innerHTML = html;

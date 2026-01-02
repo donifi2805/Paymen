@@ -730,7 +730,7 @@
         import { runTransaction, getFirestore, getDoc, collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy, collectionGroup, setDoc, where, onSnapshot, serverTimestamp, addDoc, limit, startAfter, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         
-                const KHFY_CONFIG_DBG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
+                        const KHFY_CONFIG_DBG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "/api/khfy" };
         const ICS_CONFIG_DBG = { token: "YOUR_SECRET_KEY", baseUrl: "https://api.ics-store.my.id/api/reseller" }; // GANTI API KEY
         const DEBUG_PROXY = "https://corsproxy.io/?";
         let currentProcessingPoId = null;
@@ -2269,7 +2269,7 @@ window.downloadTrxPDF = () => {
             doc.save(`Transaksi_${Date.now()}.pdf`);
         };
 
-                        const API_CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
+                                const API_CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "/api/khfy" };
         const ICS_CONFIG = { token: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3", baseUrl: "/api/ics" };
         
         const PROXY_LIST = [

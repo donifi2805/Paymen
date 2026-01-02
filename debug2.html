@@ -2269,14 +2269,11 @@ window.downloadTrxPDF = () => {
             doc.save(`Transaksi_${Date.now()}.pdf`);
         };
 
-                const API_CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
-        const ICS_CONFIG = { token: "YOUR_SECRET_KEY", baseUrl: "https://api.ics-store.my.id/api/reseller" }; // GANTI API KEY
+                        const API_CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
+        const ICS_CONFIG = { token: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3", baseUrl: "/api/ics" };
         
         const PROXY_LIST = [
-            { name: 'CorsProxyIO', url: 'https://corsproxy.io/?' },
-            { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
-            { name: 'ThingProxy', url: 'https://thingproxy.freeboard.io/fetch/' },
-            { name: 'Direct', url: '' }
+            { name: 'Vercel Rewrite', url: '' }
         ];
 
                         async function callIcsApi(endpoint, data = {}, method = 'GET') {

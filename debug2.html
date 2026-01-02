@@ -89,13 +89,16 @@
                         <a onclick="switchTab('pricing')" id="nav-pricing" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
                 <i class="fas fa-tags w-4 mr-3 group-hover:scale-110 transition"></i> Kelola Harga
             </a>
-            <a onclick="switchTab('preorder')" id="nav-preorder"
-            <a onclick="switchTab('preorder-run')" id="nav-preorder-run" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
+                        <a onclick="switchTab('preorder-run')" id="nav-preorder-run" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
                 <i class="fas fa-terminal w-4 mr-3 group-hover:scale-110 transition"></i> Preorder Run
-            </a> class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
+            </a>
+            <a onclick="switchTab('preorder')" id="nav-preorder" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
                 <i class="fas fa-clock w-4 mr-3 group-hover:scale-110 transition"></i> Preorder
             </a>
-<a onclick="switchTab('notification')" id="nav-notification" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
+            <a onclick="switchTab('settings')" id="nav-settings" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
+                <i class="fas fa-cogs w-4 mr-3 group-hover:scale-110 transition"></i> Pengaturan
+            </a>
+            <a onclick="switchTab('notification')" id="nav-notification" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
                 <i class="fas fa-bullhorn w-4 mr-3 group-hover:scale-110 transition"></i> Notifikasi
             </a>
         </nav>
@@ -108,7 +111,7 @@
 
     <main class="md:ml-[14rem] w-full p-4 md:p-6 transition-all duration-300 h-screen overflow-y-auto custom-scroll bg-gray-100">
         
-                <div class="md:hidden flex justify-between items-center mb-4 bg-white p-3 rounded-lg shadow-sm">
+                <div class="md:hidden flex justify-between items-center mb-4 bg-white p-3 rounded-lg shadow-sm sticky top-0 z-[60]">
             <div class="flex items-center gap-3">
                 <button onclick="toggleMobileMenu()" class="text-gray-600 focus:outline-none">
                     <i class="fas fa-bars text-lg"></i>
@@ -131,7 +134,10 @@
                     <a onclick="switchTab('livechat'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-comments w-4 mr-3"></i> Live Chat </a>
                     <a onclick="switchTab('transactions'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-receipt w-4 mr-3"></i> Transaksi </a>
                     <a onclick="switchTab('pricing'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-tags w-4 mr-3"></i> Kelola Harga </a>
-                    <a onclick="switchTab('notification'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-bullhorn w-4 mr-3"></i> Notifikasi </a>
+                                        <a onclick="switchTab('preorder-run'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-terminal w-4 mr-3"></i> Preorder Run </a>
+                    <a onclick="switchTab('preorder'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-clock w-4 mr-3"></i> Preorder </a>
+                    <a onclick="switchTab('settings'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-cogs w-4 mr-3"></i> Pengaturan </a>
+<a onclick="switchTab('notification'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-bullhorn w-4 mr-3"></i> Notifikasi </a>
                 </nav>
             </div>
         </div>
@@ -181,14 +187,6 @@
                     </div>
                     <div class="w-10 h-10 bg-yellow-50 text-yellow-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-exclamation-triangle"></i></div>
                 </div>
-                <div onclick="switchTab('success-trx')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-emerald-400">
-                    <div>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Riwayat Sukses</p>
-                        <h3 class="text-2xl font-black text-emerald-600" id="statSuccessCount">-</h3>
-                        <p class="text-[9px] text-emerald-500 font-bold mt-1">Lihat Data <i class="fas fa-arrow-right ml-0.5"></i></p>
-                    </div>
-                    <div class="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-check-circle"></i></div>
-                </div>
                 <div onclick="switchTab('livechat')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-green-200">
                     <div>
                         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Pesan Terbaru</p>
@@ -217,7 +215,7 @@
                 </div>
 <div onclick="switchTab('transactions')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-purple-400">
     <div>
-        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Menu Transaksi</p>
+        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Riwayat Seluruh Transaksi</p>
         <h3 class="text-lg font-black text-purple-600">Buka</h3>
         <p class="text-[9px] text-purple-500 font-bold mt-1">Riwayat Harian</p>
     </div>
@@ -293,7 +291,8 @@
             </div>
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left">
+                    <div id="successPagination" class="p-3 border-b border-gray-100 bg-gray-50 flex justify-center items-center gap-1 hide transition-all"></div>
+<table class="w-full text-left">
                         <thead>
                             <tr class="bg-gray-50 text-gray-500 text-[9px] uppercase tracking-wider border-b">
                                 <th class="p-3 font-bold">Waktu</th>
@@ -307,7 +306,7 @@
                              <tr><td colspan="5" class="p-6 text-center text-gray-400">Klik refresh untuk memuat data...</td></tr>
                         </tbody>
                     </table>
-                    <div id="successPagination" class="p-3 border-t border-gray-100 bg-gray-50 flex justify-center items-center gap-1 hide transition-all"></div>
+                    
                 </div>
             </div>
         </div>
@@ -338,7 +337,10 @@
             </div>
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="overflow-x-auto custom-scroll">
-                    <table class="w-full text-left border-collapse">
+                    <div id="userPaginationArea" class="p-3 border-b border-gray-100 bg-gray-50 flex justify-center items-center gap-2 hide">
+                    <button onclick="loadUsers(false)" class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold shadow-sm hover:bg-blue-50 text-blue-600 transition">Muat Lebih Banyak...</button>
+                </div>
+<table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="bg-gray-50 text-gray-500 text-[9px] uppercase tracking-wider border-b border-gray-100">
                                 <th class="p-3 font-bold">Profile</th>
@@ -352,9 +354,7 @@
                         </tbody>
                     </table>
                 </div>
-                <div id="userPaginationArea" class="p-3 border-t border-gray-100 bg-gray-50 flex justify-center items-center gap-2 hide">
-                    <button onclick="loadUsers(false)" class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold shadow-sm hover:bg-blue-50 text-blue-600 transition">Muat Lebih Banyak...</button>
-                </div>
+                
             </div>
         </div>
 
@@ -374,21 +374,38 @@
                         <i class="fas fa-file-pdf"></i> PDF
                     </button>
                     <div class="flex items-center gap-2">
-    <input type="date" id="globalTrxDate" onchange="loadGlobalTransactions()" class="bg-gray-50 border border-gray-300 text-gray-900 text-[10px] rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-1.5 shadow-sm">
+    <input type="text" id="trxUserFilter" onkeyup="renderTransactions()" placeholder="Cari User..." class="bg-gray-50 border border-gray-300 text-gray-900 text-[10px] rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-1.5 shadow-sm w-24">
+                    
+<div class="relative">
+                    <button onclick="toggleTrxFilterMenu()" class="bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg font-bold text-[10px] shadow-sm hover:bg-gray-50 flex items-center gap-2">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+                    <div id="trxFilterMenu" class="hide absolute top-full left-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-xl z-50 p-2">
+                        <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Semua" checked class="trx-filter-cb"> <span class="text-[10px]">Semua</span></label>
+                        <hr class="my-1">
+                        <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Sukses" class="trx-filter-cb"> <span class="text-[10px]">Sukses</span></label>
+                        <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Gagal" class="trx-filter-cb"> <span class="text-[10px]">Gagal</span></label>
+                        <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Pending" class="trx-filter-cb"> <span class="text-[10px]">Pending</span></label>
+                        <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Refund" class="trx-filter-cb"> <span class="text-[10px]">Refund</span></label>
+                        <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Topup" class="trx-filter-cb"> <span class="text-[10px]">Topup</span></label>
+                    </div>
+                </div>
+<input type="date" id="globalTrxDate" onchange="loadGlobalTransactions()" class="bg-gray-50 border border-gray-300 text-gray-900 text-[10px] rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-1.5 shadow-sm">
     <button onclick="loadGlobalTransactions()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold text-[10px]"><i class="fas fa-sync-alt"></i></button>
 </div>
                 </div>
             </div>
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="overflow-x-auto custom-scroll">
-                    <table class="w-full text-left">
+                    <div id="trxPagination" class="p-3 border-b border-gray-100 bg-gray-50 flex justify-center items-center gap-1 hide transition-all"></div>
+<table class="w-full text-left">
                         <thead>
                             <tr class="bg-gray-50 text-gray-500 text-[9px] uppercase tracking-wider border-b border-gray-100">
                                 <th class="p-3 font-bold">Waktu</th>
                                 <th class="p-3 font-bold">User</th>
                                 <th class="p-3 font-bold">Ket</th>
                                 <th class="p-3 font-bold">Info Saldo</th>
-<th class="p-3 font-bold text-center">Riwayat JSON</th>
+<th class="p-3 font-bold text-center">Cek Server</th>
                                 <th class="p-3 font-bold text-right">Nominal</th>
                                 <th class="p-3 font-bold text-center">Status</th>
                             </tr>
@@ -397,7 +414,7 @@
                              <tr><td colspan="5" class="p-6 text-center text-gray-400">Menunggu data...</td></tr>
                         </tbody>
                     </table>
-                <div id="trxPagination" class="p-3 border-t border-gray-100 bg-gray-50 flex justify-center items-center gap-1 hide transition-all"></div>
+                
                 </div>
             </div>
         </div>
@@ -475,15 +492,27 @@
                             <label class="block text-[10px] text-gray-400 mb-1">Product SKU / Code</label>
                             <input type="text" id="debugProductCode" class="w-full p-2 border rounded text-xs" placeholder="Contoh: XDA13">
                         </div>
-                        <div class="flex gap-2">
-                            <button onclick="executeDebugTrx('KHFY')" class="flex-1 bg-blue-600 text-white py-2 rounded text-[10px] font-bold">BYPASS KHFY</button>
-                            <button onclick="executeDebugTrx('ICS')" class="flex-1 bg-cyan-600 text-white py-2 rounded text-[10px] font-bold">BYPASS ICS</button>
+                                            <div id="debugActionArea">
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-xs font-semibold text-gray-600">Action Control</label>
+                            <span id="autoServerBadge" class="ml-2 px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-500">WAITING...</span>
                         </div>
+                        <div class="grid grid-cols-1 gap-2">
+                             <button onclick="executeAutoBypass()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-2 rounded-lg text-xs font-bold shadow-lg hover:shadow-xl transition-all">
+                                <i class="fas fa-robot animate-pulse mr-1"></i> EKSEKUSI AUTO (DETECTED)
+                            </button>
+                        </div>
+                    </div>
                     </div>
                 </div>
                 <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                    <h3 class="text-sm font-bold mb-3 border-b pb-2 text-purple-600">Preorder Queue (Debug Mode)</h3>
-                    <div id="debugPoList" class="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scroll text-[10px]">
+                    <div class="flex justify-between items-center mb-3 border-b pb-2">
+                    <h3 class="text-sm font-bold text-purple-600">Preorder Queue (Debug Mode)</h3>
+                    <button onclick="runMassalPreorders(this)" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-[10px] font-bold transition shadow-sm flex items-center gap-1">
+                        <i class="fas fa-play-circle"></i> RUN MASSAL
+                    </button>
+                </div>
+                    <div id="debugPoList" class="space-y-2 overflow-y-auto pr-2 custom-scroll text-[10px]" style="height: 60vh;">
                         <p class="text-gray-400 italic">No queue found.</p>
                     </div>
                 </div>
@@ -512,7 +541,56 @@
                 </table>
             </div>
         </div>
-<div id="tab-notification" class="tab-content hide fade-in pb-10">
+        <div id="tab-settings" class="tab-content hide fade-in pb-10">
+            <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100 sticky top-0 z-20">
+                <div class="flex items-center gap-3">
+                    <button onclick="switchTab('dashboard')" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition"><i class="fas fa-arrow-left"></i></button>
+                    <div><h2 class="text-lg font-bold text-gray-800 leading-none">Pengaturan Sistem</h2><p class="text-[10px] text-gray-500">Kelola status layanan</p></div>
+                </div>
+                <button onclick="saveTopupSettings()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-[10px] shadow hover:bg-blue-700 transition"><i class="fas fa-save mr-1"></i> SIMPAN</button>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                <h3 class="font-bold text-gray-800 mb-4 border-b pb-2">Status Layanan Top Up</h3>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div class="p-4 border border-gray-200 rounded-xl bg-gray-50">
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="font-bold text-gray-700"><i class="fas fa-university mr-2 text-orange-500"></i>Top Up Manual (Seabank)</div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="toggleManual" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                            </label>
+                        </div>
+                        <p class="text-[10px] text-gray-500">Jika dimatikan, menu Top Up Manual tidak bisa dibuka oleh user (Mode Maintenance).</p>
+                    </div>
+
+                    <div class="p-4 border border-gray-200 rounded-xl bg-gray-50">
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="font-bold text-gray-700"><i class="fas fa-qrcode mr-2 text-blue-500"></i>Top Up Otomatis (QRIS)</div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="toggleQios" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                            </label>
+                        </div>
+                        <p class="text-[10px] text-gray-500">Jika dimatikan, menu QRIS tidak bisa dibuka oleh user (Mode Maintenance).</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 mt-4">
+                <h3 class="font-bold text-gray-800 mb-4 border-b pb-2">Kontrol Versi Aplikasi (PWA)</h3>
+                <div class="flex gap-4 items-end">
+                    <div class="flex-1">
+                        <label class="text-[10px] font-bold text-gray-500 block mb-1">Version Code (Wajib Sama dengan Script Index)</label>
+                        <input type="text" id="appVersionInput" placeholder="Contoh: v2.8" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs font-mono font-bold focus:ring-1 focus:ring-blue-500 outline-none">
+                    </div>
+                    <button onclick="saveAppVersion()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold text-[10px] shadow transition h-[34px]"><i class="fas fa-save mr-1"></i> UPDATE VERSI</button>
+                </div>
+                <p class="text-[9px] text-gray-400 mt-2"><i class="fas fa-info-circle mr-1"></i>Jika versi di sini berbeda dengan versi di HP user, aplikasi user akan otomatis reload/update.</p>
+            </div>
+        </div>
+
+        <div id="tab-notification" class="tab-content hide fade-in pb-10">
             <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100 sticky top-0 z-20">
                 <div class="flex items-center gap-3">
                     <button onclick="switchTab('dashboard')" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition"><i class="fas fa-arrow-left"></i></button>
@@ -581,7 +659,8 @@
                         <option value="ICS_CIRCLE">XL Circle</option>
                     </optgroup>
                     <optgroup label="Server Khfy">
-                        <option value="XLA">Akrab Fresh (XLA)</option>
+                        <option value="XDA">Akrab v2 (XDA)</option>
+<option value="XLA">Akrab Fresh (XLA)</option>
                         <option value="FMX">FlexMax (FMX)</option>
                         <option value="XLR">XL Reguler</option>
                         <option value="PLN">PLN Pascabayar</option>
@@ -651,121 +730,225 @@
         import { runTransaction, getFirestore, getDoc, collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy, collectionGroup, setDoc, where, onSnapshot, serverTimestamp, addDoc, limit, startAfter, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         
-        const KHFY_CONFIG_DBG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
-        const ICS_CONFIG_DBG = { apiKey: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3", baseUrl: "https://reseller.ics-store.my.id" };
-        const DEBUG_PROXY = "https://api.codetabs.com/v1/proxy?quest=";
+                const KHFY_CONFIG_DBG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
+        const ICS_CONFIG_DBG = { token: "YOUR_SECRET_KEY", baseUrl: "https://api.ics-store.my.id/api/reseller" }; // GANTI API KEY
+        const DEBUG_PROXY = "https://corsproxy.io/?";
         let currentProcessingPoId = null;
+        let currentAutoServer = 'KHFY'; // Data Baru: Auto Detect Server
 
-        function addDebugLog(msg, type = 'info') {
-            const logs = document.getElementById('debugLogs');
+                function addDebugLog(msg, type = 'info', targetId = 'debugLogs') {
+            const logs = document.getElementById(targetId) || document.getElementById('debugLogs');
+            if(!logs) return;
             const time = new Date().toLocaleTimeString();
             const color = type === 'error' ? 'text-red-400' : (type === 'success' ? 'text-green-400' : 'text-blue-300');
             logs.innerHTML += `<div class="${color}">[${time}] ${msg}</div>`;
-                if (currentProcessingPoId && (msg.includes('#GAGAL') || msg.includes('#Gagal'))) {
-        try {
-            const errParts = msg.split(/#GAGAL|#Gagal/i);
-            if (errParts.length > 1) {
-                const errText = errParts[1].trim();
-                const errEl = document.getElementById('errDisp-' + currentProcessingPoId);
-                if (errEl) {
-                    errEl.innerText = errText;
-                    errEl.classList.remove('hidden');
-                }
-            }
-        } catch (e) {}
-    }
-
-logs.scrollTop = logs.scrollHeight;
+            logs.scrollTop = logs.scrollHeight;
         }
 
-        window.listenDebugPreOrders = () => {
+                                window.runMassalPreorders = async (btn) => {
+            const container = document.getElementById('debugPoList');
+            if(!container) return;
+            const runButtons = container.querySelectorAll('button[onclick^="processPreOrderToSystem"]');
+            if(runButtons.length === 0) return Swal.fire('Info', 'Antrian kosong.', 'info');
+            
+            if(!confirm('Jalankan ' + runButtons.length + ' antrian secara otomatis (Jeda 3 detik)?')) return;
+
+            const originText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running...';
+
+            for(let i = 0; i < runButtons.length; i++) {
+                const currentBtn = runButtons[i];
+                currentBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                currentBtn.click();
+                
+                btn.innerHTML = `<i class="fas fa-cog fa-spin"></i> ${i+1}/${runButtons.length}`;
+
+                if(i < runButtons.length - 1) {
+                    await new Promise(r => setTimeout(r, 3000));
+                }
+            }
+
+            btn.innerHTML = '<i class="fas fa-check"></i> Selesai';
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = originText;
+            }, 2000);
+        };
+
+
+window.listenDebugPreOrders = () => {
             onSnapshot(query(collection(db, "preorders"), orderBy("timestamp", "desc")), (snap) => {
                 const container = document.getElementById('debugPoList');
                 container.innerHTML = '';
                 if(snap.empty) { container.innerHTML = '<p class="text-gray-400 italic">No queue found.</p>'; return; }
                 snap.forEach(docSnap => {
                     const po = docSnap.data();
-                    container.innerHTML += `<div class="p-2 bg-gray-50 border rounded-lg mb-2 flex justify-between items-center">
-                        <div class="truncate mr-2">
-                            <div class="flex items-center gap-1.5">
-                                <i class="fas fa-user text-blue-500"></i>
-                                <span class="font-bold">${po.username || 'Unknown'}</span><span id="errDisp-${docSnap.id}" class="ml-2 text-[9px] font-bold text-red-600 bg-red-50 border border-red-100 px-1 rounded hidden"></span>
+                    const logId = `log-po-${docSnap.id}`;
+                    // Modifikasi: Cek status sukses tersimpan & log tersimpan
+                    const successBadge = po.debugStatus === 'SUCCESS' ? '<i class="fas fa-check-circle text-green-500 ml-2 text-sm" title="Sukses & Logs Tersimpan"></i>' : '';
+                    const savedLogs = po.debugLogs || '<div class="opacity-50">> Ready to debug...</div>';
+
+                    // Modifikasi: Tombol RUN hilang jika SUKSES (Skip Run Massal)
+                    const runBtn = po.debugStatus === 'SUCCESS' ? '' : `<button onclick="processPreOrderToSystem('${docSnap.id}', '${po.targetNumber}', '${po.provider}', '${po.serverType || 'KHFY'}')" class="bg-purple-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-purple-700 transition">RUN DEBUG</button>`;
+
+                    container.innerHTML += `<div class="p-3 bg-gray-50 border rounded-lg mb-3">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="truncate mr-2">
+                                <div class="flex items-center gap-1.5">
+                                    <i class="fas fa-user text-blue-500"></i>
+                                    <span class="font-bold">${po.username || 'Unknown'}</span>
+                                    ${successBadge}
+                                </div>
+                                <div class="text-gray-500 font-mono text-[9px]">${po.targetNumber} - ${po.provider}</div>
                             </div>
-                            <div class="text-gray-500 font-mono text-[9px]">${po.targetNumber} - ${po.provider}</div>
+                            <div class="flex gap-1">
+                                ${runBtn}
+                                <button onclick="handlePreorderDebugAction('${docSnap.id}', 'Sukses')" class="bg-emerald-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-emerald-700 transition"><i class="fas fa-check"></i></button>
+                                <button onclick="handlePreorderDebugAction('${docSnap.id}', 'Tolak')" class="bg-red-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-red-700 transition"><i class="fas fa-times"></i></button>
+                            </div>
                         </div>
-                        <div class="flex gap-1">
-                            <button onclick="handlePreorderDebugAction('${docSnap.id}', 'Sukses')" class="bg-emerald-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-emerald-700 transition">BERHASIL</button>
-                            <button onclick="handlePreorderDebugAction('${docSnap.id}', 'Tolak')" class="bg-red-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-red-700 transition">GAGALKAN</button>
-                            <button onclick="autoRunPreorder('${docSnap.id}', '${po.targetNumber}', '${po.provider}', '${po.serverType}')" class="bg-purple-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-purple-700 transition">RUN</button>
+                        <div id="${logId}" class="h-24 overflow-y-auto bg-slate-900 text-gray-300 p-2 rounded font-mono text-[9px] border border-slate-700 custom-scroll">
+                            ${savedLogs}
                         </div>
                     </div>`;
                 });
             });
         };
 
-                        window.autoRunPreorder = async (id, target, providerCode, type) => {
+        window.processPreOrderToSystem = async (id, target, providerCode, serverType = 'KHFY') => {
             currentProcessingPoId = id;
             document.getElementById('debugTargetNum').value = target;
             document.getElementById('debugProductCode').value = providerCode;
             
-            if (type === 'KHFY' || type === 'ICS') {
-                addDebugLog(`[AUTO-RUN] Executing ${type} Bypass (Ref: ${id})...`, 'info');
-                await executeDebugTrx(type, id);
-            } else {
-                addDebugLog(`[MANUAL] Data loaded: ${target}. Select BYPASS button below.`, 'info');
+            currentAutoServer = serverType;
+            const badge = document.getElementById('autoServerBadge');
+            if(badge) {
+                badge.innerText = serverType;
+                badge.className = serverType === 'ICS' ? 'ml-2 px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700' : 'ml-2 px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700';
             }
+
+            const targetLogId = `log-po-${id}`;
+            addDebugLog(`Auto-fill: ${target} [${providerCode}] Server: ${serverType}`, 'info', targetLogId);
+            
+            setTimeout(() => {
+                addDebugLog('Memulai eksekusi otomatis...', 'info', targetLogId);
+                executeDebugTrx(currentAutoServer, id);
+            }, 500);
         };
 
-                window.executeDebugTrx = async (system, manualRefId = null) => {
+        window.executeAutoBypass = () => executeDebugTrx(currentAutoServer);
+
+                window.executeDebugTrx = async (system, poId = null) => {
             const num = document.getElementById('debugTargetNum').value;
             const code = document.getElementById('debugProductCode').value;
-            if (!num || !code) return alert("Data tidak lengkap!");
-            addDebugLog(`Executing ${system} Bypass for ${code}...`);
+            const targetLogId = poId ? `log-po-${poId}` : 'debugLogs';
+
+            if (!num || !code) return Swal.fire('Error', 'Data target/produk kosong', 'warning');
             
-            // V3.9 Fix: Gunakan ID Asli (PO-...) agar terbaca di Database Backend
-            const reffId = manualRefId || `DBG-${Date.now()}`;
+            // Format RefID Baru
+            const d = new Date();
+            const timeStr = String(d.getHours()).padStart(2, '0') + String(d.getMinutes()).padStart(2, '0') + String(d.getSeconds()).padStart(2, '0');
+            const cleanNum = num.replace(/[^0-9]/g, '');
+            const reffId = (system === 'ICS' ? 'ICS-' : 'TRX-') + cleanNum + '-' + timeStr;
+
+            addDebugLog(`[${system}] Mengirim permintaan: ${code} -> ${num}...`, 'info', targetLogId);
             
             try {
                 let result;
-                                                                                                if (system === 'KHFY') {
-                    // Format Pesan Standar: Menggunakan ID Transaksi yang Valid (PO-...)
-                    const trxMsg = `RC=${reffId} TrxID=${Date.now()} ${code}.${num} Sukses Bypass_Admin`;
-                    
-                    const res = await fetch(`/api/khfy?message=${encodeURIComponent(trxMsg)}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            message: trxMsg,
-                            produk: code, 
-                            tujuan: num, 
-                            reff_id: reffId 
-                        })
-                    });
-                    result = await res.json();
-                } else {
-                    const url = `${ICS_CONFIG_DBG.baseUrl}/?action=createTransaction&apikey=${ICS_CONFIG_DBG.apiKey}&kode_produk=${code}&nomor_tujuan=${num}&refid=${reffId}`;
+                if (system === 'KHFY') {
+                    const url = `${KHFY_CONFIG_DBG.baseUrl}/trx?api_key=${KHFY_CONFIG_DBG.apiKey}&produk=${code}&tujuan=${num}&reff_id=${reffId}`;
                     const res = await fetch(DEBUG_PROXY + encodeURIComponent(url));
                     result = await res.json();
+                } else {
+                    // ICS API V2 (JSON POST)
+                    result = await callIcsApi('/trx', {
+                        product_code: code,
+                        dest_number: num,
+                        ref_id_custom: reffId
+                    }, 'POST');
                 }
-                const rawResponse = JSON.stringify(result);
-                const isSuccess = (result.success || result.status === 'success' || result.status === true);
-                addDebugLog(`API Response: ${rawResponse}`, isSuccess ? 'success' : 'error');
 
-                // LOGIKA PEMBATALAN OTOMATIS BERDASARKAN RESPON SERVER
-                if (!isSuccess && rawResponse.includes("Tujuan Diluar Wilayah")) {
-                    addDebugLog("Terdeteksi Diluar Wilayah! Membatalkan otomatis...", "error");
-                    if (currentProcessingPoId) {
-                        await window.handlePreorderDebugAction(currentProcessingPoId, 'Tolak', "#Gagal. Tujuan Diluar Wilayah");
+                // Normalisasi Log Tampilan
+                let logData = result;
+                if (result.data && Array.isArray(result.data) && result.data.length > 0) {
+                    logData = result.data[0];
+                }
+                const rawResponse = JSON.stringify(logData, null, 2);
+                const msg = (result.msg || result.message || '').toLowerCase();
+                const isOk = (result.ok || result.success || result.status === 'success' || result.status === true);
+
+                addDebugLog(`API Response:<br><pre class="mt-1 p-2 bg-black/40 border border-white/10 rounded text-[9px] font-mono whitespace-pre-wrap leading-tight select-all text-left">${rawResponse}</pre>`, isOk ? 'info' : 'error', targetLogId);
+
+                if (isOk && msg.includes('akan di proses')) {
+                    const serverTrxId = result.reffid || result.trxid || reffId;
+                    addDebugLog(`Status: PROCESSING. Menunggu 6 detik untuk Cek Realtime (ID: ${serverTrxId})...`, 'blue-300', targetLogId);
+                    
+                    setTimeout(async () => {
+                        addDebugLog(`[Auto-Check] Mengecek status final ke pusat...`, 'info', targetLogId);
+                        try {
+                            let checkData;
+                            if (system === 'KHFY') {
+                                const cRes = await callApi('/history', { refid: serverTrxId });
+                                if (cRes.ok && cRes.data && cRes.data.data) checkData = Array.isArray(cRes.data.data) ? cRes.data.data[0] : cRes.data.data;
+                            } else {
+                                const cRes = await callIcsApi('checkTransaction', { refid: serverTrxId });
+                                if (cRes.data) checkData = cRes.data;
+                            }
+
+                            if (checkData) {
+                                // Modifikasi: Support 'status_text' dan Auto-Save Logs ke Firebase
+                                const finalStatus = (checkData.status_text || checkData.status || 'Pending').toUpperCase();
+                                const sn = checkData.sn || checkData.message || '-';
+                                const serverMsg = checkData.keterangan || checkData.message || '-';
+                                const price = checkData.price || checkData.harga || 0;
+                                const color = finalStatus === 'SUKSES' || finalStatus === 'SUCCESS' ? 'success' : (finalStatus === 'GAGAL' ? 'error' : 'info');
+                                
+                                addDebugLog(`>> FINAL STATUS: ${finalStatus}`, color, targetLogId);
+                                addDebugLog(`>> SN: ${sn}`, 'text-gray-400', targetLogId);
+                                addDebugLog(`>> MSG: ${serverMsg}`, 'text-gray-400', targetLogId);
+                                addDebugLog(`>> PRICE: Rp ${parseInt(price).toLocaleString('id-ID')}`, 'text-blue-400', targetLogId);
+
+                                // LOGIKA BARU: Simpan Status & Log ke Firebase jika Sukses
+                                if (poId && (finalStatus === 'SUKSES' || finalStatus === 'SUCCESS')) {
+                                    const currentLogsHTML = document.getElementById(targetLogId) ? document.getElementById(targetLogId).innerHTML : '';
+                                    // Update doc tanpa menghapusnya agar admin bisa lihat logo sukses
+                                    updateDoc(doc(db, "preorders", poId), {
+                                        debugStatus: 'SUCCESS',
+                                        debugLogs: currentLogsHTML,
+                                        sn: sn // Simpan SN juga untuk referensi
+                                    }).then(() => {
+                                        addDebugLog('Log & Status Tersimpan di Database.', 'success', targetLogId);
+                                    }).catch(e => console.error("Gagal simpan log:", e));
+                                    
+                                    currentProcessingPoId = null;
+                                }
+                            } else {
+                                addDebugLog(`[Auto-Check] Data tidak ditemukan di pusat.`, 'error', targetLogId);
+                            }
+                        } catch (err) {
+                            addDebugLog(`[Auto-Check Error] ${err.message}`, 'error', targetLogId);
+                        }
+                    }, 6000);
+                    return;
+                }
+
+                if (!isOk && rawResponse.includes("Diluar Wilayah")) {
+                    addDebugLog("Terdeteksi Diluar Wilayah! Membatalkan otomatis...", "error", targetLogId);
+                    if (currentProcessingPoId === poId) {
+                        await window.handlePreorderDebugAction(poId, 'Tolak', "#Gagal. Tujuan Diluar Wilayah");
                         currentProcessingPoId = null;
                     }
-                } else if (rawResponse.includes("#Gagal. Produk Salah") && currentProcessingPoId) {
-                    await deleteDoc(doc(db, "preorders", currentProcessingPoId));
-                    addDebugLog(`Auto-removed failed Pre-Order: ${currentProcessingPoId}`, 'success');
+                } else if (rawResponse.includes("#Gagal. Produk Salah") && currentProcessingPoId === poId) {
+                    await deleteDoc(doc(db, "preorders", poId));
+                    addDebugLog(`Auto-removed failed Pre-Order: ${poId}`, 'success', targetLogId);
                     currentProcessingPoId = null;
                 }
-            } catch (e) { addDebugLog("Error API: " + e.message, 'error'); }
-        };
 
+            } catch (e) { 
+                addDebugLog("Error API: " + e.message, 'error', targetLogId); 
+            }
+        };
 const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
         const firebaseConfig = {
             apiKey: "AIzaSyBnVxgxkS8InH1PQCMGe3cY8IvPqSN6dLo",
@@ -793,6 +976,37 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
                 document.getElementById('loginOverlay').classList.remove('hide'); 
             } 
         });
+
+        window.checkRealtimeJson = async (uid, trxId) => {
+            Swal.fire({ title: 'Koneksi ke Pusat', html: 'Sedang mengambil raw data...', didOpen: () => Swal.showLoading() });
+            try {
+                const snap = await getDoc(doc(db, "users", uid, "history", trxId));
+                if(!snap.exists()) throw "Data lokal tidak ditemukan";
+                const d = snap.data();
+                const refId = d.trx_id;
+                if(!refId) throw "Ref ID tidak ditemukan pada transaksi ini.";
+
+                let res = await callIcsApi('checkTransaction', { refid: refId });
+                let source = "ICS Store";
+                if(!res || (!res.data && !res.status)) {
+                     const resKhfy = await callApi('/history', { refid: refId });
+                     if(resKhfy.ok && resKhfy.data) {
+                         res = resKhfy.data;
+                         source = "Khfy Store";
+                     }
+                }
+                
+                Swal.fire({
+                    title: 'Raw JSON (' + source + ')',
+                    html: `<div class="text-left"><div class="bg-slate-900 p-3 rounded-lg overflow-auto max-h-[60vh] custom-scroll relative group">
+                            <button onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)" class="absolute top-2 right-2 text-gray-500 hover:text-white transition"><i class="fas fa-copy"></i></button>
+                            <pre class="text-[10px] text-green-400 font-mono whitespace-pre-wrap">${JSON.stringify(res, null, 2)}</pre>
+                           </div></div>`,
+                    width: '600px',
+                    confirmButtonText: 'Tutup'
+                });
+            } catch(e) { Swal.fire('Error', e.message || e, 'error'); }
+        };
 
         window.showAdminTrxDetail = (t) => {
             // Ambil User terbaru dari memory untuk cek saldo saat ini
@@ -1009,7 +1223,14 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
                             <div><p class="text-[9px] text-gray-400">Produk</p><p class="font-bold">${trx.title}</p></div>
                             <div class="text-right"><p class="text-[9px] text-gray-400">Status</p><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${trx.status === 'Sukses' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${trx.status}</span></div>
                          </div>
-                         <div class="space-y-2 text-[11px] bg-blue-50/50 p-3 rounded-xl">
+                         <div class="grid grid-cols-2 gap-2 mb-3 text-[10px]">
+                            <div class="bg-gray-50 p-2 rounded border"><p class="text-gray-400">Nomor Tujuan</p><p class="font-bold font-mono">${trx.dest_num || trx.target || '-'}</p></div>
+                            <div class="bg-gray-50 p-2 rounded border"><p class="text-gray-400">Ref ID (Server)</p><p class="font-bold font-mono truncate">${trx.trx_id || '-'}</p></div>
+                            <div class="bg-gray-50 p-2 rounded border"><p class="text-gray-400">Trx ID (System)</p><p class="font-bold font-mono truncate">${snap.docs[0].id}</p></div>
+                            <div class="bg-gray-50 p-2 rounded border"><p class="text-gray-400">Jenis / Kode</p><p class="font-bold font-mono">${trx.product_code || trx.code || '-'}</p></div>
+                         </div>
+                         
+<div class="space-y-2 text-[11px] bg-blue-50/50 p-3 rounded-xl">
                             <div class="flex justify-between"><span>Saldo Awal (User):</span><span class="font-bold">${window.formatRp(trx.balance_before || 0)}</span></div>
                             <div class="flex justify-between"><span>Biaya:</span><span class="font-bold text-red-500">- ${window.formatRp(trx.amount)}</span></div>
                             <div class="flex justify-between"><span>Saldo Akhir (User):</span><span class="font-bold text-green-600">${window.formatRp(trx.balance_after || 0)}</span></div>
@@ -1039,7 +1260,8 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
             document.querySelectorAll('nav a').forEach(el => el.classList.remove('active-nav', 'text-white'));
             const activeLink = document.getElementById('nav-' + tabId);
             if(activeLink) activeLink.classList.add('active-nav', 'text-white');
-                        if(tabId === 'notification') loadActiveNotif();
+                                if(tabId === 'settings') { loadTopupSettings(); loadAppVersion(); }
+            if(tabId === 'notification') loadActiveNotif();
             if(tabId === 'users') { if(!lastUserDoc && !isAllUsersLoaded) loadUsers(true); }
 if(tabId === 'pricing') loadPricingData();
             if(tabId === 'livechat') loadChatList();
@@ -1145,20 +1367,21 @@ if(tabId === 'pricing') loadPricingData();
             let providerName = '';
             let rawRes = null;
 
-            for (const provider of tasks) {
+                        for (const provider of tasks) {
                 try {
                     if (provider === 'ICS') {
-                        // Logika ICS
-                        const res = await callIcsApi('checkTransaction', checkParams);
-                        let d = res;
-                        if (d && (d.data || d.status || d.sn)) {
-                            foundData = d.data || d;
-                            rawRes = d;
+                        // Logika ICS Baru (/trx/:refid)
+                        // Jika input mengandung ICS-, gunakan itu. Jika tidak, coba sebagai RefID langsung
+                        const ticket = checkParams.refid || input;
+                        const res = await callIcsApi(`/trx/${ticket}`);
+                        
+                        if (res.success && res.data) {
+                            foundData = res.data;
+                            rawRes = res;
                             providerName = 'Server ICS';
                             break;
                         }
                     } else {
-                        // Logika Khfy
                         const res = await callApi('/history', checkParams); // Pakai checkParams yang sudah dipastikan RefID
                         if (res.ok && res.data && res.data.data) {
                             let d = res.data.data;
@@ -1496,11 +1719,11 @@ if(tabId === 'pricing') loadPricingData();
                     </td>
                     <td class="p-3">
                         <div class="font-bold text-gray-800">${t.title || '-'}</div>
-                        <div class="text-[9px] text-blue-500 font-mono">${t.dest_num || '-'}</div>
+                        <div class="text-[9px] text-blue-500 font-mono">${t.type === 'in' ? '<span class="text-emerald-600 font-bold"><i class="fas fa-wallet mr-1"></i>Deposit / Topup</span>' : (t.dest_num || t.target || t.nomor_tujuan || t.no_hp || t.customer_no || t.phone || t.pelanggan || '-')}</div>
                     </td>
                     <td class="p-3 text-right font-bold text-emerald-600">${window.formatRp(t.amount || 0)}</td>
                     <td class="p-3 text-center">
-                        <button onclick='showAdminTrxDetail(${JSON.stringify(t)})' class="bg-indigo-50 text-indigo-600 px-2 py-1 rounded text-[9px] font-bold border border-indigo-200 hover:bg-indigo-100 transition shadow-sm whitespace-nowrap"><i class="fas fa-server mr-1"></i>Cek Server</button>
+                        <button onclick='checkRealtimeJson("${t.uid}", "${t.id}")' class="bg-indigo-50 text-indigo-600 px-2 py-1 rounded text-[9px] font-bold border border-indigo-200 hover:bg-indigo-100 transition shadow-sm whitespace-nowrap"><i class="fas fa-satellite-dish mr-1"></i>Cek Server (JSON)</button>
                     </td>
                 </tr>`;
             });
@@ -1600,18 +1823,29 @@ if(tabId === 'pricing') loadPricingData();
                     const productName = isTopUp ? `<span class='text-emerald-600 font-bold'><i class='fas fa-arrow-down mr-1'></i>${t.title}</span>` : t.title;
                     
                     let actionButtons = '';
+                    const isPreorder = (t.id && String(t.id).startsWith('PO-')); // Cek ID Preorder
+                    
                     if (isTopUp) {
                         actionButtons = `<div class="flex flex-col gap-1 w-full">
                             <button onclick="approveTopUp('${t.parentUid}', '${t.id}', ${t.amount})" class="bg-emerald-600 text-white px-2 py-1.5 rounded text-[10px] font-bold hover:bg-emerald-700 transition w-full"><i class="fas fa-check-circle mr-1"></i>TERIMA UANG</button>
                             <button onclick="rejectTopUp('${t.parentUid}', '${t.id}')" class="bg-red-50 text-red-600 border border-red-200 px-2 py-1.5 rounded text-[10px] font-bold hover:bg-red-100 transition w-full"><i class="fas fa-times-circle mr-1"></i>TOLAK</button>
                         </div>`;
                     } else {
-                        actionButtons = `<div class="flex items-center justify-center gap-1">
+                        if (isPreorder) {
+                             // Tampilan Khusus Preorder (Tombol Aksi Hilang)
+                             actionButtons = `<div class="flex items-center justify-center gap-1">
+                                <div class="px-2 py-1 bg-purple-50 text-purple-600 text-[9px] font-bold border border-purple-200 rounded flex items-center gap-1 cursor-help" title="Harap proses melalui menu Preorder Run"><i class="fas fa-robot"></i> System Preorder</div>
+                                <button onclick='showAdminTrxDetail(${JSON.stringify(t)})' class="bg-blue-50 text-blue-600 px-2 py-1 rounded text-[9px] font-bold border border-blue-200" title="Detail JSON"><i class="fas fa-code"></i></button>
+                            </div>`;
+                        } else {
+                            // Tampilan Normal
+                            actionButtons = `<div class="flex items-center justify-center gap-1">
                                 <button onclick="manualSuccess('${t.parentUid}', '${t.id}')" class="bg-green-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-green-700" title="Sukseskan Manual"><i class="fas fa-check"></i></button>
                                 <button onclick="manualFail('${t.parentUid}', '${t.id}', ${t.amount})" class="bg-red-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-red-700" title="Gagalkan & Refund"><i class="fas fa-times"></i></button>
                                 <button onclick="recheckServerTrx('${t.parentUid}', '${t.id}')" class="bg-slate-700 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-slate-800" title="Cek Server"><i class="fas fa-search"></i></button>
                                 <button onclick='showAdminTrxDetail(${JSON.stringify(t)})' class="bg-blue-50 text-blue-600 px-2 py-1 rounded text-[9px] font-bold border border-blue-200" title="Detail JSON"><i class="fas fa-code"></i></button>
                             </div>`;
+                        }
                     }
 
                     html += `<tr class="border-b border-gray-50">
@@ -1900,9 +2134,38 @@ if(tabId === 'pricing') loadPricingData();
             renderTransactions();
         };
 
-        function renderTransactions(data = null) {
-            if(data) { trxCurrentData = data; trxCurrentPage = 1; }
+                function renderTransactions(data = null) {
+            if(data) { allTransactions = data; trxCurrentPage = 1; }
             
+            // Filter Logic
+            const chk = document.querySelectorAll('.trx-filter-cb:checked');
+            const filters = Array.from(chk).map(c => c.value);
+                        const userSearch = document.getElementById('trxUserFilter') ? document.getElementById('trxUserFilter').value.toLowerCase() : '';
+            let filteredData = allTransactions.filter(t => {
+                // 1. Filter User Name
+                if (userSearch) {
+                    const uObj = allUsers.find(u => u.id === t.uid);
+                    const uName = uObj ? (uObj.username || '') : (t.username || '');
+                    if (!uName.toLowerCase().includes(userSearch)) return false;
+                }
+
+                // 2. Filter Category
+                if (filters.includes('Semua') || filters.length === 0) return true;
+
+                const s = t.status;
+                const isRefund = s === 'Gagal' && t.balance_final;
+                const isTopup = t.type === 'in';
+                
+                if (filters.includes('Topup') && isTopup) return true;
+                if (filters.includes('Refund') && isRefund) return true;
+                if (filters.includes('Sukses') && s === 'Sukses') return true;
+                if (filters.includes('Gagal') && s === 'Gagal' && !isRefund) return true;
+                if (filters.includes('Pending') && (s === 'Pending' || s === 'Proses')) return true;
+                
+                return false;
+            });
+            trxCurrentData = filteredData;
+
             const start = (trxCurrentPage - 1) * trxItemsPerPage;
             const end = start + trxItemsPerPage;
             const pageData = trxCurrentData.slice(start, end);
@@ -1910,32 +2173,41 @@ if(tabId === 'pricing') loadPricingData();
 
             let html = '';
             pageData.forEach(t => {
-                const isOut = t.type === 'out', user = allUsers.find(u => u.id === t.uid); const userName = user ? (user.username || 'User') : (t.username || 'User ' + (t.uid || '').substring(0,5)); const dObj = t.date ? new Date(t.date) : null; const date = dObj ? dObj.toLocaleDateString('id-ID', {day:'numeric', month:'short'}) : '-'; const time = dObj ? dObj.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : '';
-                let statusHtml = '';
-                if (t.status === 'Sukses') statusHtml = '<span class="px-1.5 py-0.5 rounded bg-green-100 text-green-700">Sukses</span>';
-                else if (t.status === 'Gagal' && t.balance_final) statusHtml = '<span class="px-1.5 py-0.5 rounded bg-red-100 text-red-700">Gagal</span><div class="text-[9px] text-green-600 font-bold mt-1"><i class="fas fa-undo mr-1"></i>REFUND</div>';
-                else if (t.status === 'Gagal') statusHtml = '<span class="px-1.5 py-0.5 rounded bg-red-100 text-red-700">Gagal</span>';
-                else statusHtml = `<span class="px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700">${t.status}</span>`;
+                const isOut = t.type === 'out', user = allUsers.find(u => u.id === t.uid); const userName = user ? (user.username || 'User') : (t.username || 'User ' + (t.uid || '').substring(0,5)); const dObj = t.date ? new Date(t.date) : null; const date = dObj ? dObj.toLocaleDateString('id-ID', {day:'numeric', month:'short'}) : '-'; const time = dObj ? dObj.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '';
+                
+                let statusColor = 'bg-yellow-100 text-yellow-700 border-yellow-200';
+                if (t.status === 'Sukses') { statusColor = 'bg-green-100 text-green-700 border-green-200'; }
+                else if (t.status === 'Gagal') { statusColor = 'bg-red-100 text-red-700 border-red-200'; }
+                const isRefund = t.status === 'Gagal' && t.balance_final;
+                const statusHtml = `<button onclick="openStatusChangeModal('${t.uid}', '${t.id}')" class="px-2 py-0.5 rounded border ${statusColor} text-[10px] font-bold hover:brightness-95 transition shadow-sm">${t.status} <i class="fas fa-edit ml-1 opacity-50"></i></button>${isRefund ? '<div class="text-[9px] text-green-600 font-bold mt-1 bg-green-50 rounded px-1"><i class="fas fa-undo mr-1"></i>REFUND</div>' : ''}`;
+                
+                const destNum = t.dest_num || t.target || t.nomor_tujuan || t.phone || '-';
 
                 html += `<tr class="border-b border-gray-50">
                     <td class="p-3"><div class="font-bold">${date}</div><div class="text-[10px] text-gray-400 font-mono">${time} WIB</div></td>
                     <td class="p-3"><div class="font-bold">${userName}</div><button onclick="viewUserHistory('${t.uid}', '${userName}')" class="text-[9px] text-orange-500 font-bold hover:underline"><i class="fas fa-history mr-1"></i>Lihat Riwayat</button></td>
-                    <td class="p-3"><div>${t.title}</div>${t.trx_code ? `<div class="text-[9px] font-mono text-blue-600 font-bold mt-1"><i class="fas fa-hashtag mr-1"></i>${t.trx_code}</div>` : ''}</td>
+                    <td class="p-3">
+    <div class="font-bold text-gray-900">${t.title}</div>
+    <div class="flex flex-wrap gap-1 mt-1.5">
+        ${t.provider_code ? `<span class="px-1.5 py-0.5 text-[10px] rounded bg-blue-50 text-blue-700 border border-blue-100 font-medium tracking-wide" title="Provider">${t.provider_code}</span>` : ''}
+        ${t.raw_code ? `<span class="px-1.5 py-0.5 text-[10px] rounded bg-indigo-50 text-indigo-700 border border-indigo-100 font-mono" title="Kode Produk">${t.raw_code}</span>` : ''}
+        ${t.dest_num ? `<span class="px-1.5 py-0.5 text-[10px] rounded bg-gray-50 text-gray-600 border border-gray-100 font-mono" title="No. Tujuan"><i class="fas fa-phone-alt text-[9px] mr-1"></i>${t.dest_num}</span>` : `<span class="px-1.5 py-0.5 text-[10px] rounded bg-gray-50 text-gray-600 border border-gray-100 font-mono"><i class="fas fa-phone-alt text-[9px] mr-1"></i>${destNum}</span>`}
+    </div>${t.trx_code ? `<div class="text-[9px] font-mono text-blue-600 font-bold mt-1"><i class="fas fa-hashtag mr-1"></i>${t.trx_code}</div>` : ''}</td>
                     <td class="p-3">
                         <button onclick='showAdminTrxDetail(${JSON.stringify(t)})' class="text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 px-2 py-1 rounded">
                             <i class="fas fa-search-dollar"></i> <span class="text-[9px]">Detail</span>
                         </button>
                     </td>
-<td class="p-3 text-center">
-                        <button onclick='viewRawJson(${JSON.stringify(t)})' class="text-purple-600 hover:text-purple-800 flex items-center justify-center gap-1 bg-purple-50 px-2 py-1 rounded border border-purple-100 transition">
-                            <i class="fas fa-code"></i> <span class="text-[9px]">Mentah</span>
+                    <td class="p-3 text-center">
+                        <button onclick='checkRealtimeJson("${t.uid}", "${t.id}")' class="text-purple-600 hover:text-purple-800 flex items-center justify-center gap-1 bg-purple-50 px-2 py-1 rounded border border-purple-100 transition whitespace-nowrap">
+                            <i class="fas fa-satellite-dish"></i> <span class="text-[9px]">Cek Server</span>
                         </button>
                     </td>
                     <td class="p-3 text-right"><span class="font-bold ${isOut?'text-red-500':'text-green-500'}">${isOut?'-':'+'}${window.formatRp(t.amount)}</span></td>
                     <td class="p-3 text-center">${statusHtml}</td>
                 </tr>`;
             });
-            document.getElementById('trxTableBody').innerHTML = html || '<tr><td colspan="5" class="p-4 text-center">Kosong</td></tr>';
+            document.getElementById('trxTableBody').innerHTML = html || '<tr><td colspan="7" class="p-4 text-center text-gray-400">Data tidak ditemukan (Cek Filter).</td></tr>';
 
             const container = document.getElementById('trxPagination');
             if(container) {
@@ -1963,7 +2235,26 @@ if(tabId === 'pricing') loadPricingData();
             }
         }
 
-        window.downloadTrxPDF = () => {
+                window.toggleTrxFilterMenu = () => { document.getElementById('trxFilterMenu').classList.toggle('hide'); };
+        window.applyTrxFilter = () => { renderTransactions(); };
+        window.openStatusChangeModal = (uid, trxId) => {
+            document.getElementById('statusChangeUid').value = uid;
+            document.getElementById('statusChangeTrxId').value = trxId;
+            document.getElementById('statusChangeModal').classList.remove('hide');
+        };
+        window.saveStatusChange = async (newStatus) => {
+            const uid = document.getElementById('statusChangeUid').value, trxId = document.getElementById('statusChangeTrxId').value;
+            if(!uid || !trxId) return;
+            try {
+                Swal.showLoading();
+                await updateDoc(doc(db, "users", uid, "history", trxId), { status: newStatus, api_msg: 'Status diubah manual oleh Admin ke ' + newStatus, date_updated: new Date().toISOString() });
+                const idx = allTransactions.findIndex(t => t.id === trxId); if(idx > -1) allTransactions[idx].status = newStatus;
+                renderTransactions(); document.getElementById('statusChangeModal').classList.add('hide'); Swal.fire('Berhasil', 'Status diubah.', 'success');
+            } catch(e) { Swal.fire('Error', e.message, 'error'); }
+        };
+
+
+window.downloadTrxPDF = () => {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             const table = document.getElementById("trxTableBody");
@@ -1978,36 +2269,58 @@ if(tabId === 'pricing') loadPricingData();
             doc.save(`Transaksi_${Date.now()}.pdf`);
         };
 
-        const API_CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
-        const ICS_CONFIG = { apiKey: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3", baseUrl: "https://reseller.ics-store.my.id" };
+                const API_CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
+        const ICS_CONFIG = { token: "YOUR_SECRET_KEY", baseUrl: "https://api.ics-store.my.id/api/reseller" }; // GANTI API KEY
         
         const PROXY_LIST = [
-            { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
             { name: 'CorsProxyIO', url: 'https://corsproxy.io/?' },
-            { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
+            { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
+            { name: 'ThingProxy', url: 'https://thingproxy.freeboard.io/fetch/' },
             { name: 'Direct', url: '' }
         ];
 
-        async function callIcsApi(action, params = {}) {
-            let targetUrl = `${ICS_CONFIG.baseUrl}/?action=${action}&apikey=${ICS_CONFIG.apiKey}&_t=${Date.now()}`;
-            const qs = new URLSearchParams(params).toString();
-            if(qs) targetUrl += `&${qs}`;
+                        async function callIcsApi(endpoint, data = {}, method = 'GET') {
+            // STRATEGI ANTI-BLOKIR: Kirim Token lewat 3 jalur (Header, URL, Body)
+            data.token = ICS_CONFIG.token;
+            data.api_key = ICS_CONFIG.token;
+
+            let targetUrl = `${ICS_CONFIG.baseUrl}${endpoint}`;
+            let options = {
+                method: method,
+                headers: {
+                    'Authorization': `Bearer ${ICS_CONFIG.token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            };
+
+            if (method === 'GET') {
+                const qs = new URLSearchParams({ ...data, _t: Date.now() }).toString();
+                if (qs) targetUrl += `?${qs}`;
+            } else if (method === 'POST') {
+                options.body = JSON.stringify(data);
+            }
 
             for (const proxy of PROXY_LIST) {
                 try {
                     const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
-                    const res = await fetch(fullUrl);
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+                    const res = await fetch(fullUrl, { ...options, signal: controller.signal });
+                    clearTimeout(timeoutId);
+
                     if (res.ok) {
                         const text = await res.text();
                         try { 
-                            let data = JSON.parse(text); 
-                            if (data.contents) { try { data = JSON.parse(data.contents); } catch(e) { data = data.contents; } }
-                            return data;
-                        } catch (e) { console.warn('ICS Parse Error', e); }
+                            let json = JSON.parse(text); 
+                            if (json.contents) { try { json = JSON.parse(json.contents); } catch(e) { json = json.contents; } }
+                            return json;
+                        } catch (e) { console.warn('ICS Parse Error via ' + proxy.name, e); }
                     }
-                } catch (e) { console.warn('ICS Proxy Error', e); }
+                } catch (e) { console.warn('ICS Proxy Error via ' + proxy.name, e); }
             }
-            return { success: false, message: 'Gagal koneksi ICS' };
+            return { success: false, message: 'Gagal koneksi ICS (Semua Proxy)' };
         }
 
         async function callApi(endpoint, params = {}) {
@@ -2033,26 +2346,39 @@ if(tabId === 'pricing') loadPricingData();
             
             let productsToRender = [];
 
-            // 2. Cek Sumber Data (ICS vs Khfy)
+                        // 2. Cek Sumber Data (ICS vs Khfy)
             if (provider.startsWith('ICS_')) {
-                // --- LOGIKA ICS ---
-                let icsType = 'xda'; // Default
-                if (provider === 'ICS_CIRCLE') icsType = 'circle';
-                else if (provider === 'ICS_FMAX') icsType = 'fmax';
-                else if (provider === 'ICS_BPA') icsType = 'bpa';
-
-                const res = await callIcsApi('listProducts', { type: icsType });
+                // --- LOGIKA ICS BARU ---
+                // 1. Ambil SEMUA produk dari endpoint /products
+                const res = await callIcsApi('/products');
                 if (res.success && res.data) {
-                    const ready = res.data.ready || [];
-                    const empty = res.data.empty || [];
-                    productsToRender = [...ready, ...empty];
+                    // 2. Filter Client-Side berdasarkan tipe yang dipilih di Admin
+                    let targetType = 'xla'; // default
+                    if (provider === 'ICS_XDA') targetType = 'xda';
+                    else if (provider === 'ICS_CIRCLE') targetType = 'circle';
+                    else if (provider === 'ICS_FMAX') targetType = 'fmax';
+                    else if (provider === 'ICS_BPA') targetType = 'bpa';
+
+                    // Filter Array
+                    let filtered = res.data.filter(p => p.type && p.type.toLowerCase() === targetType);
+
+                    // 3. Mapping Field Baru (API V2) ke Field Lama (tabel admin)
+                    // code -> kode_produk, name -> nama_produk, price -> harga
+                    productsToRender = filtered.map(p => ({
+                        kode_produk: p.code,
+                        nama_produk: p.name,
+                        harga: p.price,
+                        stok: p.stock,
+                        status: p.status === 'available' ? 1 : 0,
+                        gangguan: p.status !== 'available' ? 1 : 0
+                    }));
+
                 } else {
-                    table.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-red-500">Gagal mengambil data ICS: ${res.message}</td></tr>`;
+                    table.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-red-500">Gagal mengambil data ICS: ${res.message || 'Unknown Error'}</td></tr>`;
                     return;
                 }
 
             } else {
-                // --- LOGIKA KHFY ---
                 if(globalProducts.length === 0) {
                     const res = await callApi('/list_product');
                     if(res.ok) globalProducts = res.data.data || res.data;
@@ -2485,7 +2811,100 @@ window.loadChatList = () => {
             } catch(e) { Swal.fire('Error', e.message, 'error'); }
         };
 
-        window.loadActiveNotif = async () => {
+            
+    window.loadAppVersion = async () => {
+        try {
+            const docSnap = await getDoc(doc(db, "settings", "app_info"));
+            if (docSnap.exists()) {
+                document.getElementById('appVersionInput').value = docSnap.data().version || '';
+            }
+        } catch (e) { console.log('Err load ver:', e); }
+    };
+
+    window.saveAppVersion = async () => {
+        const ver = document.getElementById('appVersionInput').value.trim();
+        if(!ver) return Swal.fire('Error', 'Versi tidak boleh kosong', 'warning');
+        
+        const { value: pass } = await Swal.fire({
+            title: 'Keamanan Admin',
+            input: 'password',
+            inputLabel: 'Masukkan Kata Sandi Otorisasi',
+            inputPlaceholder: 'Pin...',
+            showCancelButton: true,
+            confirmButtonColor: '#4f46e5'
+        });
+
+        if (pass === '050213') {
+            try {
+                Swal.showLoading();
+                await setDoc(doc(db, "settings", "app_info"), { version: ver, updated_at: new Date().toISOString() }, { merge: true });
+                Swal.fire('Sukses', 'Versi aplikasi diperbarui. User akan auto-reload saat membuka aplikasi.', 'success');
+            } catch(e) { Swal.fire('Error', e.message, 'error'); }
+        } else if (pass) {
+            Swal.fire('Gagal', 'Kata sandi salah!', 'error');
+        }
+    };
+
+
+window.loadTopupSettings = async () => {
+        const mToggle = document.getElementById('toggleManual');
+        const qToggle = document.getElementById('toggleQios');
+        mToggle.parentElement.classList.add('opacity-50');
+        qToggle.parentElement.classList.add('opacity-50');
+        try {
+            const docSnap = await getDoc(doc(db, "settings", "topup"));
+            if (docSnap.exists()) {
+                const d = docSnap.data();
+                mToggle.checked = d.manual !== false; 
+                qToggle.checked = d.qios !== false;   
+            } else {
+                mToggle.checked = true; qToggle.checked = true;
+            }
+        } catch (e) { Swal.fire('Error', e.message, 'error'); }
+        mToggle.parentElement.classList.remove('opacity-50');
+        qToggle.parentElement.classList.remove('opacity-50');
+    };
+
+    window.saveTopupSettings = async () => {
+        const m = document.getElementById('toggleManual').checked;
+        const q = document.getElementById('toggleQios').checked;
+        try {
+            Swal.showLoading();
+            await setDoc(doc(db, "settings", "topup"), { manual: m, qios: q }, { merge: true });
+            Swal.fire('Berhasil', 'Status layanan top up diperbarui!', 'success');
+        } catch(e) { Swal.fire('Gagal', e.message, 'error'); }
+    };
+
+        window.loadTopupSettings = async () => {
+        const mToggle = document.getElementById('toggleManual');
+        const qToggle = document.getElementById('toggleQios');
+        mToggle.parentElement.classList.add('opacity-50');
+        qToggle.parentElement.classList.add('opacity-50');
+        try {
+            const docSnap = await getDoc(doc(db, "settings", "topup"));
+            if (docSnap.exists()) {
+                const d = docSnap.data();
+                mToggle.checked = d.manual !== false; 
+                qToggle.checked = d.qios !== false;   
+            } else {
+                mToggle.checked = true; qToggle.checked = true;
+            }
+        } catch (e) { Swal.fire('Error', e.message, 'error'); }
+        mToggle.parentElement.classList.remove('opacity-50');
+        qToggle.parentElement.classList.remove('opacity-50');
+    };
+
+    window.saveTopupSettings = async () => {
+        const m = document.getElementById('toggleManual').checked;
+        const q = document.getElementById('toggleQios').checked;
+        try {
+            Swal.showLoading();
+            await setDoc(doc(db, "settings", "topup"), { manual: m, qios: q }, { merge: true });
+            Swal.fire('Berhasil', 'Status layanan top up diperbarui!', 'success');
+        } catch(e) { Swal.fire('Gagal', e.message, 'error'); }
+    };
+
+    window.loadActiveNotif = async () => {
             const container = document.getElementById('activeNotifContainer');
             try {
                 const snap = await getDoc(doc(db, "global_notif", "active"));
@@ -2572,7 +2991,8 @@ window.loadChatList = () => {
             const providers = [
                 { key: 'ICS_XDA', name: 'Akrab Fresh (XDA)', cat: 'Server ICS' },
                 { key: 'ICS_CIRCLE', name: 'XL Circle', cat: 'Server ICS' },
-                { key: 'XLA', name: 'Akrab Fresh (XLA)', cat: 'Server Khfy' },
+                { key: 'XDA', name: 'Akrab v2 (XDA)', cat: 'Server Khfy' },
+{ key: 'XLA', name: 'Akrab Fresh (XLA)', cat: 'Server Khfy' },
                 { key: 'FMX', name: 'FlexMax (FMX)', cat: 'Server Khfy' },
                 { key: 'XLR', name: 'XL Reguler', cat: 'Server Khfy' },
                 { key: 'PLN', name: 'PLN Pascabayar', cat: 'Server Khfy' }
@@ -2642,7 +3062,20 @@ window.deactivateNotif = async () => {
 
     </script>
     
-    <div id="searchTrxModal" class="hide fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 fade-in">
+        <div id="statusChangeModal" class="hide fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 fade-in">
+        <div class="bg-white rounded-xl w-full max-w-xs shadow-2xl p-4">
+            <h3 class="text-sm font-bold text-gray-800 mb-3 text-center">Ubah Status Manual</h3>
+            <input type="hidden" id="statusChangeUid"><input type="hidden" id="statusChangeTrxId">
+            <div class="space-y-2">
+                <button onclick="saveStatusChange('Sukses')" class="w-full bg-green-100 text-green-700 py-2 rounded-lg font-bold text-xs hover:bg-green-200 border border-green-200">Set Sukses</button>
+                <button onclick="saveStatusChange('Pending')" class="w-full bg-yellow-100 text-yellow-700 py-2 rounded-lg font-bold text-xs hover:bg-yellow-200 border border-yellow-200">Set Pending</button>
+                <button onclick="saveStatusChange('Gagal')" class="w-full bg-red-100 text-red-700 py-2 rounded-lg font-bold text-xs hover:bg-red-200 border border-red-200">Set Gagal</button>
+                <button onclick="document.getElementById('statusChangeModal').classList.add('hide')" class="w-full bg-gray-100 text-gray-600 py-2 rounded-lg font-bold text-xs hover:bg-gray-200 mt-2">Batal</button>
+            </div>
+        </div>
+    </div>
+
+<div id="searchTrxModal" class="hide fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 fade-in">
         <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
             <div class="bg-gray-50 px-4 py-4 border-b border-gray-100 flex justify-between items-center">
                 <h3 class="text-sm font-bold text-gray-800"><i class="fas fa-search-dollar mr-2 text-orange-500"></i>Pelacak Transaksi Sistem</h3>

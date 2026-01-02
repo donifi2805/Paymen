@@ -1814,18 +1814,29 @@ if(tabId === 'pricing') loadPricingData();
                     const productName = isTopUp ? `<span class='text-emerald-600 font-bold'><i class='fas fa-arrow-down mr-1'></i>${t.title}</span>` : t.title;
                     
                     let actionButtons = '';
+                    const isPreorder = (t.id && String(t.id).startsWith('PO-')); // Cek ID Preorder
+                    
                     if (isTopUp) {
                         actionButtons = `<div class="flex flex-col gap-1 w-full">
                             <button onclick="approveTopUp('${t.parentUid}', '${t.id}', ${t.amount})" class="bg-emerald-600 text-white px-2 py-1.5 rounded text-[10px] font-bold hover:bg-emerald-700 transition w-full"><i class="fas fa-check-circle mr-1"></i>TERIMA UANG</button>
                             <button onclick="rejectTopUp('${t.parentUid}', '${t.id}')" class="bg-red-50 text-red-600 border border-red-200 px-2 py-1.5 rounded text-[10px] font-bold hover:bg-red-100 transition w-full"><i class="fas fa-times-circle mr-1"></i>TOLAK</button>
                         </div>`;
                     } else {
-                        actionButtons = `<div class="flex items-center justify-center gap-1">
+                        if (isPreorder) {
+                             // Tampilan Khusus Preorder (Tombol Aksi Hilang)
+                             actionButtons = `<div class="flex items-center justify-center gap-1">
+                                <div class="px-2 py-1 bg-purple-50 text-purple-600 text-[9px] font-bold border border-purple-200 rounded flex items-center gap-1 cursor-help" title="Harap proses melalui menu Preorder Run"><i class="fas fa-robot"></i> System Preorder</div>
+                                <button onclick='showAdminTrxDetail(${JSON.stringify(t)})' class="bg-blue-50 text-blue-600 px-2 py-1 rounded text-[9px] font-bold border border-blue-200" title="Detail JSON"><i class="fas fa-code"></i></button>
+                            </div>`;
+                        } else {
+                            // Tampilan Normal
+                            actionButtons = `<div class="flex items-center justify-center gap-1">
                                 <button onclick="manualSuccess('${t.parentUid}', '${t.id}')" class="bg-green-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-green-700" title="Sukseskan Manual"><i class="fas fa-check"></i></button>
                                 <button onclick="manualFail('${t.parentUid}', '${t.id}', ${t.amount})" class="bg-red-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-red-700" title="Gagalkan & Refund"><i class="fas fa-times"></i></button>
                                 <button onclick="recheckServerTrx('${t.parentUid}', '${t.id}')" class="bg-slate-700 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-slate-800" title="Cek Server"><i class="fas fa-search"></i></button>
                                 <button onclick='showAdminTrxDetail(${JSON.stringify(t)})' class="bg-blue-50 text-blue-600 px-2 py-1 rounded text-[9px] font-bold border border-blue-200" title="Detail JSON"><i class="fas fa-code"></i></button>
                             </div>`;
+                        }
                     }
 
                     html += `<tr class="border-b border-gray-50">

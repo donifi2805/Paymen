@@ -653,7 +653,7 @@
             </div>
             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4">
                                 <label class="text-[10px] font-bold text-gray-500 block mb-1">Filter Kategori / Provider</label>
-                                <select id="pricingProvider" onchange="loadPricingDataV2()" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs font-bold focus:ring-1 focus:ring-blue-500 outline-none">
+                                <select id="pricingProvider" onchange="loadPricingData()" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs font-bold focus:ring-1 focus:ring-blue-500 outline-none">
                     <optgroup label="Server ICS">
                         <option value="ICS_XDA">Akrab Fresh (XDA)</option>
                         <option value="ICS_CIRCLE">XL Circle</option>
@@ -730,9 +730,9 @@
         import { runTransaction, getFirestore, getDoc, collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy, collectionGroup, setDoc, where, onSnapshot, serverTimestamp, addDoc, limit, startAfter, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         
-                        const KHFY_CONFIG_DBG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "/api/khfy" };
-                const ICS_CONFIG_DBG = { token: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3", baseUrl: "/api/ics" }; // GANTI API KEY
-        const DEBUG_PROXY = "https://corsproxy.io/?";
+        const KHFY_CONFIG_DBG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
+        const ICS_CONFIG_DBG = { apiKey: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3", baseUrl: "https://reseller.ics-store.my.id" };
+        const DEBUG_PROXY = "https://api.codetabs.com/v1/proxy?quest=";
         let currentProcessingPoId = null;
         let currentAutoServer = 'KHFY'; // Data Baru: Auto Detect Server
 
@@ -839,19 +839,14 @@ window.listenDebugPreOrders = () => {
 
         window.executeAutoBypass = () => executeDebugTrx(currentAutoServer);
 
-                window.executeDebugTrx = async (system, poId = null) => {
+        window.executeDebugTrx = async (system, poId = null) => {
             const num = document.getElementById('debugTargetNum').value;
             const code = document.getElementById('debugProductCode').value;
             const targetLogId = poId ? `log-po-${poId}` : 'debugLogs';
 
             if (!num || !code) return Swal.fire('Error', 'Data target/produk kosong', 'warning');
             
-            // Format RefID Baru
-            const d = new Date();
-            const timeStr = String(d.getHours()).padStart(2, '0') + String(d.getMinutes()).padStart(2, '0') + String(d.getSeconds()).padStart(2, '0');
-            const cleanNum = num.replace(/[^0-9]/g, '');
-            const reffId = (system === 'ICS' ? 'ICS-' : 'TRX-') + cleanNum + '-' + timeStr;
-
+            const reffId = `DBG-${Date.now()}`;
             addDebugLog(`[${system}] Mengirim permintaan: ${code} -> ${num}...`, 'info', targetLogId);
             
             try {
@@ -861,15 +856,12 @@ window.listenDebugPreOrders = () => {
                     const res = await fetch(DEBUG_PROXY + encodeURIComponent(url));
                     result = await res.json();
                 } else {
-                    // ICS API V2 (JSON POST)
-                    result = await callIcsApi('/trx', {
-                        product_code: code,
-                        dest_number: num,
-                        ref_id_custom: reffId
-                    }, 'POST');
+                    const url = `${ICS_CONFIG_DBG.baseUrl}/?action=createTransaction&apikey=${ICS_CONFIG_DBG.apiKey}&kode_produk=${code}&nomor_tujuan=${num}&refid=${reffId}`;
+                    const res = await fetch(DEBUG_PROXY + encodeURIComponent(url));
+                    result = await res.json();
                 }
 
-                // Normalisasi Log Tampilan
+                // Modifikasi: Filter tampilan log, hanya ambil isi 'data[0]' jika ada
                 let logData = result;
                 if (result.data && Array.isArray(result.data) && result.data.length > 0) {
                     logData = result.data[0];
@@ -888,10 +880,7 @@ window.listenDebugPreOrders = () => {
                         addDebugLog(`[Auto-Check] Mengecek status final ke pusat...`, 'info', targetLogId);
                         try {
                             let checkData;
-                            // Modifikasi: Auto Detect Server berdasarkan ReffID (TRX->Khfy, ICS->Ics)
-                            const detectSys = serverTrxId.startsWith('ICS') ? 'ICS' : 'KHFY';
-
-                            if (detectSys === 'KHFY') {
+                            if (system === 'KHFY') {
                                 const cRes = await callApi('/history', { refid: serverTrxId });
                                 if (cRes.ok && cRes.data && cRes.data.data) checkData = Array.isArray(cRes.data.data) ? cRes.data.data[0] : cRes.data.data;
                             } else {
@@ -1254,139 +1243,6 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
             }
         };
 
-            // --- FUNGSI BARU (BYPASS) UNTUK MEMPERBAIKI TAMPILAN PRODUK ---
-                window.loadPricingDataV2 = async () => {
-        const table = document.getElementById('pricingTableBody');
-        const provider = document.getElementById('pricingProvider').value;
-        if (!provider) return;
-        
-        table.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Memuat data dan settingan...</td></tr>';
-
-        try {
-            // 1. AMBIL RULES DARI FIREBASE
-            let localRules = {};
-            try {
-                const rulesSnap = await getDoc(doc(db, "settings", "pricing"));
-                if (rulesSnap.exists()) localRules = rulesSnap.data().rules || {};
-            } catch(e) { console.warn("Gagal load rules db", e); }
-
-            let products = [];
-            
-            // 2. SUMBER DATA: ICS
-            if (provider.startsWith('ICS_')) {
-                const res = await callIcsApi('/products');
-                if (res.success && res.data) {
-                    let targetType = 'xla'; 
-                    if (provider === 'ICS_XDA') targetType = 'xda';
-                    else if (provider === 'ICS_CIRCLE') targetType = 'circle';
-                    else if (provider === 'ICS_FMAX') targetType = 'fmax';
-                    else if (provider === 'ICS_BPA') targetType = 'bpa';
-
-                    products = res.data.filter(p => p.type && p.type.toLowerCase() === targetType)
-                        .map(p => ({
-                            code: p.code,
-                            name: p.name,
-                            price: Number(p.price || 0),
-                            stock: p.stock,
-                            status: p.status === 'available' ? 1 : 0
-                        }));
-                }
-            } 
-            // 3. SUMBER DATA: KHFY (Fix Zero Price Issue)
-            else {
-                const apiKey = "8F1199C1-483A-4C96-825E-F5EBD33AC60A";
-                const res = await fetch(`/api/khfy/list_product?api_key=${apiKey}`);
-                const json = await res.json();
-                
-                if (json.data) {
-                    let raw = Array.isArray(json.data) ? json.data : (json.data.data || []);
-                    
-                    products = raw.filter(p => {
-                        const c = (p.code || p.kode_produk || p.buyer_sku_code || '').toString().toUpperCase();
-                        const b = (p.brand || p.kode_provider || p.operator || '').toString().toUpperCase();
-                        
-                        if (provider === 'XDA') return c.startsWith('XDA');
-                        if (provider === 'FMX') return (c.startsWith('FMX') || c === 'CFMX') && b === 'FMAX';
-                        if (provider === 'XLR') return b === 'XLREGULER';
-                        if (provider === 'PLN') return b.includes('PLN');
-                        return b.includes(provider) || c.includes(provider);
-                    }).map(p => {
-                        // LOGIKA PERBAIKAN HARGA (Sesuai Index.html)
-                        // Prioritas: harga_final > buyer_price > price > harga
-                        let rawPrice = p.harga_final || p.buyer_price || p.price || p.harga || p.basic_price || 0;
-                        
-                        // Bersihkan karakter non-angka jika string
-                        if (typeof rawPrice === 'string') rawPrice = rawPrice.replace(/[^0-9]/g, '');
-                        
-                        return {
-                            code: p.code || p.kode_produk || p.buyer_sku_code,
-                            name: p.name || p.nama_produk || p.product_name,
-                            price: Number(rawPrice),
-                            stock: p.stock || 99,
-                            status: (p.status === 1 || p.status === 'available' || p.gangguan == 0) ? 1 : 0
-                        };
-                    });
-                }
-            }
-
-            // 4. RENDER KE TABEL
-            if (products.length === 0) {
-                table.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-orange-500 bg-orange-50">Tidak ada produk ditemukan. Cek koneksi / kategori.</td></tr>';
-            } else {
-                // Sort Harga Termurah
-                products.sort((a, b) => a.price - b.price);
-
-                let html = '';
-                products.forEach(p => {
-                    const code = p.code;
-                    const rawPrice = p.price;
-                    
-                    let savedRule = localRules[code] || 0;
-                    let markup = 0;
-                    let customName = '';
-
-                    if (typeof savedRule === 'object') {
-                        markup = parseInt(savedRule.price || 0);
-                        customName = savedRule.name || '';
-                    } else {
-                        markup = parseInt(savedRule || 0);
-                    }
-
-                    const sellPrice = rawPrice + markup;
-                    const isHabis = p.status === 0;
-
-                    html += `<tr class="border-b border-gray-50 hover:bg-gray-50 text-[11px]">
-                        <td class="p-3">
-                            <div class="font-bold text-gray-800">${p.name}</div>
-                            <div class="text-[9px] text-gray-400 font-mono">${code}</div>
-                            ${isHabis ? '<span class="text-[9px] text-red-500 font-bold bg-red-50 px-1 rounded">GANGGUAN</span>' : ''}
-                        </td>
-                        <td class="p-3">
-                            <input type="text" 
-                                   data-code="${code}" 
-                                   value="${customName}" 
-                                   placeholder="(Nama Asli)" 
-                                   class="name-input w-full border border-gray-300 rounded-lg p-1.5 text-xs focus:ring-1 focus:ring-blue-500 outline-none placeholder-gray-300">
-                        </td>
-                        <td class="p-3 text-right font-mono text-gray-500">Rp ${rawPrice.toLocaleString('id-ID')}</td>
-                        <td class="p-3 text-center">
-                            <input type="number" 
-                                   onchange="updateCalc('${code}', ${rawPrice}, this)" 
-                                   data-code="${code}" 
-                                   value="${markup}" 
-                                   class="markup-input w-20 border border-gray-300 rounded-lg p-1.5 text-center font-bold focus:ring-1 focus:ring-blue-500 outline-none">
-                        </td>
-                        <td class="p-3 text-right font-black text-blue-600" id="final-${code}">Rp ${sellPrice.toLocaleString('id-ID')}</td>
-                    </tr>`;
-                });
-                table.innerHTML = html;
-            }
-        } catch (e) {
-            console.error("Load Error:", e);
-            table.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-red-500">Error: ${e.message}</td></tr>`;
-        }
-    };
-
         window.switchTab = (tabId) => {
                         if(tabId === 'pending-trx') loadPendingTransactions();
                         if(tabId === 'success-trx') loadSuccessTransactions();
@@ -1399,7 +1255,7 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
                                 if(tabId === 'settings') { loadTopupSettings(); loadAppVersion(); }
             if(tabId === 'notification') loadActiveNotif();
             if(tabId === 'users') { if(!lastUserDoc && !isAllUsersLoaded) loadUsers(true); }
-            if(tabId === 'pricing') loadPricingDataV2();
+if(tabId === 'pricing') loadPricingData();
             if(tabId === 'livechat') loadChatList();
             if(tabId === 'preorder-run') listenDebugPreOrders();
         };
@@ -1495,30 +1351,28 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
             } catch(e) { console.log("Local check skipped", e); }
 
             // Prioritas Cek Provider
-            let tasks = ['KHFY', 'ICS'];
-            if (input.startsWith('ICS')) tasks = ['ICS'];
-            else if (input.startsWith('TRX')) tasks = ['KHFY'];
-            else if (input.toUpperCase().includes('PLN')) tasks = ['ICS', 'KHFY'];
+            let tasks = (input.toUpperCase().includes('ICS') || input.toUpperCase().includes('PLN')) 
+                ? ['ICS', 'KHFY'] 
+                : ['KHFY', 'ICS'];
 
             let foundData = null;
             let providerName = '';
             let rawRes = null;
 
-                        for (const provider of tasks) {
+            for (const provider of tasks) {
                 try {
                     if (provider === 'ICS') {
-                        // Logika ICS Baru (/trx/:refid)
-                        // Jika input mengandung ICS-, gunakan itu. Jika tidak, coba sebagai RefID langsung
-                        const ticket = checkParams.refid || input;
-                        const res = await callIcsApi(`/trx/${ticket}`);
-                        
-                        if (res.success && res.data) {
-                            foundData = res.data;
-                            rawRes = res;
+                        // Logika ICS
+                        const res = await callIcsApi('checkTransaction', checkParams);
+                        let d = res;
+                        if (d && (d.data || d.status || d.sn)) {
+                            foundData = d.data || d;
+                            rawRes = d;
                             providerName = 'Server ICS';
                             break;
                         }
                     } else {
+                        // Logika Khfy
                         const res = await callApi('/history', checkParams); // Pakai checkParams yang sudah dipastikan RefID
                         if (res.ok && res.data && res.data.data) {
                             let d = res.data.data;
@@ -2406,55 +2260,36 @@ window.downloadTrxPDF = () => {
             doc.save(`Transaksi_${Date.now()}.pdf`);
         };
 
-                                        const API_CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "/api/khfy" };
-                const ICS_CONFIG = { token: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3", baseUrl: "/api/ics" };
+        const API_CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
+        const ICS_CONFIG = { apiKey: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3", baseUrl: "https://reseller.ics-store.my.id" };
         
-                const PROXY_LIST = [
-            { name: 'Vercel Rewrite', url: '' }
+        const PROXY_LIST = [
+            { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
+            { name: 'CorsProxyIO', url: 'https://corsproxy.io/?' },
+            { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
+            { name: 'Direct', url: '' }
         ];
 
-                        async function callIcsApi(endpoint, data = {}, method = 'GET') {
-            // STRATEGI ANTI-BLOKIR: Kirim Token lewat 3 jalur (Header, URL, Body)
-            data.token = ICS_CONFIG.token;
-            data.api_key = ICS_CONFIG.token;
-
-            let targetUrl = `${ICS_CONFIG.baseUrl}${endpoint}`;
-            let options = {
-                method: method,
-                headers: {
-                    'Authorization': `Bearer ${ICS_CONFIG.token}`,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                }
-            };
-
-            if (method === 'GET') {
-                const qs = new URLSearchParams({ ...data, _t: Date.now() }).toString();
-                if (qs) targetUrl += `?${qs}`;
-            } else if (method === 'POST') {
-                options.body = JSON.stringify(data);
-            }
+        async function callIcsApi(action, params = {}) {
+            let targetUrl = `${ICS_CONFIG.baseUrl}/?action=${action}&apikey=${ICS_CONFIG.apiKey}&_t=${Date.now()}`;
+            const qs = new URLSearchParams(params).toString();
+            if(qs) targetUrl += `&${qs}`;
 
             for (const proxy of PROXY_LIST) {
                 try {
                     const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-                    const res = await fetch(fullUrl, { ...options, signal: controller.signal });
-                    clearTimeout(timeoutId);
-
+                    const res = await fetch(fullUrl);
                     if (res.ok) {
                         const text = await res.text();
                         try { 
-                            let json = JSON.parse(text); 
-                            if (json.contents) { try { json = JSON.parse(json.contents); } catch(e) { json = json.contents; } }
-                            return json;
-                        } catch (e) { console.warn('ICS Parse Error via ' + proxy.name, e); }
+                            let data = JSON.parse(text); 
+                            if (data.contents) { try { data = JSON.parse(data.contents); } catch(e) { data = data.contents; } }
+                            return data;
+                        } catch (e) { console.warn('ICS Parse Error', e); }
                     }
-                } catch (e) { console.warn('ICS Proxy Error via ' + proxy.name, e); }
+                } catch (e) { console.warn('ICS Proxy Error', e); }
             }
-            return { success: false, message: 'Gagal koneksi ICS (Semua Proxy)' };
+            return { success: false, message: 'Gagal koneksi ICS' };
         }
 
         async function callApi(endpoint, params = {}) {
@@ -2480,39 +2315,26 @@ window.downloadTrxPDF = () => {
             
             let productsToRender = [];
 
-                        // 2. Cek Sumber Data (ICS vs Khfy)
+            // 2. Cek Sumber Data (ICS vs Khfy)
             if (provider.startsWith('ICS_')) {
-                // --- LOGIKA ICS BARU ---
-                // 1. Ambil SEMUA produk dari endpoint /products
-                const res = await callIcsApi('/products');
+                // --- LOGIKA ICS ---
+                let icsType = 'xda'; // Default
+                if (provider === 'ICS_CIRCLE') icsType = 'circle';
+                else if (provider === 'ICS_FMAX') icsType = 'fmax';
+                else if (provider === 'ICS_BPA') icsType = 'bpa';
+
+                const res = await callIcsApi('listProducts', { type: icsType });
                 if (res.success && res.data) {
-                    // 2. Filter Client-Side berdasarkan tipe yang dipilih di Admin
-                    let targetType = 'xla'; // default
-                    if (provider === 'ICS_XDA') targetType = 'xda';
-                    else if (provider === 'ICS_CIRCLE') targetType = 'circle';
-                    else if (provider === 'ICS_FMAX') targetType = 'fmax';
-                    else if (provider === 'ICS_BPA') targetType = 'bpa';
-
-                    // Filter Array
-                    let filtered = res.data.filter(p => p.type && p.type.toLowerCase() === targetType);
-
-                    // 3. Mapping Field Baru (API V2) ke Field Lama (tabel admin)
-                    // code -> kode_produk, name -> nama_produk, price -> harga
-                    productsToRender = filtered.map(p => ({
-                        kode_produk: p.code,
-                        nama_produk: p.name,
-                        harga: p.price,
-                        stok: p.stock,
-                        status: p.status === 'available' ? 1 : 0,
-                        gangguan: p.status !== 'available' ? 1 : 0
-                    }));
-
+                    const ready = res.data.ready || [];
+                    const empty = res.data.empty || [];
+                    productsToRender = [...ready, ...empty];
                 } else {
-                    table.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-red-500">Gagal mengambil data ICS: ${res.message || 'Unknown Error'}</td></tr>`;
+                    table.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-red-500">Gagal mengambil data ICS: ${res.message}</td></tr>`;
                     return;
                 }
 
             } else {
+                // --- LOGIKA KHFY ---
                 if(globalProducts.length === 0) {
                     const res = await callApi('/list_product');
                     if(res.ok) globalProducts = res.data.data || res.data;
@@ -3246,5 +3068,18 @@ window.deactivateNotif = async () => {
     </div>
 
 <audio id="trxNotifySound" src="trx.ogg" preload="auto"></audio>
+<div id="webhookInfoCard" style="position: fixed; bottom: 20px; right: 20px; width: 320px; background: white; border-radius: 12px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); border: 1px solid #e2e8f0; z-index: 9999; font-family: sans-serif; animation: slideUp 0.5s ease-out;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h4 style="margin: 0; font-size: 14px; font-weight: bold; color: #1e293b;"><i class="fas fa-globe text-blue-500 mr-2"></i>Webhook ICS Store</h4>
+        <button onclick="document.getElementById('webhookInfoCard').style.display='none'" style="background: none; border: none; color: #94a3b8; cursor: pointer;"><i class="fas fa-times"></i></button>
+    </div>
+    <p style="font-size: 11px; color: #64748b; margin-bottom: 10px; line-height: 1.4;">Salin URL ini ke pengaturan profil <b>ICS Store</b> agar status transaksi & refund otomatis:</p>
+    <div style="display: flex; gap: 5px;">
+        <input type="text" id="icsHookUrl" readonly style="flex: 1; font-size: 10px; padding: 6px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; outline: none;">
+        <button onclick="navigator.clipboard.writeText(document.getElementById('icsHookUrl').value); alert('URL Disalin!')" style="background: #eff6ff; color: #2563eb; border: 1px solid #dbeafe; padding: 0 10px; border-radius: 6px; font-size: 10px; font-weight: bold; cursor: pointer;">Salin</button>
+    </div>
+    <script>document.getElementById('icsHookUrl').value = window.location.origin + '/api/ics';</script>
+    <style>@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }</style>
+</div>
 </body>
 </html>

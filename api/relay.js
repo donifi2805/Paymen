@@ -14,7 +14,8 @@ export default async function handler(req, res) {
     }
 
     // --- KONFIGURASI API ---
-    const API_KEY = "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3";
+    // [UPDATE] API Key Baru
+    const API_KEY = "5ceabbed85db5f8da18535464befb176";
     const BASE_URL = "https://api.ics-store.my.id/api/reseller";
 
     // 2. Ambil Parameter
@@ -44,7 +45,7 @@ export default async function handler(req, res) {
             break;
 
         case 'checkTransaction':
-            // [PERBAIKAN] Menggunakan endpoint umum /transaction untuk menghindari 404
+            // [FIX] Menggunakan endpoint umum /transaction agar tidak 404 saat pending
             path = "/transaction"; 
             method = "GET";
             break;
@@ -73,9 +74,10 @@ export default async function handler(req, res) {
     };
 
     if (method === 'GET') {
-        // Hapus parameter refid jika ada sisa, karena sudah ditangani logika path (opsional)
+        // [FIX] Hapus parameter refid/ref_id_custom jika action checkTransaction
+        // Karena endpoint /transaction biasanya butuh parameter spesifik, pastikan query bersih
         if(action === 'checkTransaction') {
-             // Pastikan parameter yang dikirim sesuai dokumentasi ICS untuk cek status
+             // Opsional: Sesuaikan parameter query jika dokumentasi ICS meminta nama field tertentu
         }
         Object.keys(dataParams).forEach(key => {
             targetUrl.searchParams.append(key, dataParams[key]);

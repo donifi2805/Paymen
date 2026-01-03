@@ -5,7 +5,7 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
     res.setHeader(
         'Access-Control-Allow-Headers',
-        'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+        'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
     );
 
     if (req.method === 'OPTIONS') {
@@ -17,85 +17,86 @@ export default async function handler(req, res) {
     const API_KEY = "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3";
     const BASE_URL = "https://api.ics-store.my.id/api/reseller";
 
-    // 2. Ambil Parameter (Gabung Query & Body)
+    // 2. Ambil Parameter
     const finalParams = { ...req.query, ...req.body };
-    const { action, _t, ...dataParams } = finalParams; // Pisahkan action & timestamp
+    const { action, _t, ...dataParams } = finalParams; 
 
-    // 3. SMART ROUTING (MAPPING ACTION -> ENDPOINT REST)
+    // 3. SMART ROUTING
     let path = "";
-    let method = "GET"; // Default
+    let method = "GET";
 
     switch (action) {
         case 'listProducts':
-            // Sesuai data yang Anda berikan: GET /reseller/products
-            path = "/products"; 
+            path = "/products"; // Endpoint Produk
             method = "GET";
             break;
 
         case 'createTransaction':
-            // TEBAKAN LOGIS: Biasanya /process, /buy, atau /transaction
-            // Jika nanti transaksi gagal, ganti "/process" dengan endpoint yang ada di dokumentasi ICS
-            path = "/process"; 
+            path = "/process"; // Endpoint Transaksi (Ganti ke /buy atau /order jika dokumentasi berbeda)
             method = "POST";
             break;
 
         case 'checkTransaction':
-            path = "/status"; // TEBAKAN
+            path = "/status"; // Endpoint Cek Status
             method = "POST";
             break;
 
+        case 'profile':
+            path = "/profile"; 
+            method = "GET";
+            break;
+
         default:
-            // Fallback: Jika action tidak dikenal, kirim ke root (Support Legacy)
             path = ""; 
     }
 
-    // 4. Susun URL Target
+    // 4. Susun URL
     const targetUrl = new URL(BASE_URL + path);
-    targetUrl.searchParams.append('apikey', API_KEY); // API Key selalu di URL (sesuai log Anda)
+    // Kita tetap pasang apikey di URL untuk jaga-jaga (backward compatibility)
+    targetUrl.searchParams.append('apikey', API_KEY); 
 
-    // 5. Siapkan Opsi Fetch
+    // 5. Opsi Fetch dengan AUTH HEADER (SOLUSI "NO TOKEN")
     const fetchOptions = {
         method: method,
         headers: {
-            'User-Agent': 'Vercel-Relay/2.0',
-            'Accept': 'application/json'
+            'User-Agent': 'Vercel-Relay/3.0',
+            'Accept': 'application/json',
+            // INI KUNCINYA: Mengirim Token di Header
+            'Authorization': `Bearer ${API_KEY}` 
         }
     };
 
     // Masukkan Parameter Data
     if (method === 'GET') {
-        // Untuk GET: Masukkan ke Query String URL
         Object.keys(dataParams).forEach(key => {
             targetUrl.searchParams.append(key, dataParams[key]);
         });
     } else {
-        // Untuk POST: Masukkan ke Body JSON
         fetchOptions.headers['Content-Type'] = 'application/json';
         fetchOptions.body = JSON.stringify(dataParams);
     }
 
     try {
-        console.log(`[Relay] Routing: ${action} -> ${method} ${targetUrl.toString()}`);
+        console.log(`[Relay V3] ${method} ${targetUrl.toString()}`);
         
         const response = await fetch(targetUrl.toString(), fetchOptions);
         const text = await response.text();
 
-        // Cek jika respon adalah HTML (Error 404/500 dari Server)
+        // Debugging: Cek jika masih HTML
         if (text.trim().startsWith('<')) {
-            console.error("[Relay HTML Error]", text.substring(0, 150));
+            console.error("[Relay HTML Error]", text.substring(0, 100));
             return res.status(502).json({
                 success: false,
-                message: `Server ICS Error (HTML Response). Path '${path}' mungkin salah.`,
-                raw: text.substring(0, 100) + "..."
+                message: 'Server Error: Respon HTML (Cek URL/Maintenance)',
+                raw: text.substring(0, 100)
             });
         }
 
         try {
             const json = JSON.parse(text);
-            return res.status(200).json(json);
+            return res.status(response.ok ? 200 : response.status).json(json);
         } catch (e) {
-            console.error("[Relay Parse Error]", text);
-            return res.status(500).json({ success: false, message: 'Respon API tidak valid (Bukan JSON)', raw: text });
+            return res.status(500).json({ success: false, message: 'Invalid JSON Response', raw: text });
         }
 
     } catch (error) {

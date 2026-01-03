@@ -640,10 +640,10 @@
             <h3 class="font-bold text-gray-800 dark:text-white mb-4 text-sm">Layanan</h3>
             <div class="grid grid-cols-4 gap-4">
                 <div class="text-center group cursor-pointer" onclick="openPPOB('akrab')"><div class="bg-blue-100 dark:bg-blue-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-globe text-blue-600 dark:text-blue-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Data</span></div>
-                <div class="text-center group cursor-pointer" onclick="window.showAlert("Info", "Menu Paket OTP Segera Hadir", "info");"><div class="bg-emerald-100 dark:bg-emerald-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-key text-emerald-600 dark:text-emerald-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Paket OTP</span></div>
+                <div class="text-center group cursor-pointer" onclick="window.showAlert('Info', 'Menu Paket OTP Segera Hadir', 'info');"><div class="bg-emerald-100 dark:bg-emerald-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-key text-emerald-600 dark:text-emerald-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Paket OTP</span></div>
                 <div class="text-center group cursor-pointer" onclick="nav('preorderPage')"><div class="bg-purple-100 dark:bg-purple-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-clock text-purple-600 dark:text-purple-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Pre-Order</span></div>
                 <div class="text-center group cursor-pointer" onclick="checkAkrabStock()"><div class="bg-orange-100 dark:bg-orange-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-cubes text-orange-600 dark:text-orange-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Stok Akrab</span></div>
-                <div class="text-center group cursor-pointer" onclick="window.showAlert("Info", "Menu Login OTP Segera Hadir", "info");"><div class="bg-rose-100 dark:bg-rose-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-lock text-rose-600 dark:text-rose-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Login OTP</span></div>
+                <div class="text-center group cursor-pointer" onclick="window.showAlert('Info', 'Menu Login OTP Segera Hadir', 'info');"><div class="bg-rose-100 dark:bg-rose-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-lock text-rose-600 dark:text-rose-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Login OTP</span></div>
                 <div class="text-center group cursor-pointer" onclick="nav('historyPage')"><div class="bg-indigo-100 dark:bg-indigo-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-history text-indigo-600 dark:text-indigo-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Riwayat</span></div>
             </div>
         </div>
@@ -1500,10 +1500,6 @@ window.openAkrabV2 = () => {
                     api_msg: 'Koneksi Timeout (Menunggu Cek Otomatis)...',
                     raw_json: JSON.stringify(apiRes)
                 });
-                    status: 'Pending',
-                    api_msg: 'Koneksi Terputus (Menunggu Konfirmasi)...',
-                    raw_json: JSON.stringify(apiRes)
-                });
                 
                 // Trigger auto check manual via existing function logic
                 setTimeout(() => window.checkIcsStatus(
@@ -1527,7 +1523,7 @@ window.openAkrabV2 = () => {
 
 
 
-        async function checkIcsStatus(trx, docSnap) {
+        window.checkIcsStatus = async function(trx, docSnap) {
         // PERBAIKAN: Gunakan API Relay Check Transaction (GET /trx/:refid)
         const res = await callIcsApi('checkTransaction', { refid: trx.trx_id });
 

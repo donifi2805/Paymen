@@ -1,8 +1,8 @@
 export default async function handler(req, res) {
-    // Header CORS agar frontend bisa akses
+    // 1. CORS Headers
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
     res.setHeader(
         'Access-Control-Allow-Headers',
         'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
@@ -13,34 +13,30 @@ export default async function handler(req, res) {
         return;
     }
 
-    const API_KEY = "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3"; // API Key ICS Anda
-    const BASE_URL = "https://reseller.ics-store.my.id";
+    // --- KONFIGURASI BARU (SESUAI REQUEST ANDA) ---
+    const API_KEY = "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3"; 
+    // Base URL diarahkan ke endpoint API yang benar
+    const BASE_URL = "https://api.ics-store.my.id/api/reseller"; 
 
-    // Ambil parameter dari query URL (untuk GET) atau Body (untuk POST)
-    const { action, ...otherParams } = req.query; // Ambil action dari URL
-    
-    // Jika tidak ada action di query, coba cari di body (untuk POST)
-    let finalAction = action;
-    let finalParams = { ...otherParams };
+    // 2. Ambil Parameter
+    const queryParams = req.query || {};
+    const bodyParams = req.body || {};
+    const finalParams = { ...queryParams, ...bodyParams };
+    const action = finalParams.action;
 
-    if (!finalAction && req.body && req.body.action) {
-        finalAction = req.body.action;
-        // Gabungkan body params
-        finalParams = { ...finalParams, ...req.body };
-    }
-
-    if (!finalAction) {
+    if (!action) {
         return res.status(400).json({ success: false, message: 'Action missing' });
     }
 
-    // Susun URL Target ke ICS
+    // 3. Susun URL Target (Smart Mapping)
+    // Beberapa API menggunakan ?action=..., ada juga yang menggunakan path /products
+    // Kita gunakan standar Query String dulu karena paling umum untuk H2H
     const targetUrl = new URL(BASE_URL);
+    
+    // Masukkan semua parameter
     targetUrl.searchParams.append('apikey', API_KEY);
-    targetUrl.searchParams.append('action', finalAction);
-
-    // Tambahkan parameter lain ke URL (ICS biasanya menerima param via GET query string bahkan untuk POST)
     Object.keys(finalParams).forEach(key => {
-        if(key !== 'action' && key !== 'apikey') {
+        if (key !== 'apikey' && key !== '_t') {
             targetUrl.searchParams.append(key, finalParams[key]);
         }
     });
@@ -49,21 +45,31 @@ export default async function handler(req, res) {
         console.log(`[Relay] Requesting to: ${targetUrl.toString()}`);
         
         const response = await fetch(targetUrl.toString(), {
-            method: 'GET', // ICS API mayoritas menerima GET atau POST query string
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Vercel-Relay/1.0)'
+            method: 'GET',
+            headers: { 
+                'User-Agent': 'Vercel-Relay/1.0',
+                'Accept': 'application/json'
             }
         });
 
-        const data = await response.text(); // Ambil text dulu, karena kadang ICS return HTML error
+        const text = await response.text();
         
+        // Cek jika respon adalah HTML (Tanda salah alamat/maintenance)
+        if (text.trim().startsWith('<')) {
+            console.error("[Relay Error] Received HTML instead of JSON:", text.substring(0, 100));
+            return res.status(502).json({ 
+                success: false, 
+                message: 'Server ICS merespon dengan HTML (Mungkin salah URL atau sedang Maintenance).',
+                raw: text.substring(0, 200)
+            });
+        }
+
         try {
-            const jsonData = JSON.parse(data);
-            return res.status(200).json(jsonData);
+            const json = JSON.parse(text);
+            return res.status(200).json(json);
         } catch (e) {
-            console.error("JSON Parse Error:", data);
-            // Jika ICS me-return string JSON di dalam field 'contents' (kasus jarang) atau error HTML
-            return res.status(200).json({ success: false, message: 'Invalid JSON from ICS', raw: data });
+            console.error("[Relay Error] Invalid JSON:", text);
+            return res.status(500).json({ success: false, message: 'Respon server bukan JSON valid', raw: text });
         }
 
     } catch (error) {

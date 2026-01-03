@@ -1426,19 +1426,23 @@ window.openAkrabV2 = () => {
                         // Jika respon awal Pending, tunggu 6 detik lalu cek lagi
                         // Jika respon awal Pending, tunggu 6 detik lalu cek lagi
                         // Jika respon awal Pending, tunggu 6 detik lalu cek lagi
-            if (statusStr === 'pending') {
-                console.log("Status Pending, menunda simpan 6 detik...");
-                await new Promise(r => setTimeout(r, 6000));
+                        // SMART POLLING V2: Cek Status Berulang (Max 10 Detik)
+            let attempt = 0;
+            const maxAttempts = 5;
+            
+            while (statusStr === 'pending' && attempt < maxAttempts) {
+                attempt++;
+                console.log(`🔄 Cek Status ke-${attempt}...`);
+                await new Promise(r => setTimeout(r, 2000)); // Tunggu 2 detik
                 
                 try {
-                    // Cek Status Terbaru
                     const checkRes = await callIcsApi('checkTransaction', { refid: reffId });
                     if (checkRes.success && checkRes.data) {
                         finalRes = checkRes;
                         statusStr = (checkRes.data.status || 'pending').toLowerCase();
-                        console.log("Status Update setelah delay:", statusStr);
+                        if (statusStr !== 'pending') break;
                     }
-                } catch(e) { console.log("Gagal cek ulang otomatis:", e); }
+                } catch(e) { console.log("Polling skip:", e); }
             }
 
             // Tentukan Status Akhir dari Data Terkini
@@ -3943,12 +3947,20 @@ window.renderTopUpHistory = () => {
     };
     window.closeStockModal = () => document.getElementById('stockModal').classList.add('hide');
                                     // FUNGSI BANTUAN: Format Tampilan Detail
+        // FUNGSI BANTUAN: Format Tampilan Detail
     window.formatDetailInfo = (json) => {
         let d = json.data || json;
         if (Array.isArray(d) && d.length > 0) d = d[0];
         if (!d) return '-';
 
+        // FIX: Sensor Saldo di Raw Data Display
+        const sanitize = (t) => (t||'').replace(/\(?\s*Sisa Saldo\s*:[^)]*\)?/gi, '').trim();
+        if(d.sn) d.sn = sanitize(d.sn);
+        if(d.message) d.message = sanitize(d.message);
+        if(d.keterangan) d.keterangan = sanitize(d.keterangan);
+
         return `
+        <div class="space-y-1 text-[10px] font-mono">
         <div class="space-y-1 text-[10px] font-mono">
             <div class="border-b border-blue-200 dark:border-blue-800 pb-1 mb-1">
                 <span class="block font-bold text-blue-700 dark:text-blue-300">SN / Token:</span>
@@ -3989,8 +4001,10 @@ window.renderTopUpHistory = () => {
         statusEl.innerText = trx.status;
         statusEl.className = 'text-xs font-bold ' + (trx.status === 'Sukses' ? 'text-green-600' : (trx.status === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
         
-        const infoEl = document.getElementById('dtSn');
-        infoEl.innerText = trx.api_msg || '-';
+                const infoEl = document.getElementById('dtSn');
+        // FIX: SENSOR SALDO DI TAMPILAN (View Layer)
+        const safeMsg = (trx.api_msg || '-').replace(/\(?\s*Sisa Saldo\s*:[^)]*\)?/gi, '').trim();
+        infoEl.innerText = safeMsg;
 
         // REFRESH OTOMATIS SAAT DETAIL DIBUKA JIKA STATUS PENDING
                 if(trx.status === 'Pending' || trx.status === 'Proses') {

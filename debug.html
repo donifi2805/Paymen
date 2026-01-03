@@ -1479,16 +1479,27 @@ window.openAkrabV2 = () => {
             window.nav('homePage');
         } else {
             // --- FIX BUG FALSE NEGATIVE ICS (Anti Refund saat RTO) ---
+                        // --- FIX BUG FALSE NEGATIVE ICS (Anti Refund saat RTO) ---
             const errStr = (apiRes.error || apiRes.message || "").toString();
-            const isNetworkError = errStr.includes('Failed to fetch') || 
-                                 errStr.includes('NetworkError') || 
-                                 errStr.includes('Gagal koneksi') ||
-                                 errStr.includes('timeout') ||
-                                 errStr.includes('upstream');
+            // UPDATE: Deteksi error timeout lebih ketat agar tidak auto-refund
+            const lowerErr = errStr.toLowerCase();
+            const isNetworkError = lowerErr.includes('failed') || 
+                                 lowerErr.includes('network') || 
+                                 lowerErr.includes('koneksi') ||
+                                 lowerErr.includes('timeout') ||
+                                 lowerErr.includes('time out') ||
+                                 lowerErr.includes('exceeded') || // Tangkap error 60000ms exceeded
+                                 lowerErr.includes('upstream') ||
+                                 lowerErr.includes('504') ||
+                                 lowerErr.includes('502');
 
             if (isNetworkError) {
-                console.warn("ICS Network Error - Holding Refund");
+                console.warn("ICS Network/Timeout Error - Holding Refund");
                 await updateDoc(doc(db, "users", currentUser.uid, "history", reffId), {
+                    status: 'Pending',
+                    api_msg: 'Koneksi Timeout (Menunggu Cek Otomatis)...',
+                    raw_json: JSON.stringify(apiRes)
+                });
                     status: 'Pending',
                     api_msg: 'Koneksi Terputus (Menunggu Konfirmasi)...',
                     raw_json: JSON.stringify(apiRes)

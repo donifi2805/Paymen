@@ -1442,10 +1442,15 @@ window.openAkrabV2 = () => {
             else finalStatus = 'Pending';
 
             // Baru Simpan ke Firestore (Hanya Status Terupdate)
-            const updateData = {
+                        // SENSOR PRIVASI (Saat Transaksi)
+            const sanitize = (t) => (t||'').replace(/\(?\s*Sisa Saldo\s*:[^)]*\)?/gi, '').trim();
+            const rawMsg = (finalRes.data ? (finalRes.data.message || finalRes.data.sn) : finalRes.message) || 'Transaksi Selesai';
+            const rawSn = (finalRes.data ? finalRes.data.sn : '') || '-';
+
+                        const updateData = {
                 status: finalStatus,
-                api_msg: (finalRes.data ? (finalRes.data.message || finalRes.data.sn) : finalRes.message) || 'Transaksi Selesai',
-                sn: (finalRes.data ? finalRes.data.sn : '') || '-',
+                api_msg: sanitize(rawMsg),
+                sn: sanitize(rawSn),
                 supplier_id: (finalRes.data ? finalRes.data.refid : '') || '-',
                 raw_json: JSON.stringify(finalRes),
                 last_updated: new Date().toISOString()
@@ -1508,7 +1513,12 @@ window.openAkrabV2 = () => {
         const res = await callIcsApi('checkTransaction', { refid: trx.trx_id });
 
         // Cek struktur respon baru: { success: true, data: { status: '...', ... } }
-        if (res.success && res.data) {
+                if (res.success && res.data) {
+            // SENSOR PRIVASI (Hapus Sisa Saldo)
+            const sanitize = (t) => (t||'').replace(/\(?\s*Sisa Saldo\s*:[^)]*\)?/gi, '').trim();
+            if(res.data.message) res.data.message = sanitize(res.data.message);
+            if(res.data.sn) res.data.sn = sanitize(res.data.sn);
+            
             const d = res.data;
             let newStatus = 'Pending';
             const statusRaw = (d.status || '').toLowerCase(); // Ambil dari data.status
@@ -4043,8 +4053,10 @@ document.getElementById('detailTrxModal').classList.remove('hide');
                 
                 if (item) {
                     const statusText = (item.status_text || '').toUpperCase();
-                    const keterangan = item.keterangan || '';
-                    const sn = item.sn || '';
+                                        // SENSOR PRIVASI (Cek Manual)
+                    const sanitize = (t) => (t||'').replace(/\(?\s*Sisa Saldo\s*:[^)]*\)?/gi, '').trim();
+                    const keterangan = sanitize(item.keterangan || '');
+                    const sn = sanitize(item.sn || '');
                     
                     let freshStatus = 'Pending';
                     if (statusText === 'SUKSES') freshStatus = 'Sukses';

@@ -1793,7 +1793,9 @@ initTopupSettingsListener();
                 document.getElementById('setupProfileModal').classList.add('hide');
                                 window.nav('homePage');
                 window.showLoader(false);
-                window.startLiveStock(); // Mulai Auto Refresh Stok
+                                window.startLiveStock(); // Mulai Auto Refresh Stok
+                // FITUR BARU: Auto Cek Status Pending saat Halaman Dibuka
+                setTimeout(() => window.checkPendingTrx(), 1500);
 
                 currentBalance = data.balance || 0;
                 currentUsername = data.username || "User";
@@ -3617,16 +3619,40 @@ window.showLoader(false);
 
     window.setTopUpAmount = (amount) => { document.getElementById('qiosInputAmount').value = amount; };
 
-        window.checkPendingTrx = async () => {
+            window.checkPendingTrx = async () => {
         if(!currentUser) return;
-        const q = query(collection(db, "users", currentUser.uid, "history"), where("status", "==", "Pending"));
+        console.log("🔄 Auto Checking Pending Transactions...");
+        
+        // Cek status 'Pending' ATAU 'Proses'
+        const q = query(collection(db, "users", currentUser.uid, "history"), where("status", "in", ["Pending", "Proses"]));
         const snapshot = await getDocs(q);
         
+        if(snapshot.empty) console.log("✅ Tidak ada transaksi pending.");
+
         for (const docSnap of snapshot.docs) {
             const trx = docSnap.data();
-            if(trx.provider_id === 'MANUAL' || trx.provider_id === 'ICS' || String(trx.trx_id).startsWith('ICS-')) continue;
+            const trxId = trx.trx_id || docSnap.id;
 
-            await window.manualCheckTrx(trx.trx_id, trx.provider_id);
+            // Skip Manual Topup (Karena butuh admin)
+            if(trx.provider_id === 'MANUAL_SEABANK') continue;
+            
+            console.log("Checking:", trxId);
+
+            // ROUTING PENGECEKAN STATUS
+            if (trx.provider_id === 'ICS' || String(trxId).startsWith('ICS-')) {
+                // 1. Cek Transaksi ICS (Server Vercel/ICS)
+                if (typeof window.checkIcsStatus === 'function') {
+                    await window.checkIcsStatus({ 
+                        trx_id: trxId, 
+                        amount: trx.amount, 
+                        title: trx.title, 
+                        dest_num: trx.dest_num 
+                    }, docSnap);
+                }
+            } else {
+                // 2. Cek Transaksi PPOB Umum (Server KHFY)
+                await window.manualCheckTrx(trxId, trx.provider_id);
+            }
         }
     };
 

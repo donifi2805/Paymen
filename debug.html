@@ -1207,54 +1207,35 @@ window.openAkrabV2 = () => {
     };
 
                     async function callIcsApi(action, params = {}, method = 'GET') {
-        // FIX: Gunakan API Key di URL. Header sering dihapus oleh Proxy publik.
-                // FIX: Tambahkan timestamp (_t) untuk bypass Cache Proxy yang membandel
-        let targetUrl = `${ICS_CONFIG.baseUrl}/?action=${action}&apikey=${ICS_CONFIG.apiKey}&_t=${Date.now()}`;
-        let options = { method: method };
+        // MENGGUNAKAN VERCEL RELAY (Lebih Stabil & Cepat)
+        const relayUrl = '/api/relay';
+        const payload = { ...params, action, _t: Date.now() }; // _t anti-cache
 
-                        if (method === 'GET') {
-            const qs = new URLSearchParams(params).toString();
-            if(qs) targetUrl += `&${qs}`;
-        } else if (method === 'POST') {
-             // FIX: Strategi Double-Send (URL + Body) agar kebal terhadap Proxy yang membuang Body
-             const qs = new URLSearchParams(params).toString();
-             if(qs) targetUrl += `&${qs}`; // Tempel juga di URL sebagai cadangan
-             
-             options.body = new URLSearchParams(params);
-             options.headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
-        }
+        try {
+            const options = {
+                method: method === 'GET' ? 'GET' : 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            };
 
-        for (const proxy of PROXY_LIST) {
-            try {
-                // Encode URL target agar aman saat melewati URL proxy
-                const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
-                
-                // Timeout 15 detik
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-                const res = await fetch(fullUrl, { ...options, signal: controller.signal });
-                clearTimeout(timeoutId);
-
-                if (res.ok) {
-                    const text = await res.text();
-                    // Coba parsing JSON
-                    try { 
-                        let data = JSON.parse(text); 
-                        // Handle jika proxy membungkus response di dalam field 'contents'
-                        if (data.contents) {
-                             try { data = JSON.parse(data.contents); } catch(e) { data = data.contents; }
-                        }
-                        return data;
-                    } catch (e) { 
-                        console.warn('ICS JSON Parse Error via ' + proxy.name, e); 
-                    }
-                }
-            } catch (e) { 
-                console.warn('ICS Proxy Error via ' + proxy.name, e); 
+            let url = relayUrl;
+            if (method === 'GET') {
+                const qs = new URLSearchParams(payload).toString();
+                url += `?${qs}`;
+            } else {
+                options.body = JSON.stringify(payload);
             }
+
+            const res = await fetch(url, options);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            
+            const data = await res.json();
+            return data;
+
+        } catch (e) {
+            console.error('ICS Relay Error:', e);
+            // Fallback pesan error yang user-friendly
+            return { success: false, message: 'Gagal koneksi server: ' + e.message };
         }
-        return { success: false, message: 'Gagal koneksi ke server  (Semua Proxy Gagal)' };
     }
 
 

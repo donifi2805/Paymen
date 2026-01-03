@@ -1262,8 +1262,8 @@ window.openAkrabV2 = () => {
         else if (res && res.data && Array.isArray(res.data)) rawList = res.data;
         else if (res && res.data && (res.data.ready || res.data.empty)) rawList = [...(res.data.ready||[]), ...(res.data.empty||[])];
 
-        if (rawList.length > 0) {
-            // 2. Mapping Data
+                if (rawList.length > 0) {
+            // 1. Normalisasi Data
             let allProducts = rawList.map(p => ({
                 code: p.code || p.kode_produk,
                 name: p.name || p.nama_produk,
@@ -1275,7 +1275,7 @@ window.openAkrabV2 = () => {
                 raw: p
             }));
 
-            // 3. Filter Client-Side dengan FALLBACK (JIKA KOSONG, TAMPILKAN SEMUA)
+            // 2. Filter Client-Side dengan FALLBACK (JIKA KOSONG, TAMPILKAN SEMUA)
             if (typeof currentIcsType !== 'undefined' && currentIcsType) {
                 const targetType = currentIcsType.toLowerCase();
                 const filtered = allProducts.filter(p => {
@@ -1289,40 +1289,6 @@ window.openAkrabV2 = () => {
                     console.warn("Filter terlalu ketat, menampilkan SEMUA data sebagai fallback.");
                     // Kita TIDAK mengosongkan allProducts, biarkan tetap penuh
                 }
-            }
-                code: p.code || p.kode_produk,
-                name: p.name || p.nama_produk,
-                price: parseInt(p.price || p.harga || 0),
-                stock: (p.stock !== undefined) ? p.stock : (p.stok !== undefined ? p.stok : 0),
-                status: p.status || (p.stok > 0 ? 'available' : 'empty'),
-                type: p.type || '', 
-                category: p.category || '',
-                raw: p
-            }));
-
-            // 2. Filter Client-Side (Agar sesuai menu yg dipilih)
-            if (typeof currentIcsType !== 'undefined' && currentIcsType) {
-                console.log("Filtering for:", currentIcsType);
-                const targetType = currentIcsType.toLowerCase();
-                
-                allProducts = allProducts.filter(p => {
-                    const pType = (p.type || '').toLowerCase();
-                    const pCat = (p.category || '').toLowerCase();
-                    const pName = (p.name || '').toLowerCase();
-                    const pCode = (p.code || '').toLowerCase();
-                    
-                    // Logika Filter: Cek Type, Kategori, Nama, atau Kode
-                    return pType.includes(targetType) || 
-                           pCat.includes(targetType) || 
-                           pName.includes(targetType) ||
-                           pCode.includes(targetType);
-                });
-            }
-
-            if(allProducts.length === 0) {
-                 select.innerHTML = `<option value="" disabled>Produk '${currentIcsType}' Kosong</option>`;
-                 console.log("Data tersedia tapi tidak cocok filter:", rawList);
-                 return;
             }
 
             // 3. Urutkan Harga
@@ -2900,8 +2866,7 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
                  if(txtProd) txtProd.innerText = 'Gagal Koneksi';
                  alert('Gagal memuat: ' + (res.message || 'Unknown'));
              }
-             return; // Stop logic KHFY
-        }, jangan jalankan logika Khfy
+                          return; // Stop logic KHFY
         }
 
         // --- LOGIKA LAMA: KHFY ---

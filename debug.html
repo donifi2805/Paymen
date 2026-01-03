@@ -1250,32 +1250,46 @@ window.openAkrabV2 = () => {
             if (settingsSnap.exists()) pricingRules = settingsSnap.data().rules || {};
         } catch(e) { console.log("Load pricing rules error", e); }
 
-        const res = await callIcsApi('listProducts', { type: currentIcsType });
+                // REVISI V7: Ambil SEMUA data (Tanpa parameter type) agar Relay tidak memfilter
+        const res = await callIcsApi('listProducts', {});
         select.innerHTML = '';
 
-        // PERBAIKAN: Handle Respon Sukses (Gabung Ready + Empty)
-                        // LOGIKA PERBAIKAN V3 (ANTI-GAGAL)
-        console.log("[DEBUG ICS] Respon:", res);
+        console.log("[ICS DEBUG] Raw Res:", res);
 
-        // 1. Cek apakah respon langsung berupa Array Produk?
+        // 1. Normalisasi Data (Anti-Gagal)
         let rawList = [];
-        if (Array.isArray(res)) {
-             rawList = res;
-        } 
-        // 2. Cek apakah respon ada di dalam properti 'data'?
-        else if (res && res.data && Array.isArray(res.data)) {
-             rawList = res.data;
-        }
-        // 3. Cek format lama (ready/empty)
-        else if (res && res.data && (res.data.ready || res.data.empty)) {
-             rawList = [...(res.data.ready||[]), ...(res.data.empty||[])];
-        }
+        if (Array.isArray(res)) rawList = res;
+        else if (res && res.data && Array.isArray(res.data)) rawList = res.data;
+        else if (res && res.data && (res.data.ready || res.data.empty)) rawList = [...(res.data.ready||[]), ...(res.data.empty||[])];
 
-        // Jika data ditemukan (valid)
-                // Jika data ditemukan (valid)
         if (rawList.length > 0) {
-            // 1. Normalisasi Data
+            // 2. Mapping Data
             let allProducts = rawList.map(p => ({
+                code: p.code || p.kode_produk,
+                name: p.name || p.nama_produk,
+                price: parseInt(p.price || p.harga || 0),
+                stock: (p.stock !== undefined) ? p.stock : (p.stok !== undefined ? p.stok : 0),
+                status: p.status || (p.stok > 0 ? 'available' : 'empty'),
+                type: p.type || '', 
+                category: p.category || '',
+                raw: p
+            }));
+
+            // 3. Filter Client-Side dengan FALLBACK (JIKA KOSONG, TAMPILKAN SEMUA)
+            if (typeof currentIcsType !== 'undefined' && currentIcsType) {
+                const targetType = currentIcsType.toLowerCase();
+                const filtered = allProducts.filter(p => {
+                    const str = JSON.stringify(p).toLowerCase();
+                    return str.includes(targetType);
+                });
+                
+                if(filtered.length > 0) {
+                    allProducts = filtered;
+                } else {
+                    console.warn("Filter terlalu ketat, menampilkan SEMUA data sebagai fallback.");
+                    // Kita TIDAK mengosongkan allProducts, biarkan tetap penuh
+                }
+            }
                 code: p.code || p.kode_produk,
                 name: p.name || p.nama_produk,
                 price: parseInt(p.price || p.harga || 0),
@@ -2811,76 +2825,83 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
         if(!listContainer) return;
         listContainer.innerHTML = '';
 
-        // --- LOGIKA BARU: ICS HANDLER ---
+                // --- LOGIKA BARU: ICS HANDLER (AUTO FALLBACK) ---
         if (providerCode.startsWith('ICS_')) {
-             if(txtProd) txtProd.innerText = 'Memuat Dari Server';
+             if(txtProd) txtProd.innerText = 'Memuat Data Server...';
              if(btnProd) btnProd.classList.add('cursor-not-allowed', 'opacity-50');
 
-             let icsType = 'xda';
-             if(providerCode === 'ICS_CIRCLE') icsType = 'circle';
-
-             const res = await callIcsApi('listProducts', { type: icsType });
+             // Ambil SEMUA data tanpa filter server
+             const res = await callIcsApi('listProducts', {});
              
-             if (res.success && res.data) {
-                const readyItems = res.data.ready || [];
-                const emptyItems = res.data.empty || [];
-                const allProducts = [...readyItems, ...emptyItems];
-                allProducts.sort((a, b) => a.harga - b.harga);
+             if (res.success || Array.isArray(res) || (res.data && Array.isArray(res.data))) {
+                let rawList = [];
+                if (Array.isArray(res)) rawList = res;
+                else if (res.data && Array.isArray(res.data)) rawList = res.data;
+                else if (res.data && res.data.ready) rawList = [...(res.data.ready||[]), ...(res.data.empty||[])];
 
-                if(allProducts.length === 0) {
-                     if(txtProd) txtProd.innerText = 'Stok Kosong';
-                     listContainer.innerHTML = '<div class="text-center py-8 text-gray-400 flex flex-col items-center"><i class="fas fa-box-open text-2xl mb-2"></i><p class="text-xs">Tidak ada produk tersedia di ICS</p></div>';
+                if(rawList.length === 0) {
+                     if(txtProd) txtProd.innerText = 'Stok Kosong (Pusat)';
+                     listContainer.innerHTML = '<div class="text-center py-8 text-gray-400">Data Kosong dari Pusat</div>';
                      return;
                 }
 
-                if(btnProd) {
-                    btnProd.classList.remove('cursor-not-allowed', 'opacity-50');
-                    btnProd.classList.add('bg-white', 'hover:bg-gray-50');
+                // Normalisasi
+                let allProducts = rawList.map(p => ({
+                    code: p.code || p.kode_produk,
+                    name: p.name || p.nama_produk,
+                    price: parseInt(p.price || p.harga || 0),
+                    stock: (p.stock !== undefined) ? p.stock : (p.stok !== undefined ? p.stok : 0),
+                    status: p.status || (p.stok > 0 ? 'available' : 'empty'),
+                    raw: p
+                }));
+
+                // Filter Sederhana
+                let targetFilter = 'xda';
+                if(providerCode.includes('CIRCLE')) targetFilter = 'circle';
+                else if(providerCode.includes('XLA')) targetFilter = 'xla';
+                else if(providerCode.includes('FMAX')) targetFilter = 'fmax';
+                
+                const filtered = allProducts.filter(p => JSON.stringify(p).toLowerCase().includes(targetFilter));
+
+                // FALLBACK: Jika hasil filter 0, TAMPILKAN SEMUA
+                if(filtered.length === 0 && allProducts.length > 0) {
+                    console.log("Filter ICS 0, Fallback All");
+                    // Tetap gunakan allProducts (semua data)
+                } else {
+                    allProducts = filtered;
                 }
-                if(txtProd) txtProd.innerText = '-- Klik Untuk Pilih Produk --';
+                
+                // Urutkan & Render
+                allProducts.sort((a, b) => a.price - b.price);
+
+                if(btnProd) btnProd.classList.remove('cursor-not-allowed', 'opacity-50');
+                if(txtProd) txtProd.innerText = '-- Pilih Produk --';
 
                 allProducts.forEach(p => {
-                    let sellPrice = p.harga;
-                    let name = p.nama_produk;
-                    const code = p.kode_produk;
+                    let name = p.name;
+                    let price = p.price;
+                    // Pricing Rules
+                    if(pricingRules[p.code]) {
+                         const r = pricingRules[p.code];
+                         if(typeof r === 'object') { if(r.price) price+=parseInt(r.price); if(r.name) name=r.name; }
+                         else price+=parseInt(r);
+                    } else price+=2000;
 
-                    // LOGIKA BARU (ICS General): Markup & Rename
-                    if(pricingRules[code]) {
-                        const r = pricingRules[code];
-                        if(typeof r === 'object') {
-                            if(r.price) sellPrice += parseInt(r.price);
-                            if(r.name) name = r.name;
-                        } else {
-                            sellPrice += parseInt(r);
-                        }
-                    } else {
-                        sellPrice += 2000; // Default Margin
-                    }
-
-                    const isHabis = p.stok === 0 || p.stok === '0' || emptyItems.includes(p);
-
+                    const isHabis = p.stock === 0 || p.status !== 'available';
                     const div = document.createElement('div');
-                    div.className = `p-4 rounded-2xl border ${isHabis ? 'border-red-200 bg-red-50 dark:bg-red-900/10 cursor-not-allowed opacity-70' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 cursor-pointer transition active:scale-[0.98]'} mb-2 flex justify-between items-center group`;
+                    div.className = `p-4 rounded-2xl border ${isHabis ? 'border-red-200 bg-red-50 opacity-70' : 'border-gray-100 bg-white cursor-pointer'} mb-2 flex justify-between items-center`;
+                    if(!isHabis) div.onclick = () => window.selectProduct(p.code, name, price, `Stok: ${p.stock}`, encodeURIComponent(name));
                     
-                    if(!isHabis) {
-                        div.onclick = () => window.selectProduct(code, name, sellPrice, `Stok Tersedia: ${p.stok}`, encodeURIComponent(name));
-                    }
-
-                    div.innerHTML = `
-                        <div class="flex-1 pr-2">
-                            <p class="text-xs font-bold text-gray-700 dark:text-gray-200 leading-tight group-hover:text-blue-600 transition">${name}</p>
-                            ${isHabis ? '<span class="text-[9px] text-red-500 font-bold">STOK HABIS</span>' : ''}
-                        </div>
-                        <div class="text-right">
-                            <p class="text-sm font-black text-blue-600 dark:text-blue-400">Rp ${window.formatRp(sellPrice).replace('Rp', '')}</p>
-                        </div>`;
+                    div.innerHTML = `<div><p class="text-xs font-bold text-gray-700">${name}</p>${isHabis?'<span class="text-[9px] text-red-500 font-bold">HABIS</span>':''}</div><div class="text-right"><p class="text-sm font-black text-blue-600">Rp ${window.formatRp(price).replace('Rp','')}</p></div>`;
                     listContainer.appendChild(div);
                 });
+
              } else {
-                 if(txtProd) txtProd.innerText = 'Gagal Koneksi ';
-                 alert('Gagal memuat data : ' + (res.message || 'Unknown'));
+                 if(txtProd) txtProd.innerText = 'Gagal Koneksi';
+                 alert('Gagal memuat: ' + (res.message || 'Unknown'));
              }
-             return; // Stop, jangan jalankan logika Khfy
+             return; // Stop logic KHFY
+        }, jangan jalankan logika Khfy
         }
 
         // --- LOGIKA LAMA: KHFY ---

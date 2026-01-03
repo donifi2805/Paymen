@@ -44,12 +44,8 @@ export default async function handler(req, res) {
             break;
 
         case 'checkTransaction':
-            // LOGIKA BARU: GET /reseller/trx/:refid
-            const refIdToCheck = dataParams.refid || dataParams.ref_id_custom;
-            if(!refIdToCheck) {
-                return res.status(400).json({success: false, message: "RefID Missing"});
-            }
-            path = `/trx/${refIdToCheck}`; // RefID masuk ke URL
+            // [PERBAIKAN] Menggunakan endpoint umum /transaction untuk menghindari 404
+            path = "/transaction"; 
             method = "GET";
             break;
 
@@ -77,10 +73,9 @@ export default async function handler(req, res) {
     };
 
     if (method === 'GET') {
-        // Hapus parameter refid agar tidak double (karena sudah di path)
+        // Hapus parameter refid jika ada sisa, karena sudah ditangani logika path (opsional)
         if(action === 'checkTransaction') {
-             delete dataParams.refid;
-             delete dataParams.ref_id_custom;
+             // Pastikan parameter yang dikirim sesuai dokumentasi ICS untuk cek status
         }
         Object.keys(dataParams).forEach(key => {
             targetUrl.searchParams.append(key, dataParams[key]);
@@ -96,11 +91,12 @@ export default async function handler(req, res) {
         const response = await fetch(targetUrl.toString(), fetchOptions);
         const text = await response.text();
 
+        // Cek jika response HTML (Error proxy/endpoint salah)
         if (text.trim().startsWith('<')) {
             console.error("[Relay HTML Error]", text.substring(0, 100));
             return res.status(502).json({
                 success: false,
-                message: 'Server Error (HTML). Endpoint Salah.',
+                message: 'Server Error (HTML). Endpoint Salah atau Maintenance.',
                 raw: text.substring(0, 100)
             });
         }

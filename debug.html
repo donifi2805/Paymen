@@ -1321,13 +1321,23 @@ window.openAkrabV2 = () => {
                 }
                 select.appendChild(opt);
             });
-        } else {
-            // Penanganan Error Lebih Detail
-            const errorMsg = res.message || res.msg || (res.data ? res.data.message : '') || 'Data Kosong/Format Salah';
-            select.innerHTML = `<option value="" disabled>Error: ${errorMsg}</option>`;
-            // Jangan alert jika hanya kosong, cukup tampilkan di dropdown
-            console.error("[ICS ERROR]", res);
-            if(!res.success && !Array.isArray(res)) alert('Gagal memuat: ' + errorMsg);
+                } else {
+            // Penanganan Error Lebih Detail (V4)
+            console.error("[ICS ERROR RAW]", res);
+            
+            let errorMsg = 'Gagal memuat data';
+            if (res.message) errorMsg = res.message;
+            else if (res.msg) errorMsg = res.msg;
+            else if (res.data && res.data.message) errorMsg = res.data.message;
+            else if (typeof res === 'string') errorMsg = res;
+            
+            // Tampilkan error spesifik di dropdown agar terbaca user
+            select.innerHTML = `<option value="" disabled>Gagal: ${errorMsg.substring(0, 30)}...</option>`;
+            
+            // Alert hanya jika bukan error kosong biasa
+            if(!res.success && !Array.isArray(res)) {
+                 alert('Gagal memuat produk:\n' + errorMsg);
+            }
         }};
 
 

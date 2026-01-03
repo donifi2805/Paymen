@@ -21,25 +21,21 @@ export default async function handler(req, res) {
     const finalParams = { ...req.query, ...req.body };
     const { action, _t, ...dataParams } = finalParams; 
 
-    // 3. SMART ROUTING (MAPPING SESUAI DOKUMENTASI TERBARU)
+    // 3. SMART ROUTING & MAPPING
     let path = "";
     let method = "GET";
-    let finalBody = {}; // Wadah untuk body JSON yang sudah dirapikan
+    let finalBody = {}; 
 
     switch (action) {
         case 'listProducts':
             path = "/products"; 
             method = "GET";
-            // Hapus filter type agar relay menarik semua data
             delete dataParams.type;
             break;
 
         case 'createTransaction':
-            path = "/trx"; // Endpoint Baru
+            path = "/trx"; 
             method = "POST";
-            
-            // --- RE-MAPPING PARAMETER (PENTING) ---
-            // Mengubah format lama (Frontend) ke format baru (ICS)
             finalBody = {
                 product_code: dataParams.kode_produk || dataParams.product_code,
                 dest_number: dataParams.nomor_tujuan || dataParams.dest_number,
@@ -48,11 +44,13 @@ export default async function handler(req, res) {
             break;
 
         case 'checkTransaction':
-            path = "/status"; // Sesuaikan jika ada doku cek status
-            method = "POST";
-            finalBody = {
-                ref_id_custom: dataParams.refid || dataParams.ref_id_custom
-            };
+            // LOGIKA BARU: GET /reseller/trx/:refid
+            const refIdToCheck = dataParams.refid || dataParams.ref_id_custom;
+            if(!refIdToCheck) {
+                return res.status(400).json({success: false, message: "RefID Missing"});
+            }
+            path = `/trx/${refIdToCheck}`; // RefID masuk ke URL
+            method = "GET";
             break;
 
         case 'profile':
@@ -66,33 +64,34 @@ export default async function handler(req, res) {
 
     // 4. Susun URL
     const targetUrl = new URL(BASE_URL + path);
-    // Tetap sertakan API Key di URL sebagai cadangan
     targetUrl.searchParams.append('apikey', API_KEY); 
 
     // 5. Setup Fetch
     const fetchOptions = {
         method: method,
         headers: {
-            'User-Agent': 'Vercel-Relay/7.0',
+            'User-Agent': 'Vercel-Relay/8.0',
             'Accept': 'application/json',
-            'Authorization': `Bearer ${API_KEY}` // Wajib Token
+            'Authorization': `Bearer ${API_KEY}`
         }
     };
 
-    // Masukkan Parameter Data
     if (method === 'GET') {
+        // Hapus parameter refid agar tidak double (karena sudah di path)
+        if(action === 'checkTransaction') {
+             delete dataParams.refid;
+             delete dataParams.ref_id_custom;
+        }
         Object.keys(dataParams).forEach(key => {
             targetUrl.searchParams.append(key, dataParams[key]);
         });
     } else {
         fetchOptions.headers['Content-Type'] = 'application/json';
-        // Gunakan finalBody yang sudah diremap jika ada, jika tidak gunakan dataParams asli
         fetchOptions.body = JSON.stringify(Object.keys(finalBody).length > 0 ? finalBody : dataParams);
     }
 
     try {
-        console.log(`[Relay V7] ${method} ${targetUrl.toString()}`);
-        if(method === 'POST') console.log("Payload:", fetchOptions.body);
+        console.log(`[Relay V8] ${method} ${targetUrl.toString()}`);
         
         const response = await fetch(targetUrl.toString(), fetchOptions);
         const text = await response.text();
@@ -101,7 +100,7 @@ export default async function handler(req, res) {
             console.error("[Relay HTML Error]", text.substring(0, 100));
             return res.status(502).json({
                 success: false,
-                message: 'Server Error (HTML). Endpoint Salah/Maintenance.',
+                message: 'Server Error (HTML). Endpoint Salah.',
                 raw: text.substring(0, 100)
             });
         }

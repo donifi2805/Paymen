@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-    // 1. Setup CORS
+    // 1. CORS Headers
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
@@ -21,23 +21,25 @@ export default async function handler(req, res) {
     const finalParams = { ...req.query, ...req.body };
     const { action, _t, ...dataParams } = finalParams; 
 
-    // 3. SMART ROUTING
+    // 3. SMART ROUTING (PERBAIKAN ALAMAT)
     let path = "";
     let method = "GET";
 
     switch (action) {
         case 'listProducts':
-            path = "/products"; // Endpoint Produk
+            // PERBAIKAN: Gunakan Bahasa Inggris '/products'
+            path = "/products"; 
             method = "GET";
             break;
 
         case 'createTransaction':
-            path = "/process"; // Endpoint Transaksi (Ganti ke /buy atau /order jika dokumentasi berbeda)
+            // Coba endpoint standar transaksi
+            path = "/process"; 
             method = "POST";
             break;
 
         case 'checkTransaction':
-            path = "/status"; // Endpoint Cek Status
+            path = "/status"; 
             method = "POST";
             break;
 
@@ -47,22 +49,25 @@ export default async function handler(req, res) {
             break;
 
         default:
-            path = ""; 
+            // Jika action tidak dikenal, default ke products
+            path = "/products"; 
     }
 
     // 4. Susun URL
     const targetUrl = new URL(BASE_URL + path);
-    // Kita tetap pasang apikey di URL untuk jaga-jaga (backward compatibility)
+    // Tetap sertakan apikey di URL untuk jaga-jaga
     targetUrl.searchParams.append('apikey', API_KEY); 
 
-    // 5. Opsi Fetch dengan AUTH HEADER (SOLUSI "NO TOKEN")
+    // 5. Setup Fetch dengan AUTH TOKEN
     const fetchOptions = {
         method: method,
         headers: {
-            'User-Agent': 'Vercel-Relay/3.0',
+            'User-Agent': 'Vercel-Relay/5.0',
             'Accept': 'application/json',
-            // INI KUNCINYA: Mengirim Token di Header
-            'Authorization': `Bearer ${API_KEY}` 
+            // Token Bearer (Wajib untuk API Baru)
+            'Authorization': `Bearer ${API_KEY}`,
+            // Header Tambahan (Opsional)
+            'API-Key': API_KEY 
         }
     };
 
@@ -77,26 +82,48 @@ export default async function handler(req, res) {
     }
 
     try {
-        console.log(`[Relay V3] ${method} ${targetUrl.toString()}`);
+        console.log(`[Relay V5] ${method} ${targetUrl.toString()}`);
         
         const response = await fetch(targetUrl.toString(), fetchOptions);
         const text = await response.text();
 
-        // Debugging: Cek jika masih HTML
+        // Debug: Cek jika HTML (Salah Alamat)
         if (text.trim().startsWith('<')) {
             console.error("[Relay HTML Error]", text.substring(0, 100));
+            
+            // FALLBACK KUAT: Jika /products gagal, coba root URL (gaya lama)
+            if (path === "/products") {
+                console.log("[Relay V5] Retrying with Legacy Path...");
+                const retryUrl = new URL(BASE_URL); // Tanpa /products
+                retryUrl.searchParams.append('apikey', API_KEY);
+                retryUrl.searchParams.append('action', 'listProducts');
+                
+                // Coba fetch ulang tanpa header Bearer (gaya lama)
+                const retryRes = await fetch(retryUrl.toString(), {
+                   method: 'GET'
+                });
+                const retryText = await retryRes.text();
+                try { return res.status(200).json(JSON.parse(retryText)); } catch(e) {}
+            }
+
             return res.status(502).json({
                 success: false,
-                message: 'Server Error: Respon HTML (Cek URL/Maintenance)',
-                raw: text.substring(0, 100)
+                message: 'Server Error (HTML). Endpoint Salah.',
+                raw: text.substring(0, 200)
             });
         }
 
         try {
             const json = JSON.parse(text);
+            
+            // DEBUG KHUSUS: Cek apakah data kosong?
+            if (json.data && Array.isArray(json.data) && json.data.length === 0) {
+                 console.warn("[Relay Warning] Data Kosong dari Pusat");
+            }
+            
             return res.status(response.ok ? 200 : response.status).json(json);
         } catch (e) {
-            return res.status(500).json({ success: false, message: 'Invalid JSON Response', raw: text });
+            return res.status(500).json({ success: false, message: 'Invalid JSON', raw: text });
         }
 
     } catch (error) {

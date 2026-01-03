@@ -1414,15 +1414,55 @@ window.openAkrabV2 = () => {
 
         window.showLoader(false);
 
-        if(apiRes.success) {
-            await updateDoc(doc(db, "users", currentUser.uid, "history", reffId), {
-                status: 'Pending',
-                api_msg: apiRes.message || 'Sedang diproses',
-                supplier_id: apiRes.supplier_trxid || '-',
-                raw_json: JSON.stringify(apiRes)
-            });
-                        
-alert("Transaksi Berhasil Dikirim!\nKode Trx: " + trxCode + "\nStatus: Pending.");
+                if (apiRes.success) {
+            // LOGIKA SMART PENDING: Cek Ulang Otomatis sebelum Simpan
+            let finalRes = apiRes;
+            let statusStr = (apiRes.data && apiRes.data.status) ? apiRes.data.status.toLowerCase() : 'pending';
+            let finalStatus = 'Pending';
+
+            // Jika respon awal Pending, tunggu 6 detik lalu cek lagi
+            if (statusStr === 'pending') {
+                console.log("Status Pending, menunda simpan 6 detik...");
+                await new Promise(r => setTimeout(r, 6000));
+                
+                try {
+                    // Cek Status Terbaru
+                    const checkRes = await callIcsApi('checkTransaction', { refid: reffId });
+                    if (checkRes.success && checkRes.data) {
+                        finalRes = checkRes;
+                        statusStr = (checkRes.data.status || 'pending').toLowerCase();
+                        console.log("Status Update setelah delay:", statusStr);
+                    }
+                } catch(e) { console.log("Gagal cek ulang otomatis:", e); }
+            }
+
+            // Tentukan Status Akhir dari Data Terkini
+            if (statusStr === 'success') finalStatus = 'Sukses';
+            else if (statusStr === 'failed' || statusStr === 'error') finalStatus = 'Gagal';
+            else finalStatus = 'Pending';
+
+            // Baru Simpan ke Firestore (Hanya Status Terupdate)
+            const updateData = {
+                status: finalStatus,
+                api_msg: (finalRes.data ? (finalRes.data.message || finalRes.data.sn) : finalRes.message) || 'Transaksi Selesai',
+                sn: (finalRes.data ? finalRes.data.sn : '') || '-',
+                supplier_id: (finalRes.data ? finalRes.data.refid : '') || '-',
+                raw_json: JSON.stringify(finalRes),
+                last_updated: new Date().toISOString()
+            };
+
+            await updateDoc(doc(db, "users", currentUser.uid, "history", reffId), updateData);
+
+            // Handle Alert & Refund jika Gagal
+            if (finalStatus === 'Gagal') {
+                const refundRes = await window.processSmartRefund(currentUser.uid, reffId, "Refund: " + updateData.api_msg);
+                alert("Transaksi Gagal: " + updateData.api_msg + "\n" + (refundRes.msg || "Saldo dikembalikan."));
+            } else if (finalStatus === 'Sukses') {
+                alert("Transaksi SUKSES!\nSN: " + updateData.sn);
+            } else {
+                alert("Transaksi Berhasil Dikirim.\nStatus: Pending (Cek Riwayat Berkala).");
+            }
+            
             window.nav('homePage');
         } else {
             // --- FIX BUG FALSE NEGATIVE ICS (Anti Refund saat RTO) ---

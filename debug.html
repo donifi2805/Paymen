@@ -1085,8 +1085,12 @@
         // 1. PROXY LIST (Global) - Prioritaskan CorsProxyIO untuk POST Request
         // 1. PROXY LIST (Global) - Update dengan CodeTabs sebagai cadangan handal
         // 1. PROXY LIST (Global) - Update dengan CodeTabs (Paling Stabil)
-            const PROXY_LIST = [
-        { name: 'Vercel Rewrite', url: '' }
+        const PROXY_LIST = [
+        { name: 'CorsProxyIO', url: 'https://corsproxy.io/?' },
+        { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
+        { name: 'ThingProxy', url: 'https://thingproxy.freeboard.io/fetch/' },
+        { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
+        { name: 'Direct', url: '' }
     ];
 
         // 3. TELEGRAM NOTIFICATION SYSTEM
@@ -1171,13 +1175,12 @@
     };
 
 // 2. ICS STORE INTEGRATION
-            const ICS_CONFIG = {
-        token: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3",
-        baseUrl: "/api/ics"
+    const ICS_CONFIG = {
+        apiKey: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3",
+        baseUrl: "https://api.ics-store.my.id/api/reseller"
     };
 
-
-    let currentIcsType = 'xla';
+        let currentIcsType = 'xla';
 
     window.openIcsSheet = () => {
         document.getElementById('sheetIcsProvider').classList.remove('hide');
@@ -1203,101 +1206,95 @@ window.openAkrabV2 = () => {
         window.initAkrabV2Data();
     };
 
-                                async function callIcsApi(endpoint, data = {}, method = 'GET') {
-        // Hapus injeksi token ke body agar request lebih bersih (Cukup Header)
-        // data.token = ICS_CONFIG.token; 
+                    async function callIcsApi(action, params = {}, method = 'GET') {
+        // FIX: Gunakan API Key di URL. Header sering dihapus oleh Proxy publik.
+                // FIX: Tambahkan timestamp (_t) untuk bypass Cache Proxy yang membandel
+        let targetUrl = `${ICS_CONFIG.baseUrl}/?action=${action}&apikey=${ICS_CONFIG.apiKey}&_t=${Date.now()}`;
+        let options = { method: method };
 
-        let targetUrl = `${ICS_CONFIG.baseUrl}${endpoint}`;
-        let options = {
-            method: method,
-            headers: {
-                'Authorization': `Bearer ${ICS_CONFIG.token}`,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            }
-        };
-
-        if (method === 'GET') {
-            const qs = new URLSearchParams({ ...data, _t: Date.now() }).toString();
-            if (qs) targetUrl += `?${qs}`;
+                        if (method === 'GET') {
+            const qs = new URLSearchParams(params).toString();
+            if(qs) targetUrl += `&${qs}`;
         } else if (method === 'POST') {
-            options.body = JSON.stringify(data);
+             // FIX: Strategi Double-Send (URL + Body) agar kebal terhadap Proxy yang membuang Body
+             const qs = new URLSearchParams(params).toString();
+             if(qs) targetUrl += `&${qs}`; // Tempel juga di URL sebagai cadangan
+             
+             options.body = new URLSearchParams(params);
+             options.headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
         }
 
         for (const proxy of PROXY_LIST) {
             try {
+                // Encode URL target agar aman saat melewati URL proxy
                 const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
+                
+                // Timeout 15 detik
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 25000); // Timeout diperpanjang
+                const timeoutId = setTimeout(() => controller.abort(), 15000);
 
                 const res = await fetch(fullUrl, { ...options, signal: controller.signal });
                 clearTimeout(timeoutId);
 
-                // PERBAIKAN: Selalu baca respon teks, baik Sukses maupun Error
-                const text = await res.text();
-                let json;
-                try {
-                    json = JSON.parse(text);
-                    // Handle jika proxy membungkus response
-                    if (json.contents) { try { json = JSON.parse(json.contents); } catch(e) { json = json.contents; } }
-                } catch (e) {
-                    // Jika bukan JSON, ambil potongan teks errornya
-                    json = { success: false, message: text.substring(0, 150) || `HTTP Error ${res.status}` };
-                }
-
                 if (res.ok) {
-                    return json;
-                } else {
-                    // Jika Server merespon Error (400, 401, 500), kembalikan pesan aslinya
-                    console.warn('ICS Server Error:', json);
-                    return { 
-                        success: false, 
-                        message: json.message || json.msg || `Server Error: ${res.status}` 
-                    };
+                    const text = await res.text();
+                    // Coba parsing JSON
+                    try { 
+                        let data = JSON.parse(text); 
+                        // Handle jika proxy membungkus response di dalam field 'contents'
+                        if (data.contents) {
+                             try { data = JSON.parse(data.contents); } catch(e) { data = data.contents; }
+                        }
+                        return data;
+                    } catch (e) { 
+                        console.warn('ICS JSON Parse Error via ' + proxy.name, e); 
+                    }
                 }
-            } catch (e) {
-                console.warn('ICS Network Error via ' + proxy.name, e);
+            } catch (e) { 
+                console.warn('ICS Proxy Error via ' + proxy.name, e); 
             }
         }
-        return { success: false, message: 'Gagal koneksi ke server (Network Unreachable)' };
+        return { success: false, message: 'Gagal koneksi ke server  (Semua Proxy Gagal)' };
     }
 
 
 
-            window.initAkrabV2Data = async () => {
+        window.initAkrabV2Data = async () => {
         const select = document.getElementById('icsProductSelect');
         select.innerHTML = '<option>Memuat...</option>';
         
+        // Muat Aturan Harga & Nama Custom
         try {
             const settingsSnap = await getDoc(doc(db, "settings", "pricing"));
             if (settingsSnap.exists()) pricingRules = settingsSnap.data().rules || {};
         } catch(e) { console.log("Load pricing rules error", e); }
 
-        // Endpoint baru: /products
-        const res = await callIcsApi('/products', {}, 'GET');
+        const res = await callIcsApi('listProducts', { type: currentIcsType });
         select.innerHTML = '';
 
-        if (res.success && res.data && Array.isArray(res.data)) {
-            // Filter berdasarkan kategori (type) yang dipilih user
-            // API baru mengembalikan semua produk, jadi kita filter manual di sini
-            const filteredProducts = res.data.filter(p => p.type && p.type.toLowerCase() === currentIcsType.toLowerCase());
+        // PERBAIKAN: Handle Respon Sukses (Gabung Ready + Empty)
+        if (res.success && res.data) {
+            const readyItems = res.data.ready || [];
+            const emptyItems = res.data.empty || [];
+            // 1. Gabungkan kedua array
+            const allProducts = [...readyItems, ...emptyItems];
 
-            if(filteredProducts.length === 0) {
+            if(allProducts.length === 0) {
                  select.innerHTML = '<option value="" disabled>Produk Kosong</option>';
                  return;
             }
 
-            // Urutkan dari harga termurah
-            filteredProducts.sort((a, b) => a.price - b.price);
+            // 2. Urutkan dari harga termurah
+            allProducts.sort((a, b) => a.harga - b.harga);
 
             select.innerHTML = '<option value="" disabled selected>-- Pilih Produk --</option>';
             
-            filteredProducts.forEach(p => {
-                let sellPrice = p.price;
-                let name = p.name;
-                const code = p.code;
+            allProducts.forEach(p => {
+                let sellPrice = p.harga;
+                let name = p.nama_produk;
+                const code = p.kode_produk;
 
-                // Logic Markup Harga
+                // LOGIKA BARU: Markup & Rename (Akrab V2)
                 if(pricingRules[code]) {
                     const r = pricingRules[code];
                     if(typeof r === 'object') {
@@ -1310,19 +1307,19 @@ window.openAkrabV2 = () => {
                     sellPrice += 2000; // Default Margin
                 }
                 
-                // Cek Stok & Status dari API baru
-                const isHabis = p.status !== 'available' || p.stock <= 0;
+                // Cek apakah produk ini berasal dari list 'empty' atau stoknya 0
+                const isHabis = p.stok === 0 || p.stok === '0' || emptyItems.includes(p);
 
                 const opt = document.createElement('option');
                 opt.value = code;
                 opt.dataset.name = name;
                 opt.dataset.price = sellPrice;
-                opt.dataset.rawPrice = p.price;
+                opt.dataset.rawPrice = p.harga;
                 
                 if (isHabis) {
                     opt.innerHTML = `❌ ${name} (Habis) - Rp ${window.formatRp(sellPrice)}`;
                     opt.disabled = true;
-                    opt.style.color = '#ef4444';
+                    opt.style.color = '#ef4444'; // Warna Merah
                 } else {
                     opt.innerHTML = `${name} - Rp ${window.formatRp(sellPrice)}`;
                 }
@@ -1345,13 +1342,14 @@ window.openAkrabV2 = () => {
         }
     };
 
-                window.executeIcsTransaction = async (code, number, price, name, provCode) => {
+            window.executeIcsTransaction = async (code, number, price, name, provCode) => {
         window.showLoader(true);
-        // Format RefID Custom: ICS-Nomor-Timestamp
+        // Format Baru ICS: ICS-08xx-JamMenitDetik
         const d = new Date();
         const timeStr = String(d.getHours()).padStart(2, '0') + String(d.getMinutes()).padStart(2, '0') + String(d.getSeconds()).padStart(2, '0');
         const cleanNum = number.replace(/[^0-9]/g, '');
-        const localRefId = 'ICS-' + cleanNum + '-' + timeStr;
+        const reffId = 'ICS-' + cleanNum + '-' + timeStr;
+
         const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
         
         try {
@@ -1364,7 +1362,7 @@ window.openAkrabV2 = () => {
                 const balanceAfter = bal - price;
                 t.update(uRef, { balance: balanceAfter });
                 
-                const hRef = doc(db, "users", currentUser.uid, "history", localRefId);
+                const hRef = doc(db, "users", currentUser.uid, "history", reffId);
                 t.set(hRef, {
                     title: name,
                     amount: price,
@@ -1372,7 +1370,7 @@ window.openAkrabV2 = () => {
                     date: new Date().toISOString(),
                     status: 'Proses',
                     api_msg: 'Menghubungkan ke server...',
-                    trx_id: localRefId,
+                    trx_id: reffId,
                     trx_code: trxCode,
                     provider_id: 'ICS',
                     provider_code: provCode || 'ICS',
@@ -1387,57 +1385,55 @@ window.openAkrabV2 = () => {
             return alert("Gagal proses database: " + e);
         }
         
-        // Panggil API Transaction (POST /trx)
-        // Body: product_code, dest_number, ref_id_custom
-        const apiRes = await callIcsApi('/trx', {
-            product_code: code,
-            dest_number: number,
-            ref_id_custom: localRefId
-        }, 'POST');
+        // 2. Panggil API ICS
+        const apiRes = await callIcsApi('createTransaction', {
+            kode_produk: code,
+            nomor_tujuan: number,
+            refid: reffId
+        }, 'GET');
 
         window.showLoader(false);
 
-        if(apiRes.success && apiRes.data) {
-            // Sukses Create Trx
-            // Simpan RefID Server (TRX...) ke field 'supplier_id' untuk pengecekan status nanti
-            await updateDoc(doc(db, "users", currentUser.uid, "history", localRefId), {
+        if(apiRes.success) {
+            await updateDoc(doc(db, "users", currentUser.uid, "history", reffId), {
                 status: 'Pending',
-                api_msg: apiRes.data.message || 'Transaksi sedang diproses',
-                supplier_id: apiRes.data.refid || '-', // PENTING: ID Tiket dari Server
+                api_msg: apiRes.message || 'Sedang diproses',
+                supplier_id: apiRes.supplier_trxid || '-',
                 raw_json: JSON.stringify(apiRes)
             });
-            
-            alert("Transaksi Berhasil Dikirim!\nKode Trx: " + trxCode + "\nStatus: Pending.");
+                        
+alert("Transaksi Berhasil Dikirim!\nKode Trx: " + trxCode + "\nStatus: Pending.");
             window.nav('homePage');
-                } else {
-            // Gagal Create Trx
-            let errStr = (apiRes.message || "Gagal Request").toString();
-
-            // --- SENSOR PESAN SALDO (Agar user tidak panik) ---
-            if (errStr.toLowerCase().includes('saldo tidak cukup') || errStr.toLowerCase().includes('insufficient balance')) {
-                errStr = "Paket ini sedang bermasalah mohon hubungi admin untuk segera mengecek server";
-            }
-            // --------------------------------------------------
-
-            const isNetworkError = errStr.includes('Failed to fetch') || errStr.includes('NetworkError'); errStr.includes('Failed to fetch') || errStr.includes('NetworkError');
+        } else {
+            // --- FIX BUG FALSE NEGATIVE ICS (Anti Refund saat RTO) ---
+            const errStr = (apiRes.error || apiRes.message || "").toString();
+            const isNetworkError = errStr.includes('Failed to fetch') || 
+                                 errStr.includes('NetworkError') || 
+                                 errStr.includes('Gagal koneksi') ||
+                                 errStr.includes('timeout') ||
+                                 errStr.includes('upstream');
 
             if (isNetworkError) {
-                await updateDoc(doc(db, "users", currentUser.uid, "history", localRefId), {
+                console.warn("ICS Network Error - Holding Refund");
+                await updateDoc(doc(db, "users", currentUser.uid, "history", reffId), {
                     status: 'Pending',
                     api_msg: 'Koneksi Terputus (Menunggu Konfirmasi)...',
                     raw_json: JSON.stringify(apiRes)
                 });
+                
                 // Trigger auto check manual via existing function logic
                 setTimeout(() => window.checkIcsStatus(
-                    { trx_id: localRefId, amount: price, supplier_id: null }, 
-                    { ref: doc(db, "users", currentUser.uid, "history", localRefId) }
+                    { trx_id: reffId, amount: price }, 
+                    { ref: doc(db, "users", currentUser.uid, "history", reffId) }
                 ), 3000);
                 
                 alert("Koneksi Terputus! Transaksi dianggap PENDING.\nSistem akan mengecek status otomatis.");
                 window.nav('homePage');
-            } else {
-                // Refund Otomatis
-                const refundResult = await window.processSmartRefund(currentUser.uid, localRefId, 'Refund: ' + errStr);
+                        } else {
+                // Refund Otomatis (Hanya jika error murni dari server) - LEDGER V2
+                // Fungsi ini sudah otomatis mengembalikan saldo & update status ke Gagal
+                const refundResult = await window.processSmartRefund(currentUser.uid, reffId, 'Refund: ' + errStr);
+                
                 alert("Transaksi Gagal: " + errStr + "\n" + (refundResult.msg || "Saldo dikembalikan."));
                 window.nav('homePage');
             }
@@ -1447,41 +1443,26 @@ window.openAkrabV2 = () => {
 
 
 
-        async function checkIcsStatus(trx, docSnap) {
-        // Gunakan supplier_id (RefID Server: TRX...) jika ada, jika tidak gunakan trx_id lokal (fallback)
-        const ticketId = trx.supplier_id && trx.supplier_id !== '-' ? trx.supplier_id : trx.trx_id;
-        
-        // Endpoint: /trx/:refid
-        const res = await callIcsApi(`/trx/${ticketId}`, {}, 'GET');
-
-        if(res.success && res.data) {
-            const data = res.data;
+    async function checkIcsStatus(trx, docSnap) {
+        const res = await callIcsApi('checkTransaction', { refid: trx.trx_id });
+        if(res.success) {
             let newStatus = 'Pending';
-            const statusRaw = (data.status || '').toLowerCase();
-            
+            const statusRaw = (res.status || '').toLowerCase();
             if(statusRaw === 'success') newStatus = 'Sukses';
-            else if(statusRaw === 'failed') newStatus = 'Gagal';
+            else if(statusRaw === 'failed' || statusRaw === 'error' || statusRaw === 'unpaid') newStatus = 'Gagal';
             
             if(newStatus !== 'Pending') {
                 await runTransaction(db, async (t) => {
                     const freshDoc = await t.get(docSnap.ref);
                     if(freshDoc.data().status !== 'Pending') return;
 
-                    if(newStatus === 'Gagal') {
+                                        if(newStatus === 'Gagal') {
                         const uRef = doc(db, "users", currentUser.uid);
                         const uDoc = await t.get(uRef);
                         t.update(uRef, { balance: (uDoc.data().balance || 0) + trx.amount });
-                        t.update(docSnap.ref, { 
-                            status: 'Gagal', 
-                            api_msg: 'Refund: ' + (data.message || 'Gagal dari Server'),
-                            sn: data.sn || null
-                        });
+                        t.update(docSnap.ref, { status: 'Gagal', api_msg: 'Refund: ' + (res.message || 'Gagal') });
                     } else {
-                        t.update(docSnap.ref, { 
-                            status: 'Sukses', 
-                            api_msg: data.message || 'Transaksi Sukses',
-                            sn: data.sn || 'Sukses'
-                        });
+                        t.update(docSnap.ref, { status: 'Sukses', api_msg: res.message || res.sn || 'Sukses' });
                         // NOTIFIKASI SUKSES (ICS)
                         if(typeof window.sendTelegramNotif === 'function') {
                              window.sendTelegramNotif('ORDER', { title: trx.title, amount: trx.amount, dest: trx.dest_num, trxId: trx.trx_id });
@@ -1678,7 +1659,7 @@ initTopupSettingsListener();
     };
     let qiosTicket = null;
 
-        const CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "/api/khfy" };
+    const CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
 
     // AUTH & DATA
     onAuthStateChanged(auth, (user) => {
@@ -2794,31 +2775,25 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
         if(!listContainer) return;
         listContainer.innerHTML = '';
 
-                // --- LOGIKA BARU: ICS HANDLER (UPDATED V2) ---
+        // --- LOGIKA BARU: ICS HANDLER ---
         if (providerCode.startsWith('ICS_')) {
-             if(txtProd) txtProd.innerText = 'Memuat Dari Server...';
+             if(txtProd) txtProd.innerText = 'Memuat Dari Server';
              if(btnProd) btnProd.classList.add('cursor-not-allowed', 'opacity-50');
 
-             // Mapping Provider Code ke Tipe ICS
-             let targetType = 'xla';
-             if (providerCode === 'ICS_XDA') targetType = 'xda';
-             else if (providerCode === 'ICS_CIRCLE') targetType = 'circle';
-             else if (providerCode === 'ICS_FMAX') targetType = 'fmax';
-             else if (providerCode === 'ICS_BPA') targetType = 'bpa';
+             let icsType = 'xda';
+             if(providerCode === 'ICS_CIRCLE') icsType = 'circle';
 
-             // Panggil API V2 (Endpoint /products)
-             const res = await callIcsApi('/products', {}, 'GET');
+             const res = await callIcsApi('listProducts', { type: icsType });
              
-             if (res.success && res.data && Array.isArray(res.data)) {
-                // Filter Produk Sesuai Tipe
-                const filtered = res.data.filter(p => p.type && p.type.toLowerCase() === targetType);
-                
-                // Sort Harga Termurah
-                filtered.sort((a, b) => (a.price || 0) - (b.price || 0));
+             if (res.success && res.data) {
+                const readyItems = res.data.ready || [];
+                const emptyItems = res.data.empty || [];
+                const allProducts = [...readyItems, ...emptyItems];
+                allProducts.sort((a, b) => a.harga - b.harga);
 
-                if(filtered.length === 0) {
+                if(allProducts.length === 0) {
                      if(txtProd) txtProd.innerText = 'Stok Kosong';
-                     listContainer.innerHTML = '<div class="text-center py-8 text-gray-400 flex flex-col items-center"><i class="fas fa-box-open text-2xl mb-2"></i><p class="text-xs">Tidak ada produk tersedia di kategori ini</p></div>';
+                     listContainer.innerHTML = '<div class="text-center py-8 text-gray-400 flex flex-col items-center"><i class="fas fa-box-open text-2xl mb-2"></i><p class="text-xs">Tidak ada produk tersedia di ICS</p></div>';
                      return;
                 }
 
@@ -2828,15 +2803,12 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
                 }
                 if(txtProd) txtProd.innerText = '-- Klik Untuk Pilih Produk --';
 
-                filtered.forEach(p => {
-                    // Mapping Field API V2
-                    let sellPrice = parseInt(p.price || 0);
-                    let name = p.name;
-                    const code = p.code;
-                    const stock = p.stock || 0;
-                    const status = p.status;
+                allProducts.forEach(p => {
+                    let sellPrice = p.harga;
+                    let name = p.nama_produk;
+                    const code = p.kode_produk;
 
-                    // Markup Harga Custom
+                    // LOGIKA BARU (ICS General): Markup & Rename
                     if(pricingRules[code]) {
                         const r = pricingRules[code];
                         if(typeof r === 'object') {
@@ -2849,15 +2821,13 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
                         sellPrice += 2000; // Default Margin
                     }
 
-                    // Cek Status (Habis/Gangguan)
-                    const isHabis = status !== 'available' || stock <= 0;
+                    const isHabis = p.stok === 0 || p.stok === '0' || emptyItems.includes(p);
 
                     const div = document.createElement('div');
                     div.className = `p-4 rounded-2xl border ${isHabis ? 'border-red-200 bg-red-50 dark:bg-red-900/10 cursor-not-allowed opacity-70' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 cursor-pointer transition active:scale-[0.98]'} mb-2 flex justify-between items-center group`;
                     
                     if(!isHabis) {
-                        // Pass data ke fungsi selectProduct
-                        div.onclick = () => window.selectProduct(code, name, sellPrice, `Stok: ${stock}`, encodeURIComponent(name));
+                        div.onclick = () => window.selectProduct(code, name, sellPrice, `Stok Tersedia: ${p.stok}`, encodeURIComponent(name));
                     }
 
                     div.innerHTML = `
@@ -2871,9 +2841,8 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
                     listContainer.appendChild(div);
                 });
              } else {
-                 if(txtProd) txtProd.innerText = 'Gagal Koneksi';
-                 console.error(res);
-                 alert('Gagal memuat data: ' + (res.message || 'Unknown Error'));
+                 if(txtProd) txtProd.innerText = 'Gagal Koneksi ';
+                 alert('Gagal memuat data : ' + (res.message || 'Unknown'));
              }
              return; // Stop, jangan jalankan logika Khfy
         }

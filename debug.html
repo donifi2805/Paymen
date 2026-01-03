@@ -1254,23 +1254,27 @@ window.openAkrabV2 = () => {
         select.innerHTML = '';
 
         // PERBAIKAN: Handle Respon Sukses (Gabung Ready + Empty)
-                if (res.success && res.data) {
-            // ADAPTASI FORMAT BARU ICS (Array Langsung)
-            let allProducts = [];
-            if (Array.isArray(res.data)) {
-                allProducts = res.data;
-            } else if (res.data.ready || res.data.empty) {
-                // Fallback untuk format lama
-                allProducts = [...(res.data.ready||[]), ...(res.data.empty||[])];
-            }
+                        // LOGIKA PERBAIKAN V3 (ANTI-GAGAL)
+        console.log("[DEBUG ICS] Respon:", res);
 
-            if(allProducts.length === 0) {
-                 select.innerHTML = '<option value="" disabled>Produk Kosong</option>';
-                 return;
-            }
+        // 1. Cek apakah respon langsung berupa Array Produk?
+        let rawList = [];
+        if (Array.isArray(res)) {
+             rawList = res;
+        } 
+        // 2. Cek apakah respon ada di dalam properti 'data'?
+        else if (res && res.data && Array.isArray(res.data)) {
+             rawList = res.data;
+        }
+        // 3. Cek format lama (ready/empty)
+        else if (res && res.data && (res.data.ready || res.data.empty)) {
+             rawList = [...(res.data.ready||[]), ...(res.data.empty||[])];
+        }
 
-            // Normalisasi Data
-            allProducts = allProducts.map(p => ({
+        // Jika data ditemukan (valid)
+        if (rawList.length > 0) {
+            // Normalisasi & Filter
+            let allProducts = rawList.map(p => ({
                 code: p.code || p.kode_produk,
                 name: p.name || p.nama_produk,
                 price: parseInt(p.price || p.harga || 0),
@@ -1279,7 +1283,7 @@ window.openAkrabV2 = () => {
                 raw: p
             }));
 
-            // Urutkan dari harga termurah
+            // Urutkan Harga
             allProducts.sort((a, b) => a.price - b.price);
 
             select.innerHTML = '<option value="" disabled selected>-- Pilih Produk --</option>';
@@ -1289,7 +1293,6 @@ window.openAkrabV2 = () => {
                 let name = p.name;
                 const code = p.code;
 
-                // LOGIKA BARU: Markup & Rename (Akrab V2)
                 if(pricingRules[code]) {
                     const r = pricingRules[code];
                     if(typeof r === 'object') {
@@ -1301,10 +1304,8 @@ window.openAkrabV2 = () => {
                 } else {
                     sellPrice += 2000; // Default Margin
                 }
-                
-                // Cek stok
-                const isHabis = p.stock === 0 || p.status !== 'available';
 
+                const isHabis = p.stock === 0 || p.status !== 'available';
                 const opt = document.createElement('option');
                 opt.value = code;
                 opt.dataset.name = name;
@@ -1318,12 +1319,15 @@ window.openAkrabV2 = () => {
                 } else {
                     opt.innerHTML = `${name} - Rp ${window.formatRp(sellPrice)}`;
                 }
-                
                 select.appendChild(opt);
             });
         } else {
-            select.innerHTML = '<option value="" disabled>Gagal Memuat</option>';
-            alert('Gagal memuat produk : ' + (res.message || 'Unknown Error'));
+            // Penanganan Error Lebih Detail
+            const errorMsg = res.message || res.msg || (res.data ? res.data.message : '') || 'Data Kosong/Format Salah';
+            select.innerHTML = `<option value="" disabled>Error: ${errorMsg}</option>`;
+            // Jangan alert jika hanya kosong, cukup tampilkan di dropdown
+            console.error("[ICS ERROR]", res);
+            if(!res.success && !Array.isArray(res)) alert('Gagal memuat: ' + errorMsg);
         }};
 
 

@@ -1272,18 +1272,46 @@ window.openAkrabV2 = () => {
         }
 
         // Jika data ditemukan (valid)
+                // Jika data ditemukan (valid)
         if (rawList.length > 0) {
-            // Normalisasi & Filter
+            // 1. Normalisasi Data
             let allProducts = rawList.map(p => ({
                 code: p.code || p.kode_produk,
                 name: p.name || p.nama_produk,
                 price: parseInt(p.price || p.harga || 0),
                 stock: (p.stock !== undefined) ? p.stock : (p.stok !== undefined ? p.stok : 0),
                 status: p.status || (p.stok > 0 ? 'available' : 'empty'),
+                type: p.type || '', 
+                category: p.category || '',
                 raw: p
             }));
 
-            // Urutkan Harga
+            // 2. Filter Client-Side (Agar sesuai menu yg dipilih)
+            if (typeof currentIcsType !== 'undefined' && currentIcsType) {
+                console.log("Filtering for:", currentIcsType);
+                const targetType = currentIcsType.toLowerCase();
+                
+                allProducts = allProducts.filter(p => {
+                    const pType = (p.type || '').toLowerCase();
+                    const pCat = (p.category || '').toLowerCase();
+                    const pName = (p.name || '').toLowerCase();
+                    const pCode = (p.code || '').toLowerCase();
+                    
+                    // Logika Filter: Cek Type, Kategori, Nama, atau Kode
+                    return pType.includes(targetType) || 
+                           pCat.includes(targetType) || 
+                           pName.includes(targetType) ||
+                           pCode.includes(targetType);
+                });
+            }
+
+            if(allProducts.length === 0) {
+                 select.innerHTML = `<option value="" disabled>Produk '${currentIcsType}' Kosong</option>`;
+                 console.log("Data tersedia tapi tidak cocok filter:", rawList);
+                 return;
+            }
+
+            // 3. Urutkan Harga
             allProducts.sort((a, b) => a.price - b.price);
 
             select.innerHTML = '<option value="" disabled selected>-- Pilih Produk --</option>';

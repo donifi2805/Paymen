@@ -15,39 +15,44 @@ export default async function handler(req, res) {
 
     // --- KONFIGURASI API ---
     const API_KEY = "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3";
-    // Menggunakan endpoint sesuai dokumentasi Anda (/reseller/products)
-    // Asumsi Base URL API adalah domain + /api
-    const BASE_URL = "https://api.ics-store.my.id/api/reseller"; 
+    const BASE_URL = "https://api.ics-store.my.id/api/reseller";
 
     // 2. Ambil Parameter
     const finalParams = { ...req.query, ...req.body };
     const { action, _t, ...dataParams } = finalParams; 
 
-    // 3. SMART ROUTING
+    // 3. SMART ROUTING (MAPPING SESUAI DOKUMENTASI TERBARU)
     let path = "";
     let method = "GET";
+    let finalBody = {}; // Wadah untuk body JSON yang sudah dirapikan
 
     switch (action) {
         case 'listProducts':
-            // Sesuai data user: GET /reseller/products
-            // Karena BASE_URL sudah /api/reseller, kita tambah /products
             path = "/products"; 
             method = "GET";
-            
-            // TRICK PENTING: Hapus parameter filter agar Server memberikan SEMUA data
-            // Kita akan filter di Frontend saja (lebih aman dari salah ketik/case sensitive)
+            // Hapus filter type agar relay menarik semua data
             delete dataParams.type;
-            delete dataParams.category;
             break;
 
         case 'createTransaction':
-            path = "/process"; 
+            path = "/trx"; // Endpoint Baru
             method = "POST";
+            
+            // --- RE-MAPPING PARAMETER (PENTING) ---
+            // Mengubah format lama (Frontend) ke format baru (ICS)
+            finalBody = {
+                product_code: dataParams.kode_produk || dataParams.product_code,
+                dest_number: dataParams.nomor_tujuan || dataParams.dest_number,
+                ref_id_custom: dataParams.refid || dataParams.ref_id_custom
+            };
             break;
 
         case 'checkTransaction':
-            path = "/status"; 
+            path = "/status"; // Sesuaikan jika ada doku cek status
             method = "POST";
+            finalBody = {
+                ref_id_custom: dataParams.refid || dataParams.ref_id_custom
+            };
             break;
 
         case 'profile':
@@ -61,17 +66,16 @@ export default async function handler(req, res) {
 
     // 4. Susun URL
     const targetUrl = new URL(BASE_URL + path);
-    
-    // Cadangan API Key di URL (Legacy)
+    // Tetap sertakan API Key di URL sebagai cadangan
     targetUrl.searchParams.append('apikey', API_KEY); 
 
-    // 5. Setup Fetch dengan AUTH TOKEN
+    // 5. Setup Fetch
     const fetchOptions = {
         method: method,
         headers: {
-            'User-Agent': 'Vercel-Relay/6.0',
+            'User-Agent': 'Vercel-Relay/7.0',
             'Accept': 'application/json',
-            'Authorization': `Bearer ${API_KEY}` // Wajib untuk ICS Baru
+            'Authorization': `Bearer ${API_KEY}` // Wajib Token
         }
     };
 
@@ -82,16 +86,17 @@ export default async function handler(req, res) {
         });
     } else {
         fetchOptions.headers['Content-Type'] = 'application/json';
-        fetchOptions.body = JSON.stringify(dataParams);
+        // Gunakan finalBody yang sudah diremap jika ada, jika tidak gunakan dataParams asli
+        fetchOptions.body = JSON.stringify(Object.keys(finalBody).length > 0 ? finalBody : dataParams);
     }
 
     try {
-        console.log(`[Relay V6] ${method} ${targetUrl.toString()}`);
+        console.log(`[Relay V7] ${method} ${targetUrl.toString()}`);
+        if(method === 'POST') console.log("Payload:", fetchOptions.body);
         
         const response = await fetch(targetUrl.toString(), fetchOptions);
         const text = await response.text();
 
-        // Debug HTML Error
         if (text.trim().startsWith('<')) {
             console.error("[Relay HTML Error]", text.substring(0, 100));
             return res.status(502).json({

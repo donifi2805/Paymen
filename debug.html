@@ -1450,31 +1450,30 @@ window.openAkrabV2 = () => {
             else if (statusStr === 'failed' || statusStr === 'error') finalStatus = 'Gagal';
             else finalStatus = 'Pending';
 
-            // Baru Simpan ke Firestore (Hanya Status Terupdate)
                         // SENSOR PRIVASI (Saat Transaksi)
             const sanitize = (t) => (t||'').replace(/\(?\s*Sisa Saldo\s*:[^)]*\)?/gi, '').trim();
             const rawMsg = (finalRes.data ? (finalRes.data.message || finalRes.data.sn) : finalRes.message) || 'Transaksi Selesai';
             const rawSn = (finalRes.data ? finalRes.data.sn : '') || '-';
+            const safeMsg = sanitize(rawMsg);
 
-                        const updateData = {
-                status: finalStatus,
-                api_msg: sanitize(rawMsg),
-                sn: sanitize(rawSn),
-                supplier_id: (finalRes.data ? finalRes.data.refid : '') || '-',
-                raw_json: JSON.stringify(finalRes),
-                last_updated: new Date().toISOString()
-            };
-
-            await updateDoc(doc(db, "users", currentUser.uid, "history", reffId), updateData);
-
-            // Handle Alert & Refund jika Gagal
+            // LOGIKA REFUND FIX: Jangan update doc jika Gagal, langsung Refund!
             if (finalStatus === 'Gagal') {
-                const refundRes = await window.processSmartRefund(currentUser.uid, reffId, "Refund: " + updateData.api_msg);
-                alert("Transaksi Gagal: " + updateData.api_msg + "\n" + (refundRes.msg || "Saldo dikembalikan."));
-            } else if (finalStatus === 'Sukses') {
-                alert("Transaksi SUKSES!\nSN: " + updateData.sn);
+                const refundRes = await window.processSmartRefund(currentUser.uid, reffId, "Refund: " + safeMsg);
+                alert("Transaksi Gagal: " + safeMsg + "\n" + (refundRes.msg || "Saldo dikembalikan."));
             } else {
-                alert("Transaksi Berhasil Dikirim.\nStatus: Pending (Cek Riwayat Berkala).");
+                // Jika Sukses/Pending, baru update manual
+                const updateData = {
+                    status: finalStatus,
+                    api_msg: safeMsg,
+                    sn: sanitize(rawSn),
+                    supplier_id: (finalRes.data ? finalRes.data.refid : '') || '-',
+                    raw_json: JSON.stringify(finalRes),
+                    last_updated: new Date().toISOString()
+                };
+                await updateDoc(doc(db, "users", currentUser.uid, "history", reffId), updateData);
+                
+                if (finalStatus === 'Sukses') alert("Transaksi SUKSES!\nSN: " + updateData.sn);
+                else alert("Transaksi Berhasil Dikirim.\nStatus: Pending (Cek Riwayat Berkala).");
             }
             
             window.nav('homePage');

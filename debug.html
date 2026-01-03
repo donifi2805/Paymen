@@ -1401,12 +1401,16 @@ window.openAkrabV2 = () => {
             return alert("Gagal proses database: " + e);
         }
         
-        // 2. Panggil API ICS
+                // 2. Panggil API ICS (Gunakan POST agar Relay mendeteksi Transaksi)
         const apiRes = await callIcsApi('createTransaction', {
+            product_code: code,      // Kirim format baru langsung
+            dest_number: number,
+            ref_id_custom: reffId,
+            // Cadangan format lama (untuk backward compatibility relay)
             kode_produk: code,
             nomor_tujuan: number,
             refid: reffId
-        }, 'GET');
+        }, 'POST');
 
         window.showLoader(false);
 

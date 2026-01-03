@@ -61,7 +61,10 @@ export default async function handler(req, res) {
 
     // 4. Susun URL
     const targetUrl = new URL(BASE_URL + path);
-    targetUrl.searchParams.append('apikey', API_KEY); 
+    
+    // [PERBAIKAN 401] API Key HANYA dikirim via Header. 
+    // Baris di bawah dinonaktifkan agar server tidak mendeteksi spam/double auth.
+    // targetUrl.searchParams.append('apikey', API_KEY); 
 
     // 5. Setup Fetch
     const fetchOptions = {
@@ -69,15 +72,15 @@ export default async function handler(req, res) {
         headers: {
             'User-Agent': 'Vercel-Relay/8.0',
             'Accept': 'application/json',
+            // Auth Utama via Bearer Token
             'Authorization': `Bearer ${API_KEY}`
         }
     };
 
     if (method === 'GET') {
         // [FIX] Hapus parameter refid/ref_id_custom jika action checkTransaction
-        // Karena endpoint /transaction biasanya butuh parameter spesifik, pastikan query bersih
         if(action === 'checkTransaction') {
-             // Opsional: Sesuaikan parameter query jika dokumentasi ICS meminta nama field tertentu
+             // Pastikan query bersih
         }
         Object.keys(dataParams).forEach(key => {
             targetUrl.searchParams.append(key, dataParams[key]);
@@ -105,6 +108,7 @@ export default async function handler(req, res) {
 
         try {
             const json = JSON.parse(text);
+            // Jika masih error dari supplier, teruskan status aslinya (misal 401)
             return res.status(response.ok ? 200 : response.status).json(json);
         } catch (e) {
             return res.status(500).json({ success: false, message: 'Invalid JSON', raw: text });

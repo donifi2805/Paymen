@@ -477,7 +477,7 @@
 
             <div class="mb-6">
                 <p class="text-[10px] font-bold text-gray-500 mb-2 uppercase">System Logs</p>
-                <div id="debugLogs" class="h-40 overflow-y-auto bg-slate-900 text-green-400 p-3 rounded-xl font-mono text-[10px] border border-slate-800 custom-scroll">> Waiting for command...</div>
+                <div id="debugLogs" class="h-40 overflow-y-auto bg-slate-900 text-green-400 p-3 rounded-xl font-mono text-[10px] border border-slate-800 custom-scroll whitespace-pre-wrap break-words">> Waiting for command...</div>
             </div>
 
             <div class="grid md:grid-cols-2 gap-4">
@@ -781,34 +781,50 @@ window.listenDebugPreOrders = () => {
             onSnapshot(query(collection(db, "preorders"), orderBy("timestamp", "desc")), (snap) => {
                 const container = document.getElementById('debugPoList');
                 container.innerHTML = '';
-                if(snap.empty) { container.innerHTML = '<p class="text-gray-400 italic">No queue found.</p>'; return; }
+                if(snap.empty) { container.innerHTML = '<p class="text-gray-400 italic text-xs p-2">Tidak ada antrian preorder.</p>'; return; }
+
                 snap.forEach(docSnap => {
                     const po = docSnap.data();
                     const logId = `log-po-${docSnap.id}`;
-                    // Modifikasi: Cek status sukses tersimpan & log tersimpan
-                    const successBadge = po.debugStatus === 'SUCCESS' ? '<i class="fas fa-check-circle text-green-500 ml-2 text-sm" title="Sukses & Logs Tersimpan"></i>' : '';
-                    const savedLogs = po.debugLogs || '<div class="opacity-50">> Ready to debug...</div>';
 
-                    // Modifikasi: Tombol RUN hilang jika SUKSES (Skip Run Massal)
-                    const runBtn = po.debugStatus === 'SUCCESS' ? '' : `<button onclick="processPreOrderToSystem('${docSnap.id}', '${po.targetNumber}', '${po.provider}', '${po.serverType || 'KHFY'}')" class="bg-purple-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-purple-700 transition">RUN DEBUG</button>`;
+                    // --- STATUS BADGE & TOMBOL ---
+                    let statusBadge = '<span class="text-[9px] bg-gray-200 text-gray-500 px-2 py-0.5 rounded font-bold border border-gray-300">PENDING</span>';
+                    let extraInfo = '';
+                    // Tombol Run memanggil window.processPreOrderToSystem
+                    let runBtn = `<button onclick="window.processPreOrderToSystem('${docSnap.id}', '${po.targetNumber}', '${po.provider}', '${po.serverType || 'KHFY'}')" class="bg-purple-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-purple-700 transition shadow-sm mr-1">RUN DEBUG</button>`;
 
-                    container.innerHTML += `<div class="p-3 bg-gray-50 border rounded-lg mb-3">
+                    // JIKA SUKSES (TERBELI)
+                    if (po.debugStatus === 'TERBELI') {
+                        statusBadge = '<span class="text-[9px] bg-green-100 text-green-700 px-2 py-0.5 rounded font-bold border border-green-200">TERBELI</span>';
+                        runBtn = ''; // Hapus tombol Run
+                        if (po.successData) {
+                            extraInfo = `<span class="text-[9px] font-mono text-gray-500 ml-2 border-l pl-2 border-gray-300">${po.successData.code} • ${window.formatRp(po.successData.price)}</span>`;
+                        }
+                    }
+
+                    const savedLogs = po.debugLogs || '<div class="opacity-50 italic">> Ready...</div>';
+
+                    container.innerHTML += `<div class="p-3 bg-white border border-gray-200 rounded-lg mb-3 shadow-sm hover:shadow-md transition-shadow">
                         <div class="flex justify-between items-start mb-2">
-                            <div class="truncate mr-2">
-                                <div class="flex items-center gap-1.5">
-                                    <i class="fas fa-user text-blue-500"></i>
-                                    <span class="font-bold">${po.username || 'Unknown'}</span>
-                                    ${successBadge}
+                            <div class="truncate mr-2 w-full">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <i class="fas fa-user-circle text-gray-400"></i>
+                                    <span class="font-bold text-gray-800 text-xs">${po.username || 'Unknown'}</span>
+                                    ${statusBadge}
+                                    ${extraInfo}
                                 </div>
-                                <div class="text-gray-500 font-mono text-[9px]">${po.targetNumber} - ${po.provider}</div>
+                                <div class="text-gray-500 font-mono text-[10px] flex items-center gap-3">
+                                    <span><i class="fas fa-phone-alt text-[9px] mr-1"></i>${po.targetNumber}</span>
+                                    <span class="bg-blue-50 text-blue-600 px-1.5 rounded border border-blue-100">${po.provider}</span>
+                                </div>
                             </div>
-                            <div class="flex gap-1">
+                            <div class="flex gap-1 shrink-0">
                                 ${runBtn}
-                                <button onclick="handlePreorderDebugAction('${docSnap.id}', 'Sukses')" class="bg-emerald-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-emerald-700 transition"><i class="fas fa-check"></i></button>
-                                <button onclick="handlePreorderDebugAction('${docSnap.id}', 'Tolak')" class="bg-red-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-red-700 transition"><i class="fas fa-times"></i></button>
+                                <button onclick="handlePreorderDebugAction('${docSnap.id}', 'Sukses')" class="bg-emerald-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-emerald-700 transition" title="Selesaikan Manual"><i class="fas fa-check"></i></button>
+                                <button onclick="handlePreorderDebugAction('${docSnap.id}', 'Tolak')" class="bg-red-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-red-700 transition" title="Tolak"><i class="fas fa-trash"></i></button>
                             </div>
                         </div>
-                        <div id="${logId}" class="h-24 overflow-y-auto bg-slate-900 text-gray-300 p-2 rounded font-mono text-[9px] border border-slate-700 custom-scroll">
+                        <div id="${logId}" class="h-24 overflow-y-auto bg-slate-900 text-gray-300 p-2 rounded border border-slate-700 custom-scroll font-mono text-[9px] leading-snug whitespace-pre-wrap break-words overflow-x-hidden">
                             ${savedLogs}
                         </div>
                     </div>`;
@@ -833,11 +849,12 @@ window.listenDebugPreOrders = () => {
             
             setTimeout(() => {
                 addDebugLog('Memulai eksekusi otomatis...', 'info', targetLogId);
-                executeDebugTrx(currentAutoServer, id);
+                // PERBAIKAN: Gunakan window.executeDebugTrx agar tidak error reference
+                window.executeDebugTrx(currentAutoServer, id);
             }, 500);
         };
 
-        window.executeAutoBypass = () => executeDebugTrx(currentAutoServer);
+        window.executeAutoBypass = () => window.executeDebugTrx(currentAutoServer);
 
         window.executeDebugTrx = async (system, poId = null) => {
     const num = document.getElementById('debugTargetNum').value;
@@ -847,22 +864,17 @@ window.listenDebugPreOrders = () => {
     if (!num || !code) return Swal.fire('Error', 'Data target/produk kosong', 'warning');
     
     const reffId = `DBG-${Date.now()}`;
-    addDebugLog(`[${system}] Mengirim permintaan via RELAY KHUSUS: ${code} -> ${num}...`, 'info', targetLogId);
+    addDebugLog(`[${system}] 🚀 Memulai transaksi: ${code} -> ${num}...`, 'info', targetLogId);
     
     try {
         let result;
         if (system === 'KHFY') {
-            // MENGGUNAKAN RELAY BARU (relaykhfy.js)
-            // Kita kirim 'endpoint' dan parameter transaksi
             const targetUrl = `${KHFY_RELAY_URL}?endpoint=/trx&produk=${code}&tujuan=${num}&reff_id=${reffId}&_t=${Date.now()}`;
-            
             const res = await fetch(targetUrl);
             const json = await res.json();
-
             if(!res.ok && !json.success && !json.status) throw new Error(json.message || "Gagal via Relay KHFY");
             result = json;
         } else {
-            // MENGGUNAKAN RELAY LAMA (ICS)
             const params = { kode_produk: code, nomor_tujuan: num, refid: reffId };
             const apiRes = await callIcsApi('createTransaction', params, 'POST');
             result = apiRes;
@@ -870,31 +882,25 @@ window.listenDebugPreOrders = () => {
 
         let logData = result;
         if (system !== 'KHFY' && result.data) logData = result.data;
-        
         const rawResponse = JSON.stringify(logData, null, 2);
-        let isOk = false; let msg = '';
         
+        let isOk = false; 
         if (system === 'KHFY') {
-            // Cek respon KHFY via Relay
             isOk = (result.status === true || (result.message && result.message.toLowerCase().includes('sukses')));
-            msg = (result.message || '').toLowerCase();
         } else {
-            // Cek respon ICS
             isOk = result.success === true;
-            msg = (result.message || result.sn || '').toLowerCase();
         }
 
-        addDebugLog(`API Response:<br><pre class="mt-1 p-2 bg-black/40 border border-white/10 rounded text-[9px] font-mono whitespace-pre-wrap leading-tight select-all text-left">${rawResponse}</pre>`, isOk ? 'info' : 'error', targetLogId);
+        addDebugLog(`API Response:<br><pre class="mt-1 p-1.5 bg-black/50 border border-white/10 rounded text-green-300 whitespace-pre-wrap break-words">${rawResponse}</pre>`, isOk ? 'info' : 'error', targetLogId);
         
         if (isOk) {
             let checkCount = 0;
             const checkInterval = setInterval(async () => {
                 checkCount++;
-                addDebugLog(`[Check #${checkCount}] Memeriksa status...`, 'info', targetLogId);
+                addDebugLog(`⏳ [Cek #${checkCount}] Memantau status...`, 'info', targetLogId);
                 
-                let statusRes;
+                let statusRes = null;
                 if(system === 'KHFY') {
-                     // Cek history via Relay KHFY Baru
                      try {
                         const cRes = await fetch(`${KHFY_RELAY_URL}?endpoint=/history&refid=${reffId}&_t=${Date.now()}`);
                         const cJson = await cRes.json();
@@ -902,35 +908,58 @@ window.listenDebugPreOrders = () => {
                         else if(cJson.data) statusRes = cJson.data;
                      } catch(e) { console.log("Cek status error", e); }
                 } else {
-                     // Cek history via Relay ICS Lama
                      const cRes = await callIcsApi('checkTransaction', { refid: reffId });
                      if(cRes.success) statusRes = cRes.data;
                 }
 
                 if (statusRes) {
-                    const st = (statusRes.status || '').toLowerCase();
+                    const st = (statusRes.status || statusRes.status_text || '').toLowerCase();
                     const sn = statusRes.sn || statusRes.message || '-';
                     
+                    // === SUKSES (SIMPAN KE DB) ===
                     if (st.includes('sukses') || st.includes('success')) {
                         clearInterval(checkInterval);
-                        addDebugLog(`✅ TRANSAKSI SUKSES! SN: ${sn}`, 'success', targetLogId);
+                        addDebugLog(`✅ <b>TRANSAKSI SUKSES!</b> SN: ${sn}`, 'success', targetLogId);
+                        
+                        let finalCode = '', finalPrice = 0;
+                        if (system === 'KHFY') {
+                            finalCode = statusRes.kode_produk || code;
+                            finalPrice = statusRes.harga || 0;
+                        } else {
+                            finalCode = statusRes.product || code;
+                            finalPrice = statusRes.price || 0;
+                        }
+
+                        // >> SIMPAN PERMANEN <<
+                        if(poId) {
+                            const logsHTML = document.getElementById(targetLogId).innerHTML;
+                            await updateDoc(doc(db, "preorders", poId), {
+                                debugStatus: 'TERBELI',
+                                successData: { code: finalCode, price: parseInt(finalPrice) },
+                                debugLogs: logsHTML
+                            });
+                        }
+
+                    // === GAGAL (RESET) ===
                     } else if (st.includes('gagal') || st.includes('failed') || st.includes('error')) {
                         clearInterval(checkInterval);
-                        addDebugLog(`❌ TRANSAKSI GAGAL. Msg: ${sn}`, 'error', targetLogId);
+                        addDebugLog(`❌ <b>TRANSAKSI GAGAL.</b> Pesan: ${sn}`, 'error', targetLogId);
+                        addDebugLog(`⚠️ Status GAGAL tidak disimpan (Clean) agar bisa di-run ulang.`, 'warning', targetLogId);
+                        // TIDAK ADA updateDoc() di sini, data tetap Pending di DB.
                     }
                 }
-                if (checkCount >= 5) {
+                
+                if (checkCount >= 12) {
                     clearInterval(checkInterval);
-                    addDebugLog("⚠️ Timeout monitoring status (Cek manual nanti)", 'warning', targetLogId);
+                    addDebugLog("⚠️ Timeout monitoring status.", 'warning', targetLogId);
                 }
-            }, 4000);
+            }, 3000);
         }
     } catch (e) {
         console.error(e);
         addDebugLog("Error System: " + e.message, 'error', targetLogId); 
     }
-};
-const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
+};const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
         const firebaseConfig = {
             apiKey: "AIzaSyBnVxgxkS8InH1PQCMGe3cY8IvPqSN6dLo",
             authDomain: "ppob-3ea96.firebaseapp.com",

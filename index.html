@@ -245,10 +245,14 @@
                 </div>
                 
                 <div class="flex gap-3">
-                    <div class="flex-1 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 relative">
-                        <p class="text-[10px] text-gray-500 mb-1">Status</p>
+                                        <div class="flex-1 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 relative">
+                        <div class="flex justify-between items-center mb-1">
+                            <p class="text-[10px] text-gray-500">Status</p>
+                            <button id="btnRefreshStatus" onclick="" class="hide px-2 py-0.5 bg-blue-100 text-blue-700 rounded-md text-[9px] font-bold hover:bg-blue-200 transition-colors shadow-sm flex items-center gap-1">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                        </div>
                         <p class="text-xs font-bold" id="dtStatus">-</p>
-                        <button id="btnRefreshStatus" onclick="" class="hide absolute top-2 right-2 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-sm"><i class="fas fa-sync-alt text-[10px]"></i></button>
                     </div>
                     <div class="flex-1 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
                         <p class="text-[10px] text-gray-500 mb-1">Nominal</p>
@@ -526,7 +530,7 @@
             </div>
                 <h1 class="text-3xl font-bold tracking-tight">Pandawa Store</h1>
                 <p class="text-blue-100 text-sm mt-1">Agen Pulsa PPOB Terpercaya</p>
-<p class="text-blue-200/70 text-[10px] mt-2 font-mono tracking-widest bg-white/10 px-2 py-0.5 rounded-lg inline-block" id="versionDisplay">v3.1</p>
+<p class="text-blue-200/70 text-[10px] mt-2 font-mono tracking-widest bg-white/10 px-2 py-0.5 rounded-lg inline-block" id="versionDisplay">v3.3</p>
             </div>
             
             <div class="bg-white dark:bg-gray-900 p-8 rounded-3xl shadow-xl shadow-blue-900/10 dark:shadow-black/30 transition-all duration-300">
@@ -1013,7 +1017,7 @@
     const app = initializeApp(firebaseConfig);
 
     // --- FITUR AUTO UPDATE & PWA ---
-        const APP_VERSION_CODE = 'v3.1'; // Versi saat ini
+        const APP_VERSION_CODE = 'v3.3'; // Versi saat ini
 
     // Update Label Versi di Login
     setTimeout(() => {
@@ -1175,9 +1179,10 @@
     };
 
 // 2. ICS STORE INTEGRATION
-    const ICS_CONFIG = {
-        apiKey: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3",
-        baseUrl: "https://reseller.ics-store.my.id"
+        // 2. ICS STORE INTEGRATION (VERCEL DIRECT)
+    const ICS_CONFIG = { 
+        apiKey: "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77", 
+        baseUrl: "https://www.pandawa-digital.store/api/relay" 
     };
 
         let currentIcsType = 'xla';
@@ -1206,55 +1211,44 @@ window.openAkrabV2 = () => {
         window.initAkrabV2Data();
     };
 
-                    async function callIcsApi(action, params = {}, method = 'GET') {
-        // FIX: Gunakan API Key di URL. Header sering dihapus oleh Proxy publik.
-                // FIX: Tambahkan timestamp (_t) untuk bypass Cache Proxy yang membandel
-        let targetUrl = `${ICS_CONFIG.baseUrl}/?action=${action}&apikey=${ICS_CONFIG.apiKey}&_t=${Date.now()}`;
-        let options = { method: method };
+                        async function callIcsApi(action, params = {}, method = 'GET') {
+        // [FIX] Gunakan timestamp untuk bypass cache
+        const t = Date.now();
+        let targetUrl = `${ICS_CONFIG.baseUrl}?action=${action}&apikey=${ICS_CONFIG.apiKey}&_t=${t}`;
+        
+        const options = {
+            method: method,
+            headers: { 'Accept': 'application/json' }
+        };
 
-                        if (method === 'GET') {
+        if (method === 'GET') {
             const qs = new URLSearchParams(params).toString();
             if(qs) targetUrl += `&${qs}`;
         } else if (method === 'POST') {
-             // FIX: Strategi Double-Send (URL + Body) agar kebal terhadap Proxy yang membuang Body
-             const qs = new URLSearchParams(params).toString();
-             if(qs) targetUrl += `&${qs}`; // Tempel juga di URL sebagai cadangan
-             
-             options.body = new URLSearchParams(params);
-             options.headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+             options.headers['Content-Type'] = 'application/json';
+             options.body = JSON.stringify(params);
         }
 
-        for (const proxy of PROXY_LIST) {
-            try {
-                // Encode URL target agar aman saat melewati URL proxy
-                const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
-                
-                // Timeout 15 detik
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 15000);
+        // [PENTING] Direct Fetch ke Domain Sendiri (Tanpa Proxy)
+        try {
+            console.log("[ICS] Calling Relay:", targetUrl);
+            const res = await fetch(targetUrl, options);
+            const text = await res.text();
 
-                const res = await fetch(fullUrl, { ...options, signal: controller.signal });
-                clearTimeout(timeoutId);
-
-                if (res.ok) {
-                    const text = await res.text();
-                    // Coba parsing JSON
-                    try { 
-                        let data = JSON.parse(text); 
-                        // Handle jika proxy membungkus response di dalam field 'contents'
-                        if (data.contents) {
-                             try { data = JSON.parse(data.contents); } catch(e) { data = data.contents; }
-                        }
-                        return data;
-                    } catch (e) { 
-                        console.warn('ICS JSON Parse Error via ' + proxy.name, e); 
-                    }
-                }
-            } catch (e) { 
-                console.warn('ICS Proxy Error via ' + proxy.name, e); 
+            if (!res.ok) {
+                return { success: false, message: `HTTP Error ${res.status}: ${res.statusText}`, raw: text };
             }
+
+            try { 
+                return JSON.parse(text); 
+            } catch (e) { 
+                console.error("Parse Error:", text);
+                return { success: false, message: 'Respon Relay bukan JSON valid.', raw: text }; 
+            }
+        } catch (e) {
+            console.error("Network Error:", e);
+            return { success: false, message: 'Gagal koneksi ke Relay (Cek Internet/Domain)' };
         }
-        return { success: false, message: 'Gagal koneksi ke server  (Semua Proxy Gagal)' };
     }
 
 
@@ -1342,7 +1336,33 @@ window.openAkrabV2 = () => {
         }
     };
 
-            window.executeIcsTransaction = async (code, number, price, name, provCode) => {
+                // Fungsi Monitoring Otomatis (Auto-Check selama 60 detik)
+    window.monitorNewTrx = (trxId) => {
+        console.log("Mulai memantau transaksi:", trxId);
+        let attempt = 0;
+        const maxAttempts = 20; // Cek 20x (1 menit)
+        
+        const interval = setInterval(async () => {
+            attempt++;
+            // Cek status diam-diam (background)
+            await window.manualCheckTrx(trxId, 'ICS');
+            
+            // Cek apakah status sudah berubah final di database lokal?
+            // Kita ambil data terbaru dari cache/db untuk memutus loop jika sudah selesai
+            const cacheKey = `trx_cache_${currentUser.uid}`;
+            let cachedData = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+            let trx = cachedData.find(t => t.trx_id === trxId);
+            
+            if (trx && (trx.status === 'Sukses' || trx.status === 'Gagal')) {
+                console.log("Transaksi Selesai! Stop monitoring.");
+                clearInterval(interval);
+            }
+            
+            if (attempt >= maxAttempts) clearInterval(interval);
+        }, 3000); // Cek setiap 3 detik
+    };
+
+    window.executeIcsTransaction = async (code, number, price, name, provCode) => {
         window.showLoader(true);
         // Format Baru ICS: ICS-08xx-JamMenitDetik
         const d = new Date();
@@ -1386,11 +1406,7 @@ window.openAkrabV2 = () => {
         }
         
         // 2. Panggil API ICS
-        const apiRes = await callIcsApi('createTransaction', {
-            kode_produk: code,
-            nomor_tujuan: number,
-            refid: reffId
-        }, 'GET');
+        const apiRes = await callIcsApi('createTransaction', { kode_produk: code, nomor_tujuan: number, refid: reffId }, 'POST');
 
         window.showLoader(false);
 
@@ -1402,8 +1418,12 @@ window.openAkrabV2 = () => {
                 raw_json: JSON.stringify(apiRes)
             });
                         
-alert("Transaksi Berhasil Dikirim!\nKode Trx: " + trxCode + "\nStatus: Pending.");
+            alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSilakan tunggu sebentar.");
             window.nav('homePage');
+            
+            // [BARU] Jalankan Auto-Monitor Segera!
+            window.monitorNewTrx(reffId);
+            
         } else {
             // --- FIX BUG FALSE NEGATIVE ICS (Anti Refund saat RTO) ---
             const errStr = (apiRes.error || apiRes.message || "").toString();
@@ -2775,95 +2795,126 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
         if(!listContainer) return;
         listContainer.innerHTML = '';
 
-        // --- LOGIKA BARU: ICS HANDLER ---
+        // --- LOGIKA BARU: ICS HANDLER (FIXED) ---
         if (providerCode.startsWith('ICS_')) {
-             if(txtProd) txtProd.innerText = 'Memuat Dari Server';
+             if(txtProd) txtProd.innerText = 'Memuat Dari Server...';
              if(btnProd) btnProd.classList.add('cursor-not-allowed', 'opacity-50');
 
              let icsType = 'xda';
              if(providerCode === 'ICS_CIRCLE') icsType = 'circle';
+             if(providerCode === 'ICS_XLA') icsType = 'xla';
 
+             // Panggil API
              const res = await callIcsApi('listProducts', { type: icsType });
              
-             if (res.success && res.data) {
-                const readyItems = res.data.ready || [];
-                const emptyItems = res.data.empty || [];
-                const allProducts = [...readyItems, ...emptyItems];
-                allProducts.sort((a, b) => a.harga - b.harga);
+                          // LOGIKA CERDAS: Deteksi berbagai format respon ICS
+             let allProducts = [];
+             if (res) {
+                if (res.ready && Array.isArray(res.ready)) allProducts = res.ready;
+                else if (res.data && res.data.ready && Array.isArray(res.data.ready)) allProducts = res.data.ready;
+                else if (Array.isArray(res.data)) allProducts = res.data;
+                else if (Array.isArray(res)) allProducts = res;
+             }
 
-                if(allProducts.length === 0) {
-                     if(txtProd) txtProd.innerText = 'Stok Kosong';
-                     listContainer.innerHTML = '<div class="text-center py-8 text-gray-400 flex flex-col items-center"><i class="fas fa-box-open text-2xl mb-2"></i><p class="text-xs">Tidak ada produk tersedia di ICS</p></div>';
-                     return;
-                }
+             // --- FILTER SYSTEM V2 (STRICT) ---
+             if (providerCode === 'ICS_CIRCLE') {
+                 allProducts = allProducts.filter(p => (p.type === 'circle' || (p.code || p.kode_produk || '').toUpperCase().startsWith('XCL')));
+             } 
+             else if (providerCode === 'ICS_XDA') {
+                 allProducts = allProducts.filter(p => (p.type === 'xda' || (p.code || p.kode_produk || '').toUpperCase().startsWith('XDA')));
+             }
+             else if (providerCode === 'ICS_XLA') {
+                 allProducts = allProducts.filter(p => (p.type === 'xla' || ((p.code || p.kode_produk || '').toUpperCase().startsWith('XLA') && !(p.code || p.kode_produk || '').toUpperCase().startsWith('XDA'))));
+             }
+             else if (providerCode === 'ICS_FMX' || providerCode === 'ICS_FMAX') {
+                 allProducts = allProducts.filter(p => (p.type === 'fmax' || p.type === 'fmx' || (p.code || p.kode_produk || '').toUpperCase().startsWith('FMX') || (p.code || p.kode_produk || '').toUpperCase() === 'CFMX'));
+             }
 
+             if (allProducts.length > 0) {
                 if(btnProd) {
                     btnProd.classList.remove('cursor-not-allowed', 'opacity-50');
                     btnProd.classList.add('bg-white', 'hover:bg-gray-50');
                 }
                 if(txtProd) txtProd.innerText = '-- Klik Untuk Pilih Produk --';
 
+                // Urutkan termurah
+                allProducts.sort((a, b) => (parseInt(a.harga || a.price || 0) - (parseInt(b.harga || b.price || 0))));
+
                 allProducts.forEach(p => {
-                    let sellPrice = p.harga;
-                    let name = p.nama_produk;
-                    const code = p.kode_produk;
+                    let rawPrice = parseInt(p.harga || p.price || 0);
+                    let price = rawPrice;
+                    let name = p.nama_produk || p.name || 'Produk Tanpa Nama';
+                    const code = p.kode_produk || p.code;
+                    
+                    // Logic Status/Stok V2
+                    let stockCount = p.stock || p.stok || 0;
+                    const isStatusEmpty = (p.status === 'empty');
+                    if (!isStatusEmpty && stockCount > 0) stockCount = p.stock || p.stok; 
+                    
+                    const isHabis = isStatusEmpty || stockCount == 0;
+                    const stockInfo = isHabis ? 'KOSONG / GANGGUAN' : (stockCount > 900 ? 'Tersedia' : `Stok: ${stockCount}`);
 
-                    // LOGIKA BARU (ICS General): Markup & Rename
-                    if(pricingRules[code]) {
+                    // Cek Pricing Rules (Markup)
+                    if(typeof pricingRules !== 'undefined' && pricingRules[code]) {
                         const r = pricingRules[code];
-                        if(typeof r === 'object') {
-                            if(r.price) sellPrice += parseInt(r.price);
-                            if(r.name) name = r.name;
-                        } else {
-                            sellPrice += parseInt(r);
-                        }
+                        price += (typeof r === 'object') ? parseInt(r.price || 0) : parseInt(r);
+                        if(typeof r === 'object' && r.name) name = r.name;
                     } else {
-                        sellPrice += 2000; // Default Margin
+                        price += 2000; // Default Margin
                     }
-
-                    const isHabis = p.stok === 0 || p.stok === '0' || emptyItems.includes(p);
 
                     const div = document.createElement('div');
-                    div.className = `p-4 rounded-2xl border ${isHabis ? 'border-red-200 bg-red-50 dark:bg-red-900/10 cursor-not-allowed opacity-70' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 cursor-pointer transition active:scale-[0.98]'} mb-2 flex justify-between items-center group`;
+                    div.className = `p-4 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 cursor-pointer mb-2 flex justify-between items-center transition hover:shadow-sm active:scale-[0.98] ${isHabis ? 'opacity-60 grayscale' : ''}`;
                     
-                    if(!isHabis) {
-                        div.onclick = () => window.selectProduct(code, name, sellPrice, `Stok Tersedia: ${p.stok}`, encodeURIComponent(name));
+                    if(isHabis) {
+                        div.innerHTML = `
+                            <div>
+                                <p class="text-xs font-bold text-red-500 line-through">${name}</p>
+                                <p class="text-[9px] text-red-400 mt-0.5 font-bold">${stockInfo}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm font-black text-gray-400">Rp ${window.formatRp(price).replace('Rp', '')}</p>
+                            </div>`;
+                    } else {
+                        div.onclick = () => window.selectProduct(code, name, price, stockInfo, encodeURIComponent(name));
+                        div.innerHTML = `
+                            <div>
+                                <p class="text-xs font-bold text-gray-700 dark:text-gray-200">${name}</p>
+                                <p class="text-[9px] text-gray-400 mt-0.5">${stockInfo}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm font-black text-blue-600 dark:text-blue-400">Rp ${window.formatRp(price).replace('Rp', '')}</p>
+                            </div>`;
                     }
-
-                    div.innerHTML = `
-                        <div class="flex-1 pr-2">
-                            <p class="text-xs font-bold text-gray-700 dark:text-gray-200 leading-tight group-hover:text-blue-600 transition">${name}</p>
-                            ${isHabis ? '<span class="text-[9px] text-red-500 font-bold">STOK HABIS</span>' : ''}
-                        </div>
-                        <div class="text-right">
-                            <p class="text-sm font-black text-blue-600 dark:text-blue-400">Rp ${window.formatRp(sellPrice).replace('Rp', '')}</p>
-                        </div>`;
                     listContainer.appendChild(div);
                 });
              } else {
-                 if(txtProd) txtProd.innerText = 'Gagal Koneksi ';
-                 alert('Gagal memuat data : ' + (res.message || 'Unknown'));
+                 if(txtProd) txtProd.innerText = 'Stok Kosong';
+                 listContainer.innerHTML = '<div class="text-center py-10 flex flex-col items-center opacity-50"><i class="fas fa-box-open text-3xl mb-2"></i><p class="text-xs">Produk belum tersedia</p></div>';
              }
-             return; // Stop, jangan jalankan logika Khfy
+             return; // STOP di sini agar tidak lanjut ke logika KHFY
         }
 
-        // --- LOGIKA LAMA: KHFY ---
+        // --- LOGIKA LAMA: KHFY (Backup) ---
         if(!globalProducts || globalProducts.length === 0) {
              if(txtProd) txtProd.innerText = 'Data Belum Siap';
              window.initProductData(); 
              return;
         }
 
-        const filtered = globalProducts.filter(p => {
+                const filtered = globalProducts.filter(p => {
             const code = (p.code || p.kode_produk || p.buyer_sku_code || '').toUpperCase();
             const name = (p.name || p.nama_produk || p.product_name || '').toUpperCase();
             const brand = (p.brand || p.kode_provider || p.operator || '').toUpperCase();
             
-                        if (providerCode === 'XDA') return code.startsWith('XDA');
-if (providerCode === 'FMX') return (code.startsWith('FMX') || code === 'CFMX') && brand === 'FMAX';
-            if (providerCode === 'XLR') return brand === 'XLREGULER';
-            if (providerCode === 'PLN') return brand.includes('PLN') || code.includes('PLN') || name.includes('TOKEN');
+            // FILTER KHFY LEBIH KETAT
+            if (providerCode === 'XDA') return code.startsWith('XDA') || brand.includes('AKRAB FRESH');
+            if (providerCode === 'XLA') return (code.startsWith('XLA') || code.startsWith('XLC')) && !code.startsWith('XDA');
+            if (providerCode === 'FMX') return (code.startsWith('FMX') || code === 'CFMX') || brand === 'FMAX';
+            if (providerCode === 'XLR') return brand === 'XLREGULER' || (brand.includes('XL') && !brand.includes('AKRAB') && !brand.includes('AXIS'));
+            if (providerCode === 'PLN') return brand.includes('PLN') || code.includes('PLN');
 
+            // Default
             return brand.includes(providerCode) || name.includes(providerCode) || code.includes(providerCode);
         });
 
@@ -2894,7 +2945,7 @@ if (providerCode === 'FMX') return (code.startsWith('FMX') || code === 'CFMX') &
             const desc = p.deskripsi || '';
             
             // LOGIKA BARU (KHFY): Support Rename & Markup Object
-            if(pricingRules[code]) {
+            if(typeof pricingRules !== 'undefined' && pricingRules[code]) {
                 const r = pricingRules[code];
                 if(typeof r === 'object') {
                     if(r.price) price += parseInt(r.price);
@@ -2938,9 +2989,7 @@ if (providerCode === 'FMX') return (code.startsWith('FMX') || code === 'CFMX') &
             listContainer.appendChild(div);
         });
     };
-
-
-    window.toggleMultiTrx = () => {
+window.toggleMultiTrx = () => {
         isMultiTrx = !isMultiTrx;
         const check = document.getElementById('multiTrxCheck');
         const icon = check.querySelector('i');
@@ -3566,7 +3615,7 @@ window.showLoader(false);
         
         for (const docSnap of snapshot.docs) {
             const trx = docSnap.data();
-            if(trx.provider_id === 'MANUAL' || trx.provider_id === 'ICS' || String(trx.trx_id).startsWith('ICS-')) continue;
+            if (trx.provider_id === 'MANUAL' || trx.provider_id === 'MANUAL_SEABANK') continue;
 
             await window.manualCheckTrx(trx.trx_id, trx.provider_id);
         }
@@ -3828,7 +3877,7 @@ window.renderTopUpHistory = () => {
         </div>`;
     };
 
-                    window.openTrxDetail = (trxId) => {
+                        window.openTrxDetail = (trxId) => {
         const cacheKey = `trx_cache_${currentUser.uid}`;
         let cachedData = JSON.parse(localStorage.getItem(cacheKey) || '[]');
         let trx = cachedData.find(t => t.trx_id === trxId) || transactions.find(t => t.trx_id === trxId);
@@ -3853,40 +3902,21 @@ window.renderTopUpHistory = () => {
         const infoEl = document.getElementById('dtSn');
         infoEl.innerText = trx.api_msg || '-';
 
-        // REFRESH OTOMATIS SAAT DETAIL DIBUKA JIKA STATUS PENDING
-                if(trx.status === 'Pending' || trx.status === 'Proses') {
-            document.getElementById('btnRefreshStatus').classList.remove('hide');
-            document.getElementById('btnRefreshStatus').onclick = () => window.manualCheckTrx(trx.trx_id, trx.provider_id || trx.trx_id);
-            if(!trx.trx_id.startsWith('PO-')) window.manualCheckTrx(trx.trx_id, trx.provider_id || trx.trx_id);
-        }
-
-        if(trx.trx_id.startsWith('PO-')) {
-            const refundInfo = trx.status === 'Gagal' && trx.balance_final ? `<div class="mt-2 p-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg text-[9px] font-bold border border-green-200"><i class="fas fa-undo-alt mr-1"></i> Saldo di-refund: ${window.formatRp(trx.balance_final)}</div>` : '';
-            infoEl.innerHTML = `
-            <div class="space-y-1 text-[10px] font-mono">
-                <div class="border-b border-blue-200 dark:border-blue-800 pb-1 mb-1">
-                    <span class="block font-bold text-blue-700 dark:text-blue-300">Informasi Preorder:</span>
-                    <span>${trx.api_msg || 'Menunggu Admin'}</span>
-                </div>
-                <div class="grid grid-cols-1 gap-1">
-                    <div><span class="text-gray-500">Produk:</span> <span class="font-bold">${trx.title.replace('Preorder: ', '')}</span></div>
-                    <div><span class="text-gray-500">Kode:</span> <span class="font-bold">${trx.raw_code || '-'}</span></div>
-                    <div><span class="text-gray-500">Tujuan:</span> <span class="font-bold text-blue-600">${trx.dest_num || '-'}</span></div>
-                    <div><span class="text-gray-500">Waktu:</span> <span class="font-bold">${new Date(trx.date).toLocaleTimeString('id-ID')} WIB</span></div>
-                </div>
-                ${refundInfo}
-            </div>`;
+        // Tampilkan Tombol Refresh Manual (Kecuali Dibatalkan)
+        const btnRefresh = document.getElementById('btnRefreshStatus');
+        if (trx.status !== 'Dibatalkan') {
+            btnRefresh.classList.remove('hide');
+            btnRefresh.onclick = () => window.manualCheckTrx(trx.trx_id, trx.provider_code || trx.provider_id);
         } else {
-            document.getElementById('btnRefreshStatus').classList.add('hide');
-            if (trx.raw_json && trx.raw_json !== '{}') {
-                try {
-                    const json = JSON.parse(trx.raw_json);
-                    infoEl.innerHTML = window.formatDetailInfo(json);
-                } catch (e) { console.warn("JSON parse error"); }
-            }
+            btnRefresh.classList.add('hide');
         }
 
+        // Auto Check khusus Pending (tanpa klik)
+        if(trx.status === 'Pending' || trx.status === 'Proses') {
+             if(!trx.trx_id.startsWith('PO-')) window.manualCheckTrx(trx.trx_id, trx.provider_code || trx.provider_id);
+        }
         
+        // Tombol Batalkan Preorder (PO)
         const btnCancelPo = document.getElementById('btnCancelPreorder');
         if(trx.trx_id.startsWith('PO-') && trx.status === 'Pending') {
             btnCancelPo.classList.remove('hide');
@@ -3895,80 +3925,117 @@ window.renderTopUpHistory = () => {
             btnCancelPo.classList.add('hide');
         }
 
-document.getElementById('detailTrxModal').classList.remove('hide');
+        document.getElementById('detailTrxModal').classList.remove('hide');
     };
 
-            window.manualCheckTrx = async (docId, providerId) => {
+                    window.manualCheckTrx = async (docId, providerId) => {
         const btn = document.getElementById('btnRefreshStatus');
         if(btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        
+
         try {
-            // 1. Ambil Data Lokal DULU (Penting untuk Nama Produk & Cek Status Lama)
+            // 1. Ambil Data Lokal
             const trxRef = doc(db, "users", currentUser.uid, "history", docId);
             const trxSnap = await getDoc(trxRef);
             if(!trxSnap.exists()) return;
             const localData = trxSnap.data();
 
-            // 2. Panggil API History
-            const res = await callApi('/history', { refid: docId });
-            
-            if(res.ok && res.data) {
-                let root = res.data;
-                let item = root.data;
-                if (Array.isArray(item)) item = item[0];
+            // --- LOGIKA ICS (Update V4 with Error Handler) ---
+            if (String(docId).startsWith('ICS-') || providerId === 'ICS' || (localData.provider_code && localData.provider_code.startsWith('ICS'))) {
+                console.log("[Check] Mode ICS untuk", docId);
+                const res = await callIcsApi('checkTransaction', { refid: docId });
                 
-                if (item) {
-                    const statusText = (item.status_text || '').toUpperCase();
-                    const keterangan = item.keterangan || '';
-                    const sn = item.sn || '';
-                    
+                if (res.success) {
                     let freshStatus = 'Pending';
-                    if (statusText === 'SUKSES') freshStatus = 'Sukses';
-                    else if (statusText === 'GAGAL') freshStatus = 'Gagal';
-
+                    const rawStatus = (res.data?.status || res.status || '').toLowerCase();
+                    const sn = res.data?.sn || res.sn || res.message || '';
+                    
+                    if (rawStatus === 'sukses' || rawStatus === 'success') freshStatus = 'Sukses';
+                    else if (rawStatus === 'gagal' || rawStatus === 'failed' || rawStatus === 'error') freshStatus = 'Gagal';
+                    
                     if (freshStatus === 'Gagal') {
-                        // Cek agar tidak refund 2x
                         if(localData.status !== 'Gagal') {
-                             await window.processSmartRefund(currentUser.uid, docId, 'Refund: ' + (keterangan || 'Transaksi Gagal'));
+                             await window.processSmartRefund(currentUser.uid, docId, 'Refund: ' + (sn || 'Transaksi Gagal'));
+                             alert("Status Gagal: Saldo telah dikembalikan.");
                         }
                     } else if (freshStatus === 'Sukses') {
-                        // FIX DOUBLE NOTIF: Cek ulang status TERBARU dari database tepat sebelum eksekusi
-                        // Ini mencegah Race Condition jika ada 2 proses berjalan bersamaan
-                        const latestSnap = await getDoc(trxRef);
-                        
-                        if (latestSnap.exists() && latestSnap.data().status !== 'Sukses') {
+                        if(localData.status !== 'Sukses') {
                             await updateDoc(trxRef, {
                                 status: 'Sukses',
                                 api_msg: 'Transaksi Berhasil',
-                                sn: sn || keterangan || 'Transaksi Berhasil',
-                                raw_json: JSON.stringify(root)
+                                sn: sn,
+                                raw_json: JSON.stringify(res)
                             });
-                            
-                            if(typeof window.sendTelegramNotif === 'function') {
-                                window.sendTelegramNotif('ORDER', { 
-                                    title: localData.title || 'Produk', 
-                                    amount: localData.amount || 0, 
-                                    dest: localData.dest_num || '', 
-                                    trxId: docId 
-                                });
-                            }
+                            alert("Status Berhasil Diperbarui!");
                         }
+                    } else {
+                        alert("Status Masih Pending di Pusat.\nSilakan cek lagi nanti.");
                     }
 
-                    // Update UI (Visual) tanpa reload
                     const statusEl = document.getElementById('dtStatus');
                     if (statusEl) {
                         statusEl.innerText = freshStatus;
                         statusEl.className = 'text-xs font-bold ' + (freshStatus === 'Sukses' ? 'text-green-600' : (freshStatus === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
                         if(freshStatus !== 'Pending' && document.getElementById('dtSn')) {
-                             document.getElementById('dtSn').innerText = (freshStatus === 'Gagal' ? keterangan : sn);
+                             document.getElementById('dtSn').innerText = sn;
                         }
                     }
+                } else {
+                    // --- INI BAGIAN PENTING YANG SEBELUMNYA HILANG ---
+                    console.error("[Check Error]", res);
+                    alert("Gagal Cek Status ICS:\n" + (res.message || "Tidak ada respon dari server.") + "\n\n(Kemungkinan relay.js belum diupdate)");
+                }
+            } else {
+                // --- LOGIKA KHFY (LAMA) ---
+                const res = await callApi('/history', { refid: docId });
+                
+                if(res.ok && res.data) {
+                    let root = res.data;
+                    let item = root.data;
+                    if (Array.isArray(item)) item = item[0];
+                    
+                    if (item) {
+                        const statusText = (item.status_text || '').toUpperCase();
+                        const keterangan = item.keterangan || '';
+                        const sn = item.sn || '';
+                        
+                        let freshStatus = 'Pending';
+                        if (statusText === 'SUKSES') freshStatus = 'Sukses';
+                        else if (statusText === 'GAGAL') freshStatus = 'Gagal';
+
+                        if (freshStatus === 'Gagal') {
+                            if(localData.status !== 'Gagal') {
+                                 await window.processSmartRefund(currentUser.uid, docId, 'Refund: ' + (keterangan || 'Transaksi Gagal'));
+                                 alert("Transaksi Gagal. Saldo dikembalikan.");
+                            }
+                        } else if (freshStatus === 'Sukses') {
+                            if(localData.status !== 'Sukses') {
+                                await updateDoc(trxRef, {
+                                    status: 'Sukses',
+                                    api_msg: 'Transaksi Berhasil',
+                                    sn: sn || keterangan || 'Sukses',
+                                    raw_json: JSON.stringify(root)
+                                });
+                                alert("Transaksi Sukses!");
+                            }
+                        } else {
+                            alert("Status masih PENDING/PROSES.");
+                        }
+                        
+                        // Update UI Realtime
+                        const statusEl = document.getElementById('dtStatus');
+                        if (statusEl) {
+                            statusEl.innerText = freshStatus;
+                            statusEl.className = 'text-xs font-bold ' + (freshStatus === 'Sukses' ? 'text-green-600' : (freshStatus === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
+                            if(freshStatus !== 'Pending') document.getElementById('dtSn').innerText = (freshStatus === 'Gagal' ? keterangan : sn);
+                        }
+                    }
+                } else {
+                     alert("Gagal Cek Status KHFY: " + (res.error || "Koneksi Bermasalah"));
                 }
             }
-        } catch(e) { console.log("Check manual error:", e); }
+        } catch(e) { console.log("Check manual error:", e); alert("Error Sistem: " + e.message); }
         
-        if(btn) btn.innerHTML = '<i class="fas fa-sync-alt"></i>';
+        if(btn) btn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
     };
 
 

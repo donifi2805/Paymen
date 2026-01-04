@@ -3872,10 +3872,10 @@ window.renderTopUpHistory = () => {
         document.getElementById('detailTrxModal').classList.remove('hide');
     };
 
-                window.manualCheckTrx = async (docId, providerId) => {
+                    window.manualCheckTrx = async (docId, providerId) => {
         const btn = document.getElementById('btnRefreshStatus');
         if(btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        
+
         try {
             // 1. Ambil Data Lokal
             const trxRef = doc(db, "users", currentUser.uid, "history", docId);
@@ -3883,7 +3883,7 @@ window.renderTopUpHistory = () => {
             if(!trxSnap.exists()) return;
             const localData = trxSnap.data();
 
-            // --- PERBAIKAN: DETEKSI TRANSAKSI ICS (Update V3) ---
+            // --- LOGIKA ICS (Update V4 with Error Handler) ---
             if (String(docId).startsWith('ICS-') || providerId === 'ICS' || (localData.provider_code && localData.provider_code.startsWith('ICS'))) {
                 console.log("[Check] Mode ICS untuk", docId);
                 const res = await callIcsApi('checkTransaction', { refid: docId });
@@ -3899,6 +3899,7 @@ window.renderTopUpHistory = () => {
                     if (freshStatus === 'Gagal') {
                         if(localData.status !== 'Gagal') {
                              await window.processSmartRefund(currentUser.uid, docId, 'Refund: ' + (sn || 'Transaksi Gagal'));
+                             alert("Status Gagal: Saldo telah dikembalikan.");
                         }
                     } else if (freshStatus === 'Sukses') {
                         if(localData.status !== 'Sukses') {
@@ -3908,15 +3909,10 @@ window.renderTopUpHistory = () => {
                                 sn: sn,
                                 raw_json: JSON.stringify(res)
                             });
-                            if(typeof window.sendTelegramNotif === 'function') {
-                                window.sendTelegramNotif('ORDER', { 
-                                    title: localData.title || 'Produk ICS', 
-                                    amount: localData.amount || 0, 
-                                    dest: localData.dest_num || '', 
-                                    trxId: docId 
-                                });
-                            }
+                            alert("Status Berhasil Diperbarui!");
                         }
+                    } else {
+                        alert("Status Masih Pending di Pusat.\nSilakan cek lagi nanti.");
                     }
 
                     const statusEl = document.getElementById('dtStatus');
@@ -3927,9 +3923,13 @@ window.renderTopUpHistory = () => {
                              document.getElementById('dtSn').innerText = sn;
                         }
                     }
+                } else {
+                    // --- INI BAGIAN PENTING YANG SEBELUMNYA HILANG ---
+                    console.error("[Check Error]", res);
+                    alert("Gagal Cek Status ICS:\n" + (res.message || "Tidak ada respon dari server.") + "\n\n(Kemungkinan relay.js belum diupdate)");
                 }
             } else {
-                // --- LOGIKA LAMA (KHFY) ---
+                // --- LOGIKA KHFY (LAMA) ---
                 const res = await callApi('/history', { refid: docId });
                 
                 if(res.ok && res.data) {
@@ -3949,42 +3949,37 @@ window.renderTopUpHistory = () => {
                         if (freshStatus === 'Gagal') {
                             if(localData.status !== 'Gagal') {
                                  await window.processSmartRefund(currentUser.uid, docId, 'Refund: ' + (keterangan || 'Transaksi Gagal'));
+                                 alert("Transaksi Gagal. Saldo dikembalikan.");
                             }
                         } else if (freshStatus === 'Sukses') {
-                            const latestSnap = await getDoc(trxRef);
-                            if (latestSnap.exists() && latestSnap.data().status !== 'Sukses') {
+                            if(localData.status !== 'Sukses') {
                                 await updateDoc(trxRef, {
                                     status: 'Sukses',
                                     api_msg: 'Transaksi Berhasil',
-                                    sn: sn || keterangan || 'Transaksi Berhasil',
+                                    sn: sn || keterangan || 'Sukses',
                                     raw_json: JSON.stringify(root)
                                 });
-                                
-                                if(typeof window.sendTelegramNotif === 'function') {
-                                    window.sendTelegramNotif('ORDER', { 
-                                        title: localData.title || 'Produk', 
-                                        amount: localData.amount || 0, 
-                                        dest: localData.dest_num || '', 
-                                        trxId: docId 
-                                    });
-                                }
+                                alert("Transaksi Sukses!");
                             }
+                        } else {
+                            alert("Status masih PENDING/PROSES.");
                         }
-
+                        
+                        // Update UI Realtime
                         const statusEl = document.getElementById('dtStatus');
                         if (statusEl) {
                             statusEl.innerText = freshStatus;
                             statusEl.className = 'text-xs font-bold ' + (freshStatus === 'Sukses' ? 'text-green-600' : (freshStatus === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
-                            if(freshStatus !== 'Pending' && document.getElementById('dtSn')) {
-                                 document.getElementById('dtSn').innerText = (freshStatus === 'Gagal' ? keterangan : sn);
-                            }
+                            if(freshStatus !== 'Pending') document.getElementById('dtSn').innerText = (freshStatus === 'Gagal' ? keterangan : sn);
                         }
                     }
+                } else {
+                     alert("Gagal Cek Status KHFY: " + (res.error || "Koneksi Bermasalah"));
                 }
             }
-        } catch(e) { console.log("Check manual error:", e); }
+        } catch(e) { console.log("Check manual error:", e); alert("Error Sistem: " + e.message); }
         
-        if(btn) btn.innerHTML = '<i class="fas fa-sync-alt"></i>';
+        if(btn) btn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
     };
 
 

@@ -847,15 +847,22 @@ window.listenDebugPreOrders = () => {
     if (!num || !code) return Swal.fire('Error', 'Data target/produk kosong', 'warning');
     
     const reffId = `DBG-${Date.now()}`;
-    addDebugLog(`[${system}] Mengirim permintaan: ${code} -> ${num}...`, 'info', targetLogId);
+    addDebugLog(`[${system}] Mengirim permintaan via RELAY KHUSUS: ${code} -> ${num}...`, 'info', targetLogId);
     
     try {
         let result;
         if (system === 'KHFY') {
-            const url = `${API_CONFIG.baseUrl}/trx?api_key=${API_CONFIG.apiKey}&produk=${code}&tujuan=${num}&reff_id=${reffId}`;
-            const res = await fetch('https://corsproxy.io/?' + encodeURIComponent(url));
-            result = await res.json();
+            // MENGGUNAKAN RELAY BARU (relaykhfy.js)
+            // Kita kirim 'endpoint' dan parameter transaksi
+            const targetUrl = `${KHFY_RELAY_URL}?endpoint=/trx&produk=${code}&tujuan=${num}&reff_id=${reffId}&_t=${Date.now()}`;
+            
+            const res = await fetch(targetUrl);
+            const json = await res.json();
+
+            if(!res.ok && !json.success && !json.status) throw new Error(json.message || "Gagal via Relay KHFY");
+            result = json;
         } else {
+            // MENGGUNAKAN RELAY LAMA (ICS)
             const params = { kode_produk: code, nomor_tujuan: num, refid: reffId };
             const apiRes = await callIcsApi('createTransaction', params, 'POST');
             result = apiRes;
@@ -868,9 +875,11 @@ window.listenDebugPreOrders = () => {
         let isOk = false; let msg = '';
         
         if (system === 'KHFY') {
-            isOk = (result.status === true || result.success === true);
+            // Cek respon KHFY via Relay
+            isOk = (result.status === true || (result.message && result.message.toLowerCase().includes('sukses')));
             msg = (result.message || '').toLowerCase();
         } else {
+            // Cek respon ICS
             isOk = result.success === true;
             msg = (result.message || result.sn || '').toLowerCase();
         }
@@ -885,9 +894,15 @@ window.listenDebugPreOrders = () => {
                 
                 let statusRes;
                 if(system === 'KHFY') {
-                     const cRes = await callApi('/history', { refid: reffId });
-                     if(cRes.ok && cRes.data.data) statusRes = cRes.data.data[0];
+                     // Cek history via Relay KHFY Baru
+                     try {
+                        const cRes = await fetch(`${KHFY_RELAY_URL}?endpoint=/history&refid=${reffId}&_t=${Date.now()}`);
+                        const cJson = await cRes.json();
+                        if(cJson.data && cJson.data.data) statusRes = cJson.data.data[0];
+                        else if(cJson.data) statusRes = cJson.data;
+                     } catch(e) { console.log("Cek status error", e); }
                 } else {
+                     // Cek history via Relay ICS Lama
                      const cRes = await callIcsApi('checkTransaction', { refid: reffId });
                      if(cRes.success) statusRes = cRes.data;
                 }
@@ -910,8 +925,9 @@ window.listenDebugPreOrders = () => {
                 }
             }, 4000);
         }
-    } catch (e) { 
-        addDebugLog("Error API: " + e.message, 'error', targetLogId); 
+    } catch (e) {
+        console.error(e);
+        addDebugLog("Error System: " + e.message, 'error', targetLogId); 
     }
 };
 const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
@@ -2221,9 +2237,10 @@ window.downloadTrxPDF = () => {
 // Menggunakan Config ICS dari Relay.js
 const ICS_CONFIG = { 
     apiKey: "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77", 
-    // Mengarah ke relay yang sama dengan index.html
     baseUrl: "https://www.pandawa-digital.store/api/relay" 
 };
+// URL Relay Khusus KHFY (File Baru)
+const KHFY_RELAY_URL = "https://www.pandawa-digital.store/api/relaykhfy";
 
 const PROXY_LIST = [
     { name: 'CorsProxyIO', url: 'https://corsproxy.io/?' },

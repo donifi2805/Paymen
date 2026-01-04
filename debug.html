@@ -640,10 +640,10 @@
             <h3 class="font-bold text-gray-800 dark:text-white mb-4 text-sm">Layanan</h3>
             <div class="grid grid-cols-4 gap-4">
                 <div class="text-center group cursor-pointer" onclick="openPPOB('akrab')"><div class="bg-blue-100 dark:bg-blue-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-globe text-blue-600 dark:text-blue-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Data</span></div>
-                <div class="text-center group cursor-pointer" onclick="window.showAlert('Info', 'Menu Paket OTP Segera Hadir', 'info');"><div class="bg-emerald-100 dark:bg-emerald-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-key text-emerald-600 dark:text-emerald-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Paket OTP</span></div>
+                <div class="text-center group cursor-pointer" onclick="window.showAlert("Info", "Menu Paket OTP Segera Hadir", "info");"><div class="bg-emerald-100 dark:bg-emerald-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-key text-emerald-600 dark:text-emerald-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Paket OTP</span></div>
                 <div class="text-center group cursor-pointer" onclick="nav('preorderPage')"><div class="bg-purple-100 dark:bg-purple-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-clock text-purple-600 dark:text-purple-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Pre-Order</span></div>
                 <div class="text-center group cursor-pointer" onclick="checkAkrabStock()"><div class="bg-orange-100 dark:bg-orange-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-cubes text-orange-600 dark:text-orange-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Stok Akrab</span></div>
-                <div class="text-center group cursor-pointer" onclick="window.showAlert('Info', 'Menu Login OTP Segera Hadir', 'info');"><div class="bg-rose-100 dark:bg-rose-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-lock text-rose-600 dark:text-rose-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Login OTP</span></div>
+                <div class="text-center group cursor-pointer" onclick="window.showAlert("Info", "Menu Login OTP Segera Hadir", "info");"><div class="bg-rose-100 dark:bg-rose-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-lock text-rose-600 dark:text-rose-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Login OTP</span></div>
                 <div class="text-center group cursor-pointer" onclick="nav('historyPage')"><div class="bg-indigo-100 dark:bg-indigo-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fas fa-history text-indigo-600 dark:text-indigo-400 text-2xl"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Riwayat</span></div>
             </div>
         </div>
@@ -1177,7 +1177,7 @@
 // 2. ICS STORE INTEGRATION
     const ICS_CONFIG = {
         apiKey: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3",
-        baseUrl: "https://api.ics-store.my.id/api/reseller"
+        baseUrl: "https://reseller.ics-store.my.id"
     };
 
         let currentIcsType = 'xla';
@@ -1207,35 +1207,54 @@ window.openAkrabV2 = () => {
     };
 
                     async function callIcsApi(action, params = {}, method = 'GET') {
-        // MENGGUNAKAN VERCEL RELAY (Lebih Stabil & Cepat)
-        const relayUrl = '/api/relay';
-        const payload = { ...params, action, _t: Date.now() }; // _t anti-cache
+        // FIX: Gunakan API Key di URL. Header sering dihapus oleh Proxy publik.
+                // FIX: Tambahkan timestamp (_t) untuk bypass Cache Proxy yang membandel
+        let targetUrl = `${ICS_CONFIG.baseUrl}/?action=${action}&apikey=${ICS_CONFIG.apiKey}&_t=${Date.now()}`;
+        let options = { method: method };
 
-        try {
-            const options = {
-                method: method === 'GET' ? 'GET' : 'POST',
-                headers: { 'Content-Type': 'application/json' }
-            };
-
-            let url = relayUrl;
-            if (method === 'GET') {
-                const qs = new URLSearchParams(payload).toString();
-                url += `?${qs}`;
-            } else {
-                options.body = JSON.stringify(payload);
-            }
-
-            const res = await fetch(url, options);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            
-            const data = await res.json();
-            return data;
-
-        } catch (e) {
-            console.error('ICS Relay Error:', e);
-            // Fallback pesan error yang user-friendly
-            return { success: false, message: 'Gagal koneksi server: ' + e.message };
+                        if (method === 'GET') {
+            const qs = new URLSearchParams(params).toString();
+            if(qs) targetUrl += `&${qs}`;
+        } else if (method === 'POST') {
+             // FIX: Strategi Double-Send (URL + Body) agar kebal terhadap Proxy yang membuang Body
+             const qs = new URLSearchParams(params).toString();
+             if(qs) targetUrl += `&${qs}`; // Tempel juga di URL sebagai cadangan
+             
+             options.body = new URLSearchParams(params);
+             options.headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
         }
+
+        for (const proxy of PROXY_LIST) {
+            try {
+                // Encode URL target agar aman saat melewati URL proxy
+                const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
+                
+                // Timeout 15 detik
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+                const res = await fetch(fullUrl, { ...options, signal: controller.signal });
+                clearTimeout(timeoutId);
+
+                if (res.ok) {
+                    const text = await res.text();
+                    // Coba parsing JSON
+                    try { 
+                        let data = JSON.parse(text); 
+                        // Handle jika proxy membungkus response di dalam field 'contents'
+                        if (data.contents) {
+                             try { data = JSON.parse(data.contents); } catch(e) { data = data.contents; }
+                        }
+                        return data;
+                    } catch (e) { 
+                        console.warn('ICS JSON Parse Error via ' + proxy.name, e); 
+                    }
+                }
+            } catch (e) { 
+                console.warn('ICS Proxy Error via ' + proxy.name, e); 
+            }
+        }
+        return { success: false, message: 'Gagal koneksi ke server  (Semua Proxy Gagal)' };
     }
 
 
@@ -1250,57 +1269,32 @@ window.openAkrabV2 = () => {
             if (settingsSnap.exists()) pricingRules = settingsSnap.data().rules || {};
         } catch(e) { console.log("Load pricing rules error", e); }
 
-                // REVISI V7: Ambil SEMUA data (Tanpa parameter type) agar Relay tidak memfilter
-        const res = await callIcsApi('listProducts', {});
+        const res = await callIcsApi('listProducts', { type: currentIcsType });
         select.innerHTML = '';
 
-        console.log("[ICS DEBUG] Raw Res:", res);
+        // PERBAIKAN: Handle Respon Sukses (Gabung Ready + Empty)
+        if (res.success && res.data) {
+            const readyItems = res.data.ready || [];
+            const emptyItems = res.data.empty || [];
+            // 1. Gabungkan kedua array
+            const allProducts = [...readyItems, ...emptyItems];
 
-        // 1. Normalisasi Data (Anti-Gagal)
-        let rawList = [];
-        if (Array.isArray(res)) rawList = res;
-        else if (res && res.data && Array.isArray(res.data)) rawList = res.data;
-        else if (res && res.data && (res.data.ready || res.data.empty)) rawList = [...(res.data.ready||[]), ...(res.data.empty||[])];
-
-                if (rawList.length > 0) {
-            // 1. Normalisasi Data
-            let allProducts = rawList.map(p => ({
-                code: p.code || p.kode_produk,
-                name: p.name || p.nama_produk,
-                price: parseInt(p.price || p.harga || 0),
-                stock: (p.stock !== undefined) ? p.stock : (p.stok !== undefined ? p.stok : 0),
-                status: p.status || (p.stok > 0 ? 'available' : 'empty'),
-                type: p.type || '', 
-                category: p.category || '',
-                raw: p
-            }));
-
-            // 2. Filter Client-Side dengan FALLBACK (JIKA KOSONG, TAMPILKAN SEMUA)
-            if (typeof currentIcsType !== 'undefined' && currentIcsType) {
-                const targetType = currentIcsType.toLowerCase();
-                const filtered = allProducts.filter(p => {
-                    const str = JSON.stringify(p).toLowerCase();
-                    return str.includes(targetType);
-                });
-                
-                if(filtered.length > 0) {
-                    allProducts = filtered;
-                } else {
-                    console.warn("Filter terlalu ketat, menampilkan SEMUA data sebagai fallback.");
-                    // Kita TIDAK mengosongkan allProducts, biarkan tetap penuh
-                }
+            if(allProducts.length === 0) {
+                 select.innerHTML = '<option value="" disabled>Produk Kosong</option>';
+                 return;
             }
 
-            // 3. Urutkan Harga
-            allProducts.sort((a, b) => a.price - b.price);
+            // 2. Urutkan dari harga termurah
+            allProducts.sort((a, b) => a.harga - b.harga);
 
             select.innerHTML = '<option value="" disabled selected>-- Pilih Produk --</option>';
             
             allProducts.forEach(p => {
-                let sellPrice = p.price;
-                let name = p.name;
-                const code = p.code;
+                let sellPrice = p.harga;
+                let name = p.nama_produk;
+                const code = p.kode_produk;
 
+                // LOGIKA BARU: Markup & Rename (Akrab V2)
                 if(pricingRules[code]) {
                     const r = pricingRules[code];
                     if(typeof r === 'object') {
@@ -1312,41 +1306,31 @@ window.openAkrabV2 = () => {
                 } else {
                     sellPrice += 2000; // Default Margin
                 }
+                
+                // Cek apakah produk ini berasal dari list 'empty' atau stoknya 0
+                const isHabis = p.stok === 0 || p.stok === '0' || emptyItems.includes(p);
 
-                const isHabis = p.stock === 0 || p.status !== 'available';
                 const opt = document.createElement('option');
                 opt.value = code;
                 opt.dataset.name = name;
                 opt.dataset.price = sellPrice;
-                opt.dataset.rawPrice = p.price;
+                opt.dataset.rawPrice = p.harga;
                 
                 if (isHabis) {
                     opt.innerHTML = `❌ ${name} (Habis) - Rp ${window.formatRp(sellPrice)}`;
                     opt.disabled = true;
-                    opt.style.color = '#ef4444'; 
+                    opt.style.color = '#ef4444'; // Warna Merah
                 } else {
                     opt.innerHTML = `${name} - Rp ${window.formatRp(sellPrice)}`;
                 }
+                
                 select.appendChild(opt);
             });
-                } else {
-            // Penanganan Error Lebih Detail (V4)
-            console.error("[ICS ERROR RAW]", res);
-            
-            let errorMsg = 'Gagal memuat data';
-            if (res.message) errorMsg = res.message;
-            else if (res.msg) errorMsg = res.msg;
-            else if (res.data && res.data.message) errorMsg = res.data.message;
-            else if (typeof res === 'string') errorMsg = res;
-            
-            // Tampilkan error spesifik di dropdown agar terbaca user
-            select.innerHTML = `<option value="" disabled>Gagal: ${errorMsg.substring(0, 30)}...</option>`;
-            
-            // Alert hanya jika bukan error kosong biasa
-            if(!res.success && !Array.isArray(res)) {
-                 alert('Gagal memuat produk:\n' + errorMsg);
-            }
-        }};
+        } else {
+            select.innerHTML = '<option value="" disabled>Gagal Memuat</option>';
+            alert('Gagal memuat produk : ' + (res.message || 'Unknown Error'));
+        }
+    };
 
 
 
@@ -1401,103 +1385,39 @@ window.openAkrabV2 = () => {
             return alert("Gagal proses database: " + e);
         }
         
-                // 2. Panggil API ICS (Gunakan POST agar Relay mendeteksi Transaksi)
+        // 2. Panggil API ICS
         const apiRes = await callIcsApi('createTransaction', {
-            product_code: code,      // Kirim format baru langsung
-            dest_number: number,
-            ref_id_custom: reffId,
-            // Cadangan format lama (untuk backward compatibility relay)
             kode_produk: code,
             nomor_tujuan: number,
             refid: reffId
-        }, 'POST');
+        }, 'GET');
 
         window.showLoader(false);
 
-                if (apiRes.success) {
-            // LOGIKA SMART PENDING: Cek Ulang Otomatis sebelum Simpan
-            let finalRes = apiRes;
-            let statusStr = (apiRes.data && apiRes.data.status) ? apiRes.data.status.toLowerCase() : 'pending';
-            let finalStatus = 'Pending';
-
-            // Jika respon awal Pending, tunggu 6 detik lalu cek lagi
-                        // Jika respon awal Pending, tunggu 6 detik lalu cek lagi
-                        // Jika respon awal Pending, tunggu 6 detik lalu cek lagi
-                        // Jika respon awal Pending, tunggu 6 detik lalu cek lagi
-                        // Jika respon awal Pending, tunggu 6 detik lalu cek lagi
-                        // Jika respon awal Pending, tunggu 6 detik lalu cek lagi
-                        // SMART POLLING V2: Cek Status Berulang (Max 10 Detik)
-            let attempt = 0;
-            const maxAttempts = 5;
-            
-            while (statusStr === 'pending' && attempt < maxAttempts) {
-                attempt++;
-                console.log(`🔄 Cek Status ke-${attempt}...`);
-                await new Promise(r => setTimeout(r, 2000)); // Tunggu 2 detik
-                
-                try {
-                    const checkRes = await callIcsApi('checkTransaction', { refid: reffId });
-                    if (checkRes.success && checkRes.data) {
-                        finalRes = checkRes;
-                        statusStr = (checkRes.data.status || 'pending').toLowerCase();
-                        if (statusStr !== 'pending') break;
-                    }
-                } catch(e) { console.log("Polling skip:", e); }
-            }
-
-            // Tentukan Status Akhir dari Data Terkini
-            if (statusStr === 'success') finalStatus = 'Sukses';
-            else if (statusStr === 'failed' || statusStr === 'error') finalStatus = 'Gagal';
-            else finalStatus = 'Pending';
-
-                        // SENSOR PRIVASI (Saat Transaksi)
-            const sanitize = (t) => (t||'').replace(/\(?\s*Sisa Saldo\s*:[^)]*\)?/gi, '').trim();
-            const rawMsg = (finalRes.data ? (finalRes.data.message || finalRes.data.sn) : finalRes.message) || 'Transaksi Selesai';
-            const rawSn = (finalRes.data ? finalRes.data.sn : '') || '-';
-            const safeMsg = sanitize(rawMsg);
-
-            // LOGIKA REFUND FIX: Jangan update doc jika Gagal, langsung Refund!
-            if (finalStatus === 'Gagal') {
-                const refundRes = await window.processSmartRefund(currentUser.uid, reffId, "Refund: " + safeMsg);
-                alert("Transaksi Gagal: " + safeMsg + "\n" + (refundRes.msg || "Saldo dikembalikan."));
-            } else {
-                // Jika Sukses/Pending, baru update manual
-                const updateData = {
-                    status: finalStatus,
-                    api_msg: safeMsg,
-                    sn: sanitize(rawSn),
-                    supplier_id: (finalRes.data ? finalRes.data.refid : '') || '-',
-                    raw_json: JSON.stringify(finalRes),
-                    last_updated: new Date().toISOString()
-                };
-                await updateDoc(doc(db, "users", currentUser.uid, "history", reffId), updateData);
-                
-                if (finalStatus === 'Sukses') alert("Transaksi SUKSES!\nSN: " + updateData.sn);
-                else alert("Transaksi Berhasil Dikirim.\nStatus: Pending (Cek Riwayat Berkala).");
-            }
-            
+        if(apiRes.success) {
+            await updateDoc(doc(db, "users", currentUser.uid, "history", reffId), {
+                status: 'Pending',
+                api_msg: apiRes.message || 'Sedang diproses',
+                supplier_id: apiRes.supplier_trxid || '-',
+                raw_json: JSON.stringify(apiRes)
+            });
+                        
+alert("Transaksi Berhasil Dikirim!\nKode Trx: " + trxCode + "\nStatus: Pending.");
             window.nav('homePage');
         } else {
             // --- FIX BUG FALSE NEGATIVE ICS (Anti Refund saat RTO) ---
-                        // --- FIX BUG FALSE NEGATIVE ICS (Anti Refund saat RTO) ---
             const errStr = (apiRes.error || apiRes.message || "").toString();
-            // UPDATE: Deteksi error timeout lebih ketat agar tidak auto-refund
-            const lowerErr = errStr.toLowerCase();
-            const isNetworkError = lowerErr.includes('failed') || 
-                                 lowerErr.includes('network') || 
-                                 lowerErr.includes('koneksi') ||
-                                 lowerErr.includes('timeout') ||
-                                 lowerErr.includes('time out') ||
-                                 lowerErr.includes('exceeded') || // Tangkap error 60000ms exceeded
-                                 lowerErr.includes('upstream') ||
-                                 lowerErr.includes('504') ||
-                                 lowerErr.includes('502');
+            const isNetworkError = errStr.includes('Failed to fetch') || 
+                                 errStr.includes('NetworkError') || 
+                                 errStr.includes('Gagal koneksi') ||
+                                 errStr.includes('timeout') ||
+                                 errStr.includes('upstream');
 
             if (isNetworkError) {
-                console.warn("ICS Network/Timeout Error - Holding Refund");
+                console.warn("ICS Network Error - Holding Refund");
                 await updateDoc(doc(db, "users", currentUser.uid, "history", reffId), {
                     status: 'Pending',
-                    api_msg: 'Koneksi Timeout (Menunggu Cek Otomatis)...',
+                    api_msg: 'Koneksi Terputus (Menunggu Konfirmasi)...',
                     raw_json: JSON.stringify(apiRes)
                 });
                 
@@ -1523,69 +1443,32 @@ window.openAkrabV2 = () => {
 
 
 
-        window.checkIcsStatus = async function(trx, docSnap) {
-        // PERBAIKAN: Gunakan API Relay Check Transaction (GET /trx/:refid)
+    async function checkIcsStatus(trx, docSnap) {
         const res = await callIcsApi('checkTransaction', { refid: trx.trx_id });
-
-        // Cek struktur respon baru: { success: true, data: { status: '...', ... } }
-                if (res.success && res.data) {
-            // SENSOR PRIVASI (Hapus Sisa Saldo)
-            const sanitize = (t) => (t||'').replace(/\(?\s*Sisa Saldo\s*:[^)]*\)?/gi, '').trim();
-            if(res.data.message) res.data.message = sanitize(res.data.message);
-            if(res.data.sn) res.data.sn = sanitize(res.data.sn);
-            
-            const d = res.data;
+        if(res.success) {
             let newStatus = 'Pending';
-            const statusRaw = (d.status || '').toLowerCase(); // Ambil dari data.status
+            const statusRaw = (res.status || '').toLowerCase();
+            if(statusRaw === 'success') newStatus = 'Sukses';
+            else if(statusRaw === 'failed' || statusRaw === 'error' || statusRaw === 'unpaid') newStatus = 'Gagal';
+            
+            if(newStatus !== 'Pending') {
+                await runTransaction(db, async (t) => {
+                    const freshDoc = await t.get(docSnap.ref);
+                    if(freshDoc.data().status !== 'Pending') return;
 
-            if (statusRaw === 'success') newStatus = 'Sukses';
-            else if (statusRaw === 'failed' || statusRaw === 'error' || statusRaw === 'unpaid') newStatus = 'Gagal';
-
-            // Jika status berubah dari Pending -> Sukses/Gagal
-            if (newStatus !== 'Pending') {
-                try {
-                    await runTransaction(db, async (t) => {
-                        const freshDoc = await t.get(docSnap.ref);
-                        // Pastikan di DB masih Pending (Atomic Check)
-                        if (freshDoc.data().status !== 'Pending') return;
-
-                        if (newStatus === 'Gagal') {
-                            // LOGIKA REFUND
-                            const uRef = doc(db, "users", currentUser.uid);
-                            const uDoc = await t.get(uRef);
-                            const currentBal = uDoc.data().balance || 0;
-                            
-                            t.update(uRef, { balance: currentBal + parseInt(trx.amount) });
-                            t.update(docSnap.ref, { 
-                                status: 'Gagal', 
-                                api_msg: 'Refund: ' + (d.message || 'Gagal dari Pusat'),
-                                balance_final: currentBal + parseInt(trx.amount),
-                                is_refunded: true,
-                                raw_json: JSON.stringify(res)
-                            });
-                        } else {
-                            // LOGIKA SUKSES
-                            t.update(docSnap.ref, { 
-                                status: 'Sukses', 
-                                api_msg: d.message || 'Transaksi Berhasil', 
-                                sn: d.sn || d.message || '-',
-                                raw_json: JSON.stringify(res)
-                            });
-                            
-                            // Kirim Notif Telegram
-                            if (typeof window.sendTelegramNotif === 'function') {
-                                window.sendTelegramNotif('ORDER', { 
-                                    title: trx.title, 
-                                    amount: trx.amount, 
-                                    dest: trx.dest_num, 
-                                    trxId: trx.trx_id 
-                                });
-                            }
+                                        if(newStatus === 'Gagal') {
+                        const uRef = doc(db, "users", currentUser.uid);
+                        const uDoc = await t.get(uRef);
+                        t.update(uRef, { balance: (uDoc.data().balance || 0) + trx.amount });
+                        t.update(docSnap.ref, { status: 'Gagal', api_msg: 'Refund: ' + (res.message || 'Gagal') });
+                    } else {
+                        t.update(docSnap.ref, { status: 'Sukses', api_msg: res.message || res.sn || 'Sukses' });
+                        // NOTIFIKASI SUKSES (ICS)
+                        if(typeof window.sendTelegramNotif === 'function') {
+                             window.sendTelegramNotif('ORDER', { title: trx.title, amount: trx.amount, dest: trx.dest_num, trxId: trx.trx_id });
                         }
-                    });
-                } catch(e) {
-                    console.error("Gagal update status (DB Transaction):", e);
-                }
+                    }
+                });
             }
         }
     }
@@ -1858,9 +1741,7 @@ initTopupSettingsListener();
                 document.getElementById('setupProfileModal').classList.add('hide');
                                 window.nav('homePage');
                 window.showLoader(false);
-                                window.startLiveStock(); // Mulai Auto Refresh Stok
-                // FITUR BARU: Auto Cek Status Pending saat Halaman Dibuka
-                setTimeout(() => window.checkPendingTrx(), 1500);
+                window.startLiveStock(); // Mulai Auto Refresh Stok
 
                 currentBalance = data.balance || 0;
                 currentUsername = data.username || "User";
@@ -2894,82 +2775,76 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
         if(!listContainer) return;
         listContainer.innerHTML = '';
 
-                // --- LOGIKA BARU: ICS HANDLER (AUTO FALLBACK) ---
+        // --- LOGIKA BARU: ICS HANDLER ---
         if (providerCode.startsWith('ICS_')) {
-             if(txtProd) txtProd.innerText = 'Memuat Data Server...';
+             if(txtProd) txtProd.innerText = 'Memuat Dari Server';
              if(btnProd) btnProd.classList.add('cursor-not-allowed', 'opacity-50');
 
-             // Ambil SEMUA data tanpa filter server
-             const res = await callIcsApi('listProducts', {});
-             
-             if (res.success || Array.isArray(res) || (res.data && Array.isArray(res.data))) {
-                let rawList = [];
-                if (Array.isArray(res)) rawList = res;
-                else if (res.data && Array.isArray(res.data)) rawList = res.data;
-                else if (res.data && res.data.ready) rawList = [...(res.data.ready||[]), ...(res.data.empty||[])];
+             let icsType = 'xda';
+             if(providerCode === 'ICS_CIRCLE') icsType = 'circle';
 
-                if(rawList.length === 0) {
-                     if(txtProd) txtProd.innerText = 'Stok Kosong (Pusat)';
-                     listContainer.innerHTML = '<div class="text-center py-8 text-gray-400">Data Kosong dari Pusat</div>';
+             const res = await callIcsApi('listProducts', { type: icsType });
+             
+             if (res.success && res.data) {
+                const readyItems = res.data.ready || [];
+                const emptyItems = res.data.empty || [];
+                const allProducts = [...readyItems, ...emptyItems];
+                allProducts.sort((a, b) => a.harga - b.harga);
+
+                if(allProducts.length === 0) {
+                     if(txtProd) txtProd.innerText = 'Stok Kosong';
+                     listContainer.innerHTML = '<div class="text-center py-8 text-gray-400 flex flex-col items-center"><i class="fas fa-box-open text-2xl mb-2"></i><p class="text-xs">Tidak ada produk tersedia di ICS</p></div>';
                      return;
                 }
 
-                // Normalisasi
-                let allProducts = rawList.map(p => ({
-                    code: p.code || p.kode_produk,
-                    name: p.name || p.nama_produk,
-                    price: parseInt(p.price || p.harga || 0),
-                    stock: (p.stock !== undefined) ? p.stock : (p.stok !== undefined ? p.stok : 0),
-                    status: p.status || (p.stok > 0 ? 'available' : 'empty'),
-                    raw: p
-                }));
-
-                // Filter Sederhana
-                let targetFilter = 'xda';
-                if(providerCode.includes('CIRCLE')) targetFilter = 'circle';
-                else if(providerCode.includes('XLA')) targetFilter = 'xla';
-                else if(providerCode.includes('FMAX')) targetFilter = 'fmax';
-                
-                const filtered = allProducts.filter(p => JSON.stringify(p).toLowerCase().includes(targetFilter));
-
-                // FALLBACK: Jika hasil filter 0, TAMPILKAN SEMUA
-                if(filtered.length === 0 && allProducts.length > 0) {
-                    console.log("Filter ICS 0, Fallback All");
-                    // Tetap gunakan allProducts (semua data)
-                } else {
-                    allProducts = filtered;
+                if(btnProd) {
+                    btnProd.classList.remove('cursor-not-allowed', 'opacity-50');
+                    btnProd.classList.add('bg-white', 'hover:bg-gray-50');
                 }
-                
-                // Urutkan & Render
-                allProducts.sort((a, b) => a.price - b.price);
-
-                if(btnProd) btnProd.classList.remove('cursor-not-allowed', 'opacity-50');
-                if(txtProd) txtProd.innerText = '-- Pilih Produk --';
+                if(txtProd) txtProd.innerText = '-- Klik Untuk Pilih Produk --';
 
                 allProducts.forEach(p => {
-                    let name = p.name;
-                    let price = p.price;
-                    // Pricing Rules
-                    if(pricingRules[p.code]) {
-                         const r = pricingRules[p.code];
-                         if(typeof r === 'object') { if(r.price) price+=parseInt(r.price); if(r.name) name=r.name; }
-                         else price+=parseInt(r);
-                    } else price+=2000;
+                    let sellPrice = p.harga;
+                    let name = p.nama_produk;
+                    const code = p.kode_produk;
 
-                    const isHabis = p.stock === 0 || p.status !== 'available';
+                    // LOGIKA BARU (ICS General): Markup & Rename
+                    if(pricingRules[code]) {
+                        const r = pricingRules[code];
+                        if(typeof r === 'object') {
+                            if(r.price) sellPrice += parseInt(r.price);
+                            if(r.name) name = r.name;
+                        } else {
+                            sellPrice += parseInt(r);
+                        }
+                    } else {
+                        sellPrice += 2000; // Default Margin
+                    }
+
+                    const isHabis = p.stok === 0 || p.stok === '0' || emptyItems.includes(p);
+
                     const div = document.createElement('div');
-                    div.className = `p-4 rounded-2xl border ${isHabis ? 'border-red-200 bg-red-50 opacity-70' : 'border-gray-100 bg-white cursor-pointer'} mb-2 flex justify-between items-center`;
-                    if(!isHabis) div.onclick = () => window.selectProduct(p.code, name, price, `Stok: ${p.stock}`, encodeURIComponent(name));
+                    div.className = `p-4 rounded-2xl border ${isHabis ? 'border-red-200 bg-red-50 dark:bg-red-900/10 cursor-not-allowed opacity-70' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 cursor-pointer transition active:scale-[0.98]'} mb-2 flex justify-between items-center group`;
                     
-                    div.innerHTML = `<div><p class="text-xs font-bold text-gray-700">${name}</p>${isHabis?'<span class="text-[9px] text-red-500 font-bold">HABIS</span>':''}</div><div class="text-right"><p class="text-sm font-black text-blue-600">Rp ${window.formatRp(price).replace('Rp','')}</p></div>`;
+                    if(!isHabis) {
+                        div.onclick = () => window.selectProduct(code, name, sellPrice, `Stok Tersedia: ${p.stok}`, encodeURIComponent(name));
+                    }
+
+                    div.innerHTML = `
+                        <div class="flex-1 pr-2">
+                            <p class="text-xs font-bold text-gray-700 dark:text-gray-200 leading-tight group-hover:text-blue-600 transition">${name}</p>
+                            ${isHabis ? '<span class="text-[9px] text-red-500 font-bold">STOK HABIS</span>' : ''}
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm font-black text-blue-600 dark:text-blue-400">Rp ${window.formatRp(sellPrice).replace('Rp', '')}</p>
+                        </div>`;
                     listContainer.appendChild(div);
                 });
-
              } else {
-                 if(txtProd) txtProd.innerText = 'Gagal Koneksi';
-                 alert('Gagal memuat: ' + (res.message || 'Unknown'));
+                 if(txtProd) txtProd.innerText = 'Gagal Koneksi ';
+                 alert('Gagal memuat data : ' + (res.message || 'Unknown'));
              }
-                          return; // Stop logic KHFY
+             return; // Stop, jangan jalankan logika Khfy
         }
 
         // --- LOGIKA LAMA: KHFY ---
@@ -3684,40 +3559,16 @@ window.showLoader(false);
 
     window.setTopUpAmount = (amount) => { document.getElementById('qiosInputAmount').value = amount; };
 
-            window.checkPendingTrx = async () => {
+        window.checkPendingTrx = async () => {
         if(!currentUser) return;
-        console.log("🔄 Auto Checking Pending Transactions...");
-        
-        // Cek status 'Pending' ATAU 'Proses'
-        const q = query(collection(db, "users", currentUser.uid, "history"), where("status", "in", ["Pending", "Proses"]));
+        const q = query(collection(db, "users", currentUser.uid, "history"), where("status", "==", "Pending"));
         const snapshot = await getDocs(q);
         
-        if(snapshot.empty) console.log("✅ Tidak ada transaksi pending.");
-
         for (const docSnap of snapshot.docs) {
             const trx = docSnap.data();
-            const trxId = trx.trx_id || docSnap.id;
+            if(trx.provider_id === 'MANUAL' || trx.provider_id === 'ICS' || String(trx.trx_id).startsWith('ICS-')) continue;
 
-            // Skip Manual Topup (Karena butuh admin)
-            if(trx.provider_id === 'MANUAL_SEABANK') continue;
-            
-            console.log("Checking:", trxId);
-
-            // ROUTING PENGECEKAN STATUS
-            if (trx.provider_id === 'ICS' || String(trxId).startsWith('ICS-')) {
-                // 1. Cek Transaksi ICS (Server Vercel/ICS)
-                if (typeof window.checkIcsStatus === 'function') {
-                    await window.checkIcsStatus({ 
-                        trx_id: trxId, 
-                        amount: trx.amount, 
-                        title: trx.title, 
-                        dest_num: trx.dest_num 
-                    }, docSnap);
-                }
-            } else {
-                // 2. Cek Transaksi PPOB Umum (Server KHFY)
-                await window.manualCheckTrx(trxId, trx.provider_id);
-            }
+            await window.manualCheckTrx(trx.trx_id, trx.provider_id);
         }
     };
 
@@ -3953,20 +3804,12 @@ window.renderTopUpHistory = () => {
     };
     window.closeStockModal = () => document.getElementById('stockModal').classList.add('hide');
                                     // FUNGSI BANTUAN: Format Tampilan Detail
-        // FUNGSI BANTUAN: Format Tampilan Detail
     window.formatDetailInfo = (json) => {
         let d = json.data || json;
         if (Array.isArray(d) && d.length > 0) d = d[0];
         if (!d) return '-';
 
-        // FIX: Sensor Saldo di Raw Data Display
-        const sanitize = (t) => (t||'').replace(/\(?\s*Sisa Saldo\s*:[^)]*\)?/gi, '').trim();
-        if(d.sn) d.sn = sanitize(d.sn);
-        if(d.message) d.message = sanitize(d.message);
-        if(d.keterangan) d.keterangan = sanitize(d.keterangan);
-
         return `
-        <div class="space-y-1 text-[10px] font-mono">
         <div class="space-y-1 text-[10px] font-mono">
             <div class="border-b border-blue-200 dark:border-blue-800 pb-1 mb-1">
                 <span class="block font-bold text-blue-700 dark:text-blue-300">SN / Token:</span>
@@ -4007,10 +3850,8 @@ window.renderTopUpHistory = () => {
         statusEl.innerText = trx.status;
         statusEl.className = 'text-xs font-bold ' + (trx.status === 'Sukses' ? 'text-green-600' : (trx.status === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
         
-                const infoEl = document.getElementById('dtSn');
-        // FIX: SENSOR SALDO DI TAMPILAN (View Layer)
-        const safeMsg = (trx.api_msg || '-').replace(/\(?\s*Sisa Saldo\s*:[^)]*\)?/gi, '').trim();
-        infoEl.innerText = safeMsg;
+        const infoEl = document.getElementById('dtSn');
+        infoEl.innerText = trx.api_msg || '-';
 
         // REFRESH OTOMATIS SAAT DETAIL DIBUKA JIKA STATUS PENDING
                 if(trx.status === 'Pending' || trx.status === 'Proses') {
@@ -4057,57 +3898,45 @@ window.renderTopUpHistory = () => {
 document.getElementById('detailTrxModal').classList.remove('hide');
     };
 
-            window.manualCheckTrx = async (docId, providerId) => {
+                window.manualCheckTrx = async (docId, providerId) => {
         const btn = document.getElementById('btnRefreshStatus');
         if(btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         
         try {
-            // 1. Ambil Data Lokal DULU (Penting untuk Nama Produk & Cek Status Lama)
+            // 1. Ambil Data Lokal
             const trxRef = doc(db, "users", currentUser.uid, "history", docId);
             const trxSnap = await getDoc(trxRef);
             if(!trxSnap.exists()) return;
             const localData = trxSnap.data();
 
-            // 2. Panggil API History
-            const res = await callApi('/history', { refid: docId });
-            
-            if(res.ok && res.data) {
-                let root = res.data;
-                let item = root.data;
-                if (Array.isArray(item)) item = item[0];
+            // --- PERBAIKAN: DETEKSI TRANSAKSI ICS (Update V3) ---
+            if (String(docId).startsWith('ICS-') || providerId === 'ICS' || (localData.provider_code && localData.provider_code.startsWith('ICS'))) {
+                console.log("[Check] Mode ICS untuk", docId);
+                const res = await callIcsApi('checkTransaction', { refid: docId });
                 
-                if (item) {
-                    const statusText = (item.status_text || '').toUpperCase();
-                                        // SENSOR PRIVASI (Cek Manual)
-                    const sanitize = (t) => (t||'').replace(/\(?\s*Sisa Saldo\s*:[^)]*\)?/gi, '').trim();
-                    const keterangan = sanitize(item.keterangan || '');
-                    const sn = sanitize(item.sn || '');
-                    
+                if (res.success) {
                     let freshStatus = 'Pending';
-                    if (statusText === 'SUKSES') freshStatus = 'Sukses';
-                    else if (statusText === 'GAGAL') freshStatus = 'Gagal';
-
+                    const rawStatus = (res.data?.status || res.status || '').toLowerCase();
+                    const sn = res.data?.sn || res.sn || res.message || '';
+                    
+                    if (rawStatus === 'sukses' || rawStatus === 'success') freshStatus = 'Sukses';
+                    else if (rawStatus === 'gagal' || rawStatus === 'failed' || rawStatus === 'error') freshStatus = 'Gagal';
+                    
                     if (freshStatus === 'Gagal') {
-                        // Cek agar tidak refund 2x
                         if(localData.status !== 'Gagal') {
-                             await window.processSmartRefund(currentUser.uid, docId, 'Refund: ' + (keterangan || 'Transaksi Gagal'));
+                             await window.processSmartRefund(currentUser.uid, docId, 'Refund: ' + (sn || 'Transaksi Gagal'));
                         }
                     } else if (freshStatus === 'Sukses') {
-                        // FIX DOUBLE NOTIF: Cek ulang status TERBARU dari database tepat sebelum eksekusi
-                        // Ini mencegah Race Condition jika ada 2 proses berjalan bersamaan
-                        const latestSnap = await getDoc(trxRef);
-                        
-                        if (latestSnap.exists() && latestSnap.data().status !== 'Sukses') {
+                        if(localData.status !== 'Sukses') {
                             await updateDoc(trxRef, {
                                 status: 'Sukses',
                                 api_msg: 'Transaksi Berhasil',
-                                sn: sn || keterangan || 'Transaksi Berhasil',
-                                raw_json: JSON.stringify(root)
+                                sn: sn,
+                                raw_json: JSON.stringify(res)
                             });
-                            
                             if(typeof window.sendTelegramNotif === 'function') {
                                 window.sendTelegramNotif('ORDER', { 
-                                    title: localData.title || 'Produk', 
+                                    title: localData.title || 'Produk ICS', 
                                     amount: localData.amount || 0, 
                                     dest: localData.dest_num || '', 
                                     trxId: docId 
@@ -4116,13 +3945,65 @@ document.getElementById('detailTrxModal').classList.remove('hide');
                         }
                     }
 
-                    // Update UI (Visual) tanpa reload
                     const statusEl = document.getElementById('dtStatus');
                     if (statusEl) {
                         statusEl.innerText = freshStatus;
                         statusEl.className = 'text-xs font-bold ' + (freshStatus === 'Sukses' ? 'text-green-600' : (freshStatus === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
                         if(freshStatus !== 'Pending' && document.getElementById('dtSn')) {
-                             document.getElementById('dtSn').innerText = (freshStatus === 'Gagal' ? keterangan : sn);
+                             document.getElementById('dtSn').innerText = sn;
+                        }
+                    }
+                }
+            } else {
+                // --- LOGIKA LAMA (KHFY) ---
+                const res = await callApi('/history', { refid: docId });
+                
+                if(res.ok && res.data) {
+                    let root = res.data;
+                    let item = root.data;
+                    if (Array.isArray(item)) item = item[0];
+                    
+                    if (item) {
+                        const statusText = (item.status_text || '').toUpperCase();
+                        const keterangan = item.keterangan || '';
+                        const sn = item.sn || '';
+                        
+                        let freshStatus = 'Pending';
+                        if (statusText === 'SUKSES') freshStatus = 'Sukses';
+                        else if (statusText === 'GAGAL') freshStatus = 'Gagal';
+
+                        if (freshStatus === 'Gagal') {
+                            if(localData.status !== 'Gagal') {
+                                 await window.processSmartRefund(currentUser.uid, docId, 'Refund: ' + (keterangan || 'Transaksi Gagal'));
+                            }
+                        } else if (freshStatus === 'Sukses') {
+                            const latestSnap = await getDoc(trxRef);
+                            if (latestSnap.exists() && latestSnap.data().status !== 'Sukses') {
+                                await updateDoc(trxRef, {
+                                    status: 'Sukses',
+                                    api_msg: 'Transaksi Berhasil',
+                                    sn: sn || keterangan || 'Transaksi Berhasil',
+                                    raw_json: JSON.stringify(root)
+                                });
+                                
+                                if(typeof window.sendTelegramNotif === 'function') {
+                                    window.sendTelegramNotif('ORDER', { 
+                                        title: localData.title || 'Produk', 
+                                        amount: localData.amount || 0, 
+                                        dest: localData.dest_num || '', 
+                                        trxId: docId 
+                                    });
+                                }
+                            }
+                        }
+
+                        const statusEl = document.getElementById('dtStatus');
+                        if (statusEl) {
+                            statusEl.innerText = freshStatus;
+                            statusEl.className = 'text-xs font-bold ' + (freshStatus === 'Sukses' ? 'text-green-600' : (freshStatus === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
+                            if(freshStatus !== 'Pending' && document.getElementById('dtSn')) {
+                                 document.getElementById('dtSn').innerText = (freshStatus === 'Gagal' ? keterangan : sn);
+                            }
                         }
                     }
                 }

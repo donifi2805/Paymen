@@ -1177,7 +1177,7 @@
 // 2. ICS STORE INTEGRATION
     const ICS_CONFIG = {
         apiKey: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3",
-        baseUrl: "https://reseller.ics-store.my.id"
+        baseUrl: "/api/relay"
     };
 
         let currentIcsType = 'xla';
@@ -1207,6 +1207,63 @@ window.openAkrabV2 = () => {
     };
 
                     async function callIcsApi(action, params = {}, method = 'GET') {
+        const targetUrl = new URL(ICS_CONFIG.baseUrl, window.location.origin);
+        targetUrl.searchParams.append('action', action);
+        
+        if (method === 'GET') {
+            Object.keys(params).forEach(key => targetUrl.searchParams.append(key, params[key]));
+        }
+
+        try {
+            const options = { 
+                method: method,
+                headers: { 'Accept': 'application/json' }
+            };
+            
+            if (method === 'POST') {
+                options.headers['Content-Type'] = 'application/json';
+                options.body = JSON.stringify(params);
+            }
+
+            const res = await fetch(targetUrl, options);
+            if (res.ok) {
+                return await res.json();
+            }
+            return { success: false, message: "HTTP Error " + res.status };
+        } catch (e) {
+            return { success: false, message: "Koneksi Gagal: " + e.message };
+        }
+    }
+        const targetUrl = new URL(ICS_CONFIG.baseUrl, window.location.origin);
+        targetUrl.searchParams.append('action', action);
+        // Sertakan apikey dari config jika relay membutuhkannya, namun relay.js versi baru sudah menyimpannya di server-side
+        
+        if (method === 'GET') {
+            Object.keys(params).forEach(key => targetUrl.searchParams.append(key, params[key]));
+        }
+
+        try {
+            const options = { 
+                method: method,
+                headers: { 'Accept': 'application/json' }
+            };
+            
+            if (method === 'POST') {
+                options.headers['Content-Type'] = 'application/json';
+                options.body = JSON.stringify(params);
+            }
+
+            const res = await fetch(targetUrl, options);
+            if (res.ok) {
+                return await res.json();
+            }
+            const errorText = await res.text();
+            return { success: false, message: "Relay Error: " + res.status };
+        } catch (e) {
+            console.error("ICS API Error:", e);
+            return { success: false, message: "Koneksi Gagal: " + e.message };
+        }
+    }
         // FIX: Gunakan API Key di URL. Header sering dihapus oleh Proxy publik.
                 // FIX: Tambahkan timestamp (_t) untuk bypass Cache Proxy yang membandel
         let targetUrl = `${ICS_CONFIG.baseUrl}/?action=${action}&apikey=${ICS_CONFIG.apiKey}&_t=${Date.now()}`;
@@ -1273,7 +1330,13 @@ window.openAkrabV2 = () => {
         select.innerHTML = '';
 
         // PERBAIKAN: Handle Respon Sukses (Gabung Ready + Empty)
-        if (res.success && res.data) {
+        // Normalisasi data jika relay membungkusnya dalam field 'data'
+        let products = res.data || res;
+        if (res.success && res.data) products = res.data;
+
+        if (products) {
+            const readyItems = products.ready || (Array.isArray(products) ? products : []);
+            const emptyItems = products.empty || [];
             const readyItems = res.data.ready || [];
             const emptyItems = res.data.empty || [];
             // 1. Gabungkan kedua array
@@ -2785,10 +2848,13 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
 
              const res = await callIcsApi('listProducts', { type: icsType });
              
-             if (res.success && res.data) {
-                const readyItems = res.data.ready || [];
-                const emptyItems = res.data.empty || [];
-                const allProducts = [...readyItems, ...emptyItems];
+             let pData = res.data || res;
+                if (res.success && res.data) pData = res.data;
+
+                if (pData) {
+                    const readyItems = pData.ready || (Array.isArray(pData) ? pData : []);
+                    const emptyItems = pData.empty || [];
+                    const allProducts = [...readyItems, ...emptyItems];
                 allProducts.sort((a, b) => a.harga - b.harga);
 
                 if(allProducts.length === 0) {

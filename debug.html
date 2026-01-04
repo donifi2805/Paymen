@@ -2796,21 +2796,18 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
         listContainer.innerHTML = '';
 
         // --- LOGIKA BARU: ICS HANDLER (FIXED) ---
-                // --- LOGIKA BARU: ICS HANDLER (FIXED & FILTERED) ---
         if (providerCode.startsWith('ICS_')) {
              if(txtProd) txtProd.innerText = 'Memuat Dari Server...';
              if(btnProd) btnProd.classList.add('cursor-not-allowed', 'opacity-50');
 
              let icsType = 'xda';
-             // Mapping tipe request ke Server
              if(providerCode === 'ICS_CIRCLE') icsType = 'circle';
              if(providerCode === 'ICS_XLA') icsType = 'xla';
-             if(providerCode === 'ICS_XDA') icsType = 'xda'; 
 
              // Panggil API
              const res = await callIcsApi('listProducts', { type: icsType });
              
-             // LOGIKA CERDAS: Deteksi berbagai format respon ICS
+                          // LOGIKA CERDAS: Deteksi berbagai format respon ICS
              let allProducts = [];
              if (res) {
                 if (res.ready && Array.isArray(res.ready)) allProducts = res.ready;
@@ -2819,18 +2816,18 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
                 else if (Array.isArray(res)) allProducts = res;
              }
 
-             // [FIX] FILTER KETAT SESUAI REQUEST (XLCP & XDA)
+             // --- FILTER SYSTEM V2 (STRICT) ---
              if (providerCode === 'ICS_CIRCLE') {
-                 // Hanya loloskan produk yang kodenya berawalan 'XLCP'
-                 allProducts = allProducts.filter(p => 
-                     p.kode_produk && p.kode_produk.toUpperCase().startsWith('XLCP')
-                 );
+                 allProducts = allProducts.filter(p => (p.type === 'circle' || (p.code || p.kode_produk || '').toUpperCase().startsWith('XCL')));
              } 
              else if (providerCode === 'ICS_XDA') {
-                 // Hanya loloskan produk yang kodenya berawalan 'XDA'
-                 allProducts = allProducts.filter(p => 
-                     p.kode_produk && p.kode_produk.toUpperCase().startsWith('XDA')
-                 );
+                 allProducts = allProducts.filter(p => (p.type === 'xda' || (p.code || p.kode_produk || '').toUpperCase().startsWith('XDA')));
+             }
+             else if (providerCode === 'ICS_XLA') {
+                 allProducts = allProducts.filter(p => (p.type === 'xla' || ((p.code || p.kode_produk || '').toUpperCase().startsWith('XLA') && !(p.code || p.kode_produk || '').toUpperCase().startsWith('XDA'))));
+             }
+             else if (providerCode === 'ICS_FMX' || providerCode === 'ICS_FMAX') {
+                 allProducts = allProducts.filter(p => (p.type === 'fmax' || p.type === 'fmx' || (p.code || p.kode_produk || '').toUpperCase().startsWith('FMX') || (p.code || p.kode_produk || '').toUpperCase() === 'CFMX'));
              }
 
              if (allProducts.length > 0) {
@@ -2841,14 +2838,21 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
                 if(txtProd) txtProd.innerText = '-- Klik Untuk Pilih Produk --';
 
                 // Urutkan termurah
-                allProducts.sort((a, b) => (parseInt(a.harga) || 0) - (parseInt(b.harga) || 0));
+                allProducts.sort((a, b) => (parseInt(a.harga || a.price || 0) - (parseInt(b.harga || b.price || 0))));
 
                 allProducts.forEach(p => {
                     let rawPrice = parseInt(p.harga || p.price || 0);
                     let price = rawPrice;
                     let name = p.nama_produk || p.name || 'Produk Tanpa Nama';
                     const code = p.kode_produk || p.code;
-                    const stockInfo = p.stok ? `Stok: ${p.stok}` : 'Tersedia';
+                    
+                    // Logic Status/Stok V2
+                    let stockCount = p.stock || p.stok || 0;
+                    const isStatusEmpty = (p.status === 'empty');
+                    if (!isStatusEmpty && stockCount > 0) stockCount = p.stock || p.stok; 
+                    
+                    const isHabis = isStatusEmpty || stockCount == 0;
+                    const stockInfo = isHabis ? 'KOSONG / GANGGUAN' : (stockCount > 900 ? 'Tersedia' : `Stok: ${stockCount}`);
 
                     // Cek Pricing Rules (Markup)
                     if(typeof pricingRules !== 'undefined' && pricingRules[code]) {
@@ -2860,23 +2864,42 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
                     }
 
                     const div = document.createElement('div');
-                    div.className = 'p-4 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 cursor-pointer mb-2 flex justify-between items-center transition hover:shadow-sm active:scale-[0.98]';
-                    div.onclick = () => window.selectProduct(code, name, price, stockInfo, encodeURIComponent(name));
-                    div.innerHTML = `
-                        <div>
-                            <p class="text-xs font-bold text-gray-700 dark:text-gray-200">${name}</p>
-                            <p class="text-[9px] text-gray-400 mt-0.5">${stockInfo} | ${code}</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-sm font-black text-blue-600 dark:text-blue-400">Rp ${window.formatRp(price).replace('Rp', '')}</p>
-                        </div>`;
+                    div.className = `p-4 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 cursor-pointer mb-2 flex justify-between items-center transition hover:shadow-sm active:scale-[0.98] ${isHabis ? 'opacity-60 grayscale' : ''}`;
+                    
+                    if(isHabis) {
+                        div.innerHTML = `
+                            <div>
+                                <p class="text-xs font-bold text-red-500 line-through">${name}</p>
+                                <p class="text-[9px] text-red-400 mt-0.5 font-bold">${stockInfo}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm font-black text-gray-400">Rp ${window.formatRp(price).replace('Rp', '')}</p>
+                            </div>`;
+                    } else {
+                        div.onclick = () => window.selectProduct(code, name, price, stockInfo, encodeURIComponent(name));
+                        div.innerHTML = `
+                            <div>
+                                <p class="text-xs font-bold text-gray-700 dark:text-gray-200">${name}</p>
+                                <p class="text-[9px] text-gray-400 mt-0.5">${stockInfo}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm font-black text-blue-600 dark:text-blue-400">Rp ${window.formatRp(price).replace('Rp', '')}</p>
+                            </div>`;
+                    }
                     listContainer.appendChild(div);
                 });
              } else {
-                 if(txtProd) txtProd.innerText = 'Stok Kosong / Tidak Sesuai Filter';
-                 listContainer.innerHTML = '<div class="text-center py-10 flex flex-col items-center opacity-50"><i class="fas fa-box-open text-3xl mb-2"></i><p class="text-xs">Produk dengan filter tersebut tidak ditemukan</p></div>';
+                 if(txtProd) txtProd.innerText = 'Stok Kosong';
+                 listContainer.innerHTML = '<div class="text-center py-10 flex flex-col items-center opacity-50"><i class="fas fa-box-open text-3xl mb-2"></i><p class="text-xs">Produk belum tersedia</p></div>';
              }
-             return; 
+             return; // STOP di sini agar tidak lanjut ke logika KHFY
+        }
+
+        // --- LOGIKA LAMA: KHFY (Backup) ---
+        if(!globalProducts || globalProducts.length === 0) {
+             if(txtProd) txtProd.innerText = 'Data Belum Siap';
+             window.initProductData(); 
+             return;
         }
 
                 const filtered = globalProducts.filter(p => {

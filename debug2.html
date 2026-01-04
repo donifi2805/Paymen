@@ -943,35 +943,45 @@ const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
         });
 
         window.checkRealtimeJson = async (uid, trxId) => {
-            Swal.fire({ title: 'Koneksi ke Pusat', html: 'Sedang mengambil raw data...', didOpen: () => Swal.showLoading() });
-            try {
-                const snap = await getDoc(doc(db, "users", uid, "history", trxId));
-                if(!snap.exists()) throw "Data lokal tidak ditemukan";
-                const d = snap.data();
-                const refId = d.trx_id;
-                if(!refId) throw "Ref ID tidak ditemukan pada transaksi ini.";
+    Swal.fire({ title: 'Koneksi ke Pusat', html: 'Sedang mengambil raw data...', didOpen: () => Swal.showLoading() });
+    try {
+        const snap = await getDoc(doc(db, "users", uid, "history", trxId));
+        if(!snap.exists()) throw "Data lokal tidak ditemukan";
+        const d = snap.data();
+        const refId = d.trx_id;
+        if(!refId) throw "Ref ID tidak ditemukan pada transaksi ini.";
 
-                let res = await callIcsApi('checkTransaction', { refid: refId });
-                let source = "ICS Store";
-                if(!res || (!res.data && !res.status)) {
-                     const resKhfy = await callApi('/history', { refid: refId });
-                     if(resKhfy.ok && resKhfy.data) {
-                         res = resKhfy.data;
-                         source = "Khfy Store";
-                     }
-                }
-                
-                Swal.fire({
-                    title: 'Raw JSON (' + source + ')',
-                    html: `<div class="text-left"><div class="bg-slate-900 p-3 rounded-lg overflow-auto max-h-[60vh] custom-scroll relative group">
-                            <button onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)" class="absolute top-2 right-2 text-gray-500 hover:text-white transition"><i class="fas fa-copy"></i></button>
-                            <pre class="text-[10px] text-green-400 font-mono whitespace-pre-wrap">${JSON.stringify(res, null, 2)}</pre>
-                           </div></div>`,
-                    width: '600px',
-                    confirmButtonText: 'Tutup'
-                });
-            } catch(e) { Swal.fire('Error', e.message || e, 'error'); }
-        };
+        let res = null;
+        let source = "Unknown";
+
+        // LOGIKA BARU: Deteksi Server Berdasarkan Prefix RefID
+        if (String(refId).startsWith('ICS')) {
+             // Prefix ICS -> Ke Server ICS (Relay)
+             res = await callIcsApi('checkTransaction', { refid: refId });
+             source = "ICS Store (Relay)";
+        } else {
+             // Prefix TRX atau Lainnya -> Ke Server Khfy
+             const resKhfy = await callApi('/history', { refid: refId });
+             if(resKhfy.ok && resKhfy.data) {
+                 res = resKhfy.data;
+                 source = "Khfy Store";
+             }
+        }
+        
+        let displayJson = res;
+        if(!res) displayJson = { error: "Data tidak ditemukan di server pusat", refid: refId };
+
+        Swal.fire({
+            title: 'Raw JSON (' + source + ')',
+            html: `<div class="text-left"><div class="bg-slate-900 p-3 rounded-lg overflow-auto max-h-[60vh] custom-scroll relative group">
+                    <button onclick="navigator.clipboard.writeText(this.nextElementSibling.innerText)" class="absolute top-2 right-2 text-gray-500 hover:text-white transition"><i class="fas fa-copy"></i></button>
+                    <pre class="text-[10px] text-green-400 font-mono whitespace-pre-wrap">${JSON.stringify(displayJson, null, 2)}</pre>
+                   </div></div>`,
+            width: '600px',
+            confirmButtonText: 'Tutup'
+        });
+    } catch(e) { Swal.fire('Error', e.message || e, 'error'); }
+};
 
         window.showAdminTrxDetail = (t) => {
             // Ambil User terbaru dari memory untuk cek saldo saat ini
@@ -1317,39 +1327,37 @@ if(tabId === 'pricing') loadPricingData();
         }
     } catch(e) { console.log("Local check skipped"); }
 
-    // 2. Cek ke Provider
+    // 2. Cek ke Provider (LOGIKA STRICT PREFIX)
     let foundData = null;
     let providerName = '';
     let rawRes = null;
 
-    const isIcsTrx = input.toUpperCase().startsWith('ICS') || (localData && localData.provider_code && localData.provider_code.startsWith('ICS'));
-    const tasks = isIcsTrx ? ['ICS', 'KHFY'] : ['KHFY', 'ICS'];
+    // Gunakan RefID hasil lookup DB jika ada, jika tidak gunakan input mentah
+    const targetRefId = (localData && localData.trx_id) ? localData.trx_id : input;
 
-    for (const provider of tasks) {
-        try {
-            if (provider === 'ICS') {
-                const res = await callIcsApi('checkTransaction', checkParams);
-                if (res.success && res.data) {
-                    foundData = res.data;
-                    rawRes = res;
-                    providerName = 'Server ICS (Relay)';
-                    break;
-                }
-            } else {
-                const res = await callApi('/history', checkParams);
-                if (res.ok && res.data && res.data.data) {
-                    let d = res.data.data;
-                    if (Array.isArray(d)) d = d[0];
-                    if (d) {
-                        foundData = d;
-                        rawRes = res.data;
-                        providerName = 'Server Khfy';
-                        break;
-                    }
+    try {
+        if (String(targetRefId).startsWith('ICS')) {
+            // HANYA CEK ICS
+            const res = await callIcsApi('checkTransaction', checkParams);
+            if (res.success && res.data) {
+                foundData = res.data;
+                rawRes = res;
+                providerName = 'Server ICS (Relay)';
+            }
+        } else {
+            // HANYA CEK KHFY (Asumsi TRX... atau angka)
+            const res = await callApi('/history', checkParams);
+            if (res.ok && res.data && res.data.data) {
+                let d = res.data.data;
+                if (Array.isArray(d)) d = d[0];
+                if (d) {
+                    foundData = d;
+                    rawRes = res.data;
+                    providerName = 'Server Khfy';
                 }
             }
-        } catch (e) { console.log("Skip " + provider); }
-    }
+        }
+    } catch (e) { console.log("Provider check error", e); }
 
     if (foundData) {
         let status = '-', sn = '-', price = 0;
@@ -1399,7 +1407,7 @@ if(tabId === 'pricing') loadPricingData();
             confirmButtonText: 'Tutup'
         });
     } else {
-        Swal.fire('Tidak Ditemukan', 'Data transaksi tidak ditemukan di Server (ICS/Khfy) menggunakan RefID tersebut.', 'error');
+        Swal.fire('Tidak Ditemukan', `Data transaksi tidak ditemukan di ${String(targetRefId).startsWith('ICS') ? 'Server ICS' : 'Server Khfy'} menggunakan RefID tersebut.`, 'error');
     }
 };
 
@@ -2287,16 +2295,17 @@ async function callApi(endpoint, params = {}) {
     if (provider.startsWith('ICS_')) {
         let icsType = 'xda'; 
         if (provider === 'ICS_CIRCLE') icsType = 'circle';
-        else if (provider.includes('FMX')) icsType = 'fmax';
         
         const res = await callIcsApi('listProducts', { type: icsType });
         
         if (res.success && res.data) {
-            const ready = res.data.ready || [];
-            const empty = res.data.empty || [];
+            // FIX: Handle struktur data array langsung atau nested object
+            const ready = Array.isArray(res.data.ready) ? res.data.ready : (Array.isArray(res.data) ? res.data : []);
+            const empty = Array.isArray(res.data.empty) ? res.data.empty : [];
             productsToRender = [...ready, ...empty];
         } else {
-            table.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-red-500">Gagal mengambil data ICS: ${res.message}</td></tr>`;
+            console.error("ICS Error:", res);
+            table.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-red-500">Gagal mengambil data ICS: ${res.message || 'Unknown Error'}</td></tr>`;
             return;
         }
     } else {

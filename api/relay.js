@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     let method = "GET";
     let finalBody = null; 
 
-    // 4. Routing Logic (PERBAIKAN UTAMA DISINI)
+    // 4. Routing Logic
     switch (action) {
         case 'listProducts':
             path = "/products";
@@ -43,19 +43,14 @@ export default async function handler(req, res) {
             break;
 
         case 'checkTransaction':
-            // [FIX BERDASARKAN DOKUMENTASI]
-            // Format: GET /reseller/trx/:refid
+            // Format URL: /trx/TRX_ID
             const trxId = dataParams.refid || dataParams.ref_id_custom;
-            
-            if (!trxId) {
-                return res.status(400).json({ success: false, message: 'RefID wajib ada.' });
-            }
+            if (!trxId) return res.status(400).json({ success: false, message: 'RefID wajib ada.' });
 
-            // Masukkan ID langsung ke URL (Path Parameter)
             path = `/trx/${trxId}`; 
             method = "GET";
             
-            // Hapus parameter agar tidak double di query string
+            // Bersihkan param agar tidak duplikat
             delete dataParams.refid;
             delete dataParams.ref_id_custom;
             break;
@@ -66,20 +61,22 @@ export default async function handler(req, res) {
 
     // 5. Susun URL Target
     const targetUrl = new URL(BASE_URL + path);
+    // Tetap kirim apikey di URL untuk jaga-jaga (Hybrid Auth)
     targetUrl.searchParams.append('apikey', API_KEY); 
 
-    // [FIX] Header Penyamaran (Agar produk tidak kosong / diblokir)
+    // [FIX UTAMA] Tambahkan Header Authorization (Bearer Token) + User-Agent
     const fetchOptions = {
         method: method,
         headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'application/json',
-            'Connection': 'keep-alive'
+            'Connection': 'keep-alive',
+            // INI YANG DIBUTUHKAN SERVER (Mengatasi "Unauthorized: No Token")
+            'Authorization': `Bearer ${API_KEY}`
         }
     };
 
     if (method === 'GET') {
-        // Masukkan sisa parameter ke URL (jika ada)
         Object.keys(dataParams).forEach(key => {
             targetUrl.searchParams.append(key, dataParams[key]);
         });
@@ -93,13 +90,13 @@ export default async function handler(req, res) {
         const response = await fetch(targetUrl.toString(), fetchOptions);
         const text = await response.text();
 
-        // Cek jika server error (Balikan HTML)
+        // Handle Error HTML (502/404/500)
         if (text.trim().startsWith('<')) {
             console.error("[Relay HTML Error]", text.substring(0, 100));
             return res.status(502).json({ 
                 success: false, 
-                message: 'Gagal komunikasi dengan Server Pusat (Respon HTML). ID Transaksi mungkin salah format atau Server Down.',
-                raw: text.substring(0, 100)
+                message: 'Gagal komunikasi dengan Server Pusat (Respon HTML).',
+                raw: text.substring(0, 150)
             });
         }
 

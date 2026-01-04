@@ -2292,10 +2292,9 @@ async function callApi(endpoint, params = {}) {
     
     let productsToRender = [];
 
-        if (provider.startsWith('ICS_')) {
+    if (provider.startsWith('ICS_')) {
         let icsType = 'xda'; 
         if (provider === 'ICS_CIRCLE') icsType = 'circle';
-        if (provider === 'ICS_XDA') icsType = 'xda';
         
         const res = await callIcsApi('listProducts', { type: icsType });
         
@@ -2303,19 +2302,26 @@ async function callApi(endpoint, params = {}) {
             // FIX: Handle struktur data array langsung atau nested object
             const ready = Array.isArray(res.data.ready) ? res.data.ready : (Array.isArray(res.data) ? res.data : []);
             const empty = Array.isArray(res.data.empty) ? res.data.empty : [];
-            productsToRender = [...ready, ...empty];
+                                    productsToRender = [...ready, ...empty];
 
-            // [FIX] FILTER KETAT (XLCP & XDA)
+            // --- FILTER SYSTEM V2 (ADMIN REVISED) ---
             if (provider === 'ICS_CIRCLE') {
-                 productsToRender = productsToRender.filter(p => {
-                     const c = p.kode_produk || p.code || '';
-                     return c.toUpperCase().startsWith('XLCP');
-                 });
-            } else if (provider === 'ICS_XDA') {
-                 productsToRender = productsToRender.filter(p => {
-                     const c = p.kode_produk || p.code || '';
-                     return c.toUpperCase().startsWith('XDA');
-                 });
+                productsToRender = productsToRender.filter(p => {
+                    // Normalisasi data ke huruf besar/kecil untuk pencarian fleksibel
+                    const type = (p.type || '').toLowerCase();
+                    const code = (p.code || p.kode_produk || '').toUpperCase();
+                    const name = (p.name || p.nama_produk || '').toUpperCase();
+                    
+                    // Cek apakah Type 'circle', Kode 'XCL', atau Nama mengandung 'CIRCLE'
+                    return type.includes('circle') || code.startsWith('XCL') || name.includes('CIRCLE');
+                });
+            } 
+            else if (provider === 'ICS_XDA') {
+                productsToRender = productsToRender.filter(p => {
+                    const type = (p.type || '').toLowerCase();
+                    const code = (p.code || p.kode_produk || '').toUpperCase();
+                    return type.includes('xda') || code.startsWith('XDA');
+                });
             }
         } else {
             console.error("ICS Error:", res);

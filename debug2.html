@@ -2292,9 +2292,10 @@ async function callApi(endpoint, params = {}) {
     
     let productsToRender = [];
 
-    if (provider.startsWith('ICS_')) {
+        if (provider.startsWith('ICS_')) {
         let icsType = 'xda'; 
         if (provider === 'ICS_CIRCLE') icsType = 'circle';
+        if (provider === 'ICS_XDA') icsType = 'xda';
         
         const res = await callIcsApi('listProducts', { type: icsType });
         
@@ -2303,6 +2304,19 @@ async function callApi(endpoint, params = {}) {
             const ready = Array.isArray(res.data.ready) ? res.data.ready : (Array.isArray(res.data) ? res.data : []);
             const empty = Array.isArray(res.data.empty) ? res.data.empty : [];
             productsToRender = [...ready, ...empty];
+
+            // [FIX] FILTER KETAT (XLCP & XDA)
+            if (provider === 'ICS_CIRCLE') {
+                 productsToRender = productsToRender.filter(p => {
+                     const c = p.kode_produk || p.code || '';
+                     return c.toUpperCase().startsWith('XLCP');
+                 });
+            } else if (provider === 'ICS_XDA') {
+                 productsToRender = productsToRender.filter(p => {
+                     const c = p.kode_produk || p.code || '';
+                     return c.toUpperCase().startsWith('XDA');
+                 });
+            }
         } else {
             console.error("ICS Error:", res);
             table.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-red-500">Gagal mengambil data ICS: ${res.message || 'Unknown Error'}</td></tr>`;

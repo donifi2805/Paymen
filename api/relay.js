@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-    // 1. CORS Headers - Mengizinkan akses dari semua domain (*)
+    // 1. CORS Headers - Mengizinkan akses dari frontend Anda
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
@@ -14,112 +14,82 @@ export default async function handler(req, res) {
         return;
     }
 
-    // --- KONFIGURASI API ---
-    // API Key sesuai file yang Anda upload
-    const API_KEY = "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77";
-    const BASE_URL = "https://api.ics-store.my.id/api/reseller";
+    // --- KONFIGURASI API (Ganti sesuai kredensial ICS Anda) ---
+    const API_KEY = "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3";
+    const BASE_URL = "https://reseller.ics-store.my.id";
 
-    // 2. Ambil Parameter (Gabung query URL dan Body JSON)
+    // 2. Normalisasi Parameter dari GET (query) atau POST (body)
     const finalParams = { ...req.query, ...req.body };
-    const { action, _t, ...dataParams } = finalParams; 
+    const { action, ...dataParams } = finalParams; 
 
-    // 3. SMART ROUTING & MAPPING
     let path = "";
     let method = "GET";
-    let finalBody = {}; 
+    let targetParams = new URLSearchParams();
 
+    // 3. SMART MAPPING (Sinkronisasi dengan index.html)
     switch (action) {
         case 'listProducts':
-            path = "/products"; 
+            path = "/"; 
             method = "GET";
-            // [FIX V9] Kita JANGAN hapus dataParams.type agar filter (XLA/XDA) dari frontend terbaca server
+            targetParams.append('action', 'listProducts');
+            if (dataParams.type) targetParams.append('type', dataParams.type);
             break;
 
         case 'createTransaction':
-            path = "/trx"; 
-            method = "POST";
-            // Mapping parameter frontend ke parameter backend ICS
-            finalBody = {
-                product_code: dataParams.kode_produk || dataParams.product_code,
-                dest_number: dataParams.nomor_tujuan || dataParams.dest_number,
-                ref_id_custom: dataParams.refid || dataParams.ref_id_custom
-            };
+            path = "/"; 
+            method = "GET"; // ICS API versi ini seringkali menggunakan GET untuk create
+            targetParams.append('action', 'createTransaction');
+            // Mapping dari frontend (kode_produk) ke backend (kode_produk)
+            targetParams.append('kode_produk', dataParams.kode_produk || dataParams.product_code);
+            targetParams.append('nomor_tujuan', dataParams.nomor_tujuan || dataParams.dest_number);
+            targetParams.append('refid', dataParams.refid || dataParams.ref_id_custom);
             break;
 
         case 'checkTransaction':
-            // Endpoint untuk cek status transaksi berdasarkan refid
-            path = "/transaction"; 
+            path = "/"; 
             method = "GET";
-            break;
-
-        case 'profile':
-            path = "/profile"; 
-            method = "GET";
+            targetParams.append('action', 'checkTransaction');
+            targetParams.append('refid', dataParams.refid);
             break;
 
         default:
-            // Default fallback ke list produk jika action tidak dikenali
-            path = "/products"; 
+            path = "/";
+            targetParams.append('action', 'listProducts');
     }
 
-    // 4. Susun URL Target
-    const targetUrl = new URL(BASE_URL + path);
-    
-    // [PENTING] Selalu kirim API Key via URL parameter (Wajib untuk beberapa endpoint GET)
-    targetUrl.searchParams.append('apikey', API_KEY); 
+    // Selalu sertakan API Key di server-side agar aman
+    targetParams.append('apikey', API_KEY);
 
-    // 5. Setup Fetch Options
-    const fetchOptions = {
-        method: method,
-        headers: {
-            'User-Agent': 'Vercel-Relay/9.0', // Versi Bot
-            'Accept': 'application/json',
-            // Kirim API Key juga via Header sebagai cadangan auth
-            'Authorization': `Bearer ${API_KEY}`
-        }
-    };
-
-    if (method === 'GET') {
-        // Untuk GET, masukkan semua parameter sisa ke URL Query
-        Object.keys(dataParams).forEach(key => {
-            targetUrl.searchParams.append(key, dataParams[key]);
-        });
-    } else {
-        // Untuk POST, gunakan Body JSON
-        fetchOptions.headers['Content-Type'] = 'application/json';
-        // Gunakan finalBody yang sudah dimapping jika ada, jika tidak gunakan raw params
-        fetchOptions.body = JSON.stringify(Object.keys(finalBody).length > 0 ? finalBody : dataParams);
-    }
+    // 4. Bangun URL Target
+    const targetUrl = `${BASE_URL}${path}?${targetParams.toString()}`;
 
     try {
-        // Log untuk debugging di dashboard Vercel
-        console.log(`[Relay V9] ${method} ${targetUrl.toString()}`);
+        console.log(`[Relay-Safe] Routing: ${action} -> ${targetUrl}`);
         
-        const response = await fetch(targetUrl.toString(), fetchOptions);
+        const response = await fetch(targetUrl, {
+            method: method,
+            headers: {
+                'User-Agent': 'Pandawa-Relay-Server/1.0',
+                'Accept': 'application/json'
+            }
+        });
+
         const text = await response.text();
 
-        // 6. Validasi Response (Cek apakah HTML Error/Maintenance)
+        // 5. Validasi jika respon bukan JSON (misal HTML Maintenance)
         if (text.trim().startsWith('<')) {
-            console.error("[Relay HTML Error]", text.substring(0, 100));
             return res.status(502).json({
                 success: false,
-                message: 'Server Error (HTML). Endpoint Salah atau Maintenance.',
-                raw: text.substring(0, 100)
+                message: 'Server ICS sedang maintenance atau memblokir akses.',
+                raw_preview: text.substring(0, 100)
             });
         }
 
-        // 7. Parse JSON dan Return ke Frontend
-        try {
-            const json = JSON.parse(text);
-            // Teruskan status code asli dari server pusat
-            return res.status(response.ok ? 200 : response.status).json(json);
-        } catch (e) {
-            console.error("[Relay Parse Error]", text);
-            return res.status(500).json({ success: false, message: 'Invalid JSON Response', raw: text });
-        }
+        const json = JSON.parse(text);
+        return res.status(200).json(json);
 
     } catch (error) {
-        console.error("[Relay Sys Error]", error);
-        return res.status(500).json({ success: false, message: error.message });
+        console.error("[Relay-Error]", error);
+        return res.status(500).json({ success: false, message: "Koneksi ke API Pusat gagal." });
     }
 }

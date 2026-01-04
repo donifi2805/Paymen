@@ -236,7 +236,7 @@
                 <p class="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-widest">Kode Transaksi</p>
                 <p class="text-lg font-mono font-black text-gray-800 dark:text-white" id="dtTrxCode">------</p>
             </div>
-            <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-4">Detail Transaksi</h3>
+            <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800 dark:text-white">Detail Transaksi</h3><button id="btnRefreshHeader" class="hide text-blue-600 text-[10px] font-bold bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-lg hover:bg-blue-100 transition-all flex items-center gap-1"><i class="fas fa-sync-alt"></i> Refresh</button></div>
             
             <div class="space-y-3">
                 <div class="p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
@@ -3848,6 +3848,16 @@ window.renderTopUpHistory = () => {
         
         const statusEl = document.getElementById('dtStatus');
         statusEl.innerText = trx.status;
+        
+        const btnRefreshHeader = document.getElementById('btnRefreshHeader');
+        if (trx.status === 'Pending' || trx.status === 'Proses') {
+            btnRefreshHeader.classList.remove('hide');
+            btnRefreshHeader.onclick = () => window.manualCheckTrx(trx.trx_id, trx.provider_id || trx.provider_code);
+            window.startDetailWatcher(trx.trx_id, trx.provider_id || trx.provider_code);
+        } else {
+            btnRefreshHeader.classList.add('hide');
+            if(window.detailWatcherInterval) clearInterval(window.detailWatcherInterval);
+        }
         statusEl.className = 'text-xs font-bold ' + (trx.status === 'Sukses' ? 'text-green-600' : (trx.status === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
         
         const infoEl = document.getElementById('dtSn');
@@ -3910,7 +3920,8 @@ document.getElementById('detailTrxModal').classList.remove('hide');
             const localData = trxSnap.data();
 
             // --- PERBAIKAN: DETEKSI TRANSAKSI ICS (Update V3) ---
-            if (String(docId).startsWith('ICS-') || providerId === 'ICS' || (localData.provider_code && localData.provider_code.startsWith('ICS'))) {
+            const isIcs = String(docId).startsWith('ICS-') || String(docId).startsWith('ICS-PO-');
+            if (isIcs || providerId === 'ICS' || (localData.provider_code && localData.provider_code.startsWith('ICS'))) {
                 console.log("[Check] Mode ICS untuk", docId);
                 const res = await callIcsApi('checkTransaction', { refid: docId });
                 
@@ -4014,7 +4025,50 @@ document.getElementById('detailTrxModal').classList.remove('hide');
     };
 
 
-    window.closeTrxDetail = () => document.getElementById('detailTrxModal').classList.add('hide');
+    window.closeTrxDetail = () => {
+
+
+    window.detailWatcherInterval = null;
+    window.startDetailWatcher = (trxId, providerId) => {
+        if(window.detailWatcherInterval) clearInterval(window.detailWatcherInterval);
+        const check = async () => {
+            const trxRef = doc(db, "users", currentUser.uid, "history", trxId);
+            const snap = await getDoc(trxRef);
+            if(snap.exists() && (snap.data().status === 'Pending' || snap.data().status === 'Proses')) {
+                const statusEl = document.getElementById('dtStatus');
+                if(statusEl) {
+                    statusEl.innerText = snap.data().status;
+                    statusEl.className = 'text-xs font-bold ' + (snap.data().status === 'Sukses' ? 'text-green-600' : (snap.data().status === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
+                }
+                await window.manualCheckTrx(trxId, providerId);
+            } else {
+                clearInterval(window.detailWatcherInterval);
+                if(document.getElementById('btnRefreshHeader')) document.getElementById('btnRefreshHeader').classList.add('hide');
+            }
+        };
+        window.detailWatcherInterval = setInterval(check, 5000);
+    };
+        document.getElementById('detailTrxModal').classList.add('hide');
+        if(window.detailWatcherInterval) clearInterval(window.detailWatcherInterval);
+    };
+
+
+let detailWatcherInterval = null;
+window.startDetailWatcher = (trxId, providerId) => {
+    if(detailWatcherInterval) clearInterval(detailWatcherInterval);
+    const check = async () => {
+        const trxRef = doc(db, "users", currentUser.uid, "history", trxId);
+        const snap = await getDoc(trxRef);
+        if(snap.exists() && (snap.data().status === 'Pending' || snap.data().status === 'Proses')) {
+            console.log("Auto Refreshing Detail...");
+            await window.manualCheckTrx(trxId, providerId);
+        } else {
+            clearInterval(detailWatcherInterval);
+            if(document.getElementById('btnRefreshHeader')) document.getElementById('btnRefreshHeader').classList.add('hide');
+        }
+    };
+    detailWatcherInterval = setInterval(check, 5000);
+};
 
     // --- FULL QR PREVIEW ---
     window.openFullQr = () => {

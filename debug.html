@@ -245,10 +245,14 @@
                 </div>
                 
                 <div class="flex gap-3">
-                    <div class="flex-1 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 relative">
-                        <p class="text-[10px] text-gray-500 mb-1">Status</p>
+                                        <div class="flex-1 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 relative">
+                        <div class="flex justify-between items-center mb-1">
+                            <p class="text-[10px] text-gray-500">Status</p>
+                            <button id="btnRefreshStatus" onclick="" class="hide px-2 py-0.5 bg-blue-100 text-blue-700 rounded-md text-[9px] font-bold hover:bg-blue-200 transition-colors shadow-sm flex items-center gap-1">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                        </div>
                         <p class="text-xs font-bold" id="dtStatus">-</p>
-                        <button id="btnRefreshStatus" onclick="" class="hide absolute top-2 right-2 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-sm"><i class="fas fa-sync-alt text-[10px]"></i></button>
                     </div>
                     <div class="flex-1 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
                         <p class="text-[10px] text-gray-500 mb-1">Nominal</p>
@@ -2842,16 +2846,19 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
              return;
         }
 
-        const filtered = globalProducts.filter(p => {
+                const filtered = globalProducts.filter(p => {
             const code = (p.code || p.kode_produk || p.buyer_sku_code || '').toUpperCase();
             const name = (p.name || p.nama_produk || p.product_name || '').toUpperCase();
             const brand = (p.brand || p.kode_provider || p.operator || '').toUpperCase();
             
-            if (providerCode === 'XDA') return code.startsWith('XDA');
-            if (providerCode === 'FMX') return (code.startsWith('FMX') || code === 'CFMX') && brand === 'FMAX';
-            if (providerCode === 'XLR') return brand === 'XLREGULER';
-            if (providerCode === 'PLN') return brand.includes('PLN') || code.includes('PLN') || name.includes('TOKEN');
+            // FILTER KHFY LEBIH KETAT
+            if (providerCode === 'XDA') return code.startsWith('XDA') || brand.includes('AKRAB FRESH');
+            if (providerCode === 'XLA') return (code.startsWith('XLA') || code.startsWith('XLC')) && !code.startsWith('XDA');
+            if (providerCode === 'FMX') return (code.startsWith('FMX') || code === 'CFMX') || brand === 'FMAX';
+            if (providerCode === 'XLR') return brand === 'XLREGULER' || (brand.includes('XL') && !brand.includes('AKRAB') && !brand.includes('AXIS'));
+            if (providerCode === 'PLN') return brand.includes('PLN') || code.includes('PLN');
 
+            // Default
             return brand.includes(providerCode) || name.includes(providerCode) || code.includes(providerCode);
         });
 
@@ -3839,37 +3846,19 @@ window.renderTopUpHistory = () => {
         const infoEl = document.getElementById('dtSn');
         infoEl.innerText = trx.api_msg || '-';
 
-        // REFRESH OTOMATIS SAAT DETAIL DIBUKA JIKA STATUS PENDING
-                if(trx.status === 'Pending' || trx.status === 'Proses') {
-            document.getElementById('btnRefreshStatus').classList.remove('hide');
-            document.getElementById('btnRefreshStatus').onclick = () => window.manualCheckTrx(trx.trx_id, trx.provider_id || trx.trx_id);
-            if(!trx.trx_id.startsWith('PO-')) window.manualCheckTrx(trx.trx_id, trx.provider_id || trx.trx_id);
+                // Tampilkan Tombol Refresh Manual (Kecuali Dibatalkan)
+        const btnRefresh = document.getElementById('btnRefreshStatus');
+        if (trx.status !== 'Dibatalkan') {
+            btnRefresh.classList.remove('hide');
+            btnRefresh.onclick = () => window.manualCheckTrx(trx.trx_id, trx.provider_code || trx.provider_id);
+        } else {
+            btnRefresh.classList.add('hide');
         }
 
-        if(trx.trx_id.startsWith('PO-')) {
-            const refundInfo = trx.status === 'Gagal' && trx.balance_final ? `<div class="mt-2 p-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg text-[9px] font-bold border border-green-200"><i class="fas fa-undo-alt mr-1"></i> Saldo di-refund: ${window.formatRp(trx.balance_final)}</div>` : '';
-            infoEl.innerHTML = `
-            <div class="space-y-1 text-[10px] font-mono">
-                <div class="border-b border-blue-200 dark:border-blue-800 pb-1 mb-1">
-                    <span class="block font-bold text-blue-700 dark:text-blue-300">Informasi Preorder:</span>
-                    <span>${trx.api_msg || 'Menunggu Admin'}</span>
-                </div>
-                <div class="grid grid-cols-1 gap-1">
-                    <div><span class="text-gray-500">Produk:</span> <span class="font-bold">${trx.title.replace('Preorder: ', '')}</span></div>
-                    <div><span class="text-gray-500">Kode:</span> <span class="font-bold">${trx.raw_code || '-'}</span></div>
-                    <div><span class="text-gray-500">Tujuan:</span> <span class="font-bold text-blue-600">${trx.dest_num || '-'}</span></div>
-                    <div><span class="text-gray-500">Waktu:</span> <span class="font-bold">${new Date(trx.date).toLocaleTimeString('id-ID')} WIB</span></div>
-                </div>
-                ${refundInfo}
-            </div>`;
-        } else {
-            document.getElementById('btnRefreshStatus').classList.add('hide');
-            if (trx.raw_json && trx.raw_json !== '{}') {
-                try {
-                    const json = JSON.parse(trx.raw_json);
-                    infoEl.innerHTML = window.formatDetailInfo(json);
-                } catch (e) { console.warn("JSON parse error"); }
-            }
+        // Auto Check khusus Pending (tanpa klik)
+        if(trx.status === 'Pending' || trx.status === 'Proses') {
+             if(!trx.trx_id.startsWith('PO-')) window.manualCheckTrx(trx.trx_id, trx.provider_code || trx.provider_id);
+        }
         }
 
         

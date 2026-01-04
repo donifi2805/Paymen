@@ -2796,13 +2796,16 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
         listContainer.innerHTML = '';
 
         // --- LOGIKA BARU: ICS HANDLER (FIXED) ---
+                // --- LOGIKA BARU: ICS HANDLER (FIXED & FILTERED) ---
         if (providerCode.startsWith('ICS_')) {
              if(txtProd) txtProd.innerText = 'Memuat Dari Server...';
              if(btnProd) btnProd.classList.add('cursor-not-allowed', 'opacity-50');
 
              let icsType = 'xda';
+             // Mapping tipe request ke Server
              if(providerCode === 'ICS_CIRCLE') icsType = 'circle';
              if(providerCode === 'ICS_XLA') icsType = 'xla';
+             if(providerCode === 'ICS_XDA') icsType = 'xda'; 
 
              // Panggil API
              const res = await callIcsApi('listProducts', { type: icsType });
@@ -2814,6 +2817,20 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
                 else if (res.data && res.data.ready && Array.isArray(res.data.ready)) allProducts = res.data.ready;
                 else if (Array.isArray(res.data)) allProducts = res.data;
                 else if (Array.isArray(res)) allProducts = res;
+             }
+
+             // [FIX] FILTER KETAT SESUAI REQUEST (XLCP & XDA)
+             if (providerCode === 'ICS_CIRCLE') {
+                 // Hanya loloskan produk yang kodenya berawalan 'XLCP'
+                 allProducts = allProducts.filter(p => 
+                     p.kode_produk && p.kode_produk.toUpperCase().startsWith('XLCP')
+                 );
+             } 
+             else if (providerCode === 'ICS_XDA') {
+                 // Hanya loloskan produk yang kodenya berawalan 'XDA'
+                 allProducts = allProducts.filter(p => 
+                     p.kode_produk && p.kode_produk.toUpperCase().startsWith('XDA')
+                 );
              }
 
              if (allProducts.length > 0) {
@@ -2848,7 +2865,7 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
                     div.innerHTML = `
                         <div>
                             <p class="text-xs font-bold text-gray-700 dark:text-gray-200">${name}</p>
-                            <p class="text-[9px] text-gray-400 mt-0.5">${stockInfo}</p>
+                            <p class="text-[9px] text-gray-400 mt-0.5">${stockInfo} | ${code}</p>
                         </div>
                         <div class="text-right">
                             <p class="text-sm font-black text-blue-600 dark:text-blue-400">Rp ${window.formatRp(price).replace('Rp', '')}</p>
@@ -2856,17 +2873,10 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
                     listContainer.appendChild(div);
                 });
              } else {
-                 if(txtProd) txtProd.innerText = 'Stok Kosong';
-                 listContainer.innerHTML = '<div class="text-center py-10 flex flex-col items-center opacity-50"><i class="fas fa-box-open text-3xl mb-2"></i><p class="text-xs">Produk belum tersedia</p></div>';
+                 if(txtProd) txtProd.innerText = 'Stok Kosong / Tidak Sesuai Filter';
+                 listContainer.innerHTML = '<div class="text-center py-10 flex flex-col items-center opacity-50"><i class="fas fa-box-open text-3xl mb-2"></i><p class="text-xs">Produk dengan filter tersebut tidak ditemukan</p></div>';
              }
-             return; // STOP di sini agar tidak lanjut ke logika KHFY
-        }
-
-        // --- LOGIKA LAMA: KHFY (Backup) ---
-        if(!globalProducts || globalProducts.length === 0) {
-             if(txtProd) txtProd.innerText = 'Data Belum Siap';
-             window.initProductData(); 
-             return;
+             return; 
         }
 
                 const filtered = globalProducts.filter(p => {

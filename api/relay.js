@@ -13,9 +13,8 @@ export default async function handler(req, res) {
         return;
     }
 
-    // 2. CONFIG - URL SESUAI INSTRUKSI ANDA
+    // 2. CONFIG - URL & API KEY
     const API_KEY = "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77";
-    // Menggunakan URL yang Anda konfirmasi benar
     const BASE_URL = "https://api.ics-store.my.id/api/reseller";
 
     // 3. Ambil Parameter
@@ -26,7 +25,7 @@ export default async function handler(req, res) {
     let method = "GET";
     let finalBody = null; 
 
-    // 4. Routing Logic
+    // 4. Routing Logic (PERBAIKAN DISINI)
     switch (action) {
         case 'listProducts':
             path = "/products";
@@ -44,11 +43,14 @@ export default async function handler(req, res) {
             break;
 
         case 'checkTransaction':
-            path = "/transaction"; 
+            // [FIX] Mengubah endpoint dari /transaction ke /trx (GET)
+            // Banyak server H2H menggunakan /trx untuk cek status juga
+            path = "/trx"; 
             method = "GET";
-            // Mapping ID untuk cek status
+            
+            // Kirim kedua parameter ID untuk jaga-jaga
             dataParams.ref_id_custom = dataParams.refid;
-            delete dataParams.refid; 
+            // Jangan delete dataParams.refid, biarkan terkirim double agar server memilih salah satu
             break;
 
         default:
@@ -59,13 +61,14 @@ export default async function handler(req, res) {
     const targetUrl = new URL(BASE_URL + path);
     targetUrl.searchParams.append('apikey', API_KEY); 
 
-    // [FIX PENTING] Menyamar sebagai Browser Chrome untuk hindari Error 502/Blokir
+    // [FIX] Header Penyamaran agar tidak diblokir (Solusi Stok Kosong)
     const fetchOptions = {
         method: method,
         headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'application/json',
-            'Connection': 'keep-alive'
+            'Referer': 'https://ics-store.my.id/', 
+            'Origin': 'https://ics-store.my.id'
         }
     };
 
@@ -79,17 +82,22 @@ export default async function handler(req, res) {
     }
 
     try {
-        console.log(`[Relay] Requesting to: ${targetUrl.toString()}`);
+        console.log(`[Relay] Requesting: ${targetUrl.toString()}`);
         const response = await fetch(targetUrl.toString(), fetchOptions);
         const text = await response.text();
 
-        // Cek jika server error / maintenance (Balikan HTML)
+        // Cek jika server error (Balikan HTML)
         if (text.trim().startsWith('<')) {
             console.error("[Relay HTML Error]", text.substring(0, 100));
+            
+            // Analisis Error HTML
+            let msg = 'Server Pusat Error/Maintenance (HTML).';
+            if(text.includes('404')) msg = 'Endpoint API Salah (404).';
+            
             return res.status(502).json({ 
                 success: false, 
-                message: 'Server Pusat (ICS) Mengembalikan Error HTML (502). Coba cek API Key atau URL kembali.',
-                raw: text.substring(0, 200)
+                message: msg,
+                raw: text.substring(0, 150)
             });
         }
 

@@ -14,8 +14,8 @@ export default async function handler(req, res) {
     }
 
     // --- KONFIGURASI API ---
-    // [UPDATE] API Key Baru
-    const API_KEY = "5ceabbed85db5f8da18535464befb176";
+    // [UPDATE] API Key Baru (Dari Anda)
+    const API_KEY = "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77";
     const BASE_URL = "https://api.ics-store.my.id/api/reseller";
 
     // 2. Ambil Parameter
@@ -62,9 +62,8 @@ export default async function handler(req, res) {
     // 4. Susun URL
     const targetUrl = new URL(BASE_URL + path);
     
-    // [PERBAIKAN 401] API Key HANYA dikirim via Header. 
-    // Baris di bawah dinonaktifkan agar server tidak mendeteksi spam/double auth.
-    // targetUrl.searchParams.append('apikey', API_KEY); 
+    // [PENTING] Mengirim API Key lewat URL (Wajib untuk GET Request di beberapa server ICS)
+    targetUrl.searchParams.append('apikey', API_KEY); 
 
     // 5. Setup Fetch
     const fetchOptions = {
@@ -72,15 +71,15 @@ export default async function handler(req, res) {
         headers: {
             'User-Agent': 'Vercel-Relay/8.0',
             'Accept': 'application/json',
-            // Auth Utama via Bearer Token
+            // Mengirim juga lewat Header sebagai cadangan
             'Authorization': `Bearer ${API_KEY}`
         }
     };
 
     if (method === 'GET') {
-        // [FIX] Hapus parameter refid/ref_id_custom jika action checkTransaction
+        // Bersihkan parameter duplikat jika perlu
         if(action === 'checkTransaction') {
-             // Pastikan query bersih
+             // Opsional: Sesuaikan jika ada parameter khusus
         }
         Object.keys(dataParams).forEach(key => {
             targetUrl.searchParams.append(key, dataParams[key]);
@@ -96,7 +95,7 @@ export default async function handler(req, res) {
         const response = await fetch(targetUrl.toString(), fetchOptions);
         const text = await response.text();
 
-        // Cek jika response HTML (Error proxy/endpoint salah)
+        // Cek jika response HTML (Error proxy/endpoint salah atau Maintenance)
         if (text.trim().startsWith('<')) {
             console.error("[Relay HTML Error]", text.substring(0, 100));
             return res.status(502).json({
@@ -108,7 +107,6 @@ export default async function handler(req, res) {
 
         try {
             const json = JSON.parse(text);
-            // Jika masih error dari supplier, teruskan status aslinya (misal 401)
             return res.status(response.ok ? 200 : response.status).json(json);
         } catch (e) {
             return res.status(500).json({ success: false, message: 'Invalid JSON', raw: text });

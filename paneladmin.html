@@ -748,7 +748,7 @@
                                 window.runMassalPreorders = async (btn) => {
             const container = document.getElementById('debugPoList');
             if(!container) return;
-            const runButtons = container.querySelectorAll('button[onclick^="processPreOrderToSystem"]');
+            const runButtons = container.querySelectorAll('button[onclick*="processPreOrderToSystem"]');
             if(runButtons.length === 0) return Swal.fire('Info', 'Antrian kosong.', 'info');
             
             if(!confirm('Jalankan ' + runButtons.length + ' antrian secara otomatis (Jeda 3 detik)?')) return;
@@ -787,16 +787,20 @@ window.listenDebugPreOrders = () => {
                     const po = docSnap.data();
                     const logId = `log-po-${docSnap.id}`;
 
-                    // --- STATUS BADGE & TOMBOL ---
                     let statusBadge = '<span class="text-[9px] bg-gray-200 text-gray-500 px-2 py-0.5 rounded font-bold border border-gray-300">PENDING</span>';
                     let extraInfo = '';
-                    // Tombol Run memanggil window.processPreOrderToSystem
+                    
+                    // PERBAIKAN: Gunakan window.process... agar terdeteksi selector runMassal
                     let runBtn = `<button onclick="window.processPreOrderToSystem('${docSnap.id}', '${po.targetNumber}', '${po.provider}', '${po.serverType || 'KHFY'}')" class="bg-purple-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-purple-700 transition shadow-sm mr-1">RUN DEBUG</button>`;
 
-                    // JIKA SUKSES (TERBELI)
+                    if (po.debugStatus === 'GAGAL') {
+                         statusBadge = '<span class="text-[9px] bg-red-100 text-red-700 px-2 py-0.5 rounded font-bold border border-red-200">GAGAL</span>';
+                         // Tombol RUN tetap ada untuk Gagal
+                    }
+
                     if (po.debugStatus === 'TERBELI') {
                         statusBadge = '<span class="text-[9px] bg-green-100 text-green-700 px-2 py-0.5 rounded font-bold border border-green-200">TERBELI</span>';
-                        runBtn = ''; // Hapus tombol Run
+                        runBtn = ''; // Tombol RUN hilang hanya jika Terbeli
                         if (po.successData) {
                             extraInfo = `<span class="text-[9px] font-mono text-gray-500 ml-2 border-l pl-2 border-gray-300">${po.successData.code} • ${window.formatRp(po.successData.price)}</span>`;
                         }
@@ -820,8 +824,8 @@ window.listenDebugPreOrders = () => {
                             </div>
                             <div class="flex gap-1 shrink-0">
                                 ${runBtn}
-                                <button onclick="handlePreorderDebugAction('${docSnap.id}', 'Sukses')" class="bg-emerald-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-emerald-700 transition" title="Selesaikan Manual"><i class="fas fa-check"></i></button>
-                                <button onclick="handlePreorderDebugAction('${docSnap.id}', 'Tolak')" class="bg-red-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-red-700 transition" title="Tolak"><i class="fas fa-trash"></i></button>
+                                <button onclick="window.handlePreorderDebugAction('${docSnap.id}', 'Sukses')" class="bg-emerald-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-emerald-700 transition" title="Selesaikan Manual"><i class="fas fa-check"></i></button>
+                                <button onclick="window.handlePreorderDebugAction('${docSnap.id}', 'Tolak')" class="bg-red-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-red-700 transition" title="Tolak"><i class="fas fa-trash"></i></button>
                             </div>
                         </div>
                         <div id="${logId}" class="h-24 overflow-y-auto bg-slate-900 text-gray-300 p-2 rounded border border-slate-700 custom-scroll font-mono text-[9px] leading-snug whitespace-pre-wrap break-words overflow-x-hidden">

@@ -2836,7 +2836,7 @@ async function callApi(endpoint, params = {}) {
              // Panggil API
              const res = await callIcsApi('listProducts', { type: icsType });
              
-                          // LOGIKA CERDAS: Deteksi berbagai format respon ICS
+             // LOGIKA CERDAS: Deteksi berbagai format respon ICS
              let allProducts = [];
              if (res) {
                 if (res.ready && Array.isArray(res.ready)) allProducts = res.ready;
@@ -2880,7 +2880,15 @@ async function callApi(endpoint, params = {}) {
                     const isStatusEmpty = (p.status === 'empty');
                     if (!isStatusEmpty && stockCount > 0) stockCount = p.stock || p.stok; 
                     
-                    const isHabis = isStatusEmpty || stockCount == 0;
+                    // --- MODIFIKASI: BYPASS STOK UTK PREORDER (XDA & CIRCLE) ---
+                    const isPreorderPage = !document.getElementById('preorderPage').classList.contains('hide');
+                    let isHabis = isStatusEmpty || stockCount == 0;
+
+                    if (isPreorderPage && (providerCode === 'ICS_XDA' || providerCode === 'ICS_CIRCLE')) {
+                        isHabis = false; 
+                    }
+                    // ----------------------------------------------------------
+
                     const stockInfo = isHabis ? 'KOSONG / GANGGUAN' : (stockCount > 900 ? 'Tersedia' : `Stok: ${stockCount}`);
 
                     // Cek Pricing Rules (Markup)
@@ -2931,7 +2939,7 @@ async function callApi(endpoint, params = {}) {
              return;
         }
 
-                const filtered = globalProducts.filter(p => {
+        const filtered = globalProducts.filter(p => {
             const code = (p.code || p.kode_produk || p.buyer_sku_code || '').toUpperCase();
             const name = (p.name || p.nama_produk || p.product_name || '').toUpperCase();
             const brand = (p.brand || p.kode_provider || p.operator || '').toUpperCase();
@@ -2940,7 +2948,14 @@ async function callApi(endpoint, params = {}) {
             if (providerCode === 'XDA') return code.startsWith('XDA') || brand.includes('AKRAB FRESH');
             if (providerCode === 'XLA') return (code.startsWith('XLA') || code.startsWith('XLC')) && !code.startsWith('XDA');
             if (providerCode === 'FMX') return (code.startsWith('FMX') || code === 'CFMX') || brand === 'FMAX';
-            if (providerCode === 'XLR') return brand === 'XLREGULER' || (brand.includes('XL') && !brand.includes('AKRAB') && !brand.includes('AXIS'));
+            
+            // --- MODIFIKASI: FILTER XL REGULER KHUSUS ---
+            if (providerCode === 'XLR') {
+                const allowedXLR = ['FMX50', 'FMX65', 'FMX80', 'FMX150'];
+                return allowedXLR.includes(code);
+            }
+            // -------------------------------------------
+            
             if (providerCode === 'PLN') return brand.includes('PLN') || code.includes('PLN');
 
             // Default
@@ -3017,8 +3032,7 @@ async function callApi(endpoint, params = {}) {
             }
             listContainer.appendChild(div);
         });
-    };
-window.toggleMultiTrx = () => {
+    };window.toggleMultiTrx = () => {
         isMultiTrx = !isMultiTrx;
         const check = document.getElementById('multiTrxCheck');
         const icon = check.querySelector('i');

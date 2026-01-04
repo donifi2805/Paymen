@@ -2290,50 +2290,79 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
     };
     
     // API CALLER
-    async function callApi(endpoint, params = {}) {
-                params['api_key'] = CONFIG.apiKey;
-        // UPDATE: Anti-Cache (Paksa Proxy ambil data baru)
-        params['_t'] = Date.now();
-        const queryString = new URLSearchParams(params).toString();
-        const targetUrl = `${CONFIG.baseUrl}${endpoint}?${queryString}`;
+    // Lokasi file relaykhfy.js (Sesuaikan jika path berbeda)
+const KHFY_RELAY_URL = "/api/relaykhfy"; // Format Vercel Serverless Function
+
+async function callApi(endpoint, params = {}) {
+    // 1. Setup Parameter Dasar
+    params['api_key'] = CONFIG.apiKey;
+    params['_t'] = Date.now();
+
+    // 2. PRIORITAS UTAMA: Coba Via Relay Sendiri (relaykhfy.js)
+    // Ini jauh lebih stabil & cepat dibanding proxy publik
+    try {
+        console.log("[API] Mencoba via Relay KHFY...");
         
-        let lastError = '';
+        // Susun Query String: endpoint + parameter data
+        // Pastikan endpoint dikirim agar relay tahu tujuannya
+        const relayParams = new URLSearchParams({ endpoint: endpoint, ...params }).toString();
+        const relayUrl = `${KHFY_RELAY_URL}?${relayParams}`;
 
-        for (const proxy of PROXY_LIST) {
-            console.log(`[API] Mencoba via ${proxy.name}...`);
-            const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
-            
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 detik timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-                const response = await fetch(fullUrl, { signal: controller.signal });
-                clearTimeout(timeoutId);
+        const res = await fetch(relayUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
 
-                if (response.ok) {
-                    const text = await response.text();
-                    if (!text || text.trim().startsWith('<')) {
-                        console.warn(`[API] Respon HTML terdeteksi via ${proxy.name}`);
-                        continue;
-                    }
-                    try {
-                        const data = JSON.parse(text);
-                        console.log(`[API] SUKSES via ${proxy.name}`);
-                        return { ok: true, data: data };
-                    } catch (e) {
-                        console.warn(`[API] Response bukan JSON via ${proxy.name}`);
-                        continue;
-                    }
-                } else {
-                    console.warn(`[API] Gagal HTTP ${response.status} via ${proxy.name}`);
-                }
-            } catch (error) {
-                console.warn(`[API] Error Koneksi via ${proxy.name}:`, error.message);
-                lastError = `${proxy.name}: ${error.message}`;
+        if (res.ok) {
+            const text = await res.text();
+            // Validasi: Pastikan bukan HTML Error dari Vercel/Hosting
+            if (text && !text.trim().startsWith('<')) {
+                try {
+                    const json = JSON.parse(text);
+                    // Jika Relay me-return JSON valid, gunakan itu
+                    return { ok: true, data: json };
+                } catch(e) { console.warn("[API] Relay JSON Invalid"); }
+            } else {
+                console.warn("[API] Relay Error HTML:", text.substring(0,50));
             }
         }
-        return { ok: false, error: `Gagal Koneksi (Semua Jalur). Detail: ${lastError}` };
+    } catch (e) {
+        console.warn("[API] Relay Gagal, beralih ke jalur cadangan...", e);
     }
+
+    // 3. JALUR CADANGAN: Public Proxy Loop (Logika Lama)
+    const queryString = new URLSearchParams(params).toString();
+    const targetUrl = `${CONFIG.baseUrl}${endpoint}?${queryString}`;
+    
+    let lastError = '';
+
+    for (const proxy of PROXY_LIST) {
+        console.log(`[API] Mencoba via ${proxy.name}...`);
+        const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
+        
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+            const response = await fetch(fullUrl, { signal: controller.signal });
+            clearTimeout(timeoutId);
+
+            if (response.ok) {
+                const text = await response.text();
+                if (!text || text.trim().startsWith('<')) continue;
+                
+                try {
+                    const data = JSON.parse(text);
+                    return { ok: true, data: data };
+                } catch (e) { continue; }
+            }
+        } catch (error) {
+            lastError = error.message;
+        }
+    }
+    return { ok: false, error: `Gagal Koneksi (Semua Jalur). Detail: ${lastError}` };
+}
 
     // Initialize
     window.updateUI = () => {}; 

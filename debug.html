@@ -1207,55 +1207,56 @@ window.openAkrabV2 = () => {
         window.initAkrabV2Data();
     };
 
-                    async function callIcsApi(action, params = {}, method = 'GET') {
-        // FIX: Gunakan API Key di URL. Header sering dihapus oleh Proxy publik.
-                // FIX: Tambahkan timestamp (_t) untuk bypass Cache Proxy yang membandel
-        let targetUrl = `${ICS_CONFIG.baseUrl}/?action=${action}&apikey=${ICS_CONFIG.apiKey}&_t=${Date.now()}`;
-        let options = { method: method };
+                        async function callIcsApi(action, params = {}, method = 'GET') {
+        // [FIX] Gunakan timestamp untuk hindari cache browser
+        const t = Date.now();
+        let baseUrl = ICS_CONFIG.baseUrl;
+        
+        // Peringatan jika testing lokal tapi pakai path relative
+        if (baseUrl.startsWith('/') && !window.location.host.includes('vercel.app') && !window.location.host.includes('localhost')) {
+             console.warn("⚠️ PERINGATAN: Anda menggunakan path relative '/api/relay' tapi tidak di domain Vercel. Ganti ICS_CONFIG.baseUrl dengan URL lengkap (https://nama-app.vercel.app/api/relay)");
+        }
 
-                        if (method === 'GET') {
+        let targetUrl = `${baseUrl}?action=${action}&apikey=${ICS_CONFIG.apiKey}&_t=${t}`;
+        
+        const options = {
+            method: method,
+            headers: { 
+                'Accept': 'application/json',
+                // Header Custom dihapus agar tidak Preflight berlebih
+            }
+        };
+
+        if (method === 'GET') {
             const qs = new URLSearchParams(params).toString();
             if(qs) targetUrl += `&${qs}`;
         } else if (method === 'POST') {
-             // FIX: Strategi Double-Send (URL + Body) agar kebal terhadap Proxy yang membuang Body
-             const qs = new URLSearchParams(params).toString();
-             if(qs) targetUrl += `&${qs}`; // Tempel juga di URL sebagai cadangan
-             
-             options.body = new URLSearchParams(params);
-             options.headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+             options.headers['Content-Type'] = 'application/json';
+             // Relay.js mengharapkan body JSON
+             options.body = JSON.stringify(params);
         }
 
-        for (const proxy of PROXY_LIST) {
-            try {
-                // Encode URL target agar aman saat melewati URL proxy
-                const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
-                
-                // Timeout 15 detik
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 15000);
+        // [PENTING] Langsung tembak ke Relay (Direct), JANGAN PAKAI PROXY LUAR
+        // Karena Relay.js sudah menangani CORS.
+        try {
+            console.log("[ICS] Calling Relay:", targetUrl);
+            const res = await fetch(targetUrl, options);
+            const text = await res.text();
 
-                const res = await fetch(fullUrl, { ...options, signal: controller.signal });
-                clearTimeout(timeoutId);
-
-                if (res.ok) {
-                    const text = await res.text();
-                    // Coba parsing JSON
-                    try { 
-                        let data = JSON.parse(text); 
-                        // Handle jika proxy membungkus response di dalam field 'contents'
-                        if (data.contents) {
-                             try { data = JSON.parse(data.contents); } catch(e) { data = data.contents; }
-                        }
-                        return data;
-                    } catch (e) { 
-                        console.warn('ICS JSON Parse Error via ' + proxy.name, e); 
-                    }
-                }
-            } catch (e) { 
-                console.warn('ICS Proxy Error via ' + proxy.name, e); 
+            if (!res.ok) {
+                return { success: false, message: `HTTP Error ${res.status}: ${res.statusText}`, raw: text };
             }
+
+            try { 
+                return JSON.parse(text); 
+            } catch (e) { 
+                console.error("Parse Error:", text);
+                return { success: false, message: 'Respon Relay bukan JSON valid (Cek relay.js)', raw: text }; 
+            }
+        } catch (e) {
+            console.error("Relay Connection Error:", e);
+            return { success: false, message: 'Gagal koneksi ke Relay.js (Cek URL/Internet)' };
         }
-        return { success: false, message: 'Gagal koneksi ke server  (Semua Proxy Gagal)' };
     }
 
 

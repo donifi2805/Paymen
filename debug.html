@@ -3821,7 +3821,7 @@ window.renderTopUpHistory = () => {
         </div>`;
     };
 
-                    window.openTrxDetail = (trxId) => {
+                        window.openTrxDetail = (trxId) => {
         const cacheKey = `trx_cache_${currentUser.uid}`;
         let cachedData = JSON.parse(localStorage.getItem(cacheKey) || '[]');
         let trx = cachedData.find(t => t.trx_id === trxId) || transactions.find(t => t.trx_id === trxId);
@@ -3846,7 +3846,7 @@ window.renderTopUpHistory = () => {
         const infoEl = document.getElementById('dtSn');
         infoEl.innerText = trx.api_msg || '-';
 
-                // Tampilkan Tombol Refresh Manual (Kecuali Dibatalkan)
+        // Tampilkan Tombol Refresh Manual (Kecuali Dibatalkan)
         const btnRefresh = document.getElementById('btnRefreshStatus');
         if (trx.status !== 'Dibatalkan') {
             btnRefresh.classList.remove('hide');
@@ -3859,9 +3859,8 @@ window.renderTopUpHistory = () => {
         if(trx.status === 'Pending' || trx.status === 'Proses') {
              if(!trx.trx_id.startsWith('PO-')) window.manualCheckTrx(trx.trx_id, trx.provider_code || trx.provider_id);
         }
-        }
-
         
+        // Tombol Batalkan Preorder (PO)
         const btnCancelPo = document.getElementById('btnCancelPreorder');
         if(trx.trx_id.startsWith('PO-') && trx.status === 'Pending') {
             btnCancelPo.classList.remove('hide');
@@ -3870,7 +3869,7 @@ window.renderTopUpHistory = () => {
             btnCancelPo.classList.add('hide');
         }
 
-document.getElementById('detailTrxModal').classList.remove('hide');
+        document.getElementById('detailTrxModal').classList.remove('hide');
     };
 
                 window.manualCheckTrx = async (docId, providerId) => {

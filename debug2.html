@@ -840,107 +840,80 @@ window.listenDebugPreOrders = () => {
         window.executeAutoBypass = () => executeDebugTrx(currentAutoServer);
 
         window.executeDebugTrx = async (system, poId = null) => {
-            const num = document.getElementById('debugTargetNum').value;
-            const code = document.getElementById('debugProductCode').value;
-            const targetLogId = poId ? `log-po-${poId}` : 'debugLogs';
+    const num = document.getElementById('debugTargetNum').value;
+    const code = document.getElementById('debugProductCode').value;
+    const targetLogId = poId ? `log-po-${poId}` : 'debugLogs';
 
-            if (!num || !code) return Swal.fire('Error', 'Data target/produk kosong', 'warning');
-            
-            const reffId = `DBG-${Date.now()}`;
-            addDebugLog(`[${system}] Mengirim permintaan: ${code} -> ${num}...`, 'info', targetLogId);
-            
-            try {
-                let result;
-                if (system === 'KHFY') {
-                    const url = `${KHFY_CONFIG_DBG.baseUrl}/trx?api_key=${KHFY_CONFIG_DBG.apiKey}&produk=${code}&tujuan=${num}&reff_id=${reffId}`;
-                    const res = await fetch(DEBUG_PROXY + encodeURIComponent(url));
-                    result = await res.json();
+    if (!num || !code) return Swal.fire('Error', 'Data target/produk kosong', 'warning');
+    
+    const reffId = `DBG-${Date.now()}`;
+    addDebugLog(`[${system}] Mengirim permintaan: ${code} -> ${num}...`, 'info', targetLogId);
+    
+    try {
+        let result;
+        if (system === 'KHFY') {
+            const url = `${API_CONFIG.baseUrl}/trx?api_key=${API_CONFIG.apiKey}&produk=${code}&tujuan=${num}&reff_id=${reffId}`;
+            const res = await fetch('https://corsproxy.io/?' + encodeURIComponent(url));
+            result = await res.json();
+        } else {
+            const params = { kode_produk: code, nomor_tujuan: num, refid: reffId };
+            const apiRes = await callIcsApi('createTransaction', params, 'POST');
+            result = apiRes;
+        }
+
+        let logData = result;
+        if (system !== 'KHFY' && result.data) logData = result.data;
+        
+        const rawResponse = JSON.stringify(logData, null, 2);
+        let isOk = false; let msg = '';
+        
+        if (system === 'KHFY') {
+            isOk = (result.status === true || result.success === true);
+            msg = (result.message || '').toLowerCase();
+        } else {
+            isOk = result.success === true;
+            msg = (result.message || result.sn || '').toLowerCase();
+        }
+
+        addDebugLog(`API Response:<br><pre class="mt-1 p-2 bg-black/40 border border-white/10 rounded text-[9px] font-mono whitespace-pre-wrap leading-tight select-all text-left">${rawResponse}</pre>`, isOk ? 'info' : 'error', targetLogId);
+        
+        if (isOk) {
+            let checkCount = 0;
+            const checkInterval = setInterval(async () => {
+                checkCount++;
+                addDebugLog(`[Check #${checkCount}] Memeriksa status...`, 'info', targetLogId);
+                
+                let statusRes;
+                if(system === 'KHFY') {
+                     const cRes = await callApi('/history', { refid: reffId });
+                     if(cRes.ok && cRes.data.data) statusRes = cRes.data.data[0];
                 } else {
-                    const url = `${ICS_CONFIG_DBG.baseUrl}/?action=createTransaction&apikey=${ICS_CONFIG_DBG.apiKey}&kode_produk=${code}&nomor_tujuan=${num}&refid=${reffId}`;
-                    const res = await fetch(DEBUG_PROXY + encodeURIComponent(url));
-                    result = await res.json();
+                     const cRes = await callIcsApi('checkTransaction', { refid: reffId });
+                     if(cRes.success) statusRes = cRes.data;
                 }
 
-                // Modifikasi: Filter tampilan log, hanya ambil isi 'data[0]' jika ada
-                let logData = result;
-                if (result.data && Array.isArray(result.data) && result.data.length > 0) {
-                    logData = result.data[0];
-                }
-                const rawResponse = JSON.stringify(logData, null, 2);
-                const msg = (result.msg || result.message || '').toLowerCase();
-                const isOk = (result.ok || result.success || result.status === 'success' || result.status === true);
-
-                addDebugLog(`API Response:<br><pre class="mt-1 p-2 bg-black/40 border border-white/10 rounded text-[9px] font-mono whitespace-pre-wrap leading-tight select-all text-left">${rawResponse}</pre>`, isOk ? 'info' : 'error', targetLogId);
-
-                if (isOk && msg.includes('akan di proses')) {
-                    const serverTrxId = result.reffid || result.trxid || reffId;
-                    addDebugLog(`Status: PROCESSING. Menunggu 6 detik untuk Cek Realtime (ID: ${serverTrxId})...`, 'blue-300', targetLogId);
+                if (statusRes) {
+                    const st = (statusRes.status || '').toLowerCase();
+                    const sn = statusRes.sn || statusRes.message || '-';
                     
-                    setTimeout(async () => {
-                        addDebugLog(`[Auto-Check] Mengecek status final ke pusat...`, 'info', targetLogId);
-                        try {
-                            let checkData;
-                            if (system === 'KHFY') {
-                                const cRes = await callApi('/history', { refid: serverTrxId });
-                                if (cRes.ok && cRes.data && cRes.data.data) checkData = Array.isArray(cRes.data.data) ? cRes.data.data[0] : cRes.data.data;
-                            } else {
-                                const cRes = await callIcsApi('checkTransaction', { refid: serverTrxId });
-                                if (cRes.data) checkData = cRes.data;
-                            }
-
-                            if (checkData) {
-                                // Modifikasi: Support 'status_text' dan Auto-Save Logs ke Firebase
-                                const finalStatus = (checkData.status_text || checkData.status || 'Pending').toUpperCase();
-                                const sn = checkData.sn || checkData.message || '-';
-                                const serverMsg = checkData.keterangan || checkData.message || '-';
-                                const price = checkData.price || checkData.harga || 0;
-                                const color = finalStatus === 'SUKSES' || finalStatus === 'SUCCESS' ? 'success' : (finalStatus === 'GAGAL' ? 'error' : 'info');
-                                
-                                addDebugLog(`>> FINAL STATUS: ${finalStatus}`, color, targetLogId);
-                                addDebugLog(`>> SN: ${sn}`, 'text-gray-400', targetLogId);
-                                addDebugLog(`>> MSG: ${serverMsg}`, 'text-gray-400', targetLogId);
-                                addDebugLog(`>> PRICE: Rp ${parseInt(price).toLocaleString('id-ID')}`, 'text-blue-400', targetLogId);
-
-                                // LOGIKA BARU: Simpan Status & Log ke Firebase jika Sukses
-                                if (poId && (finalStatus === 'SUKSES' || finalStatus === 'SUCCESS')) {
-                                    const currentLogsHTML = document.getElementById(targetLogId) ? document.getElementById(targetLogId).innerHTML : '';
-                                    // Update doc tanpa menghapusnya agar admin bisa lihat logo sukses
-                                    updateDoc(doc(db, "preorders", poId), {
-                                        debugStatus: 'SUCCESS',
-                                        debugLogs: currentLogsHTML,
-                                        sn: sn // Simpan SN juga untuk referensi
-                                    }).then(() => {
-                                        addDebugLog('Log & Status Tersimpan di Database.', 'success', targetLogId);
-                                    }).catch(e => console.error("Gagal simpan log:", e));
-                                    
-                                    currentProcessingPoId = null;
-                                }
-                            } else {
-                                addDebugLog(`[Auto-Check] Data tidak ditemukan di pusat.`, 'error', targetLogId);
-                            }
-                        } catch (err) {
-                            addDebugLog(`[Auto-Check Error] ${err.message}`, 'error', targetLogId);
-                        }
-                    }, 6000);
-                    return;
-                }
-
-                if (!isOk && rawResponse.includes("Diluar Wilayah")) {
-                    addDebugLog("Terdeteksi Diluar Wilayah! Membatalkan otomatis...", "error", targetLogId);
-                    if (currentProcessingPoId === poId) {
-                        await window.handlePreorderDebugAction(poId, 'Tolak', "#Gagal. Tujuan Diluar Wilayah");
-                        currentProcessingPoId = null;
+                    if (st.includes('sukses') || st.includes('success')) {
+                        clearInterval(checkInterval);
+                        addDebugLog(`✅ TRANSAKSI SUKSES! SN: ${sn}`, 'success', targetLogId);
+                    } else if (st.includes('gagal') || st.includes('failed') || st.includes('error')) {
+                        clearInterval(checkInterval);
+                        addDebugLog(`❌ TRANSAKSI GAGAL. Msg: ${sn}`, 'error', targetLogId);
                     }
-                } else if (rawResponse.includes("#Gagal. Produk Salah") && currentProcessingPoId === poId) {
-                    await deleteDoc(doc(db, "preorders", poId));
-                    addDebugLog(`Auto-removed failed Pre-Order: ${poId}`, 'success', targetLogId);
-                    currentProcessingPoId = null;
                 }
-
-            } catch (e) { 
-                addDebugLog("Error API: " + e.message, 'error', targetLogId); 
-            }
-        };
+                if (checkCount >= 5) {
+                    clearInterval(checkInterval);
+                    addDebugLog("⚠️ Timeout monitoring status (Cek manual nanti)", 'warning', targetLogId);
+                }
+            }, 4000);
+        }
+    } catch (e) { 
+        addDebugLog("Error API: " + e.message, 'error', targetLogId); 
+    }
+};
 const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
         const firebaseConfig = {
             apiKey: "AIzaSyBnVxgxkS8InH1PQCMGe3cY8IvPqSN6dLo",
@@ -1314,146 +1287,121 @@ if(tabId === 'pricing') loadPricingData();
         };
 
                 window.universalDebugCheck = async () => {
-            const input = document.getElementById('univTrxInput').value.trim();
-            if (!input) return Swal.fire('Gagal', 'Masukkan ID Transaksi!', 'warning');
+    const input = document.getElementById('univTrxInput').value.trim();
+    if (!input) return Swal.fire('Gagal', 'Masukkan ID Transaksi!', 'warning');
 
-            Swal.fire({
-                title: 'Menganalisis...',
-                html: 'Mencocokkan data lokal & server pusat...',
-                allowOutsideClick: false,
-                didOpen: () => Swal.showLoading()
-            });
+    Swal.fire({
+        title: 'Menganalisis...',
+        html: 'Mencocokkan data lokal & server pusat...',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
 
-            // 1. CARI DATA DI FIREBASE DULU
-            let localData = null;
-            let checkParams = { refid: input }; // Default: Cek pakai Input sebagai RefID
-            let debugNote = "Mode: Input RefID";
+    let localData = null;
+    let checkParams = { refid: input };
+    let debugNote = "Mode: Input RefID";
 
-            try {
-                // Cek berdasarkan trx_id (RefID)
-                const q1 = query(collectionGroup(db, 'history'), where("trx_id", "==", input));
-                const snap1 = await getDocs(q1);
-                
-                if(!snap1.empty) {
-                    localData = snap1.docs[0].data();
-                } else {
-                    // Coba cari by trx_code
-                    const q2 = query(collectionGroup(db, 'history'), where("trx_code", "==", input));
-                    const snap2 = await getDocs(q2);
-                    if(!snap2.empty) localData = snap2.docs[0].data();
+    // 1. Cari Data Lokal (Firestore)
+    try {
+        const q1 = query(collectionGroup(db, 'history'), where("trx_id", "==", input));
+        const snap1 = await getDocs(q1);
+        if(!snap1.empty) localData = snap1.docs[0].data();
+        else {
+            const q2 = query(collectionGroup(db, 'history'), where("trx_code", "==", input));
+            const snap2 = await getDocs(q2);
+            if(!snap2.empty) localData = snap2.docs[0].data();
+        }
+        if(localData && localData.trx_id) {
+            checkParams = { refid: localData.trx_id };
+            debugNote = "Mode: RefID Database (" + localData.trx_id + ")";
+        }
+    } catch(e) { console.log("Local check skipped"); }
+
+    // 2. Cek ke Provider
+    let foundData = null;
+    let providerName = '';
+    let rawRes = null;
+
+    const isIcsTrx = input.toUpperCase().startsWith('ICS') || (localData && localData.provider_code && localData.provider_code.startsWith('ICS'));
+    const tasks = isIcsTrx ? ['ICS', 'KHFY'] : ['KHFY', 'ICS'];
+
+    for (const provider of tasks) {
+        try {
+            if (provider === 'ICS') {
+                const res = await callIcsApi('checkTransaction', checkParams);
+                if (res.success && res.data) {
+                    foundData = res.data;
+                    rawRes = res;
+                    providerName = 'Server ICS (Relay)';
+                    break;
                 }
-
-                // PERBAIKAN: Selalu gunakan RefID (trx_id) dari database jika ada
-                if(localData && localData.trx_id) {
-                    checkParams = { refid: localData.trx_id };
-                    debugNote = "Mode: RefID Database (" + localData.trx_id + ")";
-                }
-            } catch(e) { console.log("Local check skipped", e); }
-
-            // Prioritas Cek Provider
-            let tasks = (input.toUpperCase().includes('ICS') || input.toUpperCase().includes('PLN')) 
-                ? ['ICS', 'KHFY'] 
-                : ['KHFY', 'ICS'];
-
-            let foundData = null;
-            let providerName = '';
-            let rawRes = null;
-
-            for (const provider of tasks) {
-                try {
-                    if (provider === 'ICS') {
-                        // Logika ICS
-                        const res = await callIcsApi('checkTransaction', checkParams);
-                        let d = res;
-                        if (d && (d.data || d.status || d.sn)) {
-                            foundData = d.data || d;
-                            rawRes = d;
-                            providerName = 'Server ICS';
-                            break;
-                        }
-                    } else {
-                        // Logika Khfy
-                        const res = await callApi('/history', checkParams); // Pakai checkParams yang sudah dipastikan RefID
-                        if (res.ok && res.data && res.data.data) {
-                            let d = res.data.data;
-                            if (Array.isArray(d)) d = d[0];
-                            if (d) {
-                                foundData = d;
-                                rawRes = res.data;
-                                providerName = 'Server Khfy';
-                                break;
-                            }
-                        }
-                    }
-                } catch (e) { console.log("Skip " + provider + ": " + e.message); }
-            }
-
-            if (foundData) {
-                let status = '-', sn = '-', price = 0;
-                if (providerName === 'Server ICS') {
-                    status = foundData.status || 'Unknown';
-                    sn = foundData.sn || foundData.message || '-';
-                    price = foundData.harga || foundData.price || 0;
-                } else {
-                    status = foundData.status || 'Unknown';
-                    sn = foundData.sn || foundData.message || foundData.keterangan || '-';
-                    price = foundData.price || foundData.harga || 0;
-                }
-
-                const isSuccess = status.toLowerCase().includes('sukses') || status.toLowerCase().includes('success');
-                
-                Swal.fire({
-                    title: "Ditemukan di " + providerName,
-                    html: `
-                        <div class="text-left space-y-3">
-                            <div class="p-2 bg-blue-50 rounded border border-blue-100 text-[10px] text-gray-600">
-                                <b>Info Diagnosa:</b><br>
-                                ${debugNote}<br>
-                                ${localData ? '<span class="text-green-600"><i class="fas fa-database"></i> Data Lokal Ditemukan (Status: ' + localData.status + ')</span>' : '<span class="text-orange-500"><i class="fas fa-exclamation-circle"></i> Tidak ada di Database Lokal</span>'}
-                            </div>
-                            <div class="grid grid-cols-2 gap-2">
-                                <div class="p-2 bg-gray-50 rounded border">
-                                    <p class="text-[9px] text-gray-500 uppercase">Status Pusat</p>
-                                    <p class="font-bold text-sm ${isSuccess ? 'text-green-600' : 'text-gray-800'}">${status}</p>
-                                </div>
-                                <div class="p-2 bg-gray-50 rounded border">
-                                    <p class="text-[9px] text-gray-500 uppercase">Harga Beli</p>
-                                    <p class="font-bold text-sm text-blue-600">Rp ${parseInt(price).toLocaleString('id-ID')}</p>
-                                </div>
-                            </div>
-                            <div class="p-2 bg-white rounded border border-gray-200">
-                                <p class="text-[9px] text-gray-500 uppercase mb-1">SN / Pesan Server</p>
-                                <p class="font-mono text-xs font-bold text-gray-700 break-all">${sn}</p>
-                            </div>
-                        </div>
-                    `,
-                    icon: isSuccess ? 'success' : 'info',
-                    confirmButtonText: 'Tutup'
-                });
             } else {
-                // KASUS TRANSAKSI HANTU
-                if(localData) {
-                     Swal.fire({
-                        title: 'Gagal Kirim (Ghost Trx)',
-                        html: `
-                            <div class="text-left">
-                                <p class="text-sm text-gray-600 mb-3">Transaksi ini <b>ADA</b> di database lokal (Status: <b>${localData.status}</b>), tetapi <b>TIDAK DITEMUKAN</b> di server pusat.</p>
-                                <div class="bg-red-50 p-3 rounded-xl border border-red-100 text-xs text-red-600">
-                                    <p class="font-bold mb-1"><i class="fas fa-bug"></i> Analisis Sistem:</p>
-                                    1. Koneksi terputus saat request ke pusat (Timeout).<br>
-                                    2. Transaksi ditolak server tanpa respon.<br><br>
-                                    <b>Saran Tindakan:</b><br>
-                                    Silakan lakukan <b>Refund Manual / Gagalkan</b> transaksi ini agar saldo user kembali.
-                                </div>
-                            </div>
-                        `,
-                        icon: 'error'
-                    });
-                } else {
-                    Swal.fire('Tidak Ditemukan', 'Data transaksi tidak ditemukan di Server ICS maupun Khfy (RefID Check).', 'error');
+                const res = await callApi('/history', checkParams);
+                if (res.ok && res.data && res.data.data) {
+                    let d = res.data.data;
+                    if (Array.isArray(d)) d = d[0];
+                    if (d) {
+                        foundData = d;
+                        rawRes = res.data;
+                        providerName = 'Server Khfy';
+                        break;
+                    }
                 }
             }
-        };
+        } catch (e) { console.log("Skip " + provider); }
+    }
+
+    if (foundData) {
+        let status = '-', sn = '-', price = 0;
+        
+        if (providerName.includes('ICS')) {
+            status = foundData.status || 'Unknown';
+            sn = foundData.sn || foundData.message || '-';
+            price = foundData.price || foundData.harga || 0;
+        } else {
+            status = foundData.status || 'Unknown';
+            sn = foundData.sn || foundData.message || foundData.keterangan || '-';
+            price = foundData.price || foundData.harga || 0;
+        }
+
+        const isSuccess = String(status).toLowerCase().includes('sukses') || String(status).toLowerCase().includes('success');
+        
+        Swal.fire({
+            title: "Ditemukan di " + providerName,
+            html: `
+                <div class="text-left space-y-3">
+                    <div class="p-2 bg-blue-50 rounded border border-blue-100 text-[10px] text-gray-600">
+                        <b>Info Diagnosa:</b><br>
+                        ${debugNote}<br>
+                        ${localData ? '<span class="text-green-600"><i class="fas fa-database"></i> Data Lokal: ' + localData.status + '</span>' : '<span class="text-orange-500">Tidak ada di Database Lokal</span>'}
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="p-2 bg-gray-50 rounded border">
+                            <p class="text-[9px] text-gray-500 uppercase">Status Pusat</p>
+                            <p class="font-bold text-sm ${isSuccess ? 'text-green-600' : 'text-gray-800'}">${status}</p>
+                        </div>
+                        <div class="p-2 bg-gray-50 rounded border">
+                            <p class="text-[9px] text-gray-500 uppercase">Harga Beli</p>
+                            <p class="font-bold text-sm text-blue-600">Rp ${parseInt(price).toLocaleString('id-ID')}</p>
+                        </div>
+                    </div>
+                    <div class="p-2 bg-white rounded border border-gray-200">
+                        <p class="text-[9px] text-gray-500 uppercase mb-1">SN / Pesan Server</p>
+                        <p class="font-mono text-xs font-bold text-gray-700 break-all">${sn}</p>
+                    </div>
+                    <details class="text-[9px] text-gray-400 cursor-pointer mt-2">
+                        <summary>Raw JSON</summary>
+                        <pre class="bg-black text-green-400 p-2 rounded mt-1 overflow-auto max-h-20">${JSON.stringify(rawRes, null, 2)}</pre>
+                    </details>
+                </div>
+            `,
+            icon: isSuccess ? 'success' : 'info',
+            confirmButtonText: 'Tutup'
+        });
+    } else {
+        Swal.fire('Tidak Ditemukan', 'Data transaksi tidak ditemukan di Server (ICS/Khfy) menggunakan RefID tersebut.', 'error');
+    }
+};
 
         window.loadDashboardData = async (force = false) => {
             // Caching: Cegah reload jika data baru diambil < 2 menit lalu
@@ -2261,154 +2209,152 @@ window.downloadTrxPDF = () => {
         };
 
         const API_CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
-        const ICS_CONFIG = { apiKey: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3", baseUrl: "https://reseller.ics-store.my.id" };
-        
-        const PROXY_LIST = [
-            { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
-            { name: 'CorsProxyIO', url: 'https://corsproxy.io/?' },
-            { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
-            { name: 'Direct', url: '' }
-        ];
 
-        async function callIcsApi(action, params = {}) {
-            let targetUrl = `${ICS_CONFIG.baseUrl}/?action=${action}&apikey=${ICS_CONFIG.apiKey}&_t=${Date.now()}`;
-            const qs = new URLSearchParams(params).toString();
-            if(qs) targetUrl += `&${qs}`;
+// Menggunakan Config ICS dari Relay.js
+const ICS_CONFIG = { 
+    apiKey: "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77", 
+    // Mengarah ke relay yang sama dengan index.html
+    baseUrl: "https://www.pandawa-digital.store/api/relay" 
+};
 
-            for (const proxy of PROXY_LIST) {
-                try {
-                    const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
-                    const res = await fetch(fullUrl);
-                    if (res.ok) {
-                        const text = await res.text();
-                        try { 
-                            let data = JSON.parse(text); 
-                            if (data.contents) { try { data = JSON.parse(data.contents); } catch(e) { data = data.contents; } }
-                            return data;
-                        } catch (e) { console.warn('ICS Parse Error', e); }
-                    }
-                } catch (e) { console.warn('ICS Proxy Error', e); }
-            }
-            return { success: false, message: 'Gagal koneksi ICS' };
+const PROXY_LIST = [
+    { name: 'Direct', url: '' },
+    { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
+    { name: 'CorsProxyIO', url: 'https://corsproxy.io/?' }
+];
+
+// --- FUNGSI CALL API ICS (SINKRON DENGAN INDEX.HTML) ---
+async function callIcsApi(action, params = {}, method = 'GET') {
+    // 1. Tambahkan timestamp untuk bypass cache
+    const t = Date.now();
+    let targetUrl = `${ICS_CONFIG.baseUrl}?action=${action}&apikey=${ICS_CONFIG.apiKey}&_t=${t}`;
+    
+    const options = {
+        method: method,
+        headers: { 'Accept': 'application/json' }
+    };
+
+    if (method === 'GET') {
+        const qs = new URLSearchParams(params).toString();
+        if(qs) targetUrl += `&${qs}`;
+    } else if (method === 'POST') {
+            options.headers['Content-Type'] = 'application/json';
+            options.body = JSON.stringify(params);
+    }
+
+    // 2. Fetch ke Relay
+    try {
+        console.log(`[Admin] Call Relay: ${action}`, targetUrl);
+        const res = await fetch(targetUrl, options);
+        const text = await res.text();
+
+        if (!res.ok) {
+            console.error("[Relay Error]", text);
+            return { success: false, message: `HTTP Error ${res.status}`, raw: text };
         }
 
-        async function callApi(endpoint, params = {}) {
-            params['api_key'] = API_CONFIG.apiKey;
-            const targetUrl = `${API_CONFIG.baseUrl}${endpoint}?${new URLSearchParams(params).toString()}`;
-            for (const proxy of PROXY_LIST) {
-                try {
-                    const res = await fetch(proxy.url + encodeURIComponent(targetUrl));
-                    if (res.ok) return { ok: true, data: JSON.parse(await res.text()) };
-                } catch (e) { console.log(e); }
-            }
-            return { ok: false };
+        try { 
+            return JSON.parse(text); 
+        } catch (e) { 
+            return { success: false, message: 'Invalid JSON', raw: text }; 
         }
+    } catch (e) {
+        console.error("Network Error:", e);
+        return { success: false, message: 'Gagal koneksi ke Relay' };
+    }
+}
+
+async function callApi(endpoint, params = {}) {
+    params['api_key'] = API_CONFIG.apiKey;
+    const targetUrl = `${API_CONFIG.baseUrl}${endpoint}?${new URLSearchParams(params).toString()}`;
+    try {
+        const res = await fetch('https://corsproxy.io/?' + encodeURIComponent(targetUrl));
+        if (res.ok) return { ok: true, data: JSON.parse(await res.text()) };
+    } catch (e) { console.log(e); }
+    return { ok: false };
+}
 
                 window.loadPricingData = async () => {
-            const provider = document.getElementById('pricingProvider').value;
-            const table = document.getElementById('pricingTableBody');
-            table.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Mengambil data produk...</td></tr>';
-            
-            // 1. Ambil Rules dari Firebase
-            const rulesSnap = await getDoc(doc(db, "settings", "pricing"));
-            pricingRules = rulesSnap.exists() ? rulesSnap.data().rules : {};
-            
-            let productsToRender = [];
+    const provider = document.getElementById('pricingProvider').value;
+    const table = document.getElementById('pricingTableBody');
+    table.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Mengambil data produk via Relay...</td></tr>';
+    
+    const rulesSnap = await getDoc(doc(db, "settings", "pricing"));
+    pricingRules = rulesSnap.exists() ? rulesSnap.data().rules : {};
+    
+    let productsToRender = [];
 
-            // 2. Cek Sumber Data (ICS vs Khfy)
-            if (provider.startsWith('ICS_')) {
-                // --- LOGIKA ICS ---
-                let icsType = 'xda'; // Default
-                if (provider === 'ICS_CIRCLE') icsType = 'circle';
-                else if (provider === 'ICS_FMAX') icsType = 'fmax';
-                else if (provider === 'ICS_BPA') icsType = 'bpa';
+    if (provider.startsWith('ICS_')) {
+        let icsType = 'xda'; 
+        if (provider === 'ICS_CIRCLE') icsType = 'circle';
+        else if (provider.includes('FMX')) icsType = 'fmax';
+        
+        const res = await callIcsApi('listProducts', { type: icsType });
+        
+        if (res.success && res.data) {
+            const ready = res.data.ready || [];
+            const empty = res.data.empty || [];
+            productsToRender = [...ready, ...empty];
+        } else {
+            table.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-red-500">Gagal mengambil data ICS: ${res.message}</td></tr>`;
+            return;
+        }
+    } else {
+        if(globalProducts.length === 0) {
+            const res = await callApi('/list_product');
+            if(res.ok) globalProducts = res.data.data || res.data;
+        }
+        productsToRender = globalProducts.filter(p => {
+            const code = (p.kode_produk || p.code || p.buyer_sku_code || '').toUpperCase();
+            const brand = (p.brand || p.kode_provider || p.operator || '').toUpperCase();
+            if (provider === 'XLR') return brand === 'XLREGULER' || code.startsWith('XLR');
+            return code.includes(provider) || brand.includes(provider);
+        });
+    }
 
-                const res = await callIcsApi('listProducts', { type: icsType });
-                if (res.success && res.data) {
-                    const ready = res.data.ready || [];
-                    const empty = res.data.empty || [];
-                    productsToRender = [...ready, ...empty];
-                } else {
-                    table.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-red-500">Gagal mengambil data ICS: ${res.message}</td></tr>`;
-                    return;
-                }
+    if (productsToRender.length === 0) {
+            table.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-gray-400">Tidak ada produk ditemukan.</td></tr>';
+            return;
+    }
 
-            } else {
-                // --- LOGIKA KHFY ---
-                if(globalProducts.length === 0) {
-                    const res = await callApi('/list_product');
-                    if(res.ok) globalProducts = res.data.data || res.data;
-                }
-                
-                productsToRender = globalProducts.filter(p => {
-                    const code = (p.kode_produk || p.code || p.buyer_sku_code || '').toUpperCase();
-                    const brand = (p.brand || p.kode_provider || p.operator || '').toUpperCase();
-                    if (provider === 'XLR') return brand === 'XLREGULER' || code.startsWith('XLR');
-                    return code.includes(provider) || brand.includes(provider);
-                });
-            }
+    productsToRender.sort((a, b) => {
+        const priceA = parseInt(a.harga || a.price || a.harga_final || 0);
+        const priceB = parseInt(b.harga || b.price || b.harga_final || 0);
+        return priceA - priceB;
+    });
 
-            // 3. Render Tabel
-            if (productsToRender.length === 0) {
-                 table.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-gray-400">Tidak ada produk ditemukan.</td></tr>';
-                 return;
-            }
+    let html = '';
+    productsToRender.forEach(p => {
+        const code = p.kode_produk || p.code || p.buyer_sku_code;
+        const name = p.nama_produk || p.product_name || p.name;
+        const rawPrice = parseInt(p.harga || p.price || p.harga_final || 0);
+        let savedData = pricingRules[code] || 0;
+        let markup = 0; let customName = '';
 
-            // Sort Harga Termurah
-            productsToRender.sort((a, b) => {
-                const priceA = parseInt(a.harga || a.price || a.harga_final || 0);
-                const priceB = parseInt(b.harga || b.price || b.harga_final || 0);
-                return priceA - priceB;
-            });
+        if (typeof savedData === 'object') { markup = parseInt(savedData.price || 0); customName = savedData.name || ''; }
+        else { markup = parseInt(savedData || 0); }
 
-            let html = '';
-            productsToRender.forEach(p => {
-                // Normalisasi Field (Mapping field ICS & Khfy agar sama)
-                const code = p.kode_produk || p.code || p.buyer_sku_code;
-                const name = p.nama_produk || p.product_name || p.name;
-                const rawPrice = parseInt(p.harga || p.price || p.harga_final || 0);
-                
-                // Support Format Lama (Angka) dan Baru (Object)
-                let savedData = pricingRules[code] || 0;
-                let markup = 0;
-                let customName = '';
+        const sellPrice = rawPrice + markup;
+        const isGangguan = (p.stok === 0 || p.stok === '0' || p.gangguan == 1);
 
-                if (typeof savedData === 'object') {
-                    markup = parseInt(savedData.price || 0);
-                    customName = savedData.name || '';
-                } else {
-                    markup = parseInt(savedData || 0);
-                }
-
-                const sellPrice = rawPrice + markup;
-                const isGangguan = (p.stok === 0 || p.stok === '0' || p.gangguan == 1);
-
-                html += `<tr>
-                    <td class="p-3">
-                        <div class="text-xs font-bold text-gray-800">${name}</div>
-                        <div class="text-[9px] text-gray-400 font-mono">${code}</div>
-                        ${isGangguan ? '<span class="text-[9px] text-red-500 font-bold">STOK HABIS</span>' : ''}
-                    </td>
-                    <td class="p-3">
-                        <input type="text" 
-                               data-code="${code}" 
-                               value="${customName}" 
-                               placeholder="(Default)" 
-                               class="name-input w-full border border-gray-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none placeholder-gray-300">
-                    </td>
-                    <td class="p-3 text-right text-gray-500">${window.formatRp(rawPrice)}</td>
-                    <td class="p-3 text-center">
-                        <input type="number" 
-                               onchange="updateCalc('${code}', ${rawPrice}, this)" 
-                               data-code="${code}" 
-                               value="${markup}" 
-                               class="markup-input w-24 border border-gray-300 rounded-lg p-1.5 text-center font-bold focus:ring-2 focus:ring-blue-500 outline-none">
-                    </td>
-                    <td class="p-3 text-right font-black text-blue-600" id="final-${code}">${window.formatRp(sellPrice)}</td>
-                </tr>`;
-            });
-            table.innerHTML = html;
-        };
+        html += `<tr>
+            <td class="p-3">
+                <div class="text-xs font-bold text-gray-800">${name}</div>
+                <div class="text-[9px] text-gray-400 font-mono">${code}</div>
+                ${isGangguan ? '<span class="text-[9px] text-red-500 font-bold">STOK HABIS</span>' : ''}
+            </td>
+            <td class="p-3">
+                <input type="text" data-code="${code}" value="${customName}" placeholder="(Default)" class="name-input w-full border border-gray-300 rounded-lg p-2 text-xs outline-none">
+            </td>
+            <td class="p-3 text-right text-gray-500">${window.formatRp(rawPrice)}</td>
+            <td class="p-3 text-center">
+                <input type="number" onchange="updateCalc('${code}', ${rawPrice}, this)" data-code="${code}" value="${markup}" class="markup-input w-24 border border-gray-300 rounded-lg p-1.5 text-center font-bold outline-none">
+            </td>
+            <td class="p-3 text-right font-black text-blue-600" id="final-${code}">${window.formatRp(sellPrice)}</td>
+        </tr>`;
+    });
+    table.innerHTML = html;
+};
 
         window.updateCalc = (code, base, input) => { document.getElementById(`final-${code}`).innerText = window.formatRp(base + (parseInt(input.value) || 0)); };
         
@@ -3068,18 +3014,5 @@ window.deactivateNotif = async () => {
     </div>
 
 <audio id="trxNotifySound" src="trx.ogg" preload="auto"></audio>
-<div id="webhookInfoCard" style="position: fixed; bottom: 20px; right: 20px; width: 320px; background: white; border-radius: 12px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); border: 1px solid #e2e8f0; z-index: 9999; font-family: sans-serif; animation: slideUp 0.5s ease-out;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-        <h4 style="margin: 0; font-size: 14px; font-weight: bold; color: #1e293b;"><i class="fas fa-globe text-blue-500 mr-2"></i>Webhook ICS Store</h4>
-        <button onclick="document.getElementById('webhookInfoCard').style.display='none'" style="background: none; border: none; color: #94a3b8; cursor: pointer;"><i class="fas fa-times"></i></button>
-    </div>
-    <p style="font-size: 11px; color: #64748b; margin-bottom: 10px; line-height: 1.4;">Salin URL ini ke pengaturan profil <b>ICS Store</b> agar status transaksi & refund otomatis:</p>
-    <div style="display: flex; gap: 5px;">
-        <input type="text" id="icsHookUrl" readonly style="flex: 1; font-size: 10px; padding: 6px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; outline: none;">
-        <button onclick="navigator.clipboard.writeText(document.getElementById('icsHookUrl').value); alert('URL Disalin!')" style="background: #eff6ff; color: #2563eb; border: 1px solid #dbeafe; padding: 0 10px; border-radius: 6px; font-size: 10px; font-weight: bold; cursor: pointer;">Salin</button>
-    </div>
-    <script>document.getElementById('icsHookUrl').value = window.location.origin + '/api/ics';</script>
-    <style>@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }</style>
-</div>
 </body>
 </html>

@@ -1179,7 +1179,11 @@
     };
 
 // 2. ICS STORE INTEGRATION
-    const ICS_CONFIG = { apiKey: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3", baseUrl: "/api/relay" };
+        // 2. ICS STORE INTEGRATION (VERCEL DIRECT)
+    const ICS_CONFIG = { 
+        apiKey: "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77", 
+        baseUrl: "https://www.pandawa-digital.store/api/relay" 
+    };
 
         let currentIcsType = 'xla';
 
@@ -1208,23 +1212,13 @@ window.openAkrabV2 = () => {
     };
 
                         async function callIcsApi(action, params = {}, method = 'GET') {
-        // [FIX] Gunakan timestamp untuk hindari cache browser
+        // [FIX] Gunakan timestamp untuk bypass cache
         const t = Date.now();
-        let baseUrl = ICS_CONFIG.baseUrl;
-        
-        // Peringatan jika testing lokal tapi pakai path relative
-        if (baseUrl.startsWith('/') && !window.location.host.includes('vercel.app') && !window.location.host.includes('localhost')) {
-             console.warn("⚠️ PERINGATAN: Anda menggunakan path relative '/api/relay' tapi tidak di domain Vercel. Ganti ICS_CONFIG.baseUrl dengan URL lengkap (https://nama-app.vercel.app/api/relay)");
-        }
-
-        let targetUrl = `${baseUrl}?action=${action}&apikey=${ICS_CONFIG.apiKey}&_t=${t}`;
+        let targetUrl = `${ICS_CONFIG.baseUrl}?action=${action}&apikey=${ICS_CONFIG.apiKey}&_t=${t}`;
         
         const options = {
             method: method,
-            headers: { 
-                'Accept': 'application/json',
-                // Header Custom dihapus agar tidak Preflight berlebih
-            }
+            headers: { 'Accept': 'application/json' }
         };
 
         if (method === 'GET') {
@@ -1232,12 +1226,10 @@ window.openAkrabV2 = () => {
             if(qs) targetUrl += `&${qs}`;
         } else if (method === 'POST') {
              options.headers['Content-Type'] = 'application/json';
-             // Relay.js mengharapkan body JSON
              options.body = JSON.stringify(params);
         }
 
-        // [PENTING] Langsung tembak ke Relay (Direct), JANGAN PAKAI PROXY LUAR
-        // Karena Relay.js sudah menangani CORS.
+        // [PENTING] Direct Fetch ke Domain Sendiri (Tanpa Proxy)
         try {
             console.log("[ICS] Calling Relay:", targetUrl);
             const res = await fetch(targetUrl, options);
@@ -1251,11 +1243,11 @@ window.openAkrabV2 = () => {
                 return JSON.parse(text); 
             } catch (e) { 
                 console.error("Parse Error:", text);
-                return { success: false, message: 'Respon Relay bukan JSON valid (Cek relay.js)', raw: text }; 
+                return { success: false, message: 'Respon Relay bukan JSON valid.', raw: text }; 
             }
         } catch (e) {
-            console.error("Relay Connection Error:", e);
-            return { success: false, message: 'Gagal koneksi ke Relay.js (Cek URL/Internet)' };
+            console.error("Network Error:", e);
+            return { success: false, message: 'Gagal koneksi ke Relay (Cek Internet/Domain)' };
         }
     }
 

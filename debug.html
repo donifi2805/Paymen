@@ -2291,7 +2291,7 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
     
     // API CALLER
     // Lokasi file relaykhfy.js (Sesuaikan jika path berbeda)
-const KHFY_RELAY_URL = "/api/relaykhfy";
+const KHFY_RELAY_URL = "/api/relaykhfy"; // Format Vercel Serverless Function
 
 async function callApi(endpoint, params = {}) {
     // 1. Setup Parameter Dasar

@@ -2226,9 +2226,11 @@ const ICS_CONFIG = {
 };
 
 const PROXY_LIST = [
-    { name: 'Direct', url: '' },
+    { name: 'CorsProxyIO', url: 'https://corsproxy.io/?' },
     { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
-    { name: 'CorsProxyIO', url: 'https://corsproxy.io/?' }
+    { name: 'ThingProxy', url: 'https://thingproxy.freeboard.io/fetch/' },
+    { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
+    { name: 'Direct', url: '' }
 ];
 
 // --- FUNGSI CALL API ICS (SINKRON DENGAN INDEX.HTML) ---
@@ -2274,12 +2276,36 @@ async function callIcsApi(action, params = {}, method = 'GET') {
 
 async function callApi(endpoint, params = {}) {
     params['api_key'] = API_CONFIG.apiKey;
+    params['_t'] = Date.now(); // Anti-cache
     const targetUrl = `${API_CONFIG.baseUrl}${endpoint}?${new URLSearchParams(params).toString()}`;
-    try {
-        const res = await fetch('https://corsproxy.io/?' + encodeURIComponent(targetUrl));
-        if (res.ok) return { ok: true, data: JSON.parse(await res.text()) };
-    } catch (e) { console.log(e); }
-    return { ok: false };
+    
+    let lastError = '';
+
+    for (const proxy of PROXY_LIST) {
+        console.log(`[API] Mencoba via ${proxy.name}...`);
+        const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
+        
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+            const response = await fetch(fullUrl, { signal: controller.signal });
+            clearTimeout(timeoutId);
+
+            if (response.ok) {
+                const text = await response.text();
+                if (!text || text.trim().startsWith('<')) continue;
+                
+                try {
+                    const data = JSON.parse(text);
+                    return { ok: true, data: data };
+                } catch (e) { continue; }
+            }
+        } catch (error) {
+            lastError = error.message;
+        }
+    }
+    return { ok: false, error: lastError };
 }
 
                 window.loadPricingData = async () => {

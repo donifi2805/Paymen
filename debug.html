@@ -1336,7 +1336,33 @@ window.openAkrabV2 = () => {
         }
     };
 
-            window.executeIcsTransaction = async (code, number, price, name, provCode) => {
+                // Fungsi Monitoring Otomatis (Auto-Check selama 60 detik)
+    window.monitorNewTrx = (trxId) => {
+        console.log("Mulai memantau transaksi:", trxId);
+        let attempt = 0;
+        const maxAttempts = 20; // Cek 20x (1 menit)
+        
+        const interval = setInterval(async () => {
+            attempt++;
+            // Cek status diam-diam (background)
+            await window.manualCheckTrx(trxId, 'ICS');
+            
+            // Cek apakah status sudah berubah final di database lokal?
+            // Kita ambil data terbaru dari cache/db untuk memutus loop jika sudah selesai
+            const cacheKey = `trx_cache_${currentUser.uid}`;
+            let cachedData = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+            let trx = cachedData.find(t => t.trx_id === trxId);
+            
+            if (trx && (trx.status === 'Sukses' || trx.status === 'Gagal')) {
+                console.log("Transaksi Selesai! Stop monitoring.");
+                clearInterval(interval);
+            }
+            
+            if (attempt >= maxAttempts) clearInterval(interval);
+        }, 3000); // Cek setiap 3 detik
+    };
+
+    window.executeIcsTransaction = async (code, number, price, name, provCode) => {
         window.showLoader(true);
         // Format Baru ICS: ICS-08xx-JamMenitDetik
         const d = new Date();
@@ -1392,8 +1418,12 @@ window.openAkrabV2 = () => {
                 raw_json: JSON.stringify(apiRes)
             });
                         
-alert("Transaksi Berhasil Dikirim!\nKode Trx: " + trxCode + "\nStatus: Pending.");
+            alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSilakan tunggu sebentar.");
             window.nav('homePage');
+            
+            // [BARU] Jalankan Auto-Monitor Segera!
+            window.monitorNewTrx(reffId);
+            
         } else {
             // --- FIX BUG FALSE NEGATIVE ICS (Anti Refund saat RTO) ---
             const errStr = (apiRes.error || apiRes.message || "").toString();

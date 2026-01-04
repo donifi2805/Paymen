@@ -852,9 +852,15 @@ window.listenDebugPreOrders = () => {
     try {
         let result;
         if (system === 'KHFY') {
-            const url = `${API_CONFIG.baseUrl}/trx?api_key=${API_CONFIG.apiKey}&produk=${code}&tujuan=${num}&reff_id=${reffId}`;
-            const res = await fetch('https://corsproxy.io/?' + encodeURIComponent(url));
-            result = await res.json();
+            // PERBAIKAN: Gunakan callApi (Multi-Proxy) agar tidak error 'Unexpected token <'
+            const apiRes = await callApi('/trx', {
+                produk: code,
+                tujuan: num,
+                reff_id: reffId
+            });
+            
+            if(!apiRes.ok) throw new Error(apiRes.error || "Gagal koneksi via semua proxy");
+            result = apiRes.data;
         } else {
             const params = { kode_produk: code, nomor_tujuan: num, refid: reffId };
             const apiRes = await callIcsApi('createTransaction', params, 'POST');

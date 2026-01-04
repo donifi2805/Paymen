@@ -13,12 +13,12 @@ export default async function handler(req, res) {
         return;
     }
 
-    // 2. CONFIG - API KEY YANG BENAR
+    // 2. CONFIG - URL SESUAI INSTRUKSI ANDA
     const API_KEY = "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77";
+    // Menggunakan URL yang Anda konfirmasi benar
     const BASE_URL = "https://api.ics-store.my.id/api/reseller";
 
-    // 3. Bersihkan Parameter
-    // Kita ambil 'action' dan buang 'apikey' bawaan frontend (jika ada) agar tidak duplikat
+    // 3. Ambil Parameter
     const finalParams = { ...req.query, ...req.body };
     const { action, apikey, ...dataParams } = finalParams; 
 
@@ -46,7 +46,7 @@ export default async function handler(req, res) {
         case 'checkTransaction':
             path = "/transaction"; 
             method = "GET";
-            // Pastikan mapping ID benar & hapus parameter lama
+            // Mapping ID untuk cek status
             dataParams.ref_id_custom = dataParams.refid;
             delete dataParams.refid; 
             break;
@@ -57,19 +57,18 @@ export default async function handler(req, res) {
 
     // 5. Susun URL Target
     const targetUrl = new URL(BASE_URL + path);
-    // Masukkan API Key yang benar di sini
     targetUrl.searchParams.append('apikey', API_KEY); 
 
+    // [FIX PENTING] Menyamar sebagai Browser Chrome untuk hindari Error 502/Blokir
     const fetchOptions = {
         method: method,
         headers: {
-            'User-Agent': 'Pandawa-Relay/2.0',
-            'Accept': 'application/json'
-            // Header Authorization DIHAPUS agar tidak bentrok dengan URL param
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json',
+            'Connection': 'keep-alive'
         }
     };
 
-    // Masukkan sisa parameter (dataParams) ke URL atau Body
     if (method === 'GET') {
         Object.keys(dataParams).forEach(key => {
             targetUrl.searchParams.append(key, dataParams[key]);
@@ -86,20 +85,23 @@ export default async function handler(req, res) {
 
         // Cek jika server error / maintenance (Balikan HTML)
         if (text.trim().startsWith('<')) {
+            console.error("[Relay HTML Error]", text.substring(0, 100));
             return res.status(502).json({ 
                 success: false, 
-                message: 'Server Pusat (ICS) sedang Maintenance/Error (HTML Response).',
-                raw: text.substring(0, 100)
+                message: 'Server Pusat (ICS) Mengembalikan Error HTML (502). Coba cek API Key atau URL kembali.',
+                raw: text.substring(0, 200)
             });
         }
 
-        const json = JSON.parse(text);
-        
-        // Selalu return 200 agar Frontend bisa membaca pesan error JSON-nya
-        return res.status(200).json(json);
+        try {
+            const json = JSON.parse(text);
+            return res.status(200).json(json);
+        } catch (e) {
+            return res.status(500).json({ success: false, message: 'Respon bukan JSON valid.', raw: text.substring(0, 100) });
+        }
 
     } catch (error) {
-        console.error("[Relay Error]", error);
+        console.error("[Relay Sys Error]", error);
         return res.status(500).json({ success: false, message: error.message });
     }
 }

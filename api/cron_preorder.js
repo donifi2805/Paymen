@@ -1,4 +1,4 @@
-// File: api/cron_preorder.js (VERSI SMART BATCHING)
+// File: api/cron_preorder.js (FINAL FIX: SUPPORT ARRAY & CFMX)
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
@@ -17,7 +17,7 @@ const KHFY_CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "
 const ICS_CONFIG = { apiKey: "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77", baseUrl: "https://api.ics-store.my.id/api/reseller" };
 const CRON_PASSWORD = "RAHASIA_DAPUR_PANDAWA"; 
 
-// Helper untuk Jeda Waktu (Delay)
+// Helper: Delay
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 export default async function handler(req, res) {
@@ -25,10 +25,7 @@ export default async function handler(req, res) {
     if (kunci !== CRON_PASSWORD) return res.status(401).json({ error: 'Akses ditolak' });
 
     try {
-        // PERUBAHAN 1: TURUNKAN LIMIT KE 12
-        // Kenapa 12? Kita akan proses 4 items per detik.
-        // 12 items = 3 batch x 1.5 detik = 4.5 detik (Aman untuk Vercel Free yg limit 10s)
-        // Sisanya akan diproses di menit berikutnya oleh Cron Job.
+        // Limit 12 (Batching agar tidak timeout)
         const snapshot = await db.collection('preorders')
             .orderBy('timestamp', 'asc')
             .limit(12) 
@@ -36,7 +33,6 @@ export default async function handler(req, res) {
         
         if (snapshot.empty) return res.status(200).json({ success: true, message: 'Antrian kosong.' });
 
-        // Fungsi Proses Tunggal (Sama seperti sebelumnya)
         const processSinglePreorder = async (doc) => {
             const data = doc.data();
             const poId = doc.id;
@@ -51,6 +47,7 @@ export default async function handler(req, res) {
 
             try {
                 if (serverType === 'ICS') {
+                    // --- LOGIC ICS ---
                     const apiRes = await fetch(`${ICS_CONFIG.baseUrl}/trx?apikey=${ICS_CONFIG.apiKey}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -66,12 +63,24 @@ export default async function handler(req, res) {
                         sn = rawResult.data.message || 'Proses Server ICS';
                     }
                 } else {
+                    // --- LOGIC KHFY (FIX CFMX) ---
                     const apiRes = await fetch(`${KHFY_CONFIG.baseUrl}/trx?api_key=${KHFY_CONFIG.apiKey}&kode_produk=${data.provider}&tujuan=${data.targetNumber}&reff_id=${reffId}`);
                     rawResult = await apiRes.json();
-                    const msg = (rawResult.message || '').toLowerCase();
-                    if ((rawResult.ok || rawResult.status) && (msg.includes('sukses') || msg.includes('proses'))) {
+
+                    // 1. Normalisasi Data (Cek apakah Array?)
+                    let txData = rawResult.data;
+                    if (Array.isArray(txData) && txData.length > 0) {
+                        txData = txData[0]; // Ambil isi pertama dari Array
+                    }
+
+                    // 2. Ambil Status Text (Cari di dalam txData dulu, baru di luar)
+                    const statusText = (txData?.status_text || rawResult.message || '').toUpperCase();
+                    
+                    // 3. Cek Logika Sukses (Termasuk status "SUKSES" dari CFMX)
+                    if ((rawResult.ok || rawResult.status) && (statusText.includes('SUKSES') || statusText.includes('PROSES'))) {
                         isSuccess = true;
-                        if(rawResult.data) sn = rawResult.data.sn || rawResult.data.message || 'Proses Server Khfy';
+                        // Ambil SN dari dalam data (Penting untuk CFMX varian)
+                        sn = txData?.sn || rawResult.message || 'Proses Server Khfy';
                     }
                 }
             } catch (err) {
@@ -79,6 +88,7 @@ export default async function handler(req, res) {
             }
 
             if (isSuccess) {
+                // SUKSES
                 const historyId = data.historyId || `PO-${poId}`;
                 const historyRef = db.collection('users').doc(data.uid).collection('history').doc(historyId);
                 const hSnap = await historyRef.get();
@@ -90,13 +100,22 @@ export default async function handler(req, res) {
                 await db.collection('preorders').doc(poId).delete();
                 return { status: 'SUKSES', phone: data.targetNumber };
             } else {
+                // GAGAL - Ambil Pesan Error Asli
                 let realReason = 'Gagal Unknown';
                 try {
-                    if (serverType === 'ICS') realReason = rawResult?.data?.message || rawResult?.message || JSON.stringify(rawResult);
-                    else realReason = rawResult?.data?.sn || rawResult?.message || rawResult?.msg || rawResult?.error || JSON.stringify(rawResult);
+                    // Logic pengambilan pesan error yang mendalam
+                    let txData = rawResult?.data;
+                    if (Array.isArray(txData) && txData.length > 0) txData = txData[0];
+
+                    if (serverType === 'ICS') {
+                        realReason = txData?.message || rawResult?.message || JSON.stringify(rawResult);
+                    } else {
+                        // Cek error dari KHFY
+                        realReason = txData?.sn || txData?.keterangan || rawResult?.message || rawResult?.error || JSON.stringify(rawResult);
+                    }
                 } catch (e) { realReason = "Error parsing"; }
 
-                if (typeof realReason === 'string' && realReason.length > 60) realReason = realReason.substring(0, 60) + '...';
+                if (typeof realReason === 'string' && realReason.length > 80) realReason = realReason.substring(0, 80) + '...';
 
                 await db.collection('preorders').doc(poId).update({
                     debugStatus: 'RETRY', debugLogs: `[${new Date().toLocaleTimeString('id-ID')}] ${realReason}`
@@ -105,22 +124,18 @@ export default async function handler(req, res) {
             }
         };
 
-        // --- PERUBAHAN 2: LOGIKA BATCHING (Mencicil) ---
-        const BATCH_SIZE = 4; // Maksimal 4 request serentak (Sesuai Hint Error)
+        // --- BATCHING (Max 4 request per detik) ---
+        const BATCH_SIZE = 4;
         const allResults = [];
         const docs = snapshot.docs;
 
         for (let i = 0; i < docs.length; i += BATCH_SIZE) {
-            // Ambil potongan 4 data
             const batchDocs = docs.slice(i, i + BATCH_SIZE);
-            
-            // Jalankan 4 data ini secara parallel
             const batchPromises = batchDocs.map(doc => processSinglePreorder(doc));
             const batchResults = await Promise.all(batchPromises);
             
             allResults.push(...batchResults);
 
-            // JIKA masih ada antrian berikutnya, tunggu 1.5 detik agar tidak kena Rate Limit
             if (i + BATCH_SIZE < docs.length) {
                 await delay(1500); // Tunggu 1.5 Detik
             }
@@ -131,7 +146,7 @@ export default async function handler(req, res) {
 
         return res.status(200).json({ 
             success: true, 
-            mode: 'SMART BATCHING (Safe)',
+            mode: 'FINAL FIX (CFMX SUPPORT)',
             processed: allResults.length, 
             stats: { sukses: successCount, pending: failCount },
             logs: allResults.map(r => `${r.phone}: ${r.status}`)

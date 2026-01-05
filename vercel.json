@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron_preorder",
+      "schedule": "* * * * *"
+    }
+  ]
+}

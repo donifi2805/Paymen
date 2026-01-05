@@ -3189,41 +3189,58 @@ async function callApi(endpoint, params = {}) {
 
             window.processFormTransaction = () => {
         const provider = document.getElementById('formProvider').value;
-        const code = document.getElementById('formProduct').value || document.getElementById('icsProductSelect')?.value;
-        const name = document.getElementById('selectedProductName').value || document.getElementById('icsProductSelect')?.options[document.getElementById('icsProductSelect').selectedIndex]?.dataset.name;
-        const price = parseInt(document.getElementById('selectedProductPrice').value || 0);
+        const formProductVal = document.getElementById('formProduct').value;
+        const icsSelect = document.getElementById('icsProductSelect');
+        
+        const code = formProductVal || (icsSelect ? icsSelect.value : '');
+        
+        // Ambil nama produk dengan aman
+        let name = document.getElementById('selectedProductName').value;
+        if (!name && icsSelect && icsSelect.selectedIndex >= 0) {
+            name = icsSelect.options[icsSelect.selectedIndex]?.dataset.name;
+        }
+
+        // Ambil harga
+        const priceInput = document.getElementById('selectedProductPrice').value;
+        let price = parseInt(priceInput || 0);
+        if (price === 0 && icsSelect && icsSelect.selectedIndex >= 0) {
+             price = parseInt(icsSelect.options[icsSelect.selectedIndex]?.dataset.price || 0);
+        }
+        
         const number = document.getElementById('ppobNumber').value;
 
-        if(!code) return alert('Silakan pilih Produk!');
-        if(!code) return alert('Silakan pilih Produk!');
+        if(!code) return window.showAlert('Peringatan', 'Silakan pilih Produk terlebih dahulu!', 'error');
 
         // FITUR BARU: Cegah Transaksi Ganda ke Nomor Sama jika masih Pending
-        const pendingSameNum = transactions.find(t => 
-            (t.status === 'Pending' || t.status === 'Proses') && 
-            t.dest_num === number
-        );
+        if (transactions) {
+            const pendingSameNum = transactions.find(t => 
+                (t.status === 'Pending' || t.status === 'Proses') && 
+                t.dest_num === number &&
+                t.raw_code === code 
+            );
 
-        if (pendingSameNum) {
-            return Swal.fire({
-                title: 'Transaksi Tertunda',
-                text: 'Masih ada transaksi PENDING untuk nomor ' + number + '. Harap tunggu hingga sukses atau gagal sebelum membeli lagi.',
-                icon: 'warning'
-            });
+            if (pendingSameNum) {
+                return window.showAlert(
+                    'Transaksi Tertunda',
+                    'Masih ada transaksi PENDING untuk nomor ' + number + '. Harap tunggu hingga sukses atau gagal sebelum membeli lagi.',
+                    'warning'
+                );
+            }
         }
 
         // --- HANDLER KHUSUS ICS ---
-        if (provider.startsWith('ICS_')) {
-            if(!number || number.length < 9) return alert("Nomor HP tidak valid!");
-            if(currentBalance < price) return alert("Saldo tidak cukup!");
+        if (provider && provider.startsWith('ICS_')) {
+            if(!number || number.length < 9) return window.showAlert('Validasi', "Nomor HP tidak valid!", 'error');
+            if(currentBalance < price) return window.showAlert('Saldo', "Saldo tidak cukup!", 'error');
             
-            window.customConfirm('Apakah anda ingin melanjutkan?', `Produk: ${name}\nNomor: ${number}\nHarga: ${window.formatRp(price)}`, async () => {
+            window.customConfirm('Konfirmasi Transaksi', `Produk: ${name}\nNomor: ${number}\nHarga: ${window.formatRp(price)}`, async () => {
                 window.executeIcsTransaction(code, number, price, name, provider);
             });
             return;
         }
 
         if (code === 'CEKPLN') {
-            window.checkPLN(document.getElementById('ppobNumber').value);
+            window.checkPLN(number);
             return;
         }
 
@@ -3232,16 +3249,15 @@ async function callApi(endpoint, params = {}) {
             const numbers = [];
             inputs.forEach(i => { if(i.value.length > 5) numbers.push(i.value); });
             
-            if(numbers.length === 0) return alert("Masukkan minimal 1 nomor tujuan valid!");
+            if(numbers.length === 0) return window.showAlert('Validasi', "Masukkan minimal 1 nomor tujuan valid!", 'error');
             const total = numbers.length * price;
-            if (currentBalance < total) return alert(`Saldo kurang! Butuh Rp ${window.formatRp(total)}`);
+            if (currentBalance < total) return window.showAlert('Saldo', `Saldo kurang! Butuh Rp ${window.formatRp(total)}`, 'error');
             
             window.customConfirm('Multi Transaksi', `Proses ${numbers.length} nomor?\nTotal: Rp ${window.formatRp(total)}`, () => {
                 window.executeMultiBatch(code, numbers, price, name);
             });
         } else {
-            const destNum = document.getElementById('ppobNumber').value;
-            if(destNum.length < 5) return alert('Masukkan Nomor Tujuan yang valid!');
+            if(number.length < 5) return window.showAlert('Validasi', 'Masukkan Nomor Tujuan yang valid!', 'error');
             window.confirmTransaction(code, name, price);
         }
     };

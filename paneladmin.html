@@ -861,109 +861,111 @@ window.listenDebugPreOrders = () => {
         window.executeAutoBypass = () => window.executeDebugTrx(currentAutoServer);
 
         window.executeDebugTrx = async (system, poId = null) => {
-    const num = document.getElementById('debugTargetNum').value;
-    const code = document.getElementById('debugProductCode').value;
-    const targetLogId = poId ? `log-po-${poId}` : 'debugLogs';
+            const num = document.getElementById('debugTargetNum').value;
+            const code = document.getElementById('debugProductCode').value;
+            const targetLogId = poId ? `log-po-${poId}` : 'debugLogs';
 
-    if (!num || !code) return Swal.fire('Error', 'Data target/produk kosong', 'warning');
-    
-    const reffId = `DBG-${Date.now()}`;
-    addDebugLog(`[${system}] 🚀 Memulai transaksi: ${code} -> ${num}...`, 'info', targetLogId);
-    
-    try {
-        let result;
-        if (system === 'KHFY') {
-            const targetUrl = `${KHFY_RELAY_URL}?endpoint=/trx&produk=${code}&tujuan=${num}&reff_id=${reffId}&_t=${Date.now()}`;
-            const res = await fetch(targetUrl);
-            const json = await res.json();
-            if(!res.ok && !json.success && !json.status) throw new Error(json.message || "Gagal via Relay KHFY");
-            result = json;
-        } else {
-            const params = { kode_produk: code, nomor_tujuan: num, refid: reffId };
-            const apiRes = await callIcsApi('createTransaction', params, 'POST');
-            result = apiRes;
-        }
-
-        let logData = result;
-        if (system !== 'KHFY' && result.data) logData = result.data;
-        const rawResponse = JSON.stringify(logData, null, 2);
-        
-        let isOk = false; 
-        if (system === 'KHFY') {
-            isOk = (result.status === true || (result.message && result.message.toLowerCase().includes('sukses')));
-        } else {
-            isOk = result.success === true;
-        }
-
-        addDebugLog(`API Response:<br><pre class="mt-1 p-1.5 bg-black/50 border border-white/10 rounded text-green-300 whitespace-pre-wrap break-words">${rawResponse}</pre>`, isOk ? 'info' : 'error', targetLogId);
-        
-        if (isOk) {
-            let checkCount = 0;
-            const checkInterval = setInterval(async () => {
-                checkCount++;
-                addDebugLog(`⏳ [Cek #${checkCount}] Memantau status...`, 'info', targetLogId);
-                
-                let statusRes = null;
-                if(system === 'KHFY') {
-                     try {
-                        const cRes = await fetch(`${KHFY_RELAY_URL}?endpoint=/history&refid=${reffId}&_t=${Date.now()}`);
-                        const cJson = await cRes.json();
-                        if(cJson.data && cJson.data.data) statusRes = cJson.data.data[0];
-                        else if(cJson.data) statusRes = cJson.data;
-                     } catch(e) { console.log("Cek status error", e); }
+            if (!num || !code) return Swal.fire('Error', 'Data target/produk kosong', 'warning');
+            
+            const reffId = `DBG-${Date.now()}`;
+            addDebugLog(`[${system}] 🚀 Memulai transaksi: ${code} -> ${num}...`, 'info', targetLogId);
+            
+            try {
+                let result;
+                if (system === 'KHFY') {
+                    const targetUrl = `${KHFY_RELAY_URL}?endpoint=/trx&produk=${code}&tujuan=${num}&reff_id=${reffId}&_t=${Date.now()}`;
+                    const res = await fetch(targetUrl);
+                    const json = await res.json();
+                    if(!res.ok && !json.success && !json.status && !json.ok) throw new Error(json.message || "Gagal via Relay KHFY");
+                    result = json;
                 } else {
-                     const cRes = await callIcsApi('checkTransaction', { refid: reffId });
-                     if(cRes.success) statusRes = cRes.data;
+                    const params = { kode_produk: code, nomor_tujuan: num, refid: reffId };
+                    const apiRes = await callIcsApi('createTransaction', params, 'POST');
+                    result = apiRes;
                 }
 
-                if (statusRes) {
-                    const st = (statusRes.status || statusRes.status_text || '').toLowerCase();
-                    const sn = statusRes.sn || statusRes.message || '-';
-                    
-                    // === SUKSES (SIMPAN KE DB) ===
-                    if (st.includes('sukses') || st.includes('success')) {
-                        clearInterval(checkInterval);
-                        addDebugLog(`✅ <b>TRANSAKSI SUKSES!</b> SN: ${sn}`, 'success', targetLogId);
-                        
-                        let finalCode = '', finalPrice = 0;
-                        if (system === 'KHFY') {
-                            finalCode = statusRes.kode_produk || code;
-                            finalPrice = statusRes.harga || 0;
-                        } else {
-                            finalCode = statusRes.product || code;
-                            finalPrice = statusRes.price || 0;
-                        }
-
-                        // >> SIMPAN PERMANEN <<
-                        if(poId) {
-                            const logsHTML = document.getElementById(targetLogId).innerHTML;
-                            await updateDoc(doc(db, "preorders", poId), {
-                                debugStatus: 'TERBELI',
-                                successData: { code: finalCode, price: parseInt(finalPrice) },
-                                debugLogs: logsHTML
-                            });
-                        }
-
-                    // === GAGAL (RESET) ===
-                    } else if (st.includes('gagal') || st.includes('failed') || st.includes('error')) {
-                        clearInterval(checkInterval);
-                        addDebugLog(`❌ <b>TRANSAKSI GAGAL.</b> Pesan: ${sn}`, 'error', targetLogId);
-                        addDebugLog(`⚠️ Status GAGAL tidak disimpan (Clean) agar bisa di-run ulang.`, 'warning', targetLogId);
-                        // TIDAK ADA updateDoc() di sini, data tetap Pending di DB.
-                    }
-                }
+                let logData = result;
+                if (system !== 'KHFY' && result.data) logData = result.data;
+                const rawResponse = JSON.stringify(logData, null, 2);
                 
-                if (checkCount >= 12) {
-                    clearInterval(checkInterval);
-                    addDebugLog("⚠️ Timeout monitoring status.", 'warning', targetLogId);
+                let isOk = false; 
+                if (system === 'KHFY') {
+                    const isStatusOk = (result.status === true || result.ok === true);
+                    const msg = (result.message || result.msg || '').toLowerCase();
+                    isOk = isStatusOk || msg.includes('sukses') || msg.includes('akan di proses');
+                } else {
+                    isOk = result.success === true;
                 }
-            }, 3000);
-        }
-    } catch (e) {
-        console.error(e);
-        addDebugLog("Error System: " + e.message, 'error', targetLogId); 
-    }
-};const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
+
+                addDebugLog(`API Response:<br><pre class="mt-1 p-1.5 bg-black/50 border border-white/10 rounded text-green-300 whitespace-pre-wrap break-words">${rawResponse}</pre>`, isOk ? 'info' : 'error', targetLogId);
+                
+                if (isOk) {
+                    let checkCount = 0;
+                    const checkInterval = setInterval(async () => {
+                        checkCount++;
+                        addDebugLog(`⏳ [Cek #${checkCount}] Memantau status...`, 'info', targetLogId);
+                        
+                        let statusRes = null;
+                        if(system === 'KHFY') {
+                             try {
+                                const cRes = await fetch(`${KHFY_RELAY_URL}?endpoint=/history&refid=${reffId}&_t=${Date.now()}`);
+                                const cJson = await cRes.json();
+                                if(cJson.data && cJson.data.data) statusRes = cJson.data.data[0];
+                                else if(cJson.data) statusRes = cJson.data;
+                             } catch(e) { console.log("Cek status error", e); }
+                        } else {
+                             const cRes = await callIcsApi('checkTransaction', { refid: reffId });
+                             if(cRes.success) statusRes = cRes.data;
+                        }
+
+                        if (statusRes) {
+                            const st = (statusRes.status || statusRes.status_text || '').toLowerCase();
+                            const sn = statusRes.sn || statusRes.message || '-';
+                            
+                            // === SUKSES (SIMPAN KE DB) ===
+                            if (st.includes('sukses') || st.includes('success')) {
+                                clearInterval(checkInterval);
+                                addDebugLog(`✅ <b>TRANSAKSI SUKSES!</b> SN: ${sn}`, 'success', targetLogId);
+                                
+                                let finalCode = '', finalPrice = 0;
+                                if (system === 'KHFY') {
+                                    finalCode = statusRes.kode_produk || code;
+                                    finalPrice = statusRes.harga || 0;
+                                } else {
+                                    finalCode = statusRes.product || code;
+                                    finalPrice = statusRes.price || 0;
+                                }
+
+                                // >> SIMPAN PERMANEN <<
+                                if(poId) {
+                                    const logsHTML = document.getElementById(targetLogId).innerHTML;
+                                    await updateDoc(doc(db, "preorders", poId), {
+                                        debugStatus: 'TERBELI',
+                                        successData: { code: finalCode, price: parseInt(finalPrice) },
+                                        debugLogs: logsHTML
+                                    });
+                                }
+
+                            // === GAGAL (RESET) ===
+                            } else if (st.includes('gagal') || st.includes('failed') || st.includes('error')) {
+                                clearInterval(checkInterval);
+                                addDebugLog(`❌ <b>TRANSAKSI GAGAL.</b> Pesan: ${sn}`, 'error', targetLogId);
+                                addDebugLog(`⚠️ Status GAGAL tidak disimpan (Clean) agar bisa di-run ulang.`, 'warning', targetLogId);
+                                // TIDAK ADA updateDoc() di sini, data tetap Pending di DB.
+                            }
+                        }
+                        
+                        if (checkCount >= 12) {
+                            clearInterval(checkInterval);
+                            addDebugLog("⚠️ Timeout monitoring status.", 'warning', targetLogId);
+                        }
+                    }, 5000);
+                }
+            } catch (e) {
+                console.error(e);
+                addDebugLog("Error System: " + e.message, 'error', targetLogId); 
+            }
+        };const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
         const firebaseConfig = {
             apiKey: "AIzaSyBnVxgxkS8InH1PQCMGe3cY8IvPqSN6dLo",
             authDomain: "ppob-3ea96.firebaseapp.com",

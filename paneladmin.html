@@ -870,6 +870,8 @@ window.listenDebugPreOrders = () => {
             const reffId = `DBG-${Date.now()}`;
             addDebugLog(`[${system}] 🚀 Memulai transaksi: ${code} -> ${num}...`, 'info', targetLogId);
             
+            let serverTrxId = null;
+
             try {
                 let result;
                 if (system === 'KHFY') {
@@ -878,6 +880,10 @@ window.listenDebugPreOrders = () => {
                     const json = await res.json();
                     if(!res.ok && !json.success && !json.status && !json.ok) throw new Error(json.message || "Gagal via Relay KHFY");
                     result = json;
+
+                    if (result.data && result.data.trxid) {
+                        serverTrxId = result.data.trxid;
+                    }
                 } else {
                     const params = { kode_produk: code, nomor_tujuan: num, refid: reffId };
                     const apiRes = await callIcsApi('createTransaction', params, 'POST');
@@ -901,17 +907,35 @@ window.listenDebugPreOrders = () => {
                 
                 if (isOk) {
                     let checkCount = 0;
+                    let useTrxIdNext = !!serverTrxId;
+
                     const checkInterval = setInterval(async () => {
                         checkCount++;
-                        addDebugLog(`⏳ [Cek #${checkCount}] Memantau status...`, 'info', targetLogId);
+                        
+                        let paramsCheck = `refid=${reffId}`;
+                        let checkLabel = `RefID (${reffId})`;
+
+                        if (system === 'KHFY' && serverTrxId) {
+                            if (useTrxIdNext) {
+                                paramsCheck = `trxid=${serverTrxId}`;
+                                checkLabel = `TrxID (${serverTrxId})`;
+                            }
+                            useTrxIdNext = !useTrxIdNext;
+                        }
+
+                        addDebugLog(`⏳ [Cek #${checkCount}] Memantau via ${checkLabel}...`, 'info', targetLogId);
                         
                         let statusRes = null;
                         if(system === 'KHFY') {
                              try {
-                                const cRes = await fetch(`${KHFY_RELAY_URL}?endpoint=/history&refid=${reffId}&_t=${Date.now()}`);
+                                const cRes = await fetch(`${KHFY_RELAY_URL}?endpoint=/history&${paramsCheck}&_t=${Date.now()}`);
                                 const cJson = await cRes.json();
-                                if(cJson.data && cJson.data.data) statusRes = cJson.data.data[0];
+                                
+                                if(cJson.data && Array.isArray(cJson.data.data)) statusRes = cJson.data.data[0];
+                                else if(cJson.data && Array.isArray(cJson.data)) statusRes = cJson.data[0];
+                                else if(cJson.data && cJson.data.data) statusRes = cJson.data.data;
                                 else if(cJson.data) statusRes = cJson.data;
+
                              } catch(e) { console.log("Cek status error", e); }
                         } else {
                              const cRes = await callIcsApi('checkTransaction', { refid: reffId });
@@ -919,10 +943,9 @@ window.listenDebugPreOrders = () => {
                         }
 
                         if (statusRes) {
-                            const st = (statusRes.status || statusRes.status_text || '').toLowerCase();
-                            const sn = statusRes.sn || statusRes.message || '-';
+                            const st = (statusRes.status || statusRes.status_text || statusRes.ket || '').toLowerCase();
+                            const sn = statusRes.sn || statusRes.message || statusRes.keterangan || '-';
                             
-                            // === SUKSES (SIMPAN KE DB) ===
                             if (st.includes('sukses') || st.includes('success')) {
                                 clearInterval(checkInterval);
                                 addDebugLog(`✅ <b>TRANSAKSI SUKSES!</b> SN: ${sn}`, 'success', targetLogId);
@@ -930,13 +953,12 @@ window.listenDebugPreOrders = () => {
                                 let finalCode = '', finalPrice = 0;
                                 if (system === 'KHFY') {
                                     finalCode = statusRes.kode_produk || code;
-                                    finalPrice = statusRes.harga || 0;
+                                    finalPrice = statusRes.harga || statusRes.price || 0;
                                 } else {
                                     finalCode = statusRes.product || code;
                                     finalPrice = statusRes.price || 0;
                                 }
 
-                                // >> SIMPAN PERMANEN <<
                                 if(poId) {
                                     const logsHTML = document.getElementById(targetLogId).innerHTML;
                                     await updateDoc(doc(db, "preorders", poId), {
@@ -945,13 +967,10 @@ window.listenDebugPreOrders = () => {
                                         debugLogs: logsHTML
                                     });
                                 }
-
-                            // === GAGAL (RESET) ===
                             } else if (st.includes('gagal') || st.includes('failed') || st.includes('error')) {
                                 clearInterval(checkInterval);
                                 addDebugLog(`❌ <b>TRANSAKSI GAGAL.</b> Pesan: ${sn}`, 'error', targetLogId);
-                                addDebugLog(`⚠️ Status GAGAL tidak disimpan (Clean) agar bisa di-run ulang.`, 'warning', targetLogId);
-                                // TIDAK ADA updateDoc() di sini, data tetap Pending di DB.
+                                addDebugLog(`⚠️ Status GAGAL tidak disimpan agar bisa di-run ulang.`, 'warning', targetLogId);
                             }
                         }
                         

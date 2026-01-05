@@ -2,6 +2,8 @@
   "name": "pandawa-webhook",
   "version": "1.0.0",
   "dependencies": {
+    "axios": "^1.6.2",
+    "cors": "^2.8.5",
     "firebase-admin": "^11.11.0",
     "protobufjs": "^7.2.0"
   }

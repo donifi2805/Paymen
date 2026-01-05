@@ -858,7 +858,7 @@ window.listenDebugPreOrders = () => {
             }, 500);
         };
 
-        window.executeAutoBypass = () => window.executeDebugTrx(currentAutoServer);        window.executeDebugTrx = async (system, poId = null) => {
+        window.executeAutoBypass = () => window.executeDebugTrx(currentAutoServer);                window.executeDebugTrx = async (system, poId = null) => {
             const num = document.getElementById('debugTargetNum').value;
             const code = document.getElementById('debugProductCode').value;
             const targetLogId = poId ? `log-po-${poId}` : 'debugLogs';
@@ -884,6 +884,105 @@ window.listenDebugPreOrders = () => {
                     }
                 } else {
                     const params = { kode_produk: code, nomor_tujuan: num, refid: reffId };
+                    const apiRes = await callIcsApi('createTransaction', params, 'POST');
+                    result = apiRes;
+                }
+
+                let logData = result;
+                if (system !== 'KHFY' && result.data) logData = result.data;
+                const rawResponse = JSON.stringify(logData, null, 2);
+                
+                let isOk = false; 
+                if (system === 'KHFY') {
+                    const isStatusOk = (result.status === true || result.ok === true);
+                    const msg = (result.message || result.msg || '').toLowerCase();
+                    isOk = isStatusOk || msg.includes('sukses') || msg.includes('akan di proses');
+                } else {
+                    isOk = result.success === true;
+                }
+
+                addDebugLog(`API Response:<br><pre class="mt-1 p-1.5 bg-black/50 border border-white/10 rounded text-green-300 whitespace-pre-wrap break-words">${rawResponse}</pre>`, isOk ? 'info' : 'error', targetLogId);
+                
+                if (isOk) {
+                    let checkCount = 0;
+                    let useTrxIdNext = !!serverTrxId;
+
+                    const checkInterval = setInterval(async () => {
+                        checkCount++;
+                        
+                        let paramsCheck = `refid=${reffId}`;
+                        let checkLabel = `RefID (${reffId})`;
+
+                        if (system === 'KHFY' && serverTrxId) {
+                            if (useTrxIdNext) {
+                                paramsCheck = `trxid=${serverTrxId}`;
+                                checkLabel = `TrxID (${serverTrxId})`;
+                            }
+                            useTrxIdNext = !useTrxIdNext;
+                        }
+
+                        addDebugLog(`⏳ [Cek #${checkCount}] Memantau via ${checkLabel}...`, 'info', targetLogId);
+                        
+                        let statusRes = null;
+                        if(system === 'KHFY') {
+                             try {
+                                const cRes = await fetch(`${KHFY_RELAY_URL}?endpoint=/history&${paramsCheck}&_t=${Date.now()}`);
+                                const cJson = await cRes.json();
+                                
+                                if(cJson.data && Array.isArray(cJson.data.data)) statusRes = cJson.data.data[0];
+                                else if(cJson.data && Array.isArray(cJson.data)) statusRes = cJson.data[0];
+                                else if(cJson.data && cJson.data.data) statusRes = cJson.data.data;
+                                else if(cJson.data) statusRes = cJson.data;
+
+                             } catch(e) { console.log("Cek status error", e); }
+                        } else {
+                             const cRes = await callIcsApi('checkTransaction', { refid: reffId });
+                             if(cRes.success) statusRes = cRes.data;
+                        }
+
+                        if (statusRes) {
+                            const st = (statusRes.status || statusRes.status_text || statusRes.ket || '').toLowerCase();
+                            const sn = statusRes.sn || statusRes.message || statusRes.keterangan || '-';
+                            
+                            if (st.includes('sukses') || st.includes('success')) {
+                                clearInterval(checkInterval);
+                                addDebugLog(`✅ <b>TRANSAKSI SUKSES!</b> SN: ${sn}`, 'success', targetLogId);
+                                
+                                let finalCode = '', finalPrice = 0;
+                                if (system === 'KHFY') {
+                                    finalCode = statusRes.kode_produk || code;
+                                    finalPrice = statusRes.harga || statusRes.price || 0;
+                                } else {
+                                    finalCode = statusRes.product || code;
+                                    finalPrice = statusRes.price || 0;
+                                }
+
+                                if(poId) {
+                                    const logsHTML = document.getElementById(targetLogId).innerHTML;
+                                    await updateDoc(doc(db, "preorders", poId), {
+                                        debugStatus: 'TERBELI',
+                                        successData: { code: finalCode, price: parseInt(finalPrice) },
+                                        debugLogs: logsHTML
+                                    });
+                                }
+                            } else if (st.includes('gagal') || st.includes('failed') || st.includes('error')) {
+                                clearInterval(checkInterval);
+                                addDebugLog(`❌ <b>TRANSAKSI GAGAL.</b> Pesan: ${sn}`, 'error', targetLogId);
+                                addDebugLog(`⚠️ Status GAGAL tidak disimpan agar bisa di-run ulang.`, 'warning', targetLogId);
+                            }
+                        }
+                        
+                        if (checkCount >= 12) {
+                            clearInterval(checkInterval);
+                            addDebugLog("⚠️ Timeout monitoring status.", 'warning', targetLogId);
+                        }
+                    }, 5000);
+                }
+            } catch (e) {
+                console.error(e);
+                addDebugLog("Error System: " + e.message, 'error', targetLogId); 
+            }
+        };
                     const apiRes = await callIcsApi('createTransaction', params, 'POST');
                     result = apiRes;
                 }

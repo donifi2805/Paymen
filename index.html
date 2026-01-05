@@ -88,7 +88,10 @@
     
     
     
-    <div id="customAlertModal" class="hide fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
+        
+    <div id="toastContainer" class="fixed top-5 right-5 z-[300] flex flex-col gap-2 pointer-events-none transition-all duration-300"></div>
+
+<div id="customAlertModal" class="hide fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
         <div class="bg-white dark:bg-gray-900 w-full max-w-xs rounded-[2.5rem] p-8 shadow-2xl border border-white/20 dark:border-gray-800 transform transition-all animate-pop-in relative overflow-hidden">
             <div id="alertIconContainer" class="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg">
                 <i id="alertIcon" class="text-4xl text-white"></i>
@@ -1345,7 +1348,8 @@ window.openAkrabV2 = () => {
         const interval = setInterval(async () => {
             attempt++;
             // Cek status diam-diam (background)
-            await window.manualCheckTrx(trxId, 'ICS');
+                        // Cek status diam-diam (background)
+            await window.manualCheckTrx(trxId, 'ICS', true);
             
             // Cek apakah status sudah berubah final di database lokal?
             // Kita ambil data terbaru dari cache/db untuk memutus loop jika sudah selesai
@@ -2100,7 +2104,36 @@ initTopupSettingsListener();
     // --- EXISTING CODE (AUTH, UI, ETC) ---
 
     
-    window.showAlert = (title, message, type = 'info') => {
+    
+    // --- TOAST NOTIFICATION SYSTEM ---
+    window.showToast = (message, type = 'info') => {
+        const container = document.getElementById('toastContainer');
+        if(!container) return;
+        const toast = document.createElement('div');
+        
+        let bgClass = 'bg-gray-800';
+        let icon = '<i class="fas fa-info-circle"></i>';
+        
+        if(type === 'success') { bgClass = 'bg-green-600'; icon = '<i class="fas fa-check-circle"></i>'; }
+        if(type === 'error') { bgClass = 'bg-red-600'; icon = '<i class="fas fa-exclamation-circle"></i>'; }
+        if(type === 'warning') { bgClass = 'bg-orange-500'; icon = '<i class="fas fa-clock"></i>'; }
+
+        toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-white text-xs font-bold transform transition-all duration-300 translate-x-10 opacity-0 ${bgClass}`;
+        toast.innerHTML = `${icon} <span>${message}</span>`;
+
+        container.appendChild(toast);
+
+        requestAnimationFrame(() => {
+            toast.classList.remove('translate-x-10', 'opacity-0');
+        });
+
+        setTimeout(() => {
+            toast.classList.add('translate-x-10', 'opacity-0');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    };
+
+window.showAlert = (title, message, type = 'info') => {
         const modal = document.getElementById('customAlertModal');
         const iconContainer = document.getElementById('alertIconContainer');
         const icon = document.getElementById('alertIcon');
@@ -3627,7 +3660,7 @@ window.showLoader(false);
                         
                         // Panggil Cek Status Manual (Logic Shared)
                         // Fungsi ini sudah tertanam logika 'Smart Refund' di dalamnya
-                        await window.manualCheckTrx(trx.trx_id, trx.provider_id);
+                        await window.manualCheckTrx(trx.trx_id, trx.provider_id, true);
                     }
                 }
             } catch (e) {
@@ -3660,7 +3693,7 @@ window.showLoader(false);
             const trx = docSnap.data();
             if (trx.provider_id === 'MANUAL' || trx.provider_id === 'MANUAL_SEABANK') continue;
 
-            await window.manualCheckTrx(trx.trx_id, trx.provider_id);
+            await window.manualCheckTrx(trx.trx_id, trx.provider_id, true);
         }
     };
 
@@ -3971,7 +4004,7 @@ window.renderTopUpHistory = () => {
         document.getElementById('detailTrxModal').classList.remove('hide');
     };
 
-                    window.manualCheckTrx = async (docId, providerId) => {
+                        window.manualCheckTrx = async (docId, providerId, isSilent = false) => {
         const btn = document.getElementById('btnRefreshStatus');
         if(btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
@@ -3990,7 +4023,13 @@ window.renderTopUpHistory = () => {
                 if (res.success) {
                     let freshStatus = 'Pending';
                     const rawStatus = (res.data?.status || res.status || '').toLowerCase();
-                    const sn = res.data?.sn || res.sn || res.message || '';
+                                        let sn = '';
+                    // Prioritas ambil 'message' dari data ICS jika ada (Format: PRODUK.DEST SUKSES...)
+                    if (res.data && res.data.message) {
+                        sn = res.data.message;
+                    } else {
+                        sn = res.data?.sn || res.sn || res.message || '';
+                    }
                     
                     if (rawStatus === 'sukses' || rawStatus === 'success') freshStatus = 'Sukses';
                     else if (rawStatus === 'gagal' || rawStatus === 'failed' || rawStatus === 'error') freshStatus = 'Gagal';
@@ -4002,16 +4041,16 @@ window.renderTopUpHistory = () => {
                         }
                     } else if (freshStatus === 'Sukses') {
                         if(localData.status !== 'Sukses') {
-                            await updateDoc(trxRef, {
+                                                        await updateDoc(trxRef, {
                                 status: 'Sukses',
-                                api_msg: 'Transaksi Berhasil',
+                                api_msg: sn || 'Transaksi Berhasil',
                                 sn: sn,
                                 raw_json: JSON.stringify(res)
                             });
                             alert("Status Berhasil Diperbarui!");
                         }
                     } else {
-                        alert("Status Masih Pending di Pusat.\nSilakan cek lagi nanti.");
+                                                                        if(!isSilent) window.showToast("Status Masih Pending di Pusat...", "warning");
                     }
 
                     const statusEl = document.getElementById('dtStatus');
@@ -4061,7 +4100,7 @@ window.renderTopUpHistory = () => {
                                 alert("Transaksi Sukses!");
                             }
                         } else {
-                            alert("Status masih PENDING/PROSES.");
+                                                                            if(!isSilent) window.showToast("Status masih PENDING/PROSES.", "warning");
                         }
                         
                         // Update UI Realtime

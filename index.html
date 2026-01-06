@@ -2341,18 +2341,15 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
     // Lokasi file relaykhfy.js (Sesuaikan jika path berbeda)
 const KHFY_RELAY_URL = "/api/relaykhfy"; // Format Vercel Serverless Function
 
-async function callApi(endpoint, params = {}) {
+async function callApi(endpoint, params = {}, attempt = 1) {
     // 1. Setup Parameter Dasar
     params['api_key'] = CONFIG.apiKey;
     params['_t'] = Date.now();
 
     // 2. PRIORITAS UTAMA: Coba Via Relay Sendiri (relaykhfy.js)
-    // Ini jauh lebih stabil & cepat dibanding proxy publik
     try {
-        console.log("[API] Mencoba via Relay KHFY...");
+        if(attempt === 1) console.log("[API] Mencoba via Relay KHFY...");
         
-        // Susun Query String: endpoint + parameter data
-        // Pastikan endpoint dikirim agar relay tahu tujuannya
         const relayParams = new URLSearchParams({ endpoint: endpoint, ...params }).toString();
         const relayUrl = `${KHFY_RELAY_URL}?${relayParams}`;
 
@@ -2364,22 +2361,26 @@ async function callApi(endpoint, params = {}) {
 
         if (res.ok) {
             const text = await res.text();
-            // Validasi: Pastikan bukan HTML Error dari Vercel/Hosting
             if (text && !text.trim().startsWith('<')) {
                 try {
                     const json = JSON.parse(text);
-                    // Jika Relay me-return JSON valid, gunakan itu
                     return { ok: true, data: json };
                 } catch(e) { console.warn("[API] Relay JSON Invalid"); }
-            } else {
-                console.warn("[API] Relay Error HTML:", text.substring(0,50));
             }
+        } else {
+             // Jika Server Relay 502/504 (Cold Boot), Retry Internal Relay
+             if((res.status === 502 || res.status === 504) && attempt < 3) {
+                 console.log("Relay Cold Boot detected, retrying...");
+                 await new Promise(r => setTimeout(r, 1500));
+                 return callApi(endpoint, params, attempt + 1);
+             }
         }
     } catch (e) {
         console.warn("[API] Relay Gagal, beralih ke jalur cadangan...", e);
     }
 
-    // 3. JALUR CADANGAN: Public Proxy Loop (Logika Lama)
+    // 3. JALUR CADANGAN: Public Proxy Loop
+    // Jika Relay Gagal total, baru kita masuk sini
     const queryString = new URLSearchParams(params).toString();
     const targetUrl = `${CONFIG.baseUrl}${endpoint}?${queryString}`;
     
@@ -2409,6 +2410,14 @@ async function callApi(endpoint, params = {}) {
             lastError = error.message;
         }
     }
+
+    // FINAL RETRY LOGIC (Jika semua jalur gagal)
+    if (attempt < 3) {
+        console.warn(`[API] Gagal Total (Percobaan ${attempt}), Mengulang...`);
+        await new Promise(r => setTimeout(r, 1000));
+        return callApi(endpoint, params, attempt + 1);
+    }
+
     return { ok: false, error: `Gagal Koneksi (Semua Jalur). Detail: ${lastError}` };
 }
 

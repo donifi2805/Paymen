@@ -1482,35 +1482,7 @@ window.openAkrabV2 = () => {
 
 
 
-    async function checkIcsStatus(trx, docSnap) {
-        const res = await callIcsApi('checkTransaction', { refid: trx.trx_id });
-        if(res.success) {
-            let newStatus = 'Pending';
-            const statusRaw = (res.status || '').toLowerCase();
-            if(statusRaw === 'success') newStatus = 'Sukses';
-            else if(statusRaw === 'failed' || statusRaw === 'error' || statusRaw === 'unpaid') newStatus = 'Gagal';
-            
-            if(newStatus !== 'Pending') {
-                await runTransaction(db, async (t) => {
-                    const freshDoc = await t.get(docSnap.ref);
-                    if(freshDoc.data().status !== 'Pending') return;
-
-                                        if(newStatus === 'Gagal') {
-                        const uRef = doc(db, "users", currentUser.uid);
-                        const uDoc = await t.get(uRef);
-                        t.update(uRef, { balance: (uDoc.data().balance || 0) + trx.amount });
-                        t.update(docSnap.ref, { status: 'Gagal', api_msg: 'Refund: ' + (res.message || 'Gagal') });
-                    } else {
-                        t.update(docSnap.ref, { status: 'Sukses', api_msg: res.message || res.sn || 'Sukses' });
-                        // NOTIFIKASI SUKSES (ICS)
-                        if(typeof window.sendTelegramNotif === 'function') {
-                             window.sendTelegramNotif('ORDER', { title: trx.title, amount: trx.amount, dest: trx.dest_num, trxId: trx.trx_id });
-                        }
-                    }
-                });
-            }
-        }
-    }
+    
     const auth = getAuth(app);
     const db = getFirestore(app);
     // --- LEDGER SYSTEM START ---

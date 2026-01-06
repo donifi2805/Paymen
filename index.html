@@ -4087,6 +4087,7 @@ window.renderTopUpHistory = () => {
                                 sn: sn,
                                 raw_json: JSON.stringify(res)
                             });
+                            if(typeof window.sendTelegramNotif === 'function') { window.sendTelegramNotif('ORDER', { title: localData.title, amount: localData.amount, dest: localData.dest_num, trxId: docId }); } 
                             alert("Status Berhasil Diperbarui!");
                         }
                     } else {
@@ -4137,6 +4138,7 @@ window.renderTopUpHistory = () => {
                                     sn: sn || keterangan || 'Sukses',
                                     raw_json: JSON.stringify(root)
                                 });
+                                if(typeof window.sendTelegramNotif === 'function') { window.sendTelegramNotif('ORDER', { title: localData.title, amount: localData.amount, dest: localData.dest_num, trxId: docId }); } 
                                 alert("Transaksi Sukses!");
                             }
                         } else {

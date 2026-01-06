@@ -1214,7 +1214,7 @@ window.openAkrabV2 = () => {
         window.initAkrabV2Data();
     };
 
-                        async function callIcsApi(action, params = {}, method = 'GET') {
+                                                async function callIcsApi(action, params = {}, method = 'GET', attempt = 1) {
         // [FIX] Gunakan timestamp untuk bypass cache
         const t = Date.now();
         let targetUrl = `${ICS_CONFIG.baseUrl}?action=${action}&apikey=${ICS_CONFIG.apiKey}&_t=${t}`;
@@ -1234,11 +1234,18 @@ window.openAkrabV2 = () => {
 
         // [PENTING] Direct Fetch ke Domain Sendiri (Tanpa Proxy)
         try {
-            console.log("[ICS] Calling Relay:", targetUrl);
+            if(attempt === 1) console.log("[ICS] Calling Relay:", targetUrl);
+            else console.log(`[ICS] Retry Attempt ${attempt}...`);
+
             const res = await fetch(targetUrl, options);
             const text = await res.text();
 
             if (!res.ok) {
+                // Retry on Server Busy (502/504)
+                if ((res.status === 504 || res.status === 502) && attempt < 3) {
+                    await new Promise(r => setTimeout(r, 1500));
+                    return callIcsApi(action, params, method, attempt + 1);
+                }
                 return { success: false, message: `HTTP Error ${res.status}: ${res.statusText}`, raw: text };
             }
 
@@ -1249,7 +1256,15 @@ window.openAkrabV2 = () => {
                 return { success: false, message: 'Respon Relay bukan JSON valid.', raw: text }; 
             }
         } catch (e) {
-            console.error("Network Error:", e);
+            console.error(`Network Error (Attempt ${attempt}):`, e);
+            
+            // Auto Retry Logic (Max 3x)
+            if (attempt < 3) {
+                console.warn("Mencoba menghubungkan ulang ke Relay...");
+                await new Promise(r => setTimeout(r, 1000));
+                return callIcsApi(action, params, method, attempt + 1);
+            }
+
             return { success: false, message: 'Gagal koneksi ke Relay (Cek Internet/Domain)' };
         }
     }

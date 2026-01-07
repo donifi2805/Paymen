@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web App Debugger v2.0</title>
+    <title>Web App Debugger v2.5 - Full Preview</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,15 +11,17 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #111827;
+            background-color: #0f172a;
             color: #d1d5db;
         }
         .fira-code {
             font-family: 'Fira Code', monospace;
         }
-        textarea:focus, button:focus {
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4);
+        /* Memastikan container pratinjau fleksibel */
+        .preview-container {
+            height: 600px; /* Tinggi default */
+            resize: vertical; /* User bisa tarik tinggi kotaknya */
+            overflow: hidden;
         }
         #error-console-pro::-webkit-scrollbar {
             width: 8px;
@@ -33,49 +35,63 @@
         }
     </style>
 </head>
-<body class="p-4 md:p-8">
+<body class="p-4 md:p-6">
 
-    <div class="max-w-7xl mx-auto">
-        <header class="text-center mb-8">
-            <h1 class="text-3xl md:text-4xl font-bold text-white">Web App Debugger Tool <span class="text-blue-500">v2.0</span></h1>
-            <p class="mt-2 text-lg">Alat canggih untuk menangkap semua log dan error JavaScript dari aplikasi Anda.</p>
+    <div class="max-w-[1600px] mx-auto">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold text-white">Web App Debugger <span class="text-blue-500">v2.5</span></h1>
+                <p class="text-gray-400">Analisis error & pratinjau aplikasi full-scale.</p>
+            </div>
+            <div class="flex gap-2">
+                <button id="run-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-lg transition-all transform active:scale-95 flex items-center shadow-lg shadow-blue-900/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" /></svg>
+                    Jalankan Aplikasi
+                </button>
+                <button id="clear-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2.5 px-6 rounded-lg transition-all">
+                    Reset
+                </button>
+            </div>
         </header>
 
-        <div class="bg-gray-800 border border-gray-700 rounded-lg p-6 mb-8">
-            <h2 class="text-xl font-semibold text-white mb-4">Langkah 1: Masukkan Kode Anda</h2>
-            <div class="mb-4">
-                <label for="html-input" class="block mb-2 font-medium">Tempel seluruh kode dari file yang bermasalah (`paneladmin.html`):</label>
-                <textarea id="html-input" class="w-full h-64 p-4 bg-gray-900 border border-gray-600 rounded-md text-gray-200 fira-code text-sm focus:border-blue-500 transition-colors" placeholder="<!DOCTYPE html>..."></textarea>
+        <div class="bg-gray-800 border border-gray-700 rounded-xl p-4 mb-6 shadow-xl">
+            <div class="flex items-center justify-between mb-2">
+                <label for="html-input" class="text-sm font-semibold text-blue-400 uppercase tracking-wider">Source Code (index.html)</label>
+                <span class="text-xs text-gray-500 italic">Tempel kode HTML/JS lengkap di sini</span>
             </div>
-            <div class="flex gap-4">
-                <button id="run-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" /></svg>
-                    Jalankan & Deteksi Error
-                </button>
-                 <button id="clear-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-                    Hapus Kode
-                </button>
-            </div>
+            <textarea id="html-input" class="w-full h-48 p-4 bg-gray-950 border border-gray-700 rounded-lg text-blue-300 fira-code text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none" placeholder="<!DOCTYPE html>..."></textarea>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Kolom Pratinjau -->
-            <div class="bg-gray-800 border border-gray-700 rounded-lg p-6">
-                <h2 class="text-xl font-semibold text-white mb-4 border-b border-gray-700 pb-3">Langkah 2: Pratinjau Aplikasi Anda</h2>
-                <p class="mb-4 text-sm">Lakukan tindakan yang menyebabkan error di dalam kotak pratinjau ini.</p>
-                <div class="aspect-w-9 aspect-h-16 bg-gray-900 rounded-lg border border-gray-600 overflow-hidden">
-                    <iframe id="preview-frame" class="w-full h-full" sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin" title="Pratinjau Aplikasi"></iframe>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <div class="lg:col-span-7 flex flex-col">
+                <div class="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden shadow-xl flex flex-col h-full">
+                    <div class="bg-gray-700/50 px-4 py-2 border-b border-gray-600 flex justify-between items-center">
+                        <span class="text-sm font-bold text-gray-200 flex items-center">
+                            <span class="w-3 h-3 bg-green-500 rounded-full mr-2"></span> LAYAR PRATINJAU
+                        </span>
+                        <span class="text-[10px] text-gray-400">Mode: Full Viewport</span>
+                    </div>
+                    <div class="preview-container bg-white w-full relative">
+                        <iframe id="preview-frame" class="absolute inset-0 w-full h-full border-none" sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin"></iframe>
+                    </div>
                 </div>
             </div>
 
-            <!-- Kolom Konsol Error -->
-            <div class="bg-gray-800 border border-gray-700 rounded-lg p-6">
-                <h2 class="text-xl font-semibold text-white mb-4 border-b border-gray-700 pb-3">Langkah 3: Konsol Output</h2>
-                 <p class="mb-4 text-sm">Semua log dan pesan error dari aplikasi Anda akan muncul di sini.</p>
-                <div id="error-console-pro" class="w-full h-[500px] bg-gray-900 border border-gray-600 rounded-md p-4 overflow-y-auto">
-                    <p class="text-gray-500 fira-code text-sm">Menunggu tindakan untuk menangkap output...</p>
+            <div class="lg:col-span-5 flex flex-col">
+                <div class="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden shadow-xl flex flex-col h-full">
+                    <div class="bg-gray-700/50 px-4 py-2 border-b border-gray-600 flex justify-between items-center">
+                        <span class="text-sm font-bold text-gray-200 flex items-center">
+                            <span class="w-3 h-3 bg-yellow-500 rounded-full mr-2"></span> KONSOL DEBUGGER
+                        </span>
+                        <button onclick="document.getElementById('error-console-pro').innerHTML = ''" class="text-[10px] hover:text-white text-gray-400 underline uppercase tracking-tighter">Bersihkan Log</button>
+                    </div>
+                    <div id="error-console-pro" class="h-[558px] bg-black p-4 overflow-y-auto fira-code text-sm">
+                        <p class="text-gray-600">>> Menunggu eksekusi kode...</p>
+                    </div>
                 </div>
             </div>
+
         </div>
     </div>
 
@@ -86,121 +102,90 @@
         const previewFrame = document.getElementById('preview-frame');
         const errorConsole = document.getElementById('error-console-pro');
 
-        const clearOutput = () => {
-            previewFrame.srcdoc = '';
-            errorConsole.innerHTML = '<p class="text-gray-500 fira-code text-sm">Menunggu tindakan untuk menangkap output...</p>';
-        };
-
         runBtn.addEventListener('click', () => {
-            clearOutput();
             const userCode = htmlInput.value;
             if (!userCode) {
-                errorConsole.innerHTML = '<p class="text-yellow-400 fira-code text-sm">Kotak kode masih kosong. Silakan tempel kode Anda.</p>';
+                errorConsole.innerHTML = '<p class="text-yellow-500">⚠️ Masukkan kode terlebih dahulu!</p>';
                 return;
             }
 
-            // DEBUGGER v2.0 SCRIPT
-            const advancedErrorCatcherScript = `
+            // Script untuk menyadap console dan memaksa styling full-screen
+            const injectionScript = `
+                <style>
+                    /* Memastikan konten yang di-render tidak terpotong */
+                    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: auto; }
+                </style>
                 <script>
-                    // Simpan metode console asli
-                    const originalConsole = {
-                        log: console.log, error: console.error,
-                        warn: console.warn, info: console.info
-                    };
+                    (function() {
+                        const postMsg = (type, data) => {
+                            window.parent.postMessage({
+                                type: 'DEBUG_MESSAGE',
+                                messageType: type,
+                                payload: JSON.parse(JSON.stringify(data, (key, value) => {
+                                    if (value instanceof Error) return { message: value.message, stack: value.stack };
+                                    if (typeof value === 'function') return '[Function]';
+                                    return value;
+                                }))
+                            }, '*');
+                        };
 
-                    // Fungsi untuk mengirim data apa pun ke parent debugger
-                    const postMessageToParent = (type, data) => {
-                        try {
-                            // Coba proses data agar bisa dikirim. Error object butuh perlakuan khusus.
-                            const processedData = JSON.parse(JSON.stringify(data, (key, value) => {
-                                if (value instanceof Error) {
-                                    return { message: value.message, stack: value.stack, name: value.name };
-                                }
-                                return value;
-                            }));
-                            window.parent.postMessage({ type: 'DEBUG_MESSAGE', messageType: type, payload: processedData }, '*');
-                        } catch (e) {
-                            // Fallback jika ada data yang tidak bisa di-serialize (misal, circular structure)
-                             window.parent.postMessage({ type: 'DEBUG_MESSAGE', messageType: type, payload: ['[Objek tidak dapat ditampilkan]'] }, '*');
-                        }
-                    };
-                    
-                    // Ganti semua fungsi console untuk "menyadap" pesannya
-                    console.log = function(...args) { originalConsole.log.apply(console, args); postMessageToParent('log', args); };
-                    console.error = function(...args) { originalConsole.error.apply(console, args); postMessageToParent('error', args); };
-                    console.warn = function(...args) { originalConsole.warn.apply(console, args); postMessageToParent('warn', args); };
-                    console.info = function(...args) { originalConsole.info.apply(console, args); postMessageToParent('info', args); };
-                    
-                    // Tetap tangkap error yang tidak terduga (uncaught)
-                    window.onerror = function(message, source, lineno, colno, error) {
-                        postMessageToParent('error', [{ message, source: source.split('/').pop(), lineno, colno, stack: error ? error.stack : 'N/A' }]);
-                        return true; 
-                    };
+                        ['log', 'error', 'warn', 'info'].forEach(method => {
+                            const original = console[method];
+                            console[method] = (...args) => {
+                                original.apply(console, args);
+                                postMsg(method, args);
+                            };
+                        });
 
-                    window.addEventListener('unhandledrejection', function(event) {
-                        const reason = event.reason || {};
-                        postMessageToParent('error', [{ message: 'Unhandled Promise Rejection: ' + (reason.message || reason), stack: reason.stack || 'N/A' }]);
-                    });
+                        window.onerror = (msg, src, line, col, err) => {
+                            postMsg('error', [{ message: msg, line, col }]);
+                            return false;
+                        };
+
+                        window.onunhandledrejection = (e) => {
+                            postMsg('error', [{ message: 'Promise Rejected: ' + e.reason }]);
+                        };
+                    })();
                 <\/script>
             `;
 
-            const fullHtml = advancedErrorCatcherScript + userCode;
-            previewFrame.srcdoc = fullHtml;
-            errorConsole.innerHTML = '<p class="text-gray-500 fira-code text-sm">Aplikasi berjalan. Lakukan tindakan untuk memicu error...</p>';
+            // Gabungkan script injeksi di bagian paling atas agar menangkap error sejak awal
+            const fullHtml = injectionScript + userCode;
+            
+            // Gunakan Blob untuk menghindari masalah limitasi srcdoc pada beberapa karakter
+            const blob = new Blob([fullHtml], { type: 'text/html' });
+            previewFrame.src = URL.createObjectURL(blob);
+            
+            errorConsole.innerHTML = '<p class="text-blue-400">>> Aplikasi berhasil dimuat pada ' + new Date().toLocaleTimeString() + '</p>';
         });
 
         clearBtn.addEventListener('click', () => {
             htmlInput.value = '';
-            clearOutput();
+            previewFrame.src = 'about:blank';
+            errorConsole.innerHTML = '<p class="text-gray-600">>> Konsol dibersihkan.</p>';
         });
 
-        // Event listener yang sudah ditingkatkan
+        // Listener Pesan dari Iframe
         window.addEventListener('message', (event) => {
-            if (event.source !== previewFrame.contentWindow || event.data.type !== 'DEBUG_MESSAGE') {
-                return;
-            }
-
-            if (errorConsole.querySelector('.text-gray-500')) {
-                errorConsole.innerHTML = '';
-            }
+            if (event.data.type !== 'DEBUG_MESSAGE') return;
 
             const { messageType, payload } = event.data;
-            const msgElement = document.createElement('div');
-            msgElement.className = 'p-2 mb-2 border-l-4 rounded-r-md fira-code text-xs whitespace-pre-wrap break-words';
+            const logRow = document.createElement('div');
+            logRow.className = 'mb-1 py-1 border-b border-gray-900 flex gap-2';
             
-            let icon = '';
+            let color = 'text-gray-300';
+            let icon = '•';
             
-            switch (messageType) {
-                case 'error':
-                    msgElement.classList.add('bg-red-900/30', 'border-red-500', 'text-red-300');
-                    icon = '❌ ';
-                    break;
-                case 'warn':
-                    msgElement.classList.add('bg-yellow-900/30', 'border-yellow-500', 'text-yellow-300');
-                    icon = '⚠️ ';
-                    break;
-                default:
-                    msgElement.classList.add('bg-gray-700/50', 'border-gray-500', 'text-gray-200');
-                    icon = 'ℹ️ ';
-                    break;
-            }
+            if (messageType === 'error') { color = 'text-red-400'; icon = '❌'; }
+            if (messageType === 'warn') { color = 'text-yellow-400'; icon = '⚠️'; }
+            if (messageType === 'info') { color = 'text-blue-400'; icon = 'ℹ️'; }
+
+            const content = payload.map(p => typeof p === 'object' ? JSON.stringify(p) : p).join(' ');
             
-            try {
-                const formattedPayload = payload.map(arg => {
-                    if (typeof arg === 'object' && arg !== null) {
-                        return JSON.stringify(arg, null, 2);
-                    }
-                    return String(arg);
-                }).join(' ');
-                msgElement.textContent = icon + formattedPayload;
-            } catch(e) {
-                msgElement.textContent = icon + '[Tidak bisa memformat pesan]';
-            }
-            
-            errorConsole.appendChild(msgElement);
+            logRow.innerHTML = `<span class="shrink-0">${icon}</span><span class="${color} break-all">${content}</span>`;
+            errorConsole.appendChild(logRow);
             errorConsole.scrollTop = errorConsole.scrollHeight;
         });
     </script>
 </body>
 </html>
-

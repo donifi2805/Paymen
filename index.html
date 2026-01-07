@@ -13,7 +13,7 @@
   <script>
         tailwind.config = { darkMode: 'class' }
   </script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
@@ -634,7 +634,10 @@
       </div>
     </section>
     <section id="sendPage" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen z-40 absolute top-0 w-full max-w-[480px]">
-      <div class="p-4 bg-white dark:bg-gray-900 sticky top-0 z-20 shadow-sm flex items-center gap-4">
+      <div class="p-4 bg-white dark:bg-gray-900 sticky top-0 z-20 shadow-sm flex items-center gap-3">
+        <button onclick="nav('homePage')" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 transition">
+            <i class="fa-solid fa-arrow-left"></i>
+        </button>
         <h2 class="font-bold text-lg text-gray-800 dark:text-white">Kirim Saldo</h2>
       </div>
       <div class="p-6">
@@ -655,7 +658,10 @@
       </div>
     </section>
     <section id="requestPage" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen z-40 absolute top-0 w-full max-w-[480px]">
-      <div class="p-4 bg-white dark:bg-gray-900 sticky top-0 z-20 shadow-sm flex items-center gap-4">
+      <div class="p-4 bg-white dark:bg-gray-900 sticky top-0 z-20 shadow-sm flex items-center gap-3">
+        <button onclick="nav('homePage')" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 transition">
+            <i class="fa-solid fa-arrow-left"></i>
+        </button>
         <h2 class="font-bold text-lg text-gray-800 dark:text-white">Minta Saldo</h2>
       </div>
       <div class="p-6">
@@ -679,7 +685,10 @@
       </div>
     </section>
     <section id="preorderPage" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen z-40 absolute top-0 w-full max-w-[480px]">
-      <div class="p-4 bg-white dark:bg-gray-900 sticky top-0 z-20 shadow-sm flex items-center gap-4">
+      <div class="p-4 bg-white dark:bg-gray-900 sticky top-0 z-20 shadow-sm flex items-center gap-3">
+        <button onclick="nav('homePage')" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 transition">
+            <i class="fa-solid fa-arrow-left"></i>
+        </button>
         <h2 class="font-bold text-lg text-gray-800 dark:text-white">Layanan Preorder</h2>
       </div>
       <div class="p-4 pb-24">
@@ -739,7 +748,10 @@
       </div>
     </section>
     <section id="akrabV2Page" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen z-40 absolute top-0 w-full max-w-[480px]">
-      <div class="p-4 bg-white dark:bg-gray-900 sticky top-0 z-20 shadow-sm flex items-center gap-4">
+      <div class="p-4 bg-white dark:bg-gray-900 sticky top-0 z-20 shadow-sm flex items-center gap-3">
+        <button onclick="nav('homePage')" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 transition">
+            <i class="fa-solid fa-arrow-left"></i>
+        </button>
         <h2 class="font-bold text-lg text-gray-800 dark:text-white">Akrab v2 (Premium)</h2>
       </div>
       <div class="p-4 pb-24">
@@ -989,7 +1001,11 @@
         measurementId: "G-0K2V796QDX"
     };
 
+    
     const app = initializeApp(firebaseConfig);
+    // --- VARIABEL GLOBAL BARU ---
+    window.activeTrxLocks = {}; // Pengunci agar tidak double proses
+
 
     // --- FITUR AUTO UPDATE & PWA ---
         const APP_VERSION_CODE = 'v3.6'; // Versi saat ini
@@ -1479,41 +1495,60 @@
         window.processSmartRefund = async (uid, trxId, reason = "Refund Sistem") => {
             const userRef = doc(db, "users", uid);
             const historyRef = doc(db, "users", uid, "history", trxId);
+            
+            // Cek Pengunci Lokal
+            if (window.activeTrxLocks[trxId]) return { success: false, msg: "Sedang diproses..." };
+            window.activeTrxLocks[trxId] = true;
+
             try {
-                await runTransaction(db, async (t) => {
+                const result = await runTransaction(db, async (t) => {
                     const trxDoc = await t.get(historyRef);
                     const userDoc = await t.get(userRef);
+                    
                     if (!trxDoc.exists() || !userDoc.exists()) throw "Data tidak ditemukan";
 
                     const trxData = trxDoc.data();
-                    const currentBal = userDoc.data().balance || 0;
-                    const amountTrx = parseInt(trxData.amount) || 0;
-                    const expectedOriginal = trxData.balance_before || (currentBal - amountTrx);
-
-                    // DONIGUARD INTEGRITY CHECK
-                    if (trxData.doniguard_status === 'REFUNDED') {
-                        if (currentBal > expectedOriginal) {
-                            // AUTO SYNC: Deteksi Saldo Ghaib
-                            t.update(userRef, { balance: expectedOriginal });
-                            window.logDoniGuardAudit(t, uid, 'SYNC', currentBal - expectedOriginal, currentBal, expectedOriginal, trxId, 'DoniGuard: Auto Sync Balanced (Double Refund Blocked)');
-                            throw "DoniGuard: Saldo tidak sinkron. Sistem telah memulihkan akun Anda ke titik aman.";
-                        }
-                        throw "DoniGuard: Transaksi ini sudah dikembalikan sebelumnya.";
+                    
+                    // --- VALIDASI KETAT ANTI DOUBLE REFUND ---
+                    if (trxData.status === 'Gagal' || trxData.is_refunded === true || trxData.doniguard_status === 'REFUNDED') {
+                        // Jika sudah direfund, jangan lakukan apa-apa (STOP)
+                        return { status: 'ALREADY_REFUNDED' };
                     }
 
+                    const currentBal = userDoc.data().balance || 0;
+                    const amountTrx = parseInt(trxData.amount) || 0;
+                    
+                    // Kembalikan Saldo
                     const newBalance = currentBal + amountTrx;
+                    
                     t.update(userRef, { balance: newBalance });
                     t.update(historyRef, {
                         status: 'Gagal',
                         api_msg: reason,
                         doniguard_status: 'REFUNDED',
-                        is_refunded: true,
-                        refund_date: new Date().toISOString()
+                        is_refunded: true, // Flag ganda untuk keamanan
+                        refund_date: new Date().toISOString(),
+                        balance_after: newBalance // Update history saldo akhir
                     });
+                    
                     window.logDoniGuardAudit(t, uid, 'REFUND', amountTrx, currentBal, newBalance, trxId, reason);
+                    
+                    return { status: 'SUCCESS' };
                 });
-                return { success: true, msg: "DoniGuard: Saldo diproteksi & dikembalikan." };
+
+                window.activeTrxLocks[trxId] = false;
+
+                if (result.status === 'ALREADY_REFUNDED') {
+                        return { success: true, msg: "Transaksi sudah direfund sebelumnya." };
+                    }
+                    
+                    // AUTO RELOAD: Mencegah browser mengirim ulang request refund saat lag
+                    setTimeout(() => window.location.reload(), 1500);
+
+                    return { success: true, msg: "DoniGuard: Saldo dikembalikan. Halaman akan dimuat ulang..." };
+
             } catch (e) {
+                window.activeTrxLocks[trxId] = false;
                 console.warn("DoniGuard Alert:", e);
                 return { success: false, msg: typeof e === 'string' ? e : e.message };
             }
@@ -4003,121 +4038,117 @@
     };
 
                         window.manualCheckTrx = async (docId, providerId, isSilent = false) => {
+        // 1. Cek apakah sedang diproses? Jika ya, STOP.
+        if (window.activeTrxLocks[docId]) {
+            if (!isSilent) console.log("Sedang memproses transaksi ini, skip...");
+            return;
+        }
+
         const btn = document.getElementById('btnRefreshStatus');
-        if(btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        if(btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cek...';
+
+        // Kunci proses
+        window.activeTrxLocks[docId] = true;
 
         try {
-            // 1. Ambil Data Lokal
             const trxRef = doc(db, "users", currentUser.uid, "history", docId);
-            const trxSnap = await getDoc(trxRef);
-            if(!trxSnap.exists()) return;
-            const localData = trxSnap.data();
+            
+            // Ambil snapshot awal
+            let trxSnap = await getDoc(trxRef);
+            if(!trxSnap.exists()) {
+                 window.activeTrxLocks[docId] = false;
+                 return;
+            }
+            let localData = trxSnap.data();
 
-            // --- LOGIKA ICS (Update V4 with Error Handler) ---
+            // JANGAN PROSES JIKA SUDAH FINAL (Sukses/Gagal/Dibatalkan)
+            if (localData.status === 'Sukses' || localData.status === 'Gagal' || localData.status === 'Dibatalkan') {
+                 if(btn) btn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+                 window.activeTrxLocks[docId] = false;
+                 return; 
+            }
+
+            // --- LOGIKA CEK STATUS (ICS / KHFY) ---
+            let freshStatus = 'Pending';
+            let sn = '';
+            let rawJson = '';
+            let isSuccessApi = false;
+
+            // A. Cek Mode ICS
             if (String(docId).startsWith('ICS-') || providerId === 'ICS' || (localData.provider_code && localData.provider_code.startsWith('ICS'))) {
-                console.log("[Check] Mode ICS untuk", docId);
                 const res = await callIcsApi('checkTransaction', { refid: docId });
-                
+                rawJson = JSON.stringify(res);
                 if (res.success) {
-                    let freshStatus = 'Pending';
                     const rawStatus = (res.data?.status || res.status || '').toLowerCase();
-                                        let sn = '';
-                    // Prioritas ambil 'message' dari data ICS jika ada (Format: PRODUK.DEST SUKSES...)
-                    if (res.data && res.data.message) {
-                        sn = res.data.message;
-                    } else {
-                        sn = res.data?.sn || res.sn || res.message || '';
-                    }
-                    
+                    if (res.data && res.data.message) sn = res.data.message;
+                    else sn = res.data?.sn || res.sn || res.message || '';
+
                     if (rawStatus === 'sukses' || rawStatus === 'success') freshStatus = 'Sukses';
                     else if (rawStatus === 'gagal' || rawStatus === 'failed' || rawStatus === 'error') freshStatus = 'Gagal';
                     
-                    if (freshStatus === 'Gagal') {
-                        if(localData.status !== 'Gagal') {
-                             await window.processSmartRefund(currentUser.uid, docId, 'Refund: ' + (sn || 'Transaksi Gagal'));
-                             alert("Status Gagal: Saldo telah dikembalikan.");
-                        }
-                    } else if (freshStatus === 'Sukses') {
-                        if(localData.status !== 'Sukses') {
-                                                        await updateDoc(trxRef, {
-                                status: 'Sukses',
-                                api_msg: sn || 'Transaksi Berhasil',
-                                sn: sn,
-                                raw_json: JSON.stringify(res)
-                            });
-                            if(typeof window.sendTelegramNotif === 'function') { window.sendTelegramNotif('ORDER', { title: localData.title, amount: localData.amount, dest: localData.dest_num, trxId: docId }); } 
-                            alert("Status Berhasil Diperbarui!");
-                        }
-                    } else {
-                                                                        if(!isSilent) window.showToast("Status Masih Pending di Pusat...", "warning");
-                    }
-
-                    const statusEl = document.getElementById('dtStatus');
-                    if (statusEl) {
-                        statusEl.innerText = freshStatus;
-                        statusEl.className = 'text-xs font-bold ' + (freshStatus === 'Sukses' ? 'text-green-600' : (freshStatus === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
-                        if(freshStatus !== 'Pending' && document.getElementById('dtSn')) {
-                             document.getElementById('dtSn').innerText = sn;
-                        }
-                    }
-                } else {
-                    // --- INI BAGIAN PENTING YANG SEBELUMNYA HILANG ---
-                    console.error("[Check Error]", res);
-                    alert("Gagal Cek Status ICS:\n" + (res.message || "Tidak ada respon dari server.") + "\n\n(Kemungkinan relay.js belum diupdate)");
+                    isSuccessApi = true;
                 }
-            } else {
-                // --- LOGIKA KHFY (LAMA) ---
+            } 
+            // B. Cek Mode KHFY (Default)
+            else {
                 const res = await callApi('/history', { refid: docId });
-                
+                rawJson = JSON.stringify(res);
                 if(res.ok && res.data) {
-                    let root = res.data;
-                    let item = root.data;
+                    let item = res.data.data;
                     if (Array.isArray(item)) item = item[0];
-                    
                     if (item) {
                         const statusText = (item.status_text || '').toUpperCase();
-                        const keterangan = item.keterangan || '';
-                        const sn = item.sn || '';
-                        
-                        let freshStatus = 'Pending';
                         if (statusText === 'SUKSES') freshStatus = 'Sukses';
                         else if (statusText === 'GAGAL') freshStatus = 'Gagal';
-
-                        if (freshStatus === 'Gagal') {
-                            if(localData.status !== 'Gagal') {
-                                 await window.processSmartRefund(currentUser.uid, docId, 'Refund: ' + (keterangan || 'Transaksi Gagal'));
-                                 alert("Transaksi Gagal. Saldo dikembalikan.");
-                            }
-                        } else if (freshStatus === 'Sukses') {
-                            if(localData.status !== 'Sukses') {
-                                await updateDoc(trxRef, {
-                                    status: 'Sukses',
-                                    api_msg: 'Transaksi Berhasil',
-                                    sn: sn || keterangan || 'Sukses',
-                                    raw_json: JSON.stringify(root)
-                                });
-                                if(typeof window.sendTelegramNotif === 'function') { window.sendTelegramNotif('ORDER', { title: localData.title, amount: localData.amount, dest: localData.dest_num, trxId: docId }); } 
-                                alert("Transaksi Sukses!");
-                            }
-                        } else {
-                                                                            if(!isSilent) window.showToast("Status masih PENDING/PROSES.", "warning");
-                        }
-                        
-                        // Update UI Realtime
-                        const statusEl = document.getElementById('dtStatus');
-                        if (statusEl) {
-                            statusEl.innerText = freshStatus;
-                            statusEl.className = 'text-xs font-bold ' + (freshStatus === 'Sukses' ? 'text-green-600' : (freshStatus === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
-                            if(freshStatus !== 'Pending') document.getElementById('dtSn').innerText = (freshStatus === 'Gagal' ? keterangan : sn);
-                        }
+                        sn = item.sn || item.keterangan || '';
+                        isSuccessApi = true;
                     }
-                } else {
-                     alert("Gagal Cek Status KHFY: " + (res.error || "Koneksi Bermasalah"));
                 }
             }
-        } catch(e) { console.log("Check manual error:", e); alert("Error Sistem: " + e.message); }
-        
-        if(btn) btn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+
+            // --- EKSEKUSI HASIL CEK ---
+            if (isSuccessApi) {
+                
+                // KASUS 1: API Bilang GAGAL
+                if (freshStatus === 'Gagal') {
+                    // PENTING: Cek ulang ke DB (Realtime) sebelum refund!
+                    const freshCheckSnap = await getDoc(trxRef);
+                    const freshCheckData = freshCheckSnap.data();
+
+                    if (freshCheckData.status !== 'Gagal' && !freshCheckData.is_refunded) {
+                        // Lepas kunci sementara agar fungsi refund bisa masuk
+                        window.activeTrxLocks[docId] = false; 
+                        
+                        const refundRes = await window.processSmartRefund(currentUser.uid, docId, 'Refund: ' + (sn || 'Transaksi Gagal'));
+                        if(!isSilent && refundRes.success) alert("Status Gagal: Saldo telah dikembalikan.");
+                    } else {
+                        console.log("Transaksi sudah direfund oleh proses lain.");
+                    }
+                } 
+                // KASUS 2: API Bilang SUKSES
+                else if (freshStatus === 'Sukses') {
+                    await updateDoc(trxRef, {
+                        status: 'Sukses',
+                        api_msg: sn || 'Transaksi Berhasil',
+                        sn: sn,
+                        raw_json: rawJson
+                    });
+                    if(!isSilent) alert("Transaksi Sukses!");
+                }
+                // KASUS 3: Masih Pending
+                else {
+                    if(!isSilent) window.showToast("Status masih diproses operator...", "warning");
+                }
+            }
+
+        } catch(e) { 
+            console.log("Check manual error:", e); 
+            if(!isSilent) window.showToast("Gagal cek status (Koneksi)", "error");
+        } finally {
+            // Buka kunci dan reset tombol
+            window.activeTrxLocks[docId] = false;
+            if(btn) btn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+        }
     };
 
 

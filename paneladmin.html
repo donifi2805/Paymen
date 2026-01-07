@@ -83,11 +83,8 @@
             <a onclick="switchTab('livechat')" id="nav-livechat" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
                 <i class="fas fa-comments w-4 mr-3 group-hover:scale-110 transition"></i> Live Chat
             </a>
-                        <a onclick="switchTab('transactions')" id="nav-transactions" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
+            <a onclick="switchTab('transactions')" id="nav-transactions" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
                 <i class="fas fa-receipt w-4 mr-3 group-hover:scale-110 transition"></i> Transaksi
-            </a>
-            <a onclick="switchTab('audit')" id="nav-audit" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
-                <i class="fas fa-shield-alt w-4 mr-3 group-hover:scale-110 transition text-green-500"></i> Audit Saldo (DG)
             </a>
                         <a onclick="switchTab('pricing')" id="nav-pricing" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
                 <i class="fas fa-tags w-4 mr-3 group-hover:scale-110 transition"></i> Kelola Harga
@@ -217,21 +214,13 @@
                     <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-wallet"></i></div>
                 </div>
 <div onclick="switchTab('transactions')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-purple-400">
-                    <div>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Riwayat Seluruh Transaksi</p>
-                        <h3 class="text-lg font-black text-purple-600">TRANSAKSI</h3>
-                        <p class="text-[9px] text-purple-500 font-bold mt-1">Cek Semua Data <i class="fas fa-list-ul ml-0.5"></i></p>
-                    </div>
-                    <div class="w-10 h-10 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-receipt"></i></div>
-                </div>
-                <div onclick="switchTab('audit')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-green-400">
-                    <div>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Keamanan Sistem</p>
-                        <h3 class="text-lg font-black text-green-600">AUDIT SALDO</h3>
-                        <p class="text-[9px] text-green-500 font-bold mt-1">Cek Log DoniGuard <i class="fas fa-shield-alt ml-0.5"></i></p>
-                    </div>
-                    <div class="w-10 h-10 bg-green-50 text-green-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-user-check"></i></div>
-                </div>
+    <div>
+        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Riwayat Seluruh Transaksi</p>
+        <h3 class="text-lg font-black text-purple-600">Buka</h3>
+        <p class="text-[9px] text-purple-500 font-bold mt-1">Riwayat Harian</p>
+    </div>
+    <div class="w-10 h-10 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-list-ul"></i></div>
+</div>
             </div>
 
             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between w-full md:w-1/4 mb-5">
@@ -254,7 +243,6 @@
             </div>
         </div>
 
-        
         <div id="tab-pending-trx" class="tab-content hide fade-in pb-10">
             <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100 sticky top-0 z-20">
                 <div class="flex items-center gap-3">
@@ -270,33 +258,115 @@
                 </div>
             </div>
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="overflow-x-auto custom-scroll">
+                <div class="overflow-x-auto">
                     <table class="w-full text-left">
                         <thead>
-                            <tr class="bg-gray-50 text-gray-500 text-[9px] uppercase tracking-wider border-b border-gray-100">
+                            <tr class="bg-gray-50 text-gray-500 text-[9px] uppercase tracking-wider border-b">
                                 <th class="p-3 font-bold">User</th>
-                                <th class="p-3 font-bold">Produk & Info</th>
-                                <th class="p-3 font-bold text-right">Harga</th>
+                                <th class="p-3 font-bold">Produk / Tujuan</th>
+                                <th class="p-3 font-bold text-right">Nominal</th>
                                 <th class="p-3 font-bold text-center">Status</th>
                                 <th class="p-3 font-bold text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="pendingTrxTableBody" class="text-[11px] divide-y divide-gray-50">
-                            
+                             <tr><td colspan="5" class="p-6 text-center text-gray-400">Klik refresh untuk memuat data...</td></tr>
                         </tbody>
                     </table>
+                    <div class="p-2 bg-gray-50 border-t border-gray-100 text-center text-[10px] text-gray-400">Menampilkan seluruh data pending</div>
                 </div>
             </div>
         </div>
 
-        
-        <div id="tab-transactions" class="tab-content hide fade-in pb-10">
-             <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100 sticky top-0 z-20">
+        <div id="tab-success-trx" class="tab-content hide fade-in pb-10">
+            <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100 sticky top-0 z-20">
                 <div class="flex items-center gap-3">
                     <button onclick="switchTab('dashboard')" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition"><i class="fas fa-arrow-left"></i></button>
                     <div>
-                        <h2 class="text-lg font-bold text-gray-800 leading-none">Semua Transaksi</h2>
-                        <p class="text-[10px] text-gray-500">Riwayat Sukses, Gagal, & Pending</p>
+                        <h2 class="text-lg font-bold text-gray-800 leading-none">Riwayat Sukses</h2>
+                        <p class="text-[10px] text-gray-500">50 Transaksi Sukses Terakhir (Global)</p>
+                    </div>
+                </div>
+                <button onclick="loadSuccessTransactions()" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-bold text-[10px]"><i class="fas fa-sync-alt"></i> Refresh</button>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <div id="successPagination" class="p-3 border-b border-gray-100 bg-gray-50 flex justify-center items-center gap-1 hide transition-all"></div>
+<table class="w-full text-left">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-500 text-[9px] uppercase tracking-wider border-b">
+                                <th class="p-3 font-bold">Waktu</th>
+                                <th class="p-3 font-bold">User</th>
+                                <th class="p-3 font-bold">Produk / Tujuan</th>
+                                <th class="p-3 font-bold text-right">Nominal</th>
+                                <th class="p-3 font-bold text-center">Data Pusat</th>
+                            </tr>
+                        </thead>
+                        <tbody id="successTrxTableBody" class="text-[11px] divide-y divide-gray-50">
+                             <tr><td colspan="5" class="p-6 text-center text-gray-400">Klik refresh untuk memuat data...</td></tr>
+                        </tbody>
+                    </table>
+                    
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-users" class="tab-content hide fade-in pb-10">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-3 bg-white p-3 rounded-xl shadow-sm border border-gray-100 sticky top-0 z-20">
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <button onclick="switchTab('dashboard')" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-800 leading-none">Data Pengguna</h2>
+                        <p class="text-[10px] text-gray-500">Kelola akun user</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+                    <button onclick="toggleLoadAllUsers()" id="btnLoadAll" class="bg-white text-gray-600 border border-gray-300 px-3 py-1.5 rounded-lg font-bold text-[10px] shadow-sm transition hover:bg-gray-50 whitespace-nowrap">
+                        <i class="fas fa-list-ul mr-1"></i> <span class="hidden sm:inline">Semua</span>
+                    </button>
+                    <div class="relative w-full md:w-48">
+                        <input type="text" id="searchUserInput" onkeyup="filterUserTable()" placeholder="Cari user..." class="w-full px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 text-[10px] focus:ring-1 focus:ring-blue-500 outline-none pl-8">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]"></i>
+                    </div>
+                    <button onclick="openAddUserModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-bold text-[10px] shadow transition flex items-center gap-1.5 whitespace-nowrap">
+                        <i class="fas fa-plus"></i> <span class="hidden sm:inline">Manual</span>
+                    </button>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="overflow-x-auto custom-scroll">
+                    <div id="userPaginationArea" class="p-3 border-b border-gray-100 bg-gray-50 flex justify-center items-center gap-2 hide">
+                    <button onclick="loadUsers(false)" class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold shadow-sm hover:bg-blue-50 text-blue-600 transition">Muat Lebih Banyak...</button>
+                </div>
+<table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-500 text-[9px] uppercase tracking-wider border-b border-gray-100">
+                                <th class="p-3 font-bold">Profile</th>
+                                <th class="p-3 font-bold">Detail Akun</th>
+                                <th class="p-3 font-bold">Saldo</th>
+                                <th class="p-3 font-bold text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userTableBody" class="text-[11px] divide-y divide-gray-50">
+                            <tr><td colspan="4" class="p-6 text-center text-gray-400 animate-pulse">Memuat...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+            </div>
+        </div>
+
+        <div id="tab-transactions" class="tab-content hide fade-in pb-10">
+            <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-4 gap-3 bg-white p-3 rounded-xl shadow-sm border border-gray-100 sticky top-0 z-20">
+                <div class="flex items-center gap-3">
+                    <button onclick="switchTab('dashboard')" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-800 leading-none">Riwayat</h2>
+                        <p class="text-[10px] text-gray-500">Global Transaksi</p>
                     </div>
                 </div>
                 <div class="flex gap-2 items-center">
@@ -304,79 +374,52 @@
                         <i class="fas fa-file-pdf"></i> PDF
                     </button>
                     <div class="flex items-center gap-2">
-                        <input type="text" id="trxUserFilter" onkeyup="renderTransactions()" placeholder="Cari User..." class="bg-gray-50 border border-gray-300 text-gray-900 text-[10px] rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-1.5 shadow-sm w-24">
-                        <div class="relative">
-                            <button onclick="toggleTrxFilterMenu()" class="bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg font-bold text-[10px] shadow-sm hover:bg-gray-50 flex items-center gap-2">
-                                <i class="fas fa-filter"></i> Filter
-                            </button>
-                            <div id="trxFilterMenu" class="hide absolute top-full right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-xl z-50 p-2">
-                                <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Semua" checked class="trx-filter-cb"> <span class="text-[10px]">Semua</span></label>
-                                <hr class="my-1">
-                                <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Sukses" class="trx-filter-cb"> <span class="text-[10px]">Sukses</span></label>
-                                <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Gagal" class="trx-filter-cb"> <span class="text-[10px]">Gagal</span></label>
-                                <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Pending" class="trx-filter-cb"> <span class="text-[10px]">Pending</span></label>
-                                <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Refund" class="trx-filter-cb"> <span class="text-[10px]">Refund</span></label>
-                                <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Topup" class="trx-filter-cb"> <span class="text-[10px]">Topup</span></label>
-                            </div>
-                        </div>
-                        <input type="date" id="globalTrxDate" onchange="loadGlobalTransactions()" class="bg-gray-50 border border-gray-300 text-gray-900 text-[10px] rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-1.5 shadow-sm">
+    <input type="text" id="trxUserFilter" onkeyup="renderTransactions()" placeholder="Cari User..." class="bg-gray-50 border border-gray-300 text-gray-900 text-[10px] rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-1.5 shadow-sm w-24">
+                    
+<div class="relative">
+                    <button onclick="toggleTrxFilterMenu()" class="bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg font-bold text-[10px] shadow-sm hover:bg-gray-50 flex items-center gap-2">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+                    <div id="trxFilterMenu" class="hide absolute top-full left-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-xl z-50 p-2">
+                        <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Semua" checked class="trx-filter-cb"> <span class="text-[10px]">Semua</span></label>
+                        <hr class="my-1">
+                        <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Sukses" class="trx-filter-cb"> <span class="text-[10px]">Sukses</span></label>
+                        <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Gagal" class="trx-filter-cb"> <span class="text-[10px]">Gagal</span></label>
+                        <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Pending" class="trx-filter-cb"> <span class="text-[10px]">Pending</span></label>
+                        <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Refund" class="trx-filter-cb"> <span class="text-[10px]">Refund</span></label>
+                        <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Topup" class="trx-filter-cb"> <span class="text-[10px]">Topup</span></label>
                     </div>
+                </div>
+<input type="date" id="globalTrxDate" onchange="loadGlobalTransactions()" class="bg-gray-50 border border-gray-300 text-gray-900 text-[10px] rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-1.5 shadow-sm">
+    <button onclick="loadGlobalTransactions()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold text-[10px]"><i class="fas fa-sync-alt"></i></button>
+</div>
                 </div>
             </div>
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="overflow-x-auto custom-scroll">
                     <div id="trxPagination" class="p-3 border-b border-gray-100 bg-gray-50 flex justify-center items-center gap-1 hide transition-all"></div>
-                    <table class="w-full text-left">
+<table class="w-full text-left">
                         <thead>
                             <tr class="bg-gray-50 text-gray-500 text-[9px] uppercase tracking-wider border-b border-gray-100">
                                 <th class="p-3 font-bold">Waktu</th>
                                 <th class="p-3 font-bold">User</th>
                                 <th class="p-3 font-bold">Ket</th>
                                 <th class="p-3 font-bold">Info Saldo</th>
-                                <th class="p-3 font-bold text-center">Cek Server</th>
+<th class="p-3 font-bold text-center">Cek Server</th>
                                 <th class="p-3 font-bold text-right">Nominal</th>
                                 <th class="p-3 font-bold text-center">Status</th>
                             </tr>
                         </thead>
                         <tbody id="trxTableBody" class="text-[11px] divide-y divide-gray-50">
-                             <tr><td colspan="7" class="p-6 text-center text-gray-400">Menunggu data...</td></tr>
+                             <tr><td colspan="5" class="p-6 text-center text-gray-400">Menunggu data...</td></tr>
                         </tbody>
                     </table>
+                
                 </div>
             </div>
         </div>
 
-        
-        <div id="tab-audit" class="tab-content hide fade-in pb-10">
-            <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100 sticky top-0 z-20">
-                <div class="flex items-center gap-3">
-                    <button onclick="switchTab('dashboard')" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition"><i class="fas fa-arrow-left"></i></button>
-                    <div>
-                        <h2 class="text-lg font-bold text-gray-800 leading-none">Audit Saldo (DoniGuard)</h2>
-                        <p class="text-[10px] text-gray-500">Log keamanan & mutasi saldo</p>
-                    </div>
-                </div>
-                <button onclick="loadAuditLogs()" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-bold text-[10px]"><i class="fas fa-sync-alt"></i> Refresh</button>
-            </div>
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="overflow-x-auto custom-scroll">
-                    <table class="w-full text-left table-fixed min-w-[700px]">
-                        <thead>
-                            <tr class="bg-gray-50 text-gray-500 text-[9px] uppercase tracking-wider border-b border-gray-100">
-                                <th class="p-3 font-bold w-24">Waktu</th>
-                                <th class="p-3 font-bold w-32">User</th>
-                                <th class="p-3 font-bold text-center w-20">Aksi</th>
-                                <th class="p-3 font-bold text-right w-24">Before</th>
-                                <th class="p-3 font-bold text-right w-24">Amount</th>
-                                <th class="p-3 font-bold text-right w-24">After</th>
-                                <th class="p-3 font-bold">Note & Detail</th>
-                            </tr>
-                        </thead>
-                        <tbody id="auditTableBody" class="text-[10px] divide-y divide-gray-50"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div><div id="tab-livechat" class="tab-content hide fade-in h-[calc(100vh-100px)]">
+        <div id="tab-livechat" class="tab-content hide fade-in h-[calc(100vh-100px)]">
             <div class="flex h-full gap-4 md:gap-6">
                 <div class="w-full md:w-1/3 bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col overflow-hidden">
                     <div class="p-3 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
@@ -1272,7 +1315,6 @@ window.listenDebugPreOrders = () => {
             if(tabId === 'users') { if(!lastUserDoc && !isAllUsersLoaded) loadUsers(true); }
 if(tabId === 'pricing') loadPricingData();
             if(tabId === 'livechat') loadChatList();
-                        if(tabId === 'audit') window.loadAuditLogs();
             if(tabId === 'preorder-run') listenDebugPreOrders();
         };
 
@@ -1880,10 +1922,8 @@ if(tabId === 'pricing') loadPricingData();
                         if (!tDoc.exists()) throw "Transaksi hilang";
                         if (tDoc.data().status !== 'Pending') throw "Status transaksi sudah berubah";
 
-                                                const beforeBal = (uDoc.data().balance || 0);
-                        const newBal = beforeBal + amount;
+                        const newBal = (uDoc.data().balance || 0) + amount;
                         t.update(userRef, { balance: newBal });
-                        window.logDoniGuardAudit(t, uid, 'IN', amount, beforeBal, newBal, trxId, 'Admin Approved Manual TopUp');
                         t.update(trxRef, { 
                             status: 'Sukses', 
                             api_msg: 'Top Up Manual Diterima Admin',
@@ -1911,9 +1951,7 @@ if(tabId === 'pricing') loadPricingData();
                 try {
                     Swal.showLoading();
                     await updateDoc(doc(db, "users", uid, "history", trxId), {
-                                                    status: 'Gagal',
-                            doniguard_status: 'REFUNDED',
-                            is_refunded: true,
+                        status: 'Gagal',
                         api_msg: reason || 'Ditolak Admin',
                         date_updated: new Date().toISOString()
                     });
@@ -1956,13 +1994,10 @@ if(tabId === 'pricing') loadPricingData();
                         if (tData.status === 'Sukses') throw "Transaksi sudah Sukses, tidak bisa digagalkan.";
 
                         // 3. Eksekusi Write (Update Saldo & Status)
-                                                const currentBalance = userSnap.data().balance || 0;
-                        // DONIGUARD: Anti-Double Refund Check
-                        if (tData.doniguard_status === 'REFUNDED') throw "DoniGuard: Transaksi ini sudah dikembalikan sebelumnya (Proteksi Saldo Ganda Aktif).";
-
+                        const currentBalance = userSnap.data().balance || 0;
                         const newBalance = currentBalance + amount;
+
                         t.update(userRef, { balance: newBalance });
-                        window.logDoniGuardAudit(t, uid, 'REFUND', amount, currentBalance, newBalance, trxId, 'Admin Manual Refund: ' + (reason || 'No Reason'));
                         t.update(trxRef, {
                             status: 'Gagal',
                             api_msg: reason || 'Dibatalkan oleh Admin (Saldo Di-refund)',
@@ -2256,151 +2291,7 @@ window.downloadTrxPDF = () => {
             doc.save(`Transaksi_${Date.now()}.pdf`);
         };
 
-                        // --- DONIGUARD ADMIN CORE (v3.4) ---
-        window.logDoniGuardAudit = (transaction, uid, type, amount, before, after, trxId, note) => {
-            const auditId = 'DG-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
-            const auditRef = doc(db, "doniguard_audit", auditId);
-            transaction.set(auditRef, {
-                uid: uid, type: type, amount: amount,
-                balance_before: before, balance_after: after,
-                trx_id: trxId, timestamp: serverTimestamp(), note: note
-            });
-        };
-
-        window.loadAuditLogs = async () => {
-            const tbody = document.getElementById('auditTableBody');
-            tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center"><i class="fas fa-spinner fa-spin mr-2"></i>Menganalisis integritas data...</td></tr>';
-            
-            try {
-                const q = query(collection(db, "doniguard_audit"), orderBy("timestamp", "desc"), limit(50));
-                const snap = await getDocs(q);
-                let html = '';
-
-                if(snap.empty) { 
-                    tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-gray-400">Tidak ada log aktivitas keamanan.</td></tr>'; 
-                    return; 
-                }
-
-                snap.forEach(d => {
-                    const l = d.data();
-                    const date = l.timestamp ? new Date(l.timestamp.toDate()).toLocaleString('id-ID', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}) : '-';
-                    const user = allUsers.find(u => u.id === l.uid) || { username: 'UID: ' + (l.uid || 'unk').substring(0,5) };
-                    
-                    let actionClass = 'bg-gray-100 text-gray-600';
-                    if(l.type === 'IN') actionClass = 'bg-emerald-100 text-emerald-700';
-                    else if(l.type === 'OUT') actionClass = 'bg-blue-100 text-blue-700';
-                    else if(l.type === 'REFUND') actionClass = 'bg-orange-100 text-orange-700';
-                    else if(l.type === 'SYNC') actionClass = 'bg-red-600 text-white animate-pulse';
-
-                    const amountColor = (l.type === 'IN' || l.type === 'REFUND') ? 'text-emerald-600' : 'text-red-500';
-                    const amountPrefix = (l.type === 'IN' || l.type === 'REFUND') ? '+' : '-';
-
-                    html += `
-                    <tr class="hover:bg-gray-50 transition-colors border-b border-gray-50">
-                        <td class="p-3 text-gray-400 font-mono leading-tight">${date}</td>
-                        <td class="p-3">
-                            <div class="font-bold text-gray-700 truncate">${user.username}</div>
-                            <div class="text-[8px] text-gray-400 font-mono uppercase">${(l.uid || '').substring(0,8)}</div>
-                        </td>
-                        <td class="p-3 text-center">
-                            <span class="px-2 py-0.5 rounded text-[8px] font-black tracking-tighter ${actionClass}">${l.type}</span>
-                        </td>
-                        <td class="p-3 text-right text-gray-400 font-mono">${window.formatRp(l.balance_before || 0)}</td>
-                        <td class="p-3 text-right font-bold ${amountColor} font-mono">
-                            ${amountPrefix}${window.formatRp(l.amount || 0)}
-                        </td>
-                        <td class="p-3 text-right font-black text-blue-600 font-mono bg-blue-50/30">
-                            ${window.formatRp(l.balance_after || 0)}
-                        </td>
-                        <td class="p-3 overflow-hidden">
-                            <div class="flex flex-col gap-0.5">
-                                <span class="font-mono text-[9px] font-bold text-gray-600">${l.trx_id || '-'}</span>
-                                <p class="text-[9px] text-gray-500 leading-snug break-words" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" title="${l.note || ''}">
-                                    ${l.note || '-'}
-                                </p>
-                            </div>
-                        </td>
-                    </tr>`;
-                });
-                tbody.innerHTML = html;
-            } catch(e) {
-                console.error(e);
-                tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-red-500 text-center">Gagal memuat: '+e.message+'</td></tr>'; 
-            }
-        };
-        // --- DONIGUARD ADMIN CORE (v3.4) ---
-        window.logDoniGuardAudit = (transaction, uid, type, amount, before, after, trxId, note) => {
-            const auditId = 'DG-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
-            const auditRef = doc(db, "doniguard_audit", auditId);
-            transaction.set(auditRef, {
-                uid: uid, type: type, amount: amount,
-                balance_before: before, balance_after: after,
-                trx_id: trxId, timestamp: serverTimestamp(), note: note
-            });
-        };
-
-        window.loadAuditLogs = async () => {
-            const tbody = document.getElementById('auditTableBody');
-            tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center"><i class="fas fa-spinner fa-spin mr-2"></i>Menganalisis integritas data...</td></tr>';
-            
-            try {
-                const q = query(collection(db, "doniguard_audit"), orderBy("timestamp", "desc"), limit(50));
-                const snap = await getDocs(q);
-                let html = '';
-
-                if(snap.empty) { 
-                    tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-gray-400">Tidak ada log aktivitas keamanan.</td></tr>'; 
-                    return; 
-                }
-
-                snap.forEach(d => {
-                    const l = d.data();
-                    const date = l.timestamp ? new Date(l.timestamp.toDate()).toLocaleString('id-ID', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}) : '-';
-                    const user = allUsers.find(u => u.id === l.uid) || { username: 'UID: ' + (l.uid || 'unk').substring(0,5) };
-                    
-                    let actionClass = 'bg-gray-100 text-gray-600';
-                    if(l.type === 'IN') actionClass = 'bg-emerald-100 text-emerald-700';
-                    else if(l.type === 'OUT') actionClass = 'bg-blue-100 text-blue-700';
-                    else if(l.type === 'REFUND') actionClass = 'bg-orange-100 text-orange-700';
-                    else if(l.type === 'SYNC') actionClass = 'bg-red-600 text-white animate-pulse';
-
-                    const amountColor = (l.type === 'IN' || l.type === 'REFUND') ? 'text-emerald-600' : 'text-red-500';
-                    const amountPrefix = (l.type === 'IN' || l.type === 'REFUND') ? '+' : '-';
-
-                    html += `
-                    <tr class="hover:bg-gray-50 transition-colors border-b border-gray-50">
-                        <td class="p-3 text-gray-400 font-mono leading-tight">${date}</td>
-                        <td class="p-3">
-                            <div class="font-bold text-gray-700 truncate">${user.username}</div>
-                            <div class="text-[8px] text-gray-400 font-mono uppercase">${(l.uid || '').substring(0,8)}</div>
-                        </td>
-                        <td class="p-3 text-center">
-                            <span class="px-2 py-0.5 rounded text-[8px] font-black tracking-tighter ${actionClass}">${l.type}</span>
-                        </td>
-                        <td class="p-3 text-right text-gray-400 font-mono">${window.formatRp(l.balance_before || 0)}</td>
-                        <td class="p-3 text-right font-bold ${amountColor} font-mono">
-                            ${amountPrefix}${window.formatRp(l.amount || 0)}
-                        </td>
-                        <td class="p-3 text-right font-black text-blue-600 font-mono bg-blue-50/30">
-                            ${window.formatRp(l.balance_after || 0)}
-                        </td>
-                        <td class="p-3 overflow-hidden">
-                            <div class="flex flex-col gap-0.5">
-                                <span class="font-mono text-[9px] font-bold text-gray-600">${l.trx_id || '-'}</span>
-                                <p class="text-[9px] text-gray-500 leading-snug break-words" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" title="${l.note || ''}">
-                                    ${l.note || '-'}
-                                </p>
-                            </div>
-                        </td>
-                    </tr>`;
-                });
-                tbody.innerHTML = html;
-            } catch(e) {
-                console.error(e);
-                tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-red-500 text-center">Gagal memuat: '+e.message+'</td></tr>'; 
-            }
-        };
-const API_CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
+        const API_CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
 
 // Menggunakan Config ICS dari Relay.js
 const ICS_CONFIG = { 

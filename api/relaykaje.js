@@ -1,26 +1,20 @@
 // File: api/relaykaje.js
-
-// PERSIAPAN:
-// Pastikan Anda sudah menginstall package yang dibutuhkan.
-// Buka terminal, ketik: npm init -y && npm install express axios cors body-parser
-
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const app = express();
-const port = 3000; // Port server
 
-// Konfigurasi Kaje Store
+// Konfigurasi
 const API_CONFIG = {
     baseUrl: 'https://end.kaje-store.com/api',
-    apiKey: '8eb9026f46a9ebed7c3de2292bd6353fea402c2ae8328f04b728f879a963' // API Key Anda (Aman disini, tidak terlihat user)
+    apiKey: '8eb9026f46a9ebed7c3de2292bd6353fea402c2ae8328f04b728f879a963' 
 };
 
 // Middleware
-app.use(cors()); // Mengizinkan akses dari frontend
-app.use(express.json()); // Membaca data JSON dari frontend
+app.use(cors());
+app.use(express.json());
 
-// --- ROUTE UTAMA ---
+// Handler Utama
 app.post('/api/relaykaje', async (req, res) => {
     const { action, payload } = req.body;
 
@@ -28,21 +22,13 @@ app.post('/api/relaykaje', async (req, res) => {
         let targetUrl = '';
         let requestBody = {};
 
-        // 1. Logika percabangan berdasarkan aksi dari frontend
         if (action === 'saldo') {
             targetUrl = `${API_CONFIG.baseUrl}/info/saldo`;
-            requestBody = {}; // Body kosong sesuai dokumentasi Kaje
-        } 
-        // 2. Siapkan tempat untuk fitur lain (Pricelist/Transaksi) nanti
-        else if (action === 'transaksi') {
-            // Nanti diisi endpoint transaksi
-             return res.status(400).json({ success: false, message: 'Fitur belum aktif' });
-        }
-        else {
+            requestBody = {}; 
+        } else {
             return res.status(400).json({ success: false, message: 'Action tidak dikenali' });
         }
 
-        // 3. Tembak ke API Kaje Store
         const response = await axios.post(targetUrl, requestBody, {
             headers: {
                 'x-api-key': API_CONFIG.apiKey,
@@ -51,12 +37,10 @@ app.post('/api/relaykaje', async (req, res) => {
             }
         });
 
-        // 4. Kirim balik respon asli dari Kaje ke Frontend
         res.json(response.data);
 
     } catch (error) {
         console.error("Relay Error:", error.message);
-        // Handle error jika API Kaje down atau error
         if (error.response) {
             res.status(error.response.status).json(error.response.data);
         } else {
@@ -65,8 +49,6 @@ app.post('/api/relaykaje', async (req, res) => {
     }
 });
 
-// Jalankan Server
-app.listen(port, () => {
-    console.log(`Server Relay berjalan di http://localhost:${port}`);
-    console.log(`Endpoint siap di: http://localhost:${port}/api/relaykaje`);
-});
+// PENTING UNTUK VERCEL:
+// Jangan gunakan app.listen(). Gunakan export module.
+module.exports = app;

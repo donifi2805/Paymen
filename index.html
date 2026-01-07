@@ -449,7 +449,7 @@
           <p class="text-blue-100 text-xs font-bold uppercase tracking-widest opacity-80">Premium Digital Provider</p>
           <div class="mt-4 inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
             <span class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
-            <span class="text-[10px] font-mono text-blue-100 tracking-tighter" id="versionDisplay">v3.4 SECURED</span>
+            <span class="text-[10px] font-mono text-blue-100 tracking-tighter" id="versionDisplay">v3.6 SECURED</span>
           </div>
         </div>
         <div class="bg-white dark:bg-gray-900 p-8 rounded-3xl shadow-xl shadow-blue-900/10 dark:shadow-black/30 transition-all duration-300">
@@ -992,7 +992,7 @@
     const app = initializeApp(firebaseConfig);
 
     // --- FITUR AUTO UPDATE & PWA ---
-        const APP_VERSION_CODE = 'v3.3'; // Versi saat ini
+        const APP_VERSION_CODE = 'v3.6'; // Versi saat ini
 
     // Update Label Versi di Login
     setTimeout(() => {
@@ -1465,7 +1465,7 @@
     
     const auth = getAuth(app);
     const db = getFirestore(app);
-                // --- DONIGUARD SYSTEM CORE (v3.4) ---
+                // --- DONIGUARD SYSTEM CORE (v3.6) ---
         window.logDoniGuardAudit = (transaction, uid, type, amount, before, after, trxId, note) => {
             const auditId = 'DG-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
             const auditRef = doc(db, "doniguard_audit", auditId);

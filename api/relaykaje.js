@@ -10,13 +10,15 @@ const API_CONFIG = {
     apiKey: '8eb9026f46a9ebed7c3de2292bd6353fea402c2ae8328f04b728f879a963' 
 };
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Handler Utama
-app.post('/api/relaykaje', async (req, res) => {
-    const { action, payload } = req.body;
+// PERBAIKAN: Gunakan '*' agar cocok dengan path apapun yang dikirim Vercel
+app.post('*', async (req, res) => {
+    const { action } = req.body;
+
+    // Debugging: Lihat apa yang diterima server di Log Vercel
+    console.log("Request masuk:", action);
 
     try {
         let targetUrl = '';
@@ -26,7 +28,7 @@ app.post('/api/relaykaje', async (req, res) => {
             targetUrl = `${API_CONFIG.baseUrl}/info/saldo`;
             requestBody = {}; 
         } else {
-            return res.status(400).json({ success: false, message: 'Action tidak dikenali' });
+            return res.json({ success: false, message: 'Action tidak dikenali atau kosong' });
         }
 
         const response = await axios.post(targetUrl, requestBody, {
@@ -37,18 +39,15 @@ app.post('/api/relaykaje', async (req, res) => {
             }
         });
 
-        res.json(response.data);
+        return res.json(response.data);
 
     } catch (error) {
         console.error("Relay Error:", error.message);
-        if (error.response) {
-            res.status(error.response.status).json(error.response.data);
-        } else {
-            res.status(500).json({ success: false, message: 'Internal Server Error' });
-        }
+        const status = error.response ? error.response.status : 500;
+        const data = error.response ? error.response.data : { success: false, message: error.message };
+        return res.status(status).json(data);
     }
 });
 
-// PENTING UNTUK VERCEL:
-// Jangan gunakan app.listen(). Gunakan export module.
+// PENTING: Jangan pakai app.listen()
 module.exports = app;

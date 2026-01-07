@@ -1442,11 +1442,18 @@
                 alert("Koneksi Terputus! Transaksi dianggap PENDING.\nSistem akan mengecek status otomatis.");
                 window.nav('homePage');
                         } else {
-                // Refund Otomatis (Hanya jika error murni dari server) - LEDGER V2
+                                // Refund Otomatis (Hanya jika error murni dari server) - LEDGER V2
                 // Fungsi ini sudah otomatis mengembalikan saldo & update status ke Gagal
-                const refundResult = await window.processSmartRefund(currentUser.uid, reffId, 'Refund: ' + errStr);
                 
-                alert("Transaksi Gagal: " + errStr + "\n" + (refundResult.msg || "Saldo dikembalikan."));
+                let finalErrStr = errStr;
+                // MODIFIKASI: Masking Pesan Saldo Tidak Cukup
+                if (finalErrStr.toLowerCase().includes("saldo tidak cukup") || finalErrStr.includes("Saldo Anda:")) {
+                    finalErrStr = "Admin belum menyetok tolong hubungi admin untuk restok";
+                }
+
+                const refundResult = await window.processSmartRefund(currentUser.uid, reffId, 'Refund: ' + finalErrStr);
+                
+                alert("Transaksi Gagal: " + finalErrStr + "\n" + (refundResult.msg || "Saldo dikembalikan."));
                 window.nav('homePage');
             }
         }

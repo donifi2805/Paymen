@@ -1019,10 +1019,6 @@
 
     const app = initializeApp(firebaseConfig);
 
-    // --- FITUR SINGLE DEVICE LOGIN ---
-    const currentDeviceSession = 'SES-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-    console.log("Device Session ID:", currentDeviceSession);
-
     // --- FITUR AUTO UPDATE & PWA ---
         const APP_VERSION_CODE = 'v3.3'; // Versi saat ini
 
@@ -1037,6 +1033,62 @@
         console.log("Checking system update...");
         try {
             const db = getFirestore(app);
+
+    // --- SISTEM AUTO AUDIT & PROTEKSI SALDO V1.0 ---
+    window.executeSecurePurchase = async (uid, amount, productTitle, trxId, extraHistory = {}) => {
+        const userRef = doc(db, "users", uid);
+        const auditRef = doc(db, "audit_logs", trxId);
+        const historyRef = doc(db, "users", uid, "history", trxId);
+
+        try {
+            return await runTransaction(db, async (transaction) => {
+                const userDoc = await transaction.get(userRef);
+                if (!userDoc.exists()) throw "User tidak ditemukan";
+
+                const balanceBefore = Number(userDoc.data().balance) || 0;
+                if (balanceBefore < amount) throw "Saldo tidak mencukupi";
+
+                const balanceAfter = balanceBefore - amount;
+
+                // 1. Update Saldo User secara Atomik
+                transaction.update(userRef, { balance: balanceAfter });
+
+                // 2. Simpan Bukti Audit Sistem (Pencegah Refound Ganda)
+                transaction.set(auditRef, {
+                    uid: uid,
+                    username: userDoc.data().username || 'Unknown',
+                    trx_id: trxId,
+                    type: 'DEBIT',
+                    amount: amount,
+                    balance_before: balanceBefore,
+                    balance_after: balanceAfter,
+                    product: productTitle,
+                    timestamp: serverTimestamp(),
+                    is_refunded: false
+                });
+
+                // 3. Simpan Riwayat User
+                transaction.set(historyRef, {
+                    title: productTitle,
+                    amount: amount,
+                    type: 'out',
+                    date: new Date().toISOString(),
+                    status: 'Proses',
+                    api_msg: 'Menghubungkan ke server...',
+                    balance_before: balanceBefore,
+                    balance_after: balanceAfter,
+                    is_audited: true,
+                    ...extraHistory
+                });
+
+                return { success: true, balanceAfter };
+            });
+        } catch (e) {
+            console.error("Audit Transaction Failed:", e);
+            throw e;
+        }
+    };
+
             const docRef = doc(db, "settings", "app_info");
             const snapshot = await getDoc(docRef);
 
@@ -1218,7 +1270,7 @@ window.openAkrabV2 = () => {
         window.initAkrabV2Data();
     };
 
-                        async function callIcsApi(action, params = {}, method = 'GET') {
+                                                async function callIcsApi(action, params = {}, method = 'GET', attempt = 1) {
         // [FIX] Gunakan timestamp untuk bypass cache
         const t = Date.now();
         let targetUrl = `${ICS_CONFIG.baseUrl}?action=${action}&apikey=${ICS_CONFIG.apiKey}&_t=${t}`;
@@ -1238,11 +1290,18 @@ window.openAkrabV2 = () => {
 
         // [PENTING] Direct Fetch ke Domain Sendiri (Tanpa Proxy)
         try {
-            console.log("[ICS] Calling Relay:", targetUrl);
+            if(attempt === 1) console.log("[ICS] Calling Relay:", targetUrl);
+            else console.log(`[ICS] Retry Attempt ${attempt}...`);
+
             const res = await fetch(targetUrl, options);
             const text = await res.text();
 
             if (!res.ok) {
+                // Retry on Server Busy (502/504)
+                if ((res.status === 504 || res.status === 502) && attempt < 3) {
+                    await new Promise(r => setTimeout(r, 1500));
+                    return callIcsApi(action, params, method, attempt + 1);
+                }
                 return { success: false, message: `HTTP Error ${res.status}: ${res.statusText}`, raw: text };
             }
 
@@ -1253,7 +1312,15 @@ window.openAkrabV2 = () => {
                 return { success: false, message: 'Respon Relay bukan JSON valid.', raw: text }; 
             }
         } catch (e) {
-            console.error("Network Error:", e);
+            console.error(`Network Error (Attempt ${attempt}):`, e);
+            
+            // Auto Retry Logic (Max 3x)
+            if (attempt < 3) {
+                console.warn("Mencoba menghubungkan ulang ke Relay...");
+                await new Promise(r => setTimeout(r, 1000));
+                return callIcsApi(action, params, method, attempt + 1);
+            }
+
             return { success: false, message: 'Gagal koneksi ke Relay (Cek Internet/Domain)' };
         }
     }
@@ -1380,33 +1447,15 @@ window.openAkrabV2 = () => {
 
         const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
         
-        try {
-            await runTransaction(db, async (t) => {
-                const uRef = doc(db, "users", currentUser.uid);
-                const uDoc = await t.get(uRef);
-                const bal = uDoc.data().balance || 0;
-                if(bal < price) throw "Saldo kurang";
-                
-                const balanceAfter = bal - price;
-                t.update(uRef, { balance: balanceAfter });
-                
-                const hRef = doc(db, "users", currentUser.uid, "history", reffId);
-                t.set(hRef, {
-                    title: name,
-                    amount: price,
-                    type: 'out',
-                    date: new Date().toISOString(),
-                    status: 'Proses',
-                    api_msg: 'Menghubungkan ke server...',
-                    trx_id: reffId,
-                    trx_code: trxCode,
-                    provider_id: 'ICS',
-                    provider_code: provCode || 'ICS',
-                    raw_code: code,
-                    dest_num: number,
-                    balance_before: bal,
-                    balance_after: balanceAfter
-                });
+                try {
+            // --- PROTEKSI AUDIT AKTIF ---
+            await window.executeSecurePurchase(currentUser.uid, price, name, reffId, {
+                trx_id: reffId,
+                trx_code: trxCode,
+                provider_id: 'ICS',
+                provider_code: provCode || 'ICS',
+                raw_code: code,
+                dest_num: number
             });
         } catch(e) {
             window.showLoader(false);
@@ -1471,35 +1520,7 @@ window.openAkrabV2 = () => {
 
 
 
-    async function checkIcsStatus(trx, docSnap) {
-        const res = await callIcsApi('checkTransaction', { refid: trx.trx_id });
-        if(res.success) {
-            let newStatus = 'Pending';
-            const statusRaw = (res.status || '').toLowerCase();
-            if(statusRaw === 'success') newStatus = 'Sukses';
-            else if(statusRaw === 'failed' || statusRaw === 'error' || statusRaw === 'unpaid') newStatus = 'Gagal';
-            
-            if(newStatus !== 'Pending') {
-                await runTransaction(db, async (t) => {
-                    const freshDoc = await t.get(docSnap.ref);
-                    if(freshDoc.data().status !== 'Pending') return;
-
-                                        if(newStatus === 'Gagal') {
-                        const uRef = doc(db, "users", currentUser.uid);
-                        const uDoc = await t.get(uRef);
-                        t.update(uRef, { balance: (uDoc.data().balance || 0) + trx.amount });
-                        t.update(docSnap.ref, { status: 'Gagal', api_msg: 'Refund: ' + (res.message || 'Gagal') });
-                    } else {
-                        t.update(docSnap.ref, { status: 'Sukses', api_msg: res.message || res.sn || 'Sukses' });
-                        // NOTIFIKASI SUKSES (ICS)
-                        if(typeof window.sendTelegramNotif === 'function') {
-                             window.sendTelegramNotif('ORDER', { title: trx.title, amount: trx.amount, dest: trx.dest_num, trxId: trx.trx_id });
-                        }
-                    }
-                });
-            }
-        }
-    }
+    
     const auth = getAuth(app);
     const db = getFirestore(app);
     // --- LEDGER SYSTEM START ---
@@ -1711,14 +1732,7 @@ initTopupSettingsListener();
         async function setupUserData(user) {
         const userRef = doc(db, "users", user.uid);
         try {
-                        // --- UPDATE SESSION ID ---
-            await setDoc(userRef, {
-                active_session: currentDeviceSession,
-                last_login_device: navigator.userAgent,
-                lastLogin: new Date().toISOString()
-            }, { merge: true });
-
-const docSnap = await getDoc(userRef);
+            const docSnap = await getDoc(userRef);
             if (docSnap.exists()) {
                 startUserDataListener(user.uid);
             } else {
@@ -1763,18 +1777,9 @@ const docSnap = await getDoc(userRef);
     }
 
     function startUserDataListener(uid) {
-                onSnapshot(doc(db, "users", uid), async (docSnap) => {
+        onSnapshot(doc(db, "users", uid), (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
-
-                // --- CEK SESSION ID (PROTEKSI 1 PERANGKAT) ---
-                if (data.active_session && data.active_session !== currentDeviceSession) {
-                    console.warn("Session Mismatch! Logout triggered.");
-                    await signOut(auth);
-                    alert("PERINGATAN KEAMANAN:\n\nAkun Anda telah login di perangkat lain.\nSesi di perangkat ini diakhiri.");
-                    window.location.reload();
-                    return;
-                }
                 
                 // Jika data profil (username/dob) belum lengkap, tampilkan modal
                 if (!data.username || !data.dob) {
@@ -2346,18 +2351,15 @@ window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', cur
     // Lokasi file relaykhfy.js (Sesuaikan jika path berbeda)
 const KHFY_RELAY_URL = "/api/relaykhfy"; // Format Vercel Serverless Function
 
-async function callApi(endpoint, params = {}) {
+async function callApi(endpoint, params = {}, attempt = 1) {
     // 1. Setup Parameter Dasar
     params['api_key'] = CONFIG.apiKey;
     params['_t'] = Date.now();
 
     // 2. PRIORITAS UTAMA: Coba Via Relay Sendiri (relaykhfy.js)
-    // Ini jauh lebih stabil & cepat dibanding proxy publik
     try {
-        console.log("[API] Mencoba via Relay KHFY...");
+        if(attempt === 1) console.log("[API] Mencoba via Relay KHFY...");
         
-        // Susun Query String: endpoint + parameter data
-        // Pastikan endpoint dikirim agar relay tahu tujuannya
         const relayParams = new URLSearchParams({ endpoint: endpoint, ...params }).toString();
         const relayUrl = `${KHFY_RELAY_URL}?${relayParams}`;
 
@@ -2369,22 +2371,26 @@ async function callApi(endpoint, params = {}) {
 
         if (res.ok) {
             const text = await res.text();
-            // Validasi: Pastikan bukan HTML Error dari Vercel/Hosting
             if (text && !text.trim().startsWith('<')) {
                 try {
                     const json = JSON.parse(text);
-                    // Jika Relay me-return JSON valid, gunakan itu
                     return { ok: true, data: json };
                 } catch(e) { console.warn("[API] Relay JSON Invalid"); }
-            } else {
-                console.warn("[API] Relay Error HTML:", text.substring(0,50));
             }
+        } else {
+             // Jika Server Relay 502/504 (Cold Boot), Retry Internal Relay
+             if((res.status === 502 || res.status === 504) && attempt < 3) {
+                 console.log("Relay Cold Boot detected, retrying...");
+                 await new Promise(r => setTimeout(r, 1500));
+                 return callApi(endpoint, params, attempt + 1);
+             }
         }
     } catch (e) {
         console.warn("[API] Relay Gagal, beralih ke jalur cadangan...", e);
     }
 
-    // 3. JALUR CADANGAN: Public Proxy Loop (Logika Lama)
+    // 3. JALUR CADANGAN: Public Proxy Loop
+    // Jika Relay Gagal total, baru kita masuk sini
     const queryString = new URLSearchParams(params).toString();
     const targetUrl = `${CONFIG.baseUrl}${endpoint}?${queryString}`;
     
@@ -2414,6 +2420,14 @@ async function callApi(endpoint, params = {}) {
             lastError = error.message;
         }
     }
+
+    // FINAL RETRY LOGIC (Jika semua jalur gagal)
+    if (attempt < 3) {
+        console.warn(`[API] Gagal Total (Percobaan ${attempt}), Mengulang...`);
+        await new Promise(r => setTimeout(r, 1000));
+        return callApi(endpoint, params, attempt + 1);
+    }
+
     return { ok: false, error: `Gagal Koneksi (Semua Jalur). Detail: ${lastError}` };
 }
 
@@ -3209,41 +3223,58 @@ async function callApi(endpoint, params = {}) {
 
             window.processFormTransaction = () => {
         const provider = document.getElementById('formProvider').value;
-        const code = document.getElementById('formProduct').value || document.getElementById('icsProductSelect')?.value;
-        const name = document.getElementById('selectedProductName').value || document.getElementById('icsProductSelect')?.options[document.getElementById('icsProductSelect').selectedIndex]?.dataset.name;
-        const price = parseInt(document.getElementById('selectedProductPrice').value || 0);
+        const formProductVal = document.getElementById('formProduct').value;
+        const icsSelect = document.getElementById('icsProductSelect');
+        
+        const code = formProductVal || (icsSelect ? icsSelect.value : '');
+        
+        // Ambil nama produk dengan aman
+        let name = document.getElementById('selectedProductName').value;
+        if (!name && icsSelect && icsSelect.selectedIndex >= 0) {
+            name = icsSelect.options[icsSelect.selectedIndex]?.dataset.name;
+        }
+
+        // Ambil harga
+        const priceInput = document.getElementById('selectedProductPrice').value;
+        let price = parseInt(priceInput || 0);
+        if (price === 0 && icsSelect && icsSelect.selectedIndex >= 0) {
+             price = parseInt(icsSelect.options[icsSelect.selectedIndex]?.dataset.price || 0);
+        }
+        
         const number = document.getElementById('ppobNumber').value;
 
-        if(!code) return alert('Silakan pilih Produk!');
-        if(!code) return alert('Silakan pilih Produk!');
+        if(!code) return window.showAlert('Peringatan', 'Silakan pilih Produk terlebih dahulu!', 'error');
 
         // FITUR BARU: Cegah Transaksi Ganda ke Nomor Sama jika masih Pending
-        const pendingSameNum = transactions.find(t => 
-            (t.status === 'Pending' || t.status === 'Proses') && 
-            t.dest_num === number
-        );
+        if (transactions) {
+            const pendingSameNum = transactions.find(t => 
+                (t.status === 'Pending' || t.status === 'Proses') && 
+                t.dest_num === number &&
+                t.raw_code === code 
+            );
 
-        if (pendingSameNum) {
-            return Swal.fire({
-                title: 'Transaksi Tertunda',
-                text: 'Masih ada transaksi PENDING untuk nomor ' + number + '. Harap tunggu hingga sukses atau gagal sebelum membeli lagi.',
-                icon: 'warning'
-            });
+            if (pendingSameNum) {
+                return window.showAlert(
+                    'Transaksi Tertunda',
+                    'Masih ada transaksi PENDING untuk nomor ' + number + '. Harap tunggu hingga sukses atau gagal sebelum membeli lagi.',
+                    'warning'
+                );
+            }
         }
 
         // --- HANDLER KHUSUS ICS ---
-        if (provider.startsWith('ICS_')) {
-            if(!number || number.length < 9) return alert("Nomor HP tidak valid!");
-            if(currentBalance < price) return alert("Saldo tidak cukup!");
+        if (provider && provider.startsWith('ICS_')) {
+            if(!number || number.length < 9) return window.showAlert('Validasi', "Nomor HP tidak valid!", 'error');
+            if(currentBalance < price) return window.showAlert('Saldo', "Saldo tidak cukup!", 'error');
             
-            window.customConfirm('Apakah anda ingin melanjutkan?', `Produk: ${name}\nNomor: ${number}\nHarga: ${window.formatRp(price)}`, async () => {
+            window.customConfirm('Konfirmasi Transaksi', `Produk: ${name}\nNomor: ${number}\nHarga: ${window.formatRp(price)}`, async () => {
                 window.executeIcsTransaction(code, number, price, name, provider);
             });
             return;
         }
 
         if (code === 'CEKPLN') {
-            window.checkPLN(document.getElementById('ppobNumber').value);
+            window.checkPLN(number);
             return;
         }
 
@@ -3252,16 +3283,15 @@ async function callApi(endpoint, params = {}) {
             const numbers = [];
             inputs.forEach(i => { if(i.value.length > 5) numbers.push(i.value); });
             
-            if(numbers.length === 0) return alert("Masukkan minimal 1 nomor tujuan valid!");
+            if(numbers.length === 0) return window.showAlert('Validasi', "Masukkan minimal 1 nomor tujuan valid!", 'error');
             const total = numbers.length * price;
-            if (currentBalance < total) return alert(`Saldo kurang! Butuh Rp ${window.formatRp(total)}`);
+            if (currentBalance < total) return window.showAlert('Saldo', `Saldo kurang! Butuh Rp ${window.formatRp(total)}`, 'error');
             
             window.customConfirm('Multi Transaksi', `Proses ${numbers.length} nomor?\nTotal: Rp ${window.formatRp(total)}`, () => {
                 window.executeMultiBatch(code, numbers, price, name);
             });
         } else {
-            const destNum = document.getElementById('ppobNumber').value;
-            if(destNum.length < 5) return alert('Masukkan Nomor Tujuan yang valid!');
+            if(number.length < 5) return window.showAlert('Validasi', 'Masukkan Nomor Tujuan yang valid!', 'error');
             window.confirmTransaction(code, name, price);
         }
     };
@@ -4067,6 +4097,7 @@ window.renderTopUpHistory = () => {
                                 sn: sn,
                                 raw_json: JSON.stringify(res)
                             });
+                            if(typeof window.sendTelegramNotif === 'function') { window.sendTelegramNotif('ORDER', { title: localData.title, amount: localData.amount, dest: localData.dest_num, trxId: docId }); } 
                             alert("Status Berhasil Diperbarui!");
                         }
                     } else {
@@ -4117,6 +4148,7 @@ window.renderTopUpHistory = () => {
                                     sn: sn || keterangan || 'Sukses',
                                     raw_json: JSON.stringify(root)
                                 });
+                                if(typeof window.sendTelegramNotif === 'function') { window.sendTelegramNotif('ORDER', { title: localData.title, amount: localData.amount, dest: localData.dest_num, trxId: docId }); } 
                                 alert("Transaksi Sukses!");
                             }
                         } else {

@@ -46,7 +46,19 @@
             font-size: 1.1rem;
             color: #94a3b8;
             line-height: 1.6;
+            margin-bottom: 1rem; /* Jarak dikurangi sedikit agar dekat dengan pesan preorder */
+        }
+
+        /* Style khusus untuk pesan Preorder */
+        .highlight-message {
+            color: #4ade80; /* Warna hijau terang */
+            font-weight: 600;
+            font-size: 1.1rem;
             margin-bottom: 2rem;
+            padding: 0.5rem;
+            background: rgba(74, 222, 128, 0.1);
+            border-radius: 8px;
+            display: inline-block;
         }
 
         /* Animasi Icon Gear/Loading */
@@ -91,6 +103,7 @@
         @media (max-width: 480px) {
             h1 { font-size: 1.8rem; }
             p { font-size: 1rem; }
+            .highlight-message { font-size: 1rem; }
         }
     </style>
 </head>
@@ -107,6 +120,11 @@
             Mohon maaf, saat ini server sedang dalam perbaikan rutin untuk meningkatkan performa. 
             Kami akan segera kembali online.
         </p>
+
+        <div class="highlight-message">
+            ✅ Untuk Preorder Akan Otomatis Berjalan
+        </div>
+        <br>
 
         <div class="status-badge">
             Estimasi: Segera Kembali

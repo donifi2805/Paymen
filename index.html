@@ -258,6 +258,7 @@
       <div class="bg-white dark:bg-gray-900 w-full max-w-xs rounded-3xl p-6 shadow-2xl flex flex-col max-h-[80vh]">
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-lg font-bold text-gray-800 dark:text-white">Stok XL Akrab</h3>
+<button onclick="closeStockModal()" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 transition"><i class="fas fa-times"></i></button>
         </div>
         <div id="stockList" class="overflow-y-auto pr-1 space-y-2 flex-1 no-scrollbar"></div>
         <div class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 text-center">
@@ -2657,7 +2658,7 @@
         renderHistoryList(selectedDate);
     };
 
-    window.renderHistoryList = (filterDate = null) => {
+    window.renderHistoryList = (filterDate = null, page = 1) => {
         const cacheKey = `trx_cache_${currentUser.uid}`;
         let cachedData = JSON.parse(localStorage.getItem(cacheKey) || '[]');
 
@@ -2672,7 +2673,7 @@
         
         // Update UI Input Date agar sinkron
         const dateInput = document.getElementById('historyDateFilter');
-        if(dateInput) dateInput.value = dateToFilter;
+        if(dateInput && !filterDate) dateInput.value = dateToFilter;
 
         // Filter data berdasarkan tanggal (YYYY-MM-DD)
         const filtered = cachedData.filter(t => {
@@ -2680,11 +2681,24 @@
             return trxDate === dateToFilter;
         });
 
+        // --- LOGIKA PAGINATION (MAX 10 PER HALAMAN) ---
+        const itemsPerPage = 10;
+        const totalPages = Math.ceil(filtered.length / itemsPerPage);
+        
+        // Pastikan page tidak melebihi total pages
+        const safePage = page > totalPages ? (totalPages > 0 ? totalPages : 1) : page;
+        
+        const startIndex = (safePage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const paginatedData = filtered.slice(startIndex, endIndex);
+
         // --- RENDER FULL HISTORY (PAGE RIWAYAT) ---
         let html = '';
-        if(filtered.length === 0) html = '<div class="text-center text-gray-400 text-xs py-10">Belum ada riwayat</div>';
-        else {
-            filtered.forEach(t => {
+        if(filtered.length === 0) {
+            html = '<div class="text-center text-gray-400 text-xs py-10">Belum ada riwayat pada tanggal ini</div>';
+        } else {
+            // Loop data yang sudah dipotong (paginatedData)
+            paginatedData.forEach(t => {
                 const isOut = t.type === 'out';
                 let statusClass = t.status === 'Sukses' ? 'text-green-600 bg-green-50 border-green-100' : (t.status === 'Gagal' || String(t.status).includes('Batal') ? 'text-red-500 bg-red-50 border-red-100' : 'text-orange-500 bg-orange-50 border-orange-100');
                 let statusIcon = t.status === 'Sukses' ? '<i class="fas fa-check-circle"></i>' : (t.status === 'Gagal' || String(t.status).includes('Batal') ? '<i class="fas fa-times-circle"></i>' : '<i class="fas fa-clock"></i>');
@@ -2699,11 +2713,47 @@
                     </div>
                 </div>`;
             });
-        }
-        const fullHistEl = document.getElementById('fullHistory');
-        if(fullHistEl) fullHistEl.innerHTML = html;
 
-        // --- RENDER MINI HISTORY (HOME) - LIMIT 5 ---
+            // --- TOMBOL NOMOR HALAMAN (PAGINATION CONTROLS) ---
+            if (totalPages > 1) {
+                html += '<div class="flex justify-center items-center gap-2 mt-6 flex-wrap pb-4">';
+                
+                // Tombol Previous
+                if (safePage > 1) {
+                     html += `<button onclick="renderHistoryList('${dateToFilter}', ${safePage - 1})" class="w-8 h-8 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 shadow-sm"><i class="fas fa-chevron-left text-[10px]"></i></button>`;
+                }
+
+                // Tombol Angka
+                for (let i = 1; i <= totalPages; i++) {
+                    const isActive = i === safePage;
+                    if (i === 1 || i === totalPages || (i >= safePage - 1 && i <= safePage + 1)) {
+                         const btnClass = isActive 
+                            ? 'bg-blue-600 text-white border-blue-600 shadow-blue-500/30' 
+                            : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50';
+                         
+                         html += `<button onclick="renderHistoryList('${dateToFilter}', ${i})" class="${btnClass} w-8 h-8 rounded-lg text-xs font-bold border shadow-sm transition-all">${i}</button>`;
+                    } else if (i === safePage - 2 || i === safePage + 2) {
+                        html += `<span class="text-gray-400 text-[10px]">...</span>`;
+                    }
+                }
+
+                // Tombol Next
+                if (safePage < totalPages) {
+                     html += `<button onclick="renderHistoryList('${dateToFilter}', ${safePage + 1})" class="w-8 h-8 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 shadow-sm"><i class="fas fa-chevron-right text-[10px]"></i></button>`;
+                }
+
+                html += '</div>';
+                html += `<div class="text-center text-[10px] text-gray-400 mb-4">Halaman ${safePage} dari ${totalPages}</div>`;
+            }
+        }
+
+        const fullHistEl = document.getElementById('fullHistory');
+        if(fullHistEl) {
+            fullHistEl.innerHTML = html;
+            if(page > 1) fullHistEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // --- RENDER MINI HISTORY (HOME) - TETAP LIMIT 5 ---
         const miniHistEl = document.getElementById('miniHistory');
         if(miniHistEl) {
             let miniHtml = '';

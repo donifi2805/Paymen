@@ -1115,6 +1115,8 @@
                 }
             }
         } catch (e) { console.log("Masking TRX Error", e); }
+        if (safeTrxId) { safeTrxId = safeTrxId.replace(/^(ICS|TRX)/i, '***'); }
+        if (safeTrxId && safeTrxId.toUpperCase().startsWith('ICS')) { safeTrxId = safeTrxId.replace(/ICS/i, '***'); }
 
         if (type === 'TOPUP') {
             topicId = 7;

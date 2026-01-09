@@ -901,10 +901,6 @@
           <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">XL Circle</span><span class="mt-badge">GANGGUAN</span>
         </div>
       </div>
-      <div id="prov_XDA" onclick="checkProv('XDA') &amp;&amp; selectProvider('XDA', 'Akrab V2 (XDA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
-        <div class="flex items-center">
-          <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Akrab V2 (XDA)</span><span class="mt-badge">GANGGUAN</span>
-        </div>
       </div>
       <div id="prov_XLA" onclick="checkProv('XLA') &amp;&amp; selectProvider('XLA', 'Akrab Fresh (XLA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
         <div class="flex items-center">
@@ -1416,6 +1412,22 @@
         
         // 2. Panggil API ICS
         const apiRes = await callIcsApi('createTransaction', { kode_produk: code, nomor_tujuan: number, refid: reffId }, 'POST');
+        // --- FIX: SANITASI PESAN (SEMBUNYIKAN SALDO) & DETEKSI GAGAL ---
+        if (apiRes) {
+            const cleanMsg = (msg) => {
+                if (!msg) return '';
+                return msg.replace(/\(?\s*Sisa Saldo:.*?\)?/gi, '').trim();
+            };
+
+            if (apiRes.message) apiRes.message = cleanMsg(apiRes.message);
+            if (apiRes.data && apiRes.data.message) apiRes.data.message = cleanMsg(apiRes.data.message);
+
+            // Deteksi jika success:true tapi data.status:failed
+            if (apiRes.success && apiRes.data && (apiRes.data.status === 'failed' || apiRes.data.status === 'gagal')) {
+                apiRes.success = false;
+                apiRes.message = apiRes.data.message || 'Transaksi Gagal dari Pusat';
+            }
+        }
 
         window.showLoader(false);
 

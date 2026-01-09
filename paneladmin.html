@@ -351,6 +351,9 @@
                     <button onclick="downloadTrxPDF()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 text-[10px] font-bold rounded-md shadow-sm transition flex items-center gap-1">
                         <i class="fas fa-file-pdf"></i> PDF
                     </button>
+<button onclick="applyTrxFilter()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 text-[10px] font-bold rounded-md shadow-sm transition flex items-center gap-1">
+                        <i class="fas fa-check-circle"></i> Terapkan
+                    </button>
                     <div class="flex items-center gap-2">
                         <input type="text" id="trxUserFilter" onkeyup="renderTransactions()" placeholder="Cari User..." class="bg-gray-50 border border-gray-300 text-gray-900 text-[10px] rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-1.5 shadow-sm w-24">
                         <div class="relative">
@@ -358,13 +361,13 @@
                                 <i class="fas fa-filter"></i> Filter
                             </button>
                             <div id="trxFilterMenu" class="hide absolute top-full right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-xl z-50 p-2">
-                                <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Semua" checked class="trx-filter-cb"> <span class="text-[10px]">Semua</span></label>
+                                <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" value="Semua" checked class="trx-filter-cb"> <span class="text-[10px]">Semua</span></label>
                                 <hr class="my-1">
-                                <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Sukses" class="trx-filter-cb"> <span class="text-[10px]">Sukses</span></label>
-                                <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Gagal" class="trx-filter-cb"> <span class="text-[10px]">Gagal</span></label>
-                                <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Pending" class="trx-filter-cb"> <span class="text-[10px]">Pending</span></label>
-                                <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Refund" class="trx-filter-cb"> <span class="text-[10px]">Refund</span></label>
-                                <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" onchange="applyTrxFilter()" value="Topup" class="trx-filter-cb"> <span class="text-[10px]">Topup</span></label>
+                                <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" value="Sukses" class="trx-filter-cb"> <span class="text-[10px]">Sukses</span></label>
+                                <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" value="Gagal" class="trx-filter-cb"> <span class="text-[10px]">Gagal</span></label>
+                                <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" value="Pending" class="trx-filter-cb"> <span class="text-[10px]">Pending</span></label>
+                                <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" value="Refund" class="trx-filter-cb"> <span class="text-[10px]">Refund</span></label>
+                                <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" value="Topup" class="trx-filter-cb"> <span class="text-[10px]">Topup</span></label>
                             </div>
                         </div>
                         <input type="date" id="globalTrxDate" onchange="loadGlobalTransactions()" class="bg-gray-50 border border-gray-300 text-gray-900 text-[10px] rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-1.5 shadow-sm">
@@ -439,7 +442,9 @@
                             <h3 class="font-bold text-gray-700">Pesan Masuk</h3>
                         </div>
                         <div class="flex gap-1">
-                            <button onclick="openNewChatModal()" class="text-green-600 hover:bg-green-50 p-1.5 rounded transition"><i class="fas fa-plus-circle"></i></button>
+                                                        <button onclick="deleteOldChats()" class="text-red-500 hover:bg-red-50 px-2 py-1.5 rounded transition text-[10px] font-bold border border-red-200 flex items-center whitespace-nowrap" title="Hapus chat yang tidak aktif lebih dari 7 hari"><i class="fas fa-trash-clock mr-1"></i> Hapus >1 Minggu</button>
+
+<button onclick="openNewChatModal()" class="text-green-600 hover:bg-green-50 p-1.5 rounded transition"><i class="fas fa-plus-circle"></i></button>
                             <button onclick="loadChatList()" class="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition"><i class="fas fa-sync-alt"></i></button>
                         </div>
                     </div>
@@ -2808,6 +2813,35 @@ window.processPreorderDoc = async (id, status) => {
             // Mengalihkan fungsi ke handler yang sudah diperbarui
             window.handlePreorderDebugAction(id, status);
         };
+
+        window.deleteOldChats = async () => {
+            if(!confirm('Hapus seluruh percakapan yang tidak aktif lebih dari 1 minggu?\n\nData yang dihapus tidak dapat dikembalikan.')) return;
+            try {
+                Swal.fire({ title: 'Sedang Membersihkan...', html: 'Mencari pesan usang...', didOpen:()=>Swal.showLoading() });
+                
+                const cutoff = new Date(); 
+                cutoff.setDate(cutoff.getDate() - 7);
+                
+                const q = query(collection(db, "chats"), where("lastTimestamp", "<", cutoff));
+                const snap = await getDocs(q);
+                
+                if(snap.empty) return Swal.fire('Bersih', 'Tidak ada pesan yang lebih lama dari 1 minggu.', 'info');
+                
+                let count = 0;
+                for(const d of snap.docs) {
+                    // Hapus sub-collection messages terlebih dahulu
+                    const msgs = await getDocs(collection(db, "chats", d.id, "messages"));
+                    await Promise.all(msgs.docs.map(m => deleteDoc(m.ref)));
+                    // Hapus dokumen induk chat
+                    await deleteDoc(d.ref);
+                    count++;
+                }
+                
+                Swal.fire('Selesai', `Berhasil menghapus ${count} percakapan usang.`, 'success');
+                loadChatList();
+            } catch(e) { Swal.fire('Error', e.message, 'error'); }
+        };
+
 window.loadChatList = () => {
             const listContainer = document.getElementById('chatUserList');
             if(!listContainer) return;

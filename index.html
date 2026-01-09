@@ -1439,7 +1439,17 @@
                 raw_json: JSON.stringify(apiRes)
             });
                         
-            alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSilakan tunggu sebentar.");
+                        // FIX: Kirim Notif Telegram saat Sukses (ICS)
+            if(typeof window.sendTelegramNotif === 'function') {
+                 window.sendTelegramNotif('ORDER', {
+                    title: name,
+                    amount: price,
+                    dest: number,
+                    trxId: reffId
+                });
+            }
+
+alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSilakan tunggu sebentar.");
             window.nav('homePage');
             
             // [BARU] Jalankan Auto-Monitor Segera!
@@ -3669,7 +3679,17 @@
                 }
                 await updateDoc(trxRef, { status: 'Pending', api_msg: safeMsg, provider_id: providerId, raw_json: JSON.stringify(result.data || result || {}) });
                 
-                alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
+                                // FIX: Kirim Notif Telegram saat Sukses (PPOB)
+                if(typeof window.sendTelegramNotif === 'function') {
+                     window.sendTelegramNotif('ORDER', {
+                        title: name,
+                        amount: price,
+                        dest: dest,
+                        trxId: reffId
+                    });
+                }
+
+alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                 window.nav('homePage');
                         } else {
                 // GAGAL DARI RESPON API -> LAKUKAN REFUND OTOMATIS (LEDGER V2)

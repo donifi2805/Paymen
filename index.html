@@ -1455,17 +1455,7 @@
                 raw_json: JSON.stringify(apiRes)
             });
                         
-                        // FIX: Kirim Notif Telegram saat Sukses (ICS)
-            if(typeof window.sendTelegramNotif === 'function') {
-                 window.sendTelegramNotif('ORDER', {
-                    title: name,
-                    amount: price,
-                    dest: number,
-                    trxId: reffId
-                });
-            }
-
-alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSilakan tunggu sebentar.");
+                        alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSilakan tunggu sebentar.");
             window.nav('homePage');
             
             // [BARU] Jalankan Auto-Monitor Segera!
@@ -3695,17 +3685,7 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
                 }
                 await updateDoc(trxRef, { status: 'Pending', api_msg: safeMsg, provider_id: providerId, raw_json: JSON.stringify(result.data || result || {}) });
                 
-                                // FIX: Kirim Notif Telegram saat Sukses (PPOB)
-                if(typeof window.sendTelegramNotif === 'function') {
-                     window.sendTelegramNotif('ORDER', {
-                        title: name,
-                        amount: price,
-                        dest: dest,
-                        trxId: reffId
-                    });
-                }
-
-alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
+                                alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                 window.nav('homePage');
                         } else {
                 // GAGAL DARI RESPON API -> LAKUKAN REFUND OTOMATIS (LEDGER V2)
@@ -4234,6 +4214,17 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                         sn: sn,
                         raw_json: rawJson
                     });
+
+                    // --- NOTIFIKASI TELEGRAM (HANYA JIKA SUKSES) ---
+                    if(typeof window.sendTelegramNotif === 'function') {
+                         window.sendTelegramNotif('ORDER', {
+                            title: localData.title,
+                            amount: localData.amount,
+                            dest: localData.dest_num,
+                            trxId: localData.trx_id
+                        });
+                    }
+
                     if(!isSilent) alert("Transaksi Sukses!");
                 }
                 // KASUS 3: Masih Pending

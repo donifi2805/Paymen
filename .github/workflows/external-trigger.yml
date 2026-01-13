@@ -1,7 +1,7 @@
 name: External Trigger Auto Run
 
 on:
-  workflow_dispatch: # <--- INI KUNCI AGAR TIDAK 404
+  workflow_dispatch:
 
 jobs:
   run-worker:
@@ -21,12 +21,9 @@ jobs:
       - name: Run Worker Script
         run: node worker/autorun.js
         env:
-          # Pastikan Secrets ini sudah disetting di Menu Settings > Secrets
-          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-          FIREBASE_PRIVATE_KEY_ID: ${{ secrets.FIREBASE_PRIVATE_KEY_ID }}
-          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
-          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
-          FIREBASE_CLIENT_ID: ${{ secrets.FIREBASE_CLIENT_ID }}
-          FIREBASE_CLIENT_CERT_URL: ${{ secrets.FIREBASE_CLIENT_CERT_URL }}
+          # --- KUNCI UTAMA ---
+          # Kita memasukkan 1 file JSON utuh ke variabel ini
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          
+          # Masukkan API Key lain jika ada (misal KHFY)
           KHFY_API_KEY: ${{ secrets.KHFY_API_KEY }}
-          ICS_API_KEY: ${{ secrets.ICS_API_KEY }}

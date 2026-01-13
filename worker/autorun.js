@@ -16,50 +16,38 @@ try {
 const db = admin.firestore();
 
 // --- 2. KONFIGURASI RELAY VERCEL ---
-// Pastikan domain ini benar
 const VERCEL_DOMAIN = "https://www.pandawa-digital.store"; 
 const KHFY_KEY = process.env.KHFY_API_KEY; 
 const ICS_KEY = process.env.ICS_API_KEY; 
 
-// --- FUNGSI TEMBAK KE RELAY (SESUAI PANELADMIN.HTML) ---
+// --- FUNGSI TEMBAK KE RELAY ---
 async function hitVercelRelay(serverType, data) {
     let targetUrl = '';
     const params = new URLSearchParams();
 
     if (serverType === 'ICS') {
-        // === LOGIKA SERVER ICS ===
-        // Sesuai paneladmin.html: action=createTransaction
-        // Endpoint: /api/relay
         params.append('action', 'createTransaction');
         params.append('apikey', ICS_KEY);
         params.append('kode_produk', data.sku);
         params.append('nomor_tujuan', data.tujuan);
         params.append('refid', data.reffId);
-        
         targetUrl = `${VERCEL_DOMAIN}/api/relay?${params.toString()}`;
-
     } else {
-        // === LOGIKA SERVER KHFY ===
-        // Sesuai paneladmin.html: endpoint=/trx
-        // Params: produk, tujuan, reff_id
-        
+        // KHFY
         params.append('api_key', KHFY_KEY);
-        params.append('endpoint', '/trx'); // WAJIB /trx agar relaykhfy.js paham
-        params.append('produk', data.sku); // Relay minta 'produk', bukan 'service'
-        params.append('tujuan', data.tujuan); // Relay minta 'tujuan', bukan 'target'
+        params.append('endpoint', '/trx'); 
+        params.append('produk', data.sku); 
+        params.append('tujuan', data.tujuan); 
         params.append('reff_id', data.reffId);
-        
         targetUrl = `${VERCEL_DOMAIN}/api/relaykhfy?${params.toString()}`;
     }
 
     console.log(`      🚀 Menembak Relay Vercel (${serverType})...`);
-    console.log(`      🔗 URL: ${targetUrl}`); // Debug URL untuk memastikan benar
     
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 Detik Timeout
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // Naikkan Timeout jadi 60 Detik biar aman
 
-        // Gunakan GET sesuai paneladmin.html
         const response = await fetch(targetUrl, { 
             method: 'GET',
             headers: { 'User-Agent': 'Pandawa-Worker/1.0' },
@@ -96,9 +84,11 @@ async function runPreorderQueue() {
     console.log(`[${new Date().toISOString()}] MEMULAI CEK PREORDER QUEUE...`);
 
     try {
+        // --- UPDATE: LIMIT DINAIKKAN JADI 50 ---
+        // Agar 25 antrian Anda habis dalam sekali jalan
         const snapshot = await db.collection('preorders')
                                  .orderBy('timestamp', 'asc') 
-                                 .limit(10)
+                                 .limit(50) 
                                  .get();
 
         if (snapshot.empty) {
@@ -106,7 +96,7 @@ async function runPreorderQueue() {
             return;
         }
 
-        console.log(`✅ DITEMUKAN ${snapshot.size} ANTRIAN.`);
+        console.log(`✅ DITEMUKAN ${snapshot.size} ANTRIAN. Memproses...`);
 
         for (const doc of snapshot.docs) {
             const po = doc.data();
@@ -126,18 +116,12 @@ async function runPreorderQueue() {
                 continue; 
             }
 
-            // Siapkan Data untuk Relay
-            const requestData = {
-                sku: skuProduk,
-                tujuan: tujuan,
-                reffId: reffId
-            };
-
-            // EKSEKUSI
+            // Hit
+            const requestData = { sku: skuProduk, tujuan: tujuan, reffId: reffId };
             const result = await hitVercelRelay(serverType, requestData);
             console.log("      📡 Respon:", JSON.stringify(result));
 
-            // ANALISA HASIL
+            // Analisa
             let isSuccess = false;
             let sn = '-';
             let trxIdProvider = '-';
@@ -149,7 +133,7 @@ async function runPreorderQueue() {
                     trxIdProvider = result.data.trxid || '-';
                 }
             } else {
-                // Logic KHFY (Dari Relay)
+                // KHFY
                 const status = result.status === true || result.ok === true;
                 const msg = (result.message || result.msg || '').toLowerCase();
                 isSuccess = status || msg.includes('sukses') || msg.includes('proses');
@@ -161,11 +145,9 @@ async function runPreorderQueue() {
             }
 
             if (isSuccess) {
-                console.log(`   ✅ SUKSES! Pindah ke History...`);
-                
+                console.log(`   ✅ SUKSES!`);
                 const historyId = po.historyId || `TRX-${Date.now()}`;
                 
-                // Simpan ke History User
                 await db.collection('users').doc(uidUser).collection('history').doc(historyId).set({
                     uid: uidUser,
                     trx_id: reffId,
@@ -184,23 +166,20 @@ async function runPreorderQueue() {
                     balance_after: 0
                 });
 
-                // Hapus Antrian
                 await db.collection('preorders').doc(poID).delete();
-                
-                // Kirim Notif
                 await sendUserLog(uidUser, "Transaksi Berhasil", `Order ${skuProduk} sukses. SN: ${sn}`, historyId);
 
             } else {
                 const errMsg = result.message || result.msg || (result.data ? result.data.pesan : 'Gagal Relay');
                 console.log(`   ❌ GAGAL: ${errMsg}`);
                 
-                // Update Error di Preorder (Jangan hapus, biar dicek admin)
                 await db.collection('preorders').doc(poID).update({
                     debugStatus: 'GAGAL',
                     debugLogs: `[${new Date().toLocaleTimeString()}] System: ${errMsg}`
                 });
             }
 
+            // Jeda 2 detik
             await new Promise(r => setTimeout(r, 2000));
         }
 

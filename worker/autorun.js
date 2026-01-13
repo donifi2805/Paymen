@@ -46,7 +46,7 @@ async function hitVercelRelay(serverType, data) {
     
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000); // Naikkan Timeout jadi 60 Detik biar aman
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // Timeout 60 Detik
 
         const response = await fetch(targetUrl, { 
             method: 'GET',
@@ -84,11 +84,10 @@ async function runPreorderQueue() {
     console.log(`[${new Date().toISOString()}] MEMULAI CEK PREORDER QUEUE...`);
 
     try {
-        // --- UPDATE: LIMIT DINAIKKAN JADI 50 ---
-        // Agar 25 antrian Anda habis dalam sekali jalan
+        // LIMIT 100: Agar bisa melewati antrian 'Sukses' yang menumpuk
         const snapshot = await db.collection('preorders')
                                  .orderBy('timestamp', 'asc') 
-                                 .limit(50) 
+                                 .limit(100) 
                                  .get();
 
         if (snapshot.empty) {
@@ -96,13 +95,21 @@ async function runPreorderQueue() {
             return;
         }
 
-        console.log(`✅ DITEMUKAN ${snapshot.size} ANTRIAN. Memproses...`);
+        console.log(`✅ DITEMUKAN ${snapshot.size} DATA (Termasuk yang selesai). Memproses...`);
 
         for (const doc of snapshot.docs) {
             const po = doc.data();
             const poID = doc.id;
             const uidUser = po.uid; 
             
+            // --- FILTER PENTING: LEWATI YANG SUDAH SELESAI ---
+            // Agar tidak diproses ulang atau menghabiskan kuota API
+            if (po.debugStatus === 'TERBELI' || po.debugStatus === 'GAGAL') {
+                // Uncomment baris bawah jika ingin lognya bersih
+                // console.log(`   ⏩ SKIP: PO ${poID} status sudah ${po.debugStatus}.`);
+                continue; 
+            }
+
             const skuProduk = po.productCode || po.provider || po.code;
             const tujuan = po.targetNumber || po.target || po.tujuan;
             const serverType = po.serverType || 'KHFY'; 
@@ -111,12 +118,12 @@ async function runPreorderQueue() {
             console.log(`\n🔹 TRX: ${poID} | ${skuProduk} -> ${tujuan}`);
 
             if (!skuProduk || !tujuan) {
-                console.log(`   ❌ DATA TIDAK LENGKAP. Hapus.`);
-                await db.collection('preorders').doc(poID).delete();
+                console.log(`   ❌ DATA TIDAK LENGKAP. Set Gagal.`);
+                await db.collection('preorders').doc(poID).update({ debugStatus: 'GAGAL', debugLogs: 'Data korup' });
                 continue; 
             }
 
-            // Hit
+            // Hit Relay
             const requestData = { sku: skuProduk, tujuan: tujuan, reffId: reffId };
             const result = await hitVercelRelay(serverType, requestData);
             console.log("      📡 Respon:", JSON.stringify(result));
@@ -133,7 +140,7 @@ async function runPreorderQueue() {
                     trxIdProvider = result.data.trxid || '-';
                 }
             } else {
-                // KHFY
+                // KHFY Logic
                 const status = result.status === true || result.ok === true;
                 const msg = (result.message || result.msg || '').toLowerCase();
                 isSuccess = status || msg.includes('sukses') || msg.includes('proses');
@@ -145,9 +152,11 @@ async function runPreorderQueue() {
             }
 
             if (isSuccess) {
-                console.log(`   ✅ SUKSES!`);
+                console.log(`   ✅ SUKSES! Update Status jadi TERBELI.`);
+                
                 const historyId = po.historyId || `TRX-${Date.now()}`;
                 
+                // 1. Simpan ke History User (Wajib ada)
                 await db.collection('users').doc(uidUser).collection('history').doc(historyId).set({
                     uid: uidUser,
                     trx_id: reffId,
@@ -166,13 +175,22 @@ async function runPreorderQueue() {
                     balance_after: 0
                 });
 
-                await db.collection('preorders').doc(poID).delete();
+                // 2. UPDATE Antrian Preorder (JANGAN DIHAPUS)
+                // Ubah status jadi 'TERBELI' agar di Panel Admin jadi hijau
+                await db.collection('preorders').doc(poID).update({
+                    debugStatus: 'TERBELI', // Kunci agar Panel Admin tahu ini sukses
+                    successData: { code: skuProduk, price: po.price || 0 }, // Data tambahan
+                    debugLogs: `[${new Date().toLocaleTimeString()}] System: Sukses! SN: ${sn}`
+                });
+                
+                // 3. Kirim Notif ke User
                 await sendUserLog(uidUser, "Transaksi Berhasil", `Order ${skuProduk} sukses. SN: ${sn}`, historyId);
 
             } else {
                 const errMsg = result.message || result.msg || (result.data ? result.data.pesan : 'Gagal Relay');
                 console.log(`   ❌ GAGAL: ${errMsg}`);
                 
+                // Update status GAGAL di Preorder
                 await db.collection('preorders').doc(poID).update({
                     debugStatus: 'GAGAL',
                     debugLogs: `[${new Date().toLocaleTimeString()}] System: ${errMsg}`

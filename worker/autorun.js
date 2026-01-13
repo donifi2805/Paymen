@@ -15,50 +15,54 @@ try {
 
 const db = admin.firestore();
 
-// --- 2. KONFIGURASI VERCEL RELAY (Backend Anda) ---
-// Ganti domain ini dengan domain Vercel/Website Anda yang aktif
-// Contoh: "https://pandawa-store.vercel.app" atau "https://www.pandawa-digital.store"
+// --- 2. KONFIGURASI RELAY VERCEL ---
+// Pastikan domain ini benar
 const VERCEL_DOMAIN = "https://www.pandawa-digital.store"; 
-
-// API Key tetap diambil dari Secrets
 const KHFY_KEY = process.env.KHFY_API_KEY; 
-const ICS_KEY = process.env.ICS_API_KEY; // Tambahkan secret ini jika pakai ICS
+const ICS_KEY = process.env.ICS_API_KEY; 
 
-// --- FUNGSI TEMBAK KE RELAY VERCEL ---
-async function hitVercelRelay(serverType, payload) {
+// --- FUNGSI TEMBAK KE RELAY (SESUAI PANELADMIN.HTML) ---
+async function hitVercelRelay(serverType, data) {
     let targetUrl = '';
-    
-    // Siapkan URL Params
-    const params = new URLSearchParams(payload);
+    const params = new URLSearchParams();
 
     if (serverType === 'ICS') {
-        // Logika sesuai file api/relay.js Anda
-        // Target: /api/relay?action=...&apikey=...
-        params.append('apikey', ICS_KEY); 
-        targetUrl = `${VERCEL_DOMAIN}/api/relay?${params.toString()}`;
-    } else {
-        // Logika sesuai file api/relaykhfy.js Anda
-        // Target: /api/relaykhfy?endpoint=/order&api_key=...
-        params.append('api_key', KHFY_KEY);
+        // === LOGIKA SERVER ICS ===
+        // Sesuai paneladmin.html: action=createTransaction
+        // Endpoint: /api/relay
+        params.append('action', 'createTransaction');
+        params.append('apikey', ICS_KEY);
+        params.append('kode_produk', data.sku);
+        params.append('nomor_tujuan', data.tujuan);
+        params.append('refid', data.reffId);
         
-        // Kita gunakan endpoint /order untuk transaksi
-        params.append('endpoint', '/order'); 
+        targetUrl = `${VERCEL_DOMAIN}/api/relay?${params.toString()}`;
+
+    } else {
+        // === LOGIKA SERVER KHFY ===
+        // Sesuai paneladmin.html: endpoint=/trx
+        // Params: produk, tujuan, reff_id
+        
+        params.append('api_key', KHFY_KEY);
+        params.append('endpoint', '/trx'); // WAJIB /trx agar relaykhfy.js paham
+        params.append('produk', data.sku); // Relay minta 'produk', bukan 'service'
+        params.append('tujuan', data.tujuan); // Relay minta 'tujuan', bukan 'target'
+        params.append('reff_id', data.reffId);
         
         targetUrl = `${VERCEL_DOMAIN}/api/relaykhfy?${params.toString()}`;
     }
 
     console.log(`      🚀 Menembak Relay Vercel (${serverType})...`);
+    console.log(`      🔗 URL: ${targetUrl}`); // Debug URL untuk memastikan benar
     
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 Detik Timeout
 
-        // Kita gunakan GET karena relay Anda meneruskan query params
+        // Gunakan GET sesuai paneladmin.html
         const response = await fetch(targetUrl, { 
             method: 'GET',
-            headers: {
-                'User-Agent': 'Pandawa-Worker/1.0'
-            },
+            headers: { 'User-Agent': 'Pandawa-Worker/1.0' },
             signal: controller.signal 
         });
         clearTimeout(timeoutId);
@@ -67,11 +71,11 @@ async function hitVercelRelay(serverType, payload) {
         try {
             return JSON.parse(text);
         } catch (e) {
-            console.error("      ⚠️ Error Parse JSON Relay:", text.substring(0, 100));
-            return { status: false, message: "Invalid JSON from Relay" };
+            console.error("      ⚠️ Error Parse JSON. Raw Response:", text.substring(0, 100));
+            return { status: false, message: "HTML Error: Server Pusat Gangguan/Maintenance", raw: text };
         }
     } catch (error) {
-        console.error("      ⚠️ Gagal Koneksi ke Vercel:", error.message);
+        console.error("      ⚠️ Gagal Koneksi Vercel:", error.message);
         return { status: false, message: "Relay Timeout" };
     }
 }
@@ -92,7 +96,6 @@ async function runPreorderQueue() {
     console.log(`[${new Date().toISOString()}] MEMULAI CEK PREORDER QUEUE...`);
 
     try {
-        // Ambil antrian Preorder
         const snapshot = await db.collection('preorders')
                                  .orderBy('timestamp', 'asc') 
                                  .limit(10)
@@ -110,45 +113,31 @@ async function runPreorderQueue() {
             const poID = doc.id;
             const uidUser = po.uid; 
             
-            // Mapping Data
             const skuProduk = po.productCode || po.provider || po.code;
             const tujuan = po.targetNumber || po.target || po.tujuan;
-            const serverType = po.serverType || 'KHFY'; // KHFY atau ICS
+            const serverType = po.serverType || 'KHFY'; 
             const reffId = `AUTO-${Date.now()}`;
 
             console.log(`\n🔹 TRX: ${poID} | ${skuProduk} -> ${tujuan}`);
 
             if (!skuProduk || !tujuan) {
-                console.log(`   ❌ DATA TIDAK LENGKAP. Skip.`);
+                console.log(`   ❌ DATA TIDAK LENGKAP. Hapus.`);
                 await db.collection('preorders').doc(poID).delete();
                 continue; 
             }
 
-            // --- EKSEKUSI VIA RELAY ---
-            // Payload disesuaikan dengan provider
-            let payload = {};
-            if (serverType === 'ICS') {
-                payload = {
-                    action: 'order', // Sesuaikan action order ICS
-                    service: skuProduk,
-                    target: tujuan,
-                    ref_id: reffId
-                };
-            } else {
-                // KHFY
-                payload = {
-                    action: 'order',
-                    service: skuProduk,
-                    target: tujuan,
-                    ref_id: reffId
-                };
-            }
+            // Siapkan Data untuk Relay
+            const requestData = {
+                sku: skuProduk,
+                tujuan: tujuan,
+                reffId: reffId
+            };
 
-            // PANGGIL FUNGSI RELAY
-            const result = await hitVercelRelay(serverType, payload);
+            // EKSEKUSI
+            const result = await hitVercelRelay(serverType, requestData);
             console.log("      📡 Respon:", JSON.stringify(result));
 
-            // --- ANALISA HASIL ---
+            // ANALISA HASIL
             let isSuccess = false;
             let sn = '-';
             let trxIdProvider = '-';
@@ -160,7 +149,7 @@ async function runPreorderQueue() {
                     trxIdProvider = result.data.trxid || '-';
                 }
             } else {
-                // KHFY Logic
+                // Logic KHFY (Dari Relay)
                 const status = result.status === true || result.ok === true;
                 const msg = (result.message || result.msg || '').toLowerCase();
                 isSuccess = status || msg.includes('sukses') || msg.includes('proses');
@@ -172,8 +161,8 @@ async function runPreorderQueue() {
             }
 
             if (isSuccess) {
-                console.log(`   ✅ SUKSES! Memindahkan ke History User...`);
-
+                console.log(`   ✅ SUKSES! Pindah ke History...`);
+                
                 const historyId = po.historyId || `TRX-${Date.now()}`;
                 
                 // Simpan ke History User
@@ -195,24 +184,23 @@ async function runPreorderQueue() {
                     balance_after: 0
                 });
 
-                // Hapus dari antrian Preorder
+                // Hapus Antrian
                 await db.collection('preorders').doc(poID).delete();
                 
-                // Notif
+                // Kirim Notif
                 await sendUserLog(uidUser, "Transaksi Berhasil", `Order ${skuProduk} sukses. SN: ${sn}`, historyId);
 
             } else {
-                const errMsg = result.message || result.msg || (result.data ? result.data.pesan : 'Gagal');
+                const errMsg = result.message || result.msg || (result.data ? result.data.pesan : 'Gagal Relay');
                 console.log(`   ❌ GAGAL: ${errMsg}`);
                 
-                // Update status di Preorder (Jangan dihapus, biar Admin tau)
+                // Update Error di Preorder (Jangan hapus, biar dicek admin)
                 await db.collection('preorders').doc(poID).update({
                     debugStatus: 'GAGAL',
                     debugLogs: `[${new Date().toLocaleTimeString()}] System: ${errMsg}`
                 });
             }
 
-            // Jeda 2 detik
             await new Promise(r => setTimeout(r, 2000));
         }
 

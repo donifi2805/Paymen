@@ -464,7 +464,7 @@
           <p class="text-blue-100 text-xs font-bold uppercase tracking-widest opacity-80">Premium Digital Provider</p>
           <div class="mt-4 inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
             <span class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
-            <span class="text-[10px] font-mono text-blue-100 tracking-tighter" id="versionDisplay">v3.6 SECURED</span>
+            <span class="text-[10px] font-mono text-blue-100 tracking-tighter" id="versionDisplay">v4.8 SECURED</span>
           </div>
         </div>
         <div class="bg-white dark:bg-gray-900 p-8 rounded-3xl shadow-xl shadow-blue-900/10 dark:shadow-black/30 transition-all duration-300">
@@ -1019,7 +1019,7 @@
 
 
     // --- FITUR AUTO UPDATE & PWA ---
-        const APP_VERSION_CODE = 'v4.1'; // Versi saat ini
+        const APP_VERSION_CODE = 'v4.8'; // Versi saat ini
 
     // Update Label Versi di Login
     setTimeout(() => {
@@ -1432,7 +1432,14 @@
         if (apiRes) {
             const cleanMsg = (msg) => {
                 if (!msg) return '';
-                return msg.replace(/\(?\s*Sisa Saldo:.*?\)?/gi, '').trim();
+                let text = String(msg);
+                // 1. LOGIKA UTAMA: Ganti pesan stok kosong
+                if (text.toLowerCase().includes('stok sedang kosong') || text.toLowerCase().includes('ditutup')) {
+                    return 'Stok Sedang Kosong / Sedang Gangguan';
+                }
+                // 2. LOGIKA CADANGAN: Hapus teks Sisa Saldo
+                text = text.replace(/(\(|\[)?\s*Sisa\s*Saldo.*(\)|\])?/gi, '');
+                return text.trim();
             };
 
             if (apiRes.message) apiRes.message = cleanMsg(apiRes.message);
@@ -1510,7 +1517,7 @@
     
     const auth = getAuth(app);
     const db = getFirestore(app);
-                // --- DONIGUARD SYSTEM CORE (v3.6) ---
+                // --- DONIGUARD SYSTEM CORE (v4.8) ---
         window.logDoniGuardAudit = (transaction, uid, type, amount, before, after, trxId, note) => {
             const auditId = 'DG-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
             const auditRef = doc(db, "doniguard_audit", auditId);
@@ -3586,6 +3593,42 @@
                         const result = await callApi('/trx', { produk: code, tujuan: dest, reff_id: reffId });
             window.showLoader(false);
 
+            // ============================================================
+            // MODIFIKASI KHUSUS KHFY: AUTO REFUND SAAT LOCK_TIMEOUT
+            // ============================================================
+            
+            // 1. Deteksi Pola JSON KHFY: { data: { error: "lock_timeout" } }
+            // Menggunakan optional chaining (?.) untuk keamanan jika data null
+            const khfyData = result.data?.data; 
+            const isKhfyLockTimeout = (khfyData?.error === 'lock_timeout');
+
+            if (isKhfyLockTimeout) {
+                console.warn("⚠️ KHFY Lock Timeout - Transaksi tidak masuk server - Auto Refund");
+
+                // Update status Firebase ke Gagal (Agar tidak diproses Watchdog)
+                await updateDoc(trxRef, { 
+                    status: 'Gagal', 
+                    api_msg: 'Gagal: Server Sibuk/Timeout (Auto Refund)',
+                    raw_json: JSON.stringify(result)
+                });
+
+                // Eksekusi Pengembalian Saldo (Smart Refund)
+                const refundResult = await window.processSmartRefund(currentUser.uid, reffId, 'Refund: Server Sibuk (Tidak masuk database pusat)');
+
+                // Kembalikan Saldo di Tampilan UI (Visual)
+                currentBalance += price;
+                if(document.getElementById('displayBalance')) {
+                    document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
+                }
+
+                // Beri Alert ke User
+                window.showAlert("Transaksi Gagal", "Server sedang sibuk (Lock Timeout). Transaksi tidak masuk sistem.\n\nSaldo Anda telah dikembalikan otomatis.", "error");
+                
+                window.nav('homePage');
+                return; // PENTING: Stop eksekusi agar tidak lanjut ke logika lain
+            }
+            // ============================================================
+
             // --- FIX BUG FALSE NEGATIVE (Anti Refund saat RTO & Network Glitch) ---
             // UPDATE: Menambahkan deteksi 'Load failed' dan error generik proxy untuk mencegah refund prematur
             const errStr = result.error ? String(result.error) : "";
@@ -3662,11 +3705,16 @@
                  // --- SENSOR DATA SENSITIF (Anti-Leak) ---
                  // Menghapus total parameter kodereseller, password, dan pin agar tidak tampil
                  if(typeof msg === 'string') {
-                    // 1. Hapus key=value untuk data sensitif (termasuk & di belakangnya)
+                    // 1. Hapus key=value untuk data sensitif
                     msg = msg.replace(/(kodereseller|password|pin)=[^&\s#]*&?/gi, "");
-                    
-                    // 2. Hapus sisa 'trx?' atau '?' di awal string agar rapi (misal: trx?produk=... jadi produk=...)
                     msg = msg.replace(/^(trx)?\?/i, "");
+
+                    // 2. SENSOR SISA SALDO & STOK AGRESIF
+                    if (msg.toLowerCase().includes('stok sedang kosong') || msg.toLowerCase().includes('ditutup')) {
+                        msg = 'Stok Sedang Kosong / Sedang Gangguan';
+                    } else {
+                        msg = msg.replace(/(\(|\[)?\s*Sisa\s*Saldo.*(\)|\])?/gi, '').trim();
+                    }
                  }
 
                  // --- SENSOR DATA SENSITIF (Anti-Leak) ---

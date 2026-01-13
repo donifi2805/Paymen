@@ -16,15 +16,14 @@ try {
 const db = admin.firestore();
 
 // --- 2. KONFIGURASI PROVIDER ---
+// Pastikan API Key dan URL ini benar
 const PROVIDER_URL = "https://panel.khfy-store.com/api_v2"; 
 const API_KEY_PROVIDER = process.env.KHFY_API_KEY; 
 
-// --- FUNGSI TAMBAHAN: KIRIM NOTIFIKASI KE USER ---
+// --- FUNGSI NOTIFIKASI USER ---
 async function sendUserLog(uid, title, message, trxId) {
     if (!uid) return;
     try {
-        // Ini akan membuat notifikasi di folder user masing-masing
-        // User bisa melihat ini di menu notifikasi aplikasi/web mereka
         await db.collection('users').doc(uid).collection('notifications').add({
             title: title,
             message: message,
@@ -33,44 +32,53 @@ async function sendUserLog(uid, title, message, trxId) {
             isRead: false,
             timestamp: admin.firestore.FieldValue.serverTimestamp()
         });
-        console.log(`🔔 Notifikasi dikirim ke user: ${uid}`);
+        console.log(`🔔 Notif dikirim ke User ID: ${uid}`);
     } catch (e) {
-        console.error("Gagal kirim notif ke user:", e.message);
+        console.error("Gagal kirim notif:", e.message);
     }
 }
 
-// --- 3. LOGIKA RETRY (COBA TERUS) ---
+// --- 3. LOGIKA UTAMA (ADAPTASI PANEL ADMIN) ---
 async function runPendingTransactions() {
-    console.log(`[${new Date().toISOString()}] CEK TRANSAKSI PENDING...`);
+    console.log(`[${new Date().toISOString()}] MEMULAI SCANNING...`);
 
     try {
-        // Ambil transaksi pending (Limit 20)
-        const snapshot = await db.collection('transaksi')
-                                 .where('status', '==', 'pending') 
-                                 .limit(20) 
+        // PERUBAHAN PENTING: Menggunakan collectionGroup('history')
+        // Ini akan mencari ke dalam SEMUA folder users/{uid}/history/
+        // Sama persis seperti logika paneladmin.html
+        
+        const snapshot = await db.collectionGroup('history')
+                                 .where('status', 'in', ['Pending', 'Proses']) 
                                  .get();
 
         if (snapshot.empty) {
-            console.log('Tidak ada antrian pending saat ini.');
+            console.log("ℹ️ Tidak ada transaksi dengan status 'Pending' atau 'Proses' di seluruh database.");
             return;
         }
 
-        console.log(`Ditemukan ${snapshot.size} transaksi pending. Memulai proses...`);
+        console.log(`✅ DITEMUKAN ${snapshot.size} ANTRIAN PENDING. Memulai Eksekusi...`);
 
-        // Loop setiap transaksi pending
+        // --- LOOPING EKSEKUSI ---
         for (const doc of snapshot.docs) {
             const trx = doc.data();
             const trxID = doc.id;
             
-            const skuProduk = trx.produk; 
-            const tujuan = trx.tujuan;    
-            const uidUser = trx.uid; // Pastikan field ini ada di database transaksi Anda
+            // TEKNIK KHUSUS: Mengambil UID User dari path dokumen
+            // Path format: users/{uid}/history/{trxID}
+            const pathSegments = doc.ref.path.split('/');
+            const uidUser = pathSegments[1]; // Segmen ke-1 adalah UID
 
-            console.log(`\n--- Memproses TRX: ${trxID} (${skuProduk} -> ${tujuan}) ---`);
+            // Mapping Data (Sesuaikan dengan field di paneladmin: title, amount, dest_num/target)
+            // Di paneladmin menggunakan: title, amount, dest_num, target, phone
+            const skuProduk = trx.product_code || trx.code || trx.kode_produk; // Coba berbagai kemungkinan nama field
+            let tujuan = trx.dest_num || trx.target || trx.nomor_tujuan || trx.phone || trx.no_hp;
 
-            // Validasi data minimal
+            console.log(`\n🔹 Memproses TRX: ${trxID}`);
+            console.log(`   User: ${uidUser}`);
+            console.log(`   Produk: ${skuProduk} -> Tujuan: ${tujuan}`);
+
             if (!skuProduk || !tujuan) {
-                console.log(`❌ Data korup, dilewati.`);
+                console.log(`   ❌ Skip: Data produk atau nomor tujuan tidak lengkap.`);
                 continue; 
             }
 
@@ -84,9 +92,9 @@ async function runPendingTransactions() {
             
             let result;
             try {
-                // Timeout controller (10 detik)
+                // Timeout 15 detik
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 10000); 
+                const timeoutId = setTimeout(() => controller.abort(), 15000); 
 
                 const response = await fetch(PROVIDER_URL, {
                     method: 'POST',
@@ -98,62 +106,61 @@ async function runPendingTransactions() {
                 result = await response.json();
 
             } catch (errApi) {
-                console.error("⚠️ Koneksi Provider Error/Timeout. Skip dulu.");
+                console.error("   ⚠️ Error Koneksi Provider (Timeout/Network). Skip dulu.");
                 continue; 
             }
 
-            console.log("Respon Provider:", JSON.stringify(result));
+            console.log("   📡 Respon Provider:", JSON.stringify(result));
 
             // B. CEK HASIL
+            // KHFY biasanya mengembalikan status: true atau success: true
             const isSuccess = (result.status === true || result.success === true);
 
             if (isSuccess) {
                 // === JIKA SUKSES ===
-                const snProvider = result.data?.sn || result.data?.catatan || "Proses Sukses";
+                const snProvider = result.data?.sn || result.data?.catatan || "Proses Sukses Otomatis";
                 const orderIdProvider = result.data?.id || '-';
                 
-                // 1. Update Transaksi (JANGAN DELETE)
-                // Kita hanya ubah status jadi 'sukses'. Data tetap ada di Admin Panel (History).
-                await db.collection('transaksi').doc(trxID).update({
-                    status: 'sukses',
+                // UPDATE DATABASE (Ingat pathnya: users/{uid}/history/{trxID})
+                await db.collection('users').doc(uidUser).collection('history').doc(trxID).update({
+                    status: 'Sukses', // Huruf besar S sesuai paneladmin
+                    api_msg: `Sukses Otomatis. SN: ${snProvider}`, // Menampilkan SN di kolom keterangan paneladmin
                     sn: snProvider,
-                    order_id_provider: orderIdProvider,
-                    tanggal_sukses: admin.firestore.FieldValue.serverTimestamp(),
-                    // Tambahan log di dalam dokumen transaksi itu sendiri
-                    keterangan: `Sukses diproses Otomatis. SN: ${snProvider}`
+                    trx_id_provider: orderIdProvider,
+                    date_updated: new Date().toISOString()
                 });
                 
-                // 2. Kirim Log/Notifikasi ke System User
-                if (uidUser) {
-                    await sendUserLog(
-                        uidUser, 
-                        "Transaksi Berhasil", 
-                        `Pesanan ${skuProduk} ke ${tujuan} BERHASIL. SN: ${snProvider}`, 
-                        trxID
-                    );
-                }
+                // KIRIM NOTIFIKASI KE USER
+                await sendUserLog(
+                    uidUser, 
+                    "Transaksi Berhasil", 
+                    `Pesanan ${trx.title || skuProduk} berhasil. SN: ${snProvider}`, 
+                    trxID
+                );
 
-                console.log(`✅ SUKSES! Status diupdate & Notif dikirim.`);
+                console.log(`   ✅ SUKSES: Data diupdate jadi 'Sukses'.`);
 
             } else {
                 // === JIKA GAGAL DARI PROVIDER ===
-                // Biarkan PENDING. Tidak ada perubahan database.
-                // Tidak ada refund (karena status belum gagal).
-                // Log error di console saja.
-                
                 const pesanError = result.data?.pesan || result.message || "Unknown Error";
-                console.log(`⏳ GAGAL PROVIDER: "${pesanError}". Biarkan PENDING.`);
+                console.log(`   ⏳ GAGAL PROVIDER: "${pesanError}".`);
+                
+                // LOGIKA KHUSUS:
+                // Jika errornya "Saldo Habis" atau "Gangguan", kita biarkan PENDING (agar dicoba lagi nanti).
+                // Tapi jika errornya "Nomor Salah" atau "Produk Close", sebaiknya digagalkan (Optional).
+                // Untuk saat ini sesuai request Anda: KITA BIARKAN SAJA (Tetap Pending).
+                console.log(`   ➡️ Transaksi dibiarkan 'Pending'.`);
             }
 
-            // Jeda 2 detik
+            // Jeda 2 detik (Rate Limit)
             await new Promise(r => setTimeout(r, 2000));
         }
 
     } catch (error) {
-        console.error("CRITICAL SYSTEM ERROR:", error);
+        console.error("CRITICAL ERROR:", error);
         process.exit(1);
     }
-    console.log("\nSEMUA PROSES SELESAI.");
+    console.log("\n--- SELESAI ---");
 }
 
 runPendingTransactions();

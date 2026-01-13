@@ -87,7 +87,6 @@ async function runPreorderQueue() {
     console.log(`[${new Date().toISOString()}] MEMULAI CEK PREORDER QUEUE...`);
 
     try {
-        // LIMIT 100
         const snapshot = await db.collection('preorders')
                                  .orderBy('timestamp', 'asc') 
                                  .limit(100) 
@@ -105,6 +104,7 @@ async function runPreorderQueue() {
             const poID = doc.id;
             const uidUser = po.uid; 
             
+            // Skip yang sudah Terbeli (jika ada sisa sampah lama)
             if (po.debugStatus === 'TERBELI') continue; 
 
             const skuProduk = po.productCode || po.provider || po.code;
@@ -148,48 +148,42 @@ async function runPreorderQueue() {
             let finalSN = '-';
             let trxIdProvider = '-';
             
-            // Variabel Khusus Log Error
             let isStockEmpty = false;
             let detailedErrorLog = ''; 
 
             if (serverType === 'ICS') {
-                // === LOGIKA ICS ===
+                // LOGIKA ICS
                 if (result.success === true && result.data) {
                     if (result.data.status === 'success') {
-                        // SUKSES
                         isSuccess = true;
                         finalMessage = result.data.message; 
                         finalSN = result.data.sn || '-'; 
                         trxIdProvider = result.data.refid || '-';
                     } 
                     else if (result.data.status === 'failed') {
-                        // GAGAL (Cek Stok Kosong)
                         const msg = (result.data.message || '').toLowerCase();
                         if (msg.includes('kosong') || msg.includes('ditutup')) {
                             isStockEmpty = true;
-                            // Format Log Sesuai Request
                             detailedErrorLog = `[STOK KOSONG] Msg: ${result.data.message} | Dest: ${result.data.dest} | Product: ${result.data.product} | RefID: ${result.data.refid}`;
                             finalMessage = result.data.message;
                         }
                     }
                 } 
-                
                 if (!isSuccess && !isStockEmpty) {
                     finalMessage = result.message || (result.data ? result.data.message : 'Gagal ICS');
                 }
 
             } else {
-                // === LOGIKA KHFY ===
+                // LOGIKA KHFY
                 let dataItem = null;
                 if (result.data) {
                     if (Array.isArray(result.data)) dataItem = result.data[0];
                     else dataItem = result.data;
                 }
 
-                const msg = (result.msg || result.message || '').toLowerCase(); // msg utama
+                const msg = (result.msg || result.message || '').toLowerCase();
                 const statusText = dataItem ? (dataItem.status_text || '') : '';
                 
-                // Cek Sukses
                 const isExplicitSuccess = (statusText === 'SUKSES'); 
                 
                 if (result.ok === true && isExplicitSuccess) {
@@ -203,16 +197,10 @@ async function runPreorderQueue() {
                         finalMessage = `${statusText}. Produk: ${dataItem.kode_produk}. Tujuan: ${tujuan}. SN: ${finalSN}`;
                     }
                 } else {
-                    // Cek Gagal / Stok Kosong
-                    // Indikasi: ok=false DAN msg mengandung "#Gagal" atau "Stok Kosong"
                     if (result.ok === false && (msg.includes('stok kosong') || msg.includes('#gagal'))) {
                         isStockEmpty = true;
-                        
-                        // Ambil data untuk log
                         const logTujuan = (result.data && result.data.tujuan) ? result.data.tujuan : tujuan;
                         const logMsg = result.msg || 'Stok Kosong';
-                        
-                        // Format Log Sesuai Request
                         detailedErrorLog = `[STOK KOSONG] Msg: ${logMsg} | Tujuan: ${logTujuan}`;
                         finalMessage = logMsg;
                     } 
@@ -230,6 +218,8 @@ async function runPreorderQueue() {
                 console.log(`   ✅ SUKSES! Pesan: ${finalMessage}`);
                 
                 const historyId = po.historyId || `TRX-${Date.now()}`;
+                
+                // 1. Simpan ke History User
                 await db.collection('users').doc(uidUser).collection('history').doc(historyId).set({
                     uid: uidUser, trx_id: reffId, trx_code: Math.floor(100000 + Math.random() * 900000).toString(),
                     title: po.productName || skuProduk, type: 'out', amount: po.price || 0, status: 'Sukses',
@@ -237,30 +227,25 @@ async function runPreorderQueue() {
                     date: new Date().toISOString(), api_msg: finalMessage, balance_before: 0, balance_after: 0
                 });
 
-                await db.collection('preorders').doc(poID).update({
-                    debugStatus: 'TERBELI',
-                    successData: { code: skuProduk, price: po.price || 0 },
-                    debugLogs: `[${new Date().toLocaleTimeString()}] ${finalMessage}`
-                });
+                // 2. HAPUS DARI ANTRIAN (Sesuai Permintaan)
+                console.log(`   🗑️ Menghapus dari antrian Preorder...`);
+                await db.collection('preorders').doc(poID).delete();
                 
+                // 3. Notif User
                 await sendUserLog(uidUser, "Transaksi Berhasil", finalMessage, historyId);
 
             } else if (isStockEmpty) {
-                // --- HANDLING STOK KOSONG (SPESIFIK) ---
                 console.log(`   ⚠️ GAGAL STOK KOSONG: ${detailedErrorLog}`);
                 
-                // Kita update Logs dengan detail lengkap sesuai request
+                // Update Log Error Stok Kosong (Data TETAP ADA di antrian)
                 await db.collection('preorders').doc(poID).update({
                     debugLogs: `[${new Date().toLocaleTimeString()}] ${detailedErrorLog}`
                 });
-                
-                // Opsional: Jika mau dianggap selesai (Gagal), ubah debugStatus: 'GAGAL'. 
-                // Jika mau retry terus (siapa tau stok isi lagi), biarkan statusnya. 
-                // Di sini saya biarkan retry sesuai logika sebelumnya.
 
             } else {
-                // --- HANDLING GAGAL LAINNYA ---
                 console.log(`   ⏳ PENDING/RETRY: ${finalMessage}`);
+                
+                // Update Log Error Biasa (Data TETAP ADA di antrian untuk Retry)
                 await db.collection('preorders').doc(poID).update({
                     debugLogs: `[${new Date().toLocaleTimeString()}] [RETRY] ${finalMessage}`
                 });

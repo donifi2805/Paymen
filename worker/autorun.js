@@ -26,12 +26,9 @@ async function hitVercelRelay(serverType, data, isRecheck = false) {
     const params = new URLSearchParams();
 
     if (serverType === 'ICS') {
-        // ICS
-        if (isRecheck) {
-             params.append('action', 'checkStatus'); // Sesuaikan action cek status ICS jika ada
-        } else {
-             params.append('action', 'createTransaction');
-        }
+        if (isRecheck) params.append('action', 'checkStatus'); 
+        else params.append('action', 'createTransaction');
+        
         params.append('apikey', ICS_KEY);
         params.append('kode_produk', data.sku);
         params.append('nomor_tujuan', data.tujuan);
@@ -40,13 +37,8 @@ async function hitVercelRelay(serverType, data, isRecheck = false) {
     } else {
         // KHFY
         params.append('api_key', KHFY_KEY);
-        
-        // PENTING: Jika Re-Check, gunakan endpoint history/status
-        if (isRecheck) {
-            params.append('endpoint', '/history'); // Endpoint cek status
-        } else {
-            params.append('endpoint', '/trx'); // Endpoint order
-        }
+        if (isRecheck) params.append('endpoint', '/history');
+        else params.append('endpoint', '/trx');
 
         params.append('produk', data.sku); 
         params.append('tujuan', data.tujuan); 
@@ -113,7 +105,6 @@ async function runPreorderQueue() {
             const poID = doc.id;
             const uidUser = po.uid; 
             
-            // Skip yang sudah Terbeli (jika ada sisa)
             if (po.debugStatus === 'TERBELI') continue; 
 
             const skuProduk = po.productCode || po.provider || po.code;
@@ -129,35 +120,22 @@ async function runPreorderQueue() {
                 continue; 
             }
 
-            // 1. HIT PERTAMA (ORDER)
+            // HIT PERTAMA
             const requestData = { sku: skuProduk, tujuan: tujuan, reffId: reffId };
             let result = await hitVercelRelay(serverType, requestData, false);
             
-            // --- LOGIKA "WAIT & RE-CHECK" ---
-            // Jika server KHFY bilang "akan di proses", kita TIDAK boleh percaya dulu.
-            // Kita harus tunggu 6 detik, lalu cek status lagi.
-            
+            // --- WAIT LOGIC (KHFY) ---
             if (serverType !== 'ICS') {
                 const msgAwal = (result.msg || result.message || '').toLowerCase();
                 const isQueued = msgAwal.includes('proses') || msgAwal.includes('berhasil');
                 
                 if (result.ok === true && isQueued) {
-                    console.log(`      ⏳ Respon: "Akan Diproses". Menunggu 6 detik untuk hasil final...`);
-                    
-                    // Delay 6 Detik
+                    console.log(`      ⏳ Respon: "Akan Diproses". Menunggu 6 detik...`);
                     await new Promise(r => setTimeout(r, 6000));
                     
-                    // 2. HIT KEDUA (CEK STATUS / HISTORY)
-                    // Kita tembak ulang relay dengan data yang sama (reffId sama),
-                    // Relay KHFY akan mengarahkannya ke endpoint /history (lihat fungsi hitVercelRelay)
                     const checkResult = await hitVercelRelay(serverType, requestData, true);
-                    
-                    // Ganti hasil 'result' dengan hasil cek status terbaru
                     if (checkResult.ok === true || checkResult.data) {
-                        console.log(`      📡 Hasil Re-Check diterima.`);
                         result = checkResult; 
-                    } else {
-                        console.log(`      ⚠️ Re-Check gagal/timeout. Menggunakan respon awal.`);
                     }
                 }
             }
@@ -169,99 +147,125 @@ async function runPreorderQueue() {
             let finalMessage = '-';
             let finalSN = '-';
             let trxIdProvider = '-';
+            
+            // Variabel Khusus Log Error
+            let isStockEmpty = false;
+            let detailedErrorLog = ''; 
 
             if (serverType === 'ICS') {
-                // LOGIKA ICS
-                if (result.success === true && result.data && result.data.status === 'success') {
-                    isSuccess = true;
-                    finalMessage = result.data.message; 
-                    finalSN = result.data.sn || '-'; 
-                    trxIdProvider = result.data.refid || '-';
-                } else {
-                    finalMessage = result.message || 'Gagal ICS';
+                // === LOGIKA ICS ===
+                if (result.success === true && result.data) {
+                    if (result.data.status === 'success') {
+                        // SUKSES
+                        isSuccess = true;
+                        finalMessage = result.data.message; 
+                        finalSN = result.data.sn || '-'; 
+                        trxIdProvider = result.data.refid || '-';
+                    } 
+                    else if (result.data.status === 'failed') {
+                        // GAGAL (Cek Stok Kosong)
+                        const msg = (result.data.message || '').toLowerCase();
+                        if (msg.includes('kosong') || msg.includes('ditutup')) {
+                            isStockEmpty = true;
+                            // Format Log Sesuai Request
+                            detailedErrorLog = `[STOK KOSONG] Msg: ${result.data.message} | Dest: ${result.data.dest} | Product: ${result.data.product} | RefID: ${result.data.refid}`;
+                            finalMessage = result.data.message;
+                        }
+                    }
+                } 
+                
+                if (!isSuccess && !isStockEmpty) {
+                    finalMessage = result.message || (result.data ? result.data.message : 'Gagal ICS');
                 }
 
             } else {
-                // LOGIKA KHFY
+                // === LOGIKA KHFY ===
                 let dataItem = null;
-                // Normalisasi Data Array/Object
                 if (result.data) {
                     if (Array.isArray(result.data)) dataItem = result.data[0];
                     else dataItem = result.data;
                 }
 
-                const msg = (result.msg || result.message || '').toLowerCase();
+                const msg = (result.msg || result.message || '').toLowerCase(); // msg utama
                 const statusText = dataItem ? (dataItem.status_text || '') : '';
                 
-                // Indikator Sukses
+                // Cek Sukses
                 const isExplicitSuccess = (statusText === 'SUKSES'); 
-                // Jika setelah re-check masih "akan di proses", kita anggap Pending (belum sukses total)
-                // Tapi user minta hapus kalau sukses. Jadi kita harus strict.
-                // Hanya status 'SUKSES' yang dianggap sukses final.
                 
                 if (result.ok === true && isExplicitSuccess) {
                     isSuccess = true;
-                    
                     trxIdProvider = dataItem.kode || dataItem.trxid || '-';
                     finalSN = dataItem.sn || '-';
 
-                    // Format Pesan
                     if (dataItem.kode_produk === 'CFMX' || (finalSN && finalSN.toLowerCase().includes('varian'))) {
                          finalMessage = `${finalSN}. Tujuan: ${dataItem.tujuan || tujuan}`;
                     } else {
                         finalMessage = `${statusText}. Produk: ${dataItem.kode_produk}. Tujuan: ${tujuan}. SN: ${finalSN}`;
                     }
                 } else {
-                    // Masih Pending atau Gagal
-                    if (dataItem) {
-                        finalMessage = dataItem.keterangan || dataItem.status_text || 'Pending/Gagal';
-                    } else {
-                        finalMessage = result.message || result.msg || 'Gagal/Maintenance';
+                    // Cek Gagal / Stok Kosong
+                    // Indikasi: ok=false DAN msg mengandung "#Gagal" atau "Stok Kosong"
+                    if (result.ok === false && (msg.includes('stok kosong') || msg.includes('#gagal'))) {
+                        isStockEmpty = true;
+                        
+                        // Ambil data untuk log
+                        const logTujuan = (result.data && result.data.tujuan) ? result.data.tujuan : tujuan;
+                        const logMsg = result.msg || 'Stok Kosong';
+                        
+                        // Format Log Sesuai Request
+                        detailedErrorLog = `[STOK KOSONG] Msg: ${logMsg} | Tujuan: ${logTujuan}`;
+                        finalMessage = logMsg;
+                    } 
+                    
+                    if (!isStockEmpty) {
+                         if (dataItem) finalMessage = dataItem.keterangan || dataItem.status_text || 'Pending/Gagal';
+                         else finalMessage = result.message || result.msg || 'Gagal/Maintenance';
                     }
                 }
             }
 
+            // --- EKSEKUSI DATABASE ---
+
             if (isSuccess) {
-                console.log(`   ✅ SUKSES FINAL! Pesan: ${finalMessage}`);
+                console.log(`   ✅ SUKSES! Pesan: ${finalMessage}`);
                 
                 const historyId = po.historyId || `TRX-${Date.now()}`;
-                
-                // 1. Simpan ke History User
                 await db.collection('users').doc(uidUser).collection('history').doc(historyId).set({
-                    uid: uidUser,
-                    trx_id: reffId,
-                    trx_code: Math.floor(100000 + Math.random() * 900000).toString(),
-                    title: po.productName || skuProduk,
-                    type: 'out',
-                    amount: po.price || 0,
-                    status: 'Sukses',
-                    dest_num: tujuan,
-                    sn: finalSN,
-                    trx_id_provider: trxIdProvider,
-                    provider_code: skuProduk,
-                    date: new Date().toISOString(),
-                    api_msg: finalMessage,
-                    balance_before: 0, 
-                    balance_after: 0
+                    uid: uidUser, trx_id: reffId, trx_code: Math.floor(100000 + Math.random() * 900000).toString(),
+                    title: po.productName || skuProduk, type: 'out', amount: po.price || 0, status: 'Sukses',
+                    dest_num: tujuan, sn: finalSN, trx_id_provider: trxIdProvider, provider_code: skuProduk,
+                    date: new Date().toISOString(), api_msg: finalMessage, balance_before: 0, balance_after: 0
                 });
 
-                // 2. HAPUS DARI ANTRIAN (Sesuai Request)
-                console.log(`   🗑️ Menghapus dari antrian Preorder...`);
-                await db.collection('preorders').doc(poID).delete();
+                await db.collection('preorders').doc(poID).update({
+                    debugStatus: 'TERBELI',
+                    successData: { code: skuProduk, price: po.price || 0 },
+                    debugLogs: `[${new Date().toLocaleTimeString()}] ${finalMessage}`
+                });
                 
-                // 3. Kirim Notif
                 await sendUserLog(uidUser, "Transaksi Berhasil", finalMessage, historyId);
 
-            } else {
-                console.log(`   ⏳ BELUM SUKSES (Retry Nanti): ${finalMessage}`);
+            } else if (isStockEmpty) {
+                // --- HANDLING STOK KOSONG (SPESIFIK) ---
+                console.log(`   ⚠️ GAGAL STOK KOSONG: ${detailedErrorLog}`);
                 
-                // Update Logs saja, status JANGAN GAGAL biar retry lagi
+                // Kita update Logs dengan detail lengkap sesuai request
                 await db.collection('preorders').doc(poID).update({
-                    debugLogs: `[${new Date().toLocaleTimeString()}] ${finalMessage}`
+                    debugLogs: `[${new Date().toLocaleTimeString()}] ${detailedErrorLog}`
+                });
+                
+                // Opsional: Jika mau dianggap selesai (Gagal), ubah debugStatus: 'GAGAL'. 
+                // Jika mau retry terus (siapa tau stok isi lagi), biarkan statusnya. 
+                // Di sini saya biarkan retry sesuai logika sebelumnya.
+
+            } else {
+                // --- HANDLING GAGAL LAINNYA ---
+                console.log(`   ⏳ PENDING/RETRY: ${finalMessage}`);
+                await db.collection('preorders').doc(poID).update({
+                    debugLogs: `[${new Date().toLocaleTimeString()}] [RETRY] ${finalMessage}`
                 });
             }
 
-            // Jeda 2 detik antar user
             await new Promise(r => setTimeout(r, 2000));
         }
 

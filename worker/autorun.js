@@ -84,6 +84,7 @@ async function runPreorderQueue() {
     console.log(`[${new Date().toISOString()}] MEMULAI CEK PREORDER QUEUE...`);
 
     try {
+        // LIMIT 100
         const snapshot = await db.collection('preorders')
                                  .orderBy('timestamp', 'asc') 
                                  .limit(100) 
@@ -101,7 +102,12 @@ async function runPreorderQueue() {
             const poID = doc.id;
             const uidUser = po.uid; 
             
-            if (po.debugStatus === 'TERBELI' || po.debugStatus === 'GAGAL') continue; 
+            // --- FILTER REVISI: HANYA LEWATI YANG 'TERBELI' ---
+            // Yang statusnya 'GAGAL' atau 'PENDING' akan DICOBA LAGI (RETRY)
+            if (po.debugStatus === 'TERBELI') {
+                // console.log(`   ⏩ SKIP: PO ${poID} sudah TERBELI.`);
+                continue; 
+            }
 
             const skuProduk = po.productCode || po.provider || po.code;
             const tujuan = po.targetNumber || po.target || po.tujuan;
@@ -112,7 +118,8 @@ async function runPreorderQueue() {
 
             if (!skuProduk || !tujuan) {
                 console.log(`   ❌ DATA TIDAK LENGKAP.`);
-                await db.collection('preorders').doc(poID).update({ debugStatus: 'GAGAL', debugLogs: 'Data korup' });
+                // Kalau data korup, baru kita tandai GAGAL permanen agar tidak looping
+                await db.collection('preorders').doc(poID).update({ debugStatus: 'GAGAL', debugLogs: 'Data korup (No Tujuan/Produk)' });
                 continue; 
             }
 
@@ -121,7 +128,7 @@ async function runPreorderQueue() {
             const result = await hitVercelRelay(serverType, requestData);
             console.log("      📡 Respon:", JSON.stringify(result));
 
-            // --- ANALISA HASIL (DIPERBAIKI) ---
+            // --- ANALISA HASIL ---
             let isSuccess = false;
             let finalMessage = '-';
             let finalSN = '-';
@@ -139,50 +146,38 @@ async function runPreorderQueue() {
                 }
 
             } else {
-                // === LOGIKA KHFY (REVISI) ===
-                
-                // 1. Normalisasi Data (Bisa Array atau Object)
+                // LOGIKA KHFY (REVISI)
                 let dataItem = null;
                 if (result.data) {
-                    if (Array.isArray(result.data)) {
-                        // Kasus 1: Array (Biasanya respon Cek Status/Riwayat)
-                        dataItem = result.data[0];
-                    } else {
-                        // Kasus 2: Object (Biasanya respon Order Baru "akan di proses")
-                        dataItem = result.data;
-                    }
+                    if (Array.isArray(result.data)) dataItem = result.data[0];
+                    else dataItem = result.data;
                 }
 
                 const msg = (result.msg || result.message || '').toLowerCase();
                 const statusText = dataItem ? (dataItem.status_text || '') : '';
                 
-                // 2. Cek Kondisi Sukses
-                const isExplicitSuccess = (statusText === 'SUKSES'); // Status tegas SUKSES
-                const isQueued = (msg.includes('proses') || msg.includes('berhasil')); // Status "akan di proses"
+                // SUKSES jika: Status Text 'SUKSES' ATAU msg berisi 'proses'/'berhasil'
+                const isExplicitSuccess = (statusText === 'SUKSES'); 
+                const isQueued = (msg.includes('proses') || msg.includes('berhasil'));
 
                 if (result.ok === true && (isExplicitSuccess || isQueued)) {
                     isSuccess = true;
-                    
-                    // Ambil TrxID Provider
                     trxIdProvider = dataItem.kode || dataItem.trxid || '-';
                     finalSN = dataItem.sn || 'Sedang Diproses';
 
-                    // FORMAT PESAN
                     if (dataItem.kode_produk === 'CFMX' || (finalSN && finalSN.toLowerCase().includes('varian'))) {
-                        // Case CFMX: Jika SN ada isinya varian, tampilkan. Jika masih diproses, info user.
                         if (finalSN === 'Sedang Diproses') {
-                             finalMessage = `Cek Varian ${dataItem.produk || skuProduk} sedang diproses. Silakan cek riwayat sesaat lagi.`;
+                             finalMessage = `Cek Varian ${dataItem.produk || skuProduk} diproses. Cek riwayat berkala.`;
                         } else {
                              finalMessage = `${finalSN}. Tujuan: ${dataItem.tujuan || tujuan}`;
                         }
                     } else {
-                        // Case Normal
                         const statusShow = statusText || "DIPROSES";
                         const produkShow = dataItem.kode_produk || dataItem.produk || skuProduk;
                         finalMessage = `${statusShow}. Produk: ${produkShow}. Tujuan: ${tujuan}. SN: ${finalSN}`;
                     }
                 } else {
-                    // Gagal
+                    // GAGAL
                     if (dataItem) {
                         finalMessage = dataItem.keterangan || dataItem.status_text || 'Gagal dari Pusat';
                     } else {
@@ -196,6 +191,7 @@ async function runPreorderQueue() {
                 
                 const historyId = po.historyId || `TRX-${Date.now()}`;
                 
+                // 1. Simpan ke History User
                 await db.collection('users').doc(uidUser).collection('history').doc(historyId).set({
                     uid: uidUser,
                     trx_id: reffId,
@@ -203,7 +199,7 @@ async function runPreorderQueue() {
                     title: po.productName || skuProduk,
                     type: 'out',
                     amount: po.price || 0,
-                    status: 'Sukses', // Status hijau di app user
+                    status: 'Sukses',
                     dest_num: tujuan,
                     sn: finalSN,
                     trx_id_provider: trxIdProvider,
@@ -214,22 +210,31 @@ async function runPreorderQueue() {
                     balance_after: 0
                 });
 
+                // 2. UPDATE Antrian Preorder (JADI TERBELI)
                 await db.collection('preorders').doc(poID).update({
                     debugStatus: 'TERBELI',
                     successData: { code: skuProduk, price: po.price || 0 },
                     debugLogs: `[${new Date().toLocaleTimeString()}] ${finalMessage}`
                 });
                 
+                // 3. Notif User
                 await sendUserLog(uidUser, "Transaksi Berhasil", finalMessage, historyId);
 
             } else {
-                console.log(`   ❌ GAGAL: ${finalMessage}`);
+                console.log(`   ⏳ GAGAL (AKAN RETRY): ${finalMessage}`);
+                
+                // --- PERUBAHAN UTAMA DI SINI ---
+                // JANGAN update status jadi 'GAGAL'.
+                // Cukup update Logs saja, agar status tetap 'PENDING' (atau status sebelumnya)
+                // Sehingga script akan mencobanya lagi di putaran berikutnya.
+                
                 await db.collection('preorders').doc(poID).update({
-                    debugStatus: 'GAGAL',
-                    debugLogs: `[${new Date().toLocaleTimeString()}] System: ${finalMessage}`
+                    // debugStatus: 'GAGAL', <--- SAYA HAPUS INI AGAR TETAP ANTRI
+                    debugLogs: `[${new Date().toLocaleTimeString()}] [RETRY] Error: ${finalMessage}`
                 });
             }
 
+            // Jeda 2 detik
             await new Promise(r => setTimeout(r, 2000));
         }
 

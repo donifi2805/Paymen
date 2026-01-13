@@ -15,17 +15,20 @@ try {
 
 const db = admin.firestore();
 
-// --- 2. KONFIGURASI RELAY VERCEL ---
+// --- 2. KONFIGURASI RELAY VERCEL (JEMBATAN) ---
+// Worker bertindak seperti index.html, menembak ke Vercel, bukan ke Provider langsung.
 const VERCEL_DOMAIN = "https://www.pandawa-digital.store"; 
 const KHFY_KEY = process.env.KHFY_API_KEY; 
 const ICS_KEY = process.env.ICS_API_KEY; 
 
-// --- FUNGSI TEMBAK KE RELAY ---
+// --- FUNGSI TEMBAK KE RELAY (SAMA SEPERTI INDEX.HTML) ---
 async function hitVercelRelay(serverType, data, isRecheck = false) {
     let targetUrl = '';
     const params = new URLSearchParams();
 
+    // Logic ini meniru cara index.html memanggil api/relay.js atau api/relaykhfy.js
     if (serverType === 'ICS') {
+        // Ke api/relay.js
         if (isRecheck) params.append('action', 'checkStatus'); 
         else params.append('action', 'createTransaction');
         
@@ -35,10 +38,14 @@ async function hitVercelRelay(serverType, data, isRecheck = false) {
         params.append('refid', data.reffId);
         targetUrl = `${VERCEL_DOMAIN}/api/relay?${params.toString()}`;
     } else {
-        // KHFY
+        // Ke api/relaykhfy.js
         params.append('api_key', KHFY_KEY);
-        if (isRecheck) params.append('endpoint', '/history');
-        else params.append('endpoint', '/trx');
+        
+        if (isRecheck) {
+            params.append('endpoint', '/history'); // Cek Status
+        } else {
+            params.append('endpoint', '/trx'); // Transaksi Baru
+        }
 
         params.append('produk', data.sku); 
         params.append('tujuan', data.tujuan); 
@@ -47,15 +54,19 @@ async function hitVercelRelay(serverType, data, isRecheck = false) {
     }
 
     if (!isRecheck) console.log(`      🚀 Menembak Relay Vercel (${serverType})...`);
-    else console.log(`      🔎 Re-Check Status (${serverType})...`);
+    else console.log(`      🔎 Re-Check Status via Vercel (${serverType})...`);
     
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000); 
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 Detik Timeout
 
+        // Menggunakan GET karena Relay Vercel Anda menerima Query Params
         const response = await fetch(targetUrl, { 
             method: 'GET',
-            headers: { 'User-Agent': 'Pandawa-Worker/1.0' },
+            headers: { 
+                'User-Agent': 'Pandawa-Worker/Bot', // User Agent agar tidak dianggap spam
+                'Cache-Control': 'no-cache'
+            },
             signal: controller.signal 
         });
         clearTimeout(timeoutId);
@@ -64,10 +75,11 @@ async function hitVercelRelay(serverType, data, isRecheck = false) {
         try {
             return JSON.parse(text);
         } catch (e) {
-            return { status: false, message: "HTML Error / Server Pusat Gangguan", raw: text };
+            // Menangani jika Vercel maintenance/error HTML
+            return { status: false, message: "HTML Error / Relay Gangguan", raw: text.substring(0,100) };
         }
     } catch (error) {
-        return { status: false, message: "Relay Timeout" };
+        return { status: false, message: "Relay Vercel Timeout" };
     }
 }
 
@@ -82,11 +94,12 @@ async function sendUserLog(uid, title, message, trxId) {
     } catch (e) { console.error("Err Notif:", e.message); }
 }
 
-// --- 3. LOGIKA UTAMA ---
+// --- 3. LOGIKA UTAMA (PREORDER QUEUE) ---
 async function runPreorderQueue() {
     console.log(`[${new Date().toISOString()}] MEMULAI CEK PREORDER QUEUE...`);
 
     try {
+        // Ambil data antrian (Max 100)
         const snapshot = await db.collection('preorders')
                                  .orderBy('timestamp', 'asc') 
                                  .limit(100) 
@@ -104,7 +117,7 @@ async function runPreorderQueue() {
             const poID = doc.id;
             const uidUser = po.uid; 
             
-            // Skip yang sudah Terbeli (jika ada sisa sampah lama)
+            // Skip jika status sudah TERBELI (Sampah lama yang belum terhapus)
             if (po.debugStatus === 'TERBELI') continue; 
 
             const skuProduk = po.productCode || po.provider || po.code;
@@ -120,22 +133,23 @@ async function runPreorderQueue() {
                 continue; 
             }
 
-            // HIT PERTAMA
+            // 1. HIT PERTAMA (ORDER via Vercel)
             const requestData = { sku: skuProduk, tujuan: tujuan, reffId: reffId };
             let result = await hitVercelRelay(serverType, requestData, false);
             
-            // --- WAIT LOGIC (KHFY) ---
+            // --- WAIT & RECHECK LOGIC (KHFY) ---
             if (serverType !== 'ICS') {
                 const msgAwal = (result.msg || result.message || '').toLowerCase();
                 const isQueued = msgAwal.includes('proses') || msgAwal.includes('berhasil');
                 
+                // Jika KHFY bilang "Akan di proses", kita tunggu 6 detik lalu tanya Vercel lagi
                 if (result.ok === true && isQueued) {
                     console.log(`      ⏳ Respon: "Akan Diproses". Menunggu 6 detik...`);
                     await new Promise(r => setTimeout(r, 6000));
                     
                     const checkResult = await hitVercelRelay(serverType, requestData, true);
                     if (checkResult.ok === true || checkResult.data) {
-                        result = checkResult; 
+                        result = checkResult; // Update hasil dengan data terbaru
                     }
                 }
             }
@@ -152,7 +166,7 @@ async function runPreorderQueue() {
             let detailedErrorLog = ''; 
 
             if (serverType === 'ICS') {
-                // LOGIKA ICS
+                // === LOGIKA ICS ===
                 if (result.success === true && result.data) {
                     if (result.data.status === 'success') {
                         isSuccess = true;
@@ -161,10 +175,11 @@ async function runPreorderQueue() {
                         trxIdProvider = result.data.refid || '-';
                     } 
                     else if (result.data.status === 'failed') {
+                        // Cek Stok Kosong
                         const msg = (result.data.message || '').toLowerCase();
                         if (msg.includes('kosong') || msg.includes('ditutup')) {
                             isStockEmpty = true;
-                            detailedErrorLog = `[STOK KOSONG] Msg: ${result.data.message} | Dest: ${result.data.dest} | Product: ${result.data.product} | RefID: ${result.data.refid}`;
+                            detailedErrorLog = `[STOK KOSONG] Msg: ${result.data.message} | Dest: ${result.data.dest} | Product: ${result.data.product}`;
                             finalMessage = result.data.message;
                         }
                     }
@@ -174,7 +189,7 @@ async function runPreorderQueue() {
                 }
 
             } else {
-                // LOGIKA KHFY
+                // === LOGIKA KHFY ===
                 let dataItem = null;
                 if (result.data) {
                     if (Array.isArray(result.data)) dataItem = result.data[0];
@@ -197,6 +212,7 @@ async function runPreorderQueue() {
                         finalMessage = `${statusText}. Produk: ${dataItem.kode_produk}. Tujuan: ${tujuan}. SN: ${finalSN}`;
                     }
                 } else {
+                    // Cek Gagal / Stok Kosong
                     if (result.ok === false && (msg.includes('stok kosong') || msg.includes('#gagal'))) {
                         isStockEmpty = true;
                         const logTujuan = (result.data && result.data.tujuan) ? result.data.tujuan : tujuan;
@@ -219,7 +235,7 @@ async function runPreorderQueue() {
                 
                 const historyId = po.historyId || `TRX-${Date.now()}`;
                 
-                // 1. Simpan ke History User
+                // 1. BUAT HISTORY (Agar User Lihat)
                 await db.collection('users').doc(uidUser).collection('history').doc(historyId).set({
                     uid: uidUser, trx_id: reffId, trx_code: Math.floor(100000 + Math.random() * 900000).toString(),
                     title: po.productName || skuProduk, type: 'out', amount: po.price || 0, status: 'Sukses',
@@ -227,17 +243,18 @@ async function runPreorderQueue() {
                     date: new Date().toISOString(), api_msg: finalMessage, balance_before: 0, balance_after: 0
                 });
 
-                // 2. HAPUS DARI ANTRIAN (Sesuai Permintaan)
+                // 2. KIRIM NOTIFIKASI
+                await sendUserLog(uidUser, "Transaksi Berhasil", finalMessage, historyId);
+
+                // 3. HAPUS DARI ANTRIAN (Sesuai Permintaan: Sukses = Hapus)
                 console.log(`   🗑️ Menghapus dari antrian Preorder...`);
                 await db.collection('preorders').doc(poID).delete();
-                
-                // 3. Notif User
-                await sendUserLog(uidUser, "Transaksi Berhasil", finalMessage, historyId);
 
             } else if (isStockEmpty) {
                 console.log(`   ⚠️ GAGAL STOK KOSONG: ${detailedErrorLog}`);
                 
-                // Update Log Error Stok Kosong (Data TETAP ADA di antrian)
+                // Jika stok kosong, JANGAN HAPUS, tapi update LOGS agar admin tahu
+                // Data tetap antri untuk dicoba lagi nanti
                 await db.collection('preorders').doc(poID).update({
                     debugLogs: `[${new Date().toLocaleTimeString()}] ${detailedErrorLog}`
                 });
@@ -245,12 +262,14 @@ async function runPreorderQueue() {
             } else {
                 console.log(`   ⏳ PENDING/RETRY: ${finalMessage}`);
                 
-                // Update Log Error Biasa (Data TETAP ADA di antrian untuk Retry)
+                // Jika error lain (Timeout/Maintenance), update LOGS saja
+                // Data tetap antri untuk Retry
                 await db.collection('preorders').doc(poID).update({
                     debugLogs: `[${new Date().toLocaleTimeString()}] [RETRY] ${finalMessage}`
                 });
             }
 
+            // Jeda 2 detik antar transaksi
             await new Promise(r => setTimeout(r, 2000));
         }
 

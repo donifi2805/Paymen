@@ -84,7 +84,6 @@ async function runPreorderQueue() {
     console.log(`[${new Date().toISOString()}] MEMULAI CEK PREORDER QUEUE...`);
 
     try {
-        // LIMIT 100
         const snapshot = await db.collection('preorders')
                                  .orderBy('timestamp', 'asc') 
                                  .limit(100) 
@@ -102,7 +101,6 @@ async function runPreorderQueue() {
             const poID = doc.id;
             const uidUser = po.uid; 
             
-            // SKIP yang sudah selesai
             if (po.debugStatus === 'TERBELI' || po.debugStatus === 'GAGAL') continue; 
 
             const skuProduk = po.productCode || po.provider || po.code;
@@ -123,18 +121,16 @@ async function runPreorderQueue() {
             const result = await hitVercelRelay(serverType, requestData);
             console.log("      📡 Respon:", JSON.stringify(result));
 
-            // --- ANALISA HASIL SPESIFIK (SESUAI REQUEST) ---
+            // --- ANALISA HASIL (DIPERBAIKI) ---
             let isSuccess = false;
-            let finalMessage = '-'; // Ini yang akan jadi SN / Pesan Sukses
+            let finalMessage = '-';
             let finalSN = '-';
             let trxIdProvider = '-';
 
             if (serverType === 'ICS') {
-                // === LOGIKA ICS ===
-                // Indikator: "status": "success" di dalam data object
+                // LOGIKA ICS
                 if (result.success === true && result.data && result.data.status === 'success') {
                     isSuccess = true;
-                    // REQ: "message": "XCLP5... SUKSES..." adalah pesan yang dikirimkan
                     finalMessage = result.data.message; 
                     finalSN = result.data.sn || '-'; 
                     trxIdProvider = result.data.refid || '-';
@@ -143,35 +139,54 @@ async function runPreorderQueue() {
                 }
 
             } else {
-                // === LOGIKA KHFY ===
-                // Data ada di dalam Array: data: [ { ... } ]
-                // Indikator: "status_text": "SUKSES"
+                // === LOGIKA KHFY (REVISI) ===
                 
-                const dataItem = (result.data && Array.isArray(result.data)) ? result.data[0] : null;
-
-                if (result.ok === true && dataItem && dataItem.status_text === 'SUKSES') {
-                    isSuccess = true;
-                    trxIdProvider = dataItem.kode || '-';
-                    finalSN = dataItem.sn || '-';
-
-                    // REQ 1: Jika CFMX (Cek Varian)
-                    // "maka varian tersedia... adalah pesan yang di gunakan jangan lupa sertakan info tujuan"
-                    if (dataItem.kode_produk === 'CFMX' || (dataItem.sn && dataItem.sn.toLowerCase().includes('varian'))) {
-                         finalMessage = `${dataItem.sn}. Tujuan: ${dataItem.tujuan}`;
-                    } 
-                    // REQ 2: Normal (XLA51 dll)
-                    // "maka yang di tampilkan 'tujuan', 'kode_produk', 'status_text'"
-                    // Saya format agar rapi: "SUKSES. Produk: [kode]. Tujuan: [tujuan]. SN: [sn]"
-                    else {
-                        finalMessage = `${dataItem.status_text}. Produk: ${dataItem.kode_produk}. Tujuan: ${dataItem.tujuan}. SN: ${dataItem.sn}`;
-                    }
-
-                } else {
-                    // Ambil pesan error jika gagal
-                    if (dataItem) {
-                        finalMessage = dataItem.keterangan || dataItem.status_text || 'Gagal KHFY';
+                // 1. Normalisasi Data (Bisa Array atau Object)
+                let dataItem = null;
+                if (result.data) {
+                    if (Array.isArray(result.data)) {
+                        // Kasus 1: Array (Biasanya respon Cek Status/Riwayat)
+                        dataItem = result.data[0];
                     } else {
-                        finalMessage = result.message || 'Gagal/Maintenance';
+                        // Kasus 2: Object (Biasanya respon Order Baru "akan di proses")
+                        dataItem = result.data;
+                    }
+                }
+
+                const msg = (result.msg || result.message || '').toLowerCase();
+                const statusText = dataItem ? (dataItem.status_text || '') : '';
+                
+                // 2. Cek Kondisi Sukses
+                const isExplicitSuccess = (statusText === 'SUKSES'); // Status tegas SUKSES
+                const isQueued = (msg.includes('proses') || msg.includes('berhasil')); // Status "akan di proses"
+
+                if (result.ok === true && (isExplicitSuccess || isQueued)) {
+                    isSuccess = true;
+                    
+                    // Ambil TrxID Provider
+                    trxIdProvider = dataItem.kode || dataItem.trxid || '-';
+                    finalSN = dataItem.sn || 'Sedang Diproses';
+
+                    // FORMAT PESAN
+                    if (dataItem.kode_produk === 'CFMX' || (finalSN && finalSN.toLowerCase().includes('varian'))) {
+                        // Case CFMX: Jika SN ada isinya varian, tampilkan. Jika masih diproses, info user.
+                        if (finalSN === 'Sedang Diproses') {
+                             finalMessage = `Cek Varian ${dataItem.produk || skuProduk} sedang diproses. Silakan cek riwayat sesaat lagi.`;
+                        } else {
+                             finalMessage = `${finalSN}. Tujuan: ${dataItem.tujuan || tujuan}`;
+                        }
+                    } else {
+                        // Case Normal
+                        const statusShow = statusText || "DIPROSES";
+                        const produkShow = dataItem.kode_produk || dataItem.produk || skuProduk;
+                        finalMessage = `${statusShow}. Produk: ${produkShow}. Tujuan: ${tujuan}. SN: ${finalSN}`;
+                    }
+                } else {
+                    // Gagal
+                    if (dataItem) {
+                        finalMessage = dataItem.keterangan || dataItem.status_text || 'Gagal dari Pusat';
+                    } else {
+                        finalMessage = result.message || result.msg || 'Gagal/Maintenance';
                     }
                 }
             }
@@ -181,7 +196,6 @@ async function runPreorderQueue() {
                 
                 const historyId = po.historyId || `TRX-${Date.now()}`;
                 
-                // 1. Simpan ke History User
                 await db.collection('users').doc(uidUser).collection('history').doc(historyId).set({
                     uid: uidUser,
                     trx_id: reffId,
@@ -189,26 +203,23 @@ async function runPreorderQueue() {
                     title: po.productName || skuProduk,
                     type: 'out',
                     amount: po.price || 0,
-                    status: 'Sukses',
+                    status: 'Sukses', // Status hijau di app user
                     dest_num: tujuan,
-                    sn: finalSN, // SN Murni
+                    sn: finalSN,
                     trx_id_provider: trxIdProvider,
                     provider_code: skuProduk,
                     date: new Date().toISOString(),
-                    api_msg: finalMessage, // Pesan Spesifik (Varian/Lengkap)
+                    api_msg: finalMessage,
                     balance_before: 0, 
                     balance_after: 0
                 });
 
-                // 2. UPDATE Antrian Preorder
                 await db.collection('preorders').doc(poID).update({
                     debugStatus: 'TERBELI',
                     successData: { code: skuProduk, price: po.price || 0 },
-                    // Log Pesan Spesifik juga disimpan di sini
                     debugLogs: `[${new Date().toLocaleTimeString()}] ${finalMessage}`
                 });
                 
-                // 3. Kirim Notif (Pakai Final Message yang spesifik)
                 await sendUserLog(uidUser, "Transaksi Berhasil", finalMessage, historyId);
 
             } else {

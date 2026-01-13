@@ -1,31 +1,42 @@
 name: External Trigger Auto Run
+
 on:
-  repository_dispatch:
-    types: [run_mass_transaction] # Ini adalah "password" event kita
+  workflow_dispatch: # Mode Manual & API Spesifik (Paling Stabil untuk Cronjob)
 
 jobs:
   run-worker:
     runs-on: ubuntu-latest
+    
     steps:
+      # 1. Ambil kode dari repository
       - name: Checkout Code
         uses: actions/checkout@v3
 
+      # 2. Siapkan mesin Node.js versi 18
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
 
+      # 3. Install library yang dibutuhkan (Firebase & Fetch)
       - name: Install Dependencies
-        run: npm install firebase-admin
+        run: npm install firebase-admin node-fetch
 
+      # 4. Jalankan script worker Anda
       - name: Run Worker Script
         run: node worker/autorun.js
         env:
-          # Masukkan semua rahasia ini di Settings GitHub
+          # --- RAHASIA DARI GITHUB SECRETS ---
+          # Pastikan nama variabel ini SAMA dengan yang Anda isi di Settings GitHub
+          
+          # Konfigurasi Firebase
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
           FIREBASE_PRIVATE_KEY_ID: ${{ secrets.FIREBASE_PRIVATE_KEY_ID }}
           FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
           FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
           FIREBASE_CLIENT_ID: ${{ secrets.FIREBASE_CLIENT_ID }}
           FIREBASE_CLIENT_CERT_URL: ${{ secrets.FIREBASE_CLIENT_CERT_URL }}
+          
+          # API Key Provider (Opsional, tergantung script autorun.js Anda pakai yang mana)
           KHFY_API_KEY: ${{ secrets.KHFY_API_KEY }}
+          ICS_API_KEY: ${{ secrets.ICS_API_KEY }}

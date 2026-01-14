@@ -3540,7 +3540,55 @@
             alert(typeof e === 'string' ? e : e.message);
         }
     };
-    window.executeApiTransaction = async (code, dest, price, name, provCode) => {
+        // --- MODIFIKASI: SAFETY NET AUTO REFUND (KHUSUS KHFY) ---
+    window.handleAutoRefund = async (trxId, uid, amount, reason) => {
+        console.warn("AUTO REFUND ACTIONS:", reason);
+        try {
+            const userRef = doc(db, "users", uid);
+            const trxRef = doc(db, "users", uid, "history", trxId);
+
+            // 1. Eksekusi Pengembalian Saldo di Database
+            await runTransaction(db, async (t) => {
+                const trxDoc = await t.get(trxRef);
+                const userDoc = await t.get(userRef);
+                if (!trxDoc.exists()) throw "Data transaksi tidak ditemukan di server";
+                
+                // Cek status agar tidak double refund
+                const currentData = trxDoc.data();
+                if(currentData.status === 'Gagal' || currentData.is_refunded === true) return;
+
+                const currentBal = userDoc.data().balance || 0;
+                const newBal = currentBal + parseInt(amount);
+
+                t.update(userRef, { balance: newBal });
+                t.update(trxRef, {
+                    status: 'Gagal',
+                    api_msg: 'AUTO REFUND: ' + reason,
+                    is_refunded: true,
+                    balance_after: newBal,
+                    sn: 'GAGAL KONEKSI SERVER'
+                });
+            });
+
+            // 2. Update Tampilan Saldo User (Realtime UI)
+            if(currentUser && currentUser.uid === uid) {
+                currentBalance += parseInt(amount);
+                if(document.getElementById('displayBalance')) 
+                    document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
+            }
+
+            // 3. Beritahu User
+            window.showAlert("Transaksi Dibatalkan", "Gagal terhubung ke Server Pusat (Koneksi/Timeout).\nSaldo Anda telah dikembalikan otomatis.", "error");
+
+        } catch (e) {
+            console.error("Gagal melakukan Auto Refund:", e);
+            // Jika gagal refund via transaction (misal offline total), user harus lapor admin
+            alert("Koneksi Sangat Buruk! Silakan refresh halaman dan cek riwayat untuk memastikan saldo.");
+        }
+    };
+
+
+window.executeApiTransaction = async (code, dest, price, name, provCode) => {
         window.showLoader(true);
         // Format Baru: TRX-08xx-JamMenitDetik
         const d = new Date();
@@ -3589,190 +3637,66 @@
         currentBalance -= price;
         if(document.getElementById('displayBalance')) document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
 
-        // 2. CALL API
+                // 2. CALL API (MODIFIED: STRICT AUTO REFUND FOR KHFY)
         try {
-                        const result = await callApi('/trx', { produk: code, tujuan: dest, reff_id: reffId });
+            const result = await callApi('/trx', { produk: code, tujuan: dest, reff_id: reffId });
             window.showLoader(false);
 
-            // ============================================================
-            // MODIFIKASI KHUSUS KHFY: AUTO REFUND SAAT LOCK_TIMEOUT
-            // ============================================================
-            
-            // 1. Deteksi Pola JSON KHFY: { data: { error: "lock_timeout" } }
-            // Menggunakan optional chaining (?.) untuk keamanan jika data null
-            const khfyData = result.data?.data; 
-            const isKhfyLockTimeout = (khfyData?.error === 'lock_timeout');
-
-            if (isKhfyLockTimeout) {
-                console.warn("⚠️ KHFY Lock Timeout - Transaksi tidak masuk server - Auto Refund");
-
-                // Update status Firebase ke Gagal (Agar tidak diproses Watchdog)
-                await updateDoc(trxRef, { 
-                    status: 'Gagal', 
-                    api_msg: 'Gagal: Server Sibuk/Timeout (Auto Refund)',
-                    raw_json: JSON.stringify(result)
-                });
-
-                // Eksekusi Pengembalian Saldo (Smart Refund)
-                const refundResult = await window.processSmartRefund(currentUser.uid, reffId, 'Refund: Server Sibuk (Tidak masuk database pusat)');
-
-                // Kembalikan Saldo di Tampilan UI (Visual)
-                currentBalance += price;
-                if(document.getElementById('displayBalance')) {
-                    document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
-                }
-
-                // Beri Alert ke User
-                window.showAlert("Transaksi Gagal", "Server sedang sibuk (Lock Timeout). Transaksi tidak masuk sistem.\n\nSaldo Anda telah dikembalikan otomatis.", "error");
-                
-                window.nav('homePage');
-                return; // PENTING: Stop eksekusi agar tidak lanjut ke logika lain
-            }
-            // ============================================================
-
-            // --- FIX BUG FALSE NEGATIVE (Anti Refund saat RTO & Network Glitch) ---
-            // UPDATE: Menambahkan deteksi 'Load failed' dan error generik proxy untuk mencegah refund prematur
-            const errStr = result.error ? String(result.error) : "";
-            const isNetworkError = errStr.includes('Failed to fetch') || 
-                                 errStr.includes('NetworkError') || 
-                                 errStr.includes('Gagal Koneksi') ||
-                                 errStr.includes('Load failed') ||
-                                 errStr.includes('upstream') ||
-                                 (!result.ok && !result.data && !result.error); // Respon kosong/gelap
-
-            if (!result.ok && isNetworkError) {
-                console.warn("Network Error Detected - Holding Refund");
-                
-                await updateDoc(trxRef, { 
-                    status: 'Pending', 
-                    api_msg: 'Koneksi Terputus (Verifikasi Otomatis)...',
-                    raw_json: JSON.stringify(result)
-                });
-                
-                window.customConfirm(
-                    'Koneksi Terganggu',
-                    'Sinyal terputus saat kirim data. JANGAN transaksi ulang! Sistem sedang memverifikasi status transaksi Anda ke server.',
-                    () => window.manualCheckTrx(reffId, null)
-                );
-
-                // Auto Cek Status ke Server Pusat (Delay 3 detik)
-                setTimeout(() => window.manualCheckTrx(reffId, null), 3000);
-                
-                window.nav('homePage');
-                return; // STOP: Jangan lanjut ke logika refund!
-            }
-            // ------------------------------------------------------
-            
-            let isSuccess = false;
-            let msg = 'Tidak ada respon server';
-
-            // UPDATE: Jika semua proxy gagal (misal: HTTP_CLIENT_RESPONSE_BODY_ERR)
-            // Paksa pesan jadi 'Server Sedang Sibuk' agar masuk ke logika refund dengan info yang jelas
+            // A. DETEKSI ERROR JARINGAN / PROXY
+            // Jika result.ok = false, artinya Relay/Proxy gagal menghubungi KHFY
             if (!result.ok) {
-                msg = "Server Sedang Sibuk";
+                throw new Error("Koneksi Server Terputus (" + (result.error || 'No Response') + ")");
             }
-            
-            let providerId = '';
-            
-            // DETEKSI KHUSUS ERROR LOCK_TIMEOUT (Server Busy)
-            const rawRes = JSON.stringify(result).toLowerCase();
-            const isLockTimeout = rawRes.includes('lock_timeout');
 
-            // --- FIX: Handle Lock Timeout sebagai PENDING (Anti-Refund) ---
-            if (isLockTimeout) {
-                 console.warn("Lock Timeout Detected - Holding Refund");
-                 await updateDoc(trxRef, { 
+            const data = result.data;
+            const rawStr = JSON.stringify(data).toLowerCase();
+
+            // B. DETEKSI ERROR HTML / SERVER BUSY (Penyebab utama 'Menghubungkan ke server' lama)
+            // Ini menangkap error 502, 504, HTML Error, Lock Timeout dari KHFY
+            if (rawStr.includes('lock_timeout') || rawStr.includes('html error') || rawStr.includes('bad gateway') || rawStr.includes('service unavailable') || rawStr.includes('maintenance')) {
+                throw new Error("Server Sedang Sibuk/Down (Auto Refund)");
+            }
+
+            // C. PROSES RESPON API NORMAL
+            let isSuccess = false;
+            let msg = data.message || data.sn || "";
+            
+            // Sensor Data Sensitif
+            if(typeof msg === 'string') {
+                msg = msg.replace(/(kodereseller|password|pin)=[^&\s#]*&?/gi, "");
+            }
+
+            if (data.status === true || data.success === true || (data.data && data.data.status === 'Pending')) {
+                isSuccess = true;
+            }
+
+            if (isSuccess) {
+                // --- SUKSES: Update jadi Pending seperti biasa ---
+                await updateDoc(trxRef, { 
                     status: 'Pending', 
-                    api_msg: 'Server Busy (Lock Timeout). Mengecek status...',
-                    raw_json: rawRes
+                    api_msg: msg, 
+                    raw_json: JSON.stringify(data) 
                 });
                 
-                // Auto Cek Status (Delay 3 detik)
-                setTimeout(() => window.manualCheckTrx(reffId, null), 3000);
-
-                window.customConfirm(
-                    'Server Sedang Sibuk',
-                    'Transaksi masuk antrean (Lock Timeout). Sistem akan mengecek status otomatis. Mohon tunggu sebentar.',
-                    () => window.manualCheckTrx(reffId, null)
-                );
-                
+                alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                 window.nav('homePage');
-                return; // STOP: Jangan lanjut ke logika sukses/gagal biasa
+            } else {
+                // --- GAGAL DARI LOGIC API: Lempar Error agar di-Refund ---
+                throw new Error(msg || "Transaksi Ditolak Server");
             }
 
-            if(result.ok && result.data) {
-                 const d = result.data;
-                 msg = d.message || d.msg || d.sn || (d.data ? d.data.message : '') || msg;
-                 // --- SENSOR DATA SENSITIF (Anti-Leak) ---
-                 // Menghapus total parameter kodereseller, password, dan pin agar tidak tampil
-                 if(typeof msg === 'string') {
-                    // 1. Hapus key=value untuk data sensitif
-                    msg = msg.replace(/(kodereseller|password|pin)=[^&\s#]*&?/gi, "");
-                    msg = msg.replace(/^(trx)?\?/i, "");
-
-                    // 2. SENSOR SISA SALDO & STOK AGRESIF
-                    if (msg.toLowerCase().includes('stok sedang kosong') || msg.toLowerCase().includes('ditutup')) {
-                        msg = 'Stok Sedang Kosong / Sedang Gangguan';
-                    } else {
-                        msg = msg.replace(/(\(|\[)?\s*Sisa\s*Saldo.*(\)|\])?/gi, '').trim();
-                    }
-                 }
-
-                 // --- SENSOR DATA SENSITIF (Anti-Leak) ---
-                 // Menyembunyikan kodereseller, password, dan pin dari pesan error
-                 if(typeof msg === 'string') {
-                    msg = msg.replace(/(kodereseller|password|pin)=([^&\s#]*)/gi, '$1=******');
-                 }
-                 if(d.data && d.data.id) providerId = d.data.id;
-                 isSuccess = d.status === true || d.success === true || d.status === 'success' || (d.data && d.data.status === 'Pending') || String(msg).toLowerCase().includes('proses');
-            }
-
-            if(isSuccess) {
-                let safeMsg = msg;
-                if (safeMsg.includes('password=') || safeMsg.includes('pin=')) {
-                    safeMsg = safeMsg.split('#').pop() || 'Tujuan Diluar Wilayah';
-                }
-                await updateDoc(trxRef, { status: 'Pending', api_msg: safeMsg, provider_id: providerId, raw_json: JSON.stringify(result.data || result || {}) });
-                
-                                alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
-                window.nav('homePage');
-                        } else {
-                // GAGAL DARI RESPON API -> LAKUKAN REFUND OTOMATIS (LEDGER V2)
-                // Logic Baru: Bersih & Aman
-                const finalMsg = isLockTimeout ? msg : (msg.includes('wilayah') ? 'Gagal Tujuan di luar wilayah' : msg);
-                
-                // 1. Panggil Sistem Ledger untuk Refund Database
-                const refundResult = await window.processSmartRefund(currentUser.uid, reffId, finalMsg);
-                
-                // 2. Update Tampilan Saldo (Visual Saja)
-                currentBalance += price;
-                if(document.getElementById('displayBalance')) document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
-
-                                // 3. Tampilkan Pesan ke User
-                // PERBAIKAN: Gunakan 'finalMsg' agar pesan asli server (Misal: Nomor Salah/Suspect) muncul
-                const displayMsg = finalMsg || msg || "Transaksi Gagal";
-                window.showAlert("Transaksi Gagal", displayMsg + "\n\n" + (refundResult.msg || "Saldo telah dikembalikan otomatis."), "error");
-                window.nav('homePage');
-            }
-
-                } catch(e) {
+        } catch(e) {
             window.showLoader(false);
-            // 3. ERROR KONEKSI (Murni jaringan, bukan error logic server)
-            await updateDoc(trxRef, { 
-                status: 'Pending', 
-                api_msg: 'Koneksi Timeout. Klik tombol refresh pada riwayat.',
-                error_log: String(e)
-            });
+            console.error("TRANSAKSI ERROR (TRIGGERING AUTO REFUND):", e);
+
+                        // --- DANGER ZONE: AUTO REFUND EKSEKUSI ---
+            // Apapun errornya (Koneksi, Timeout, Gagal API), panggil fungsi refund.
+            await window.handleAutoRefund(reffId, currentUser.uid, price, e.message || "Gagal Koneksi Tak Diketahui");
             
-            window.customConfirm(
-                'Koneksi Timeout', 
-                'Koneksi terputus saat transaksi. Saldo aman. Silakan cek status untuk memastikan keberhasilan transaksi atau pengembalian saldo.', 
-                async () => {
-                    window.manualCheckTrx(reffId, null);
-                }
-            );
+            window.nav('homePage');
         }
     };
+
 
 
     // --- TOP UP LOGIC & SMART BADGE ---

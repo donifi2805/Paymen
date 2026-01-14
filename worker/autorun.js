@@ -102,6 +102,7 @@ async function hitVercelRelay(serverType, data, isRecheck = false) {
 
         const text = await response.text();
         try {
+            // Kita kembalikan Objek JSON asli agar nanti bisa di-stringify
             return JSON.parse(text);
         } catch (e) {
             return { status: false, message: "HTML Error / Server Pusat Gangguan", raw: text };
@@ -127,9 +128,6 @@ async function runPreorderQueue() {
     console.log(`[${new Date().toISOString()}] MEMULAI CEK PREORDER QUEUE...`);
 
     try {
-        // [MODIFIKASI QUERY] 
-        // Sangat disarankan hanya mengambil yang BELUM terbeli agar worker tidak berat
-        // Namun jika ingin melihat semua di console, pastikan logic 'continue' di bawah jalan.
         const snapshot = await db.collection('preorders')
                                  .orderBy('timestamp', 'asc') 
                                  .limit(100) 
@@ -148,13 +146,6 @@ async function runPreorderQueue() {
             const poID = doc.id;
             const uidUser = po.uid; 
             
-            // [LOGIC PENTING] Skip jika status sudah TERBELI agar tidak transaksi ganda
-            if (po.debugStatus === 'TERBELI') {
-                // Opsional: Uncomment baris bawah jika console terlalu penuh dengan log skip
-                // console.log(`   ⏭️ SKIP: ${poID} sudah TERBELI.`);
-                continue; 
-            }
-
             const skuProduk = po.productCode || po.provider || po.code;
             const tujuan = po.targetNumber || po.target || po.tujuan;
             const serverType = po.serverType || 'KHFY'; 
@@ -164,7 +155,8 @@ async function runPreorderQueue() {
 
             if (!skuProduk || !tujuan) {
                 console.log(`   ❌ DATA TIDAK LENGKAP.`);
-                await db.collection('preorders').doc(poID).update({ debugStatus: 'GAGAL', debugLogs: 'Data korup' });
+                // Data rusak dihapus saja agar tidak nyangkut
+                await db.collection('preorders').doc(poID).delete(); 
                 continue; 
             }
 
@@ -183,6 +175,7 @@ async function runPreorderQueue() {
 
             // HIT RELAY
             const requestData = { sku: skuProduk, tujuan: tujuan, reffId: reffId };
+            // result menampung Objek JSON mentah dari Relay
             let result = await hitVercelRelay(serverType, requestData, false);
             
             // WAIT LOGIC (KHFY)
@@ -261,13 +254,17 @@ async function runPreorderQueue() {
                 }
             }
 
-            // --- DATABASE ACTION ---
+            // --- DATABASE ACTION (PENYELESAIAN PESANAN) ---
             if (isSuccess) {
                 console.log(`   ✅ SUKSES! Pesan: ${finalMessage}`);
+                
+                // ID Dokumen History
                 const historyId = po.historyId || `TRX-${Date.now()}`;
                 
-                // 1. [REQUEST ANDA] SIMPAN JSON MENTAH KE HISTORY
+                // 1. PINDAHKAN KE RIWAYAT TRANSAKSI (History)
+                // Ini membuat pesanan muncul di menu riwayat user & panel admin
                 await db.collection('users').doc(uidUser).collection('history').doc(historyId).set({
+                    // Data Standar
                     uid: uidUser, 
                     trx_id: reffId, 
                     trx_code: Math.floor(100000 + Math.random() * 900000).toString(),
@@ -284,30 +281,31 @@ async function runPreorderQueue() {
                     balance_before: 0, 
                     balance_after: 0,
                     
-                    // --- FIELD PENTING UNTUK PELACAKAN ADMIN ---
-                    raw_provider_json: JSON.stringify(result), // <-- INI YANG DISIMPAN
+                    // --- REQ: DATA MENTAH UNTUK ADMIN PANEL ---
+                    // Menyimpan seluruh objek result dari Relay menjadi string JSON
+                    raw_provider_json: JSON.stringify(result), 
                     provider_source: serverType
                 });
 
+                // 2. KIRIM NOTIFIKASI
                 await sendUserLog(uidUser, "Transaksi Berhasil", finalMessage, historyId);
                 
-                // 2. [REQUEST ANDA] TIDAK MENGHAPUS DARI QUEUE, HANYA UPDATE STATUS
-                console.log(`   📝 Menandai status 'TERBELI' (Data tetap di Queue)...`);
-                await db.collection('preorders').doc(poID).update({
-                    debugStatus: 'TERBELI', // Mengubah status agar tidak diproses ulang
-                    debugLogs: `[${new Date().toLocaleTimeString()}] ✅ SUKSES. SN: ${finalSN}`
-                });
+                // 3. SELESAIKAN PESANAN DARI ANTRIAN (HILANG DARI PREORDER)
+                // Karena data sudah aman tersimpan di 'history', data di 'preorders'
+                // WAJIB dihapus agar tidak diproses ulang oleh worker di putaran berikutnya.
+                console.log(`   🗑️ Pesanan Selesai. Menghapus dari antrian Preorder...`);
+                await db.collection('preorders').doc(poID).delete();
 
             } else if (isStockEmpty) {
                 console.log(`   ⚠️ GAGAL STOK KOSONG: ${detailedErrorLog}`);
-                // Tidak menghapus, hanya update logs
+                // Gagal stok kosong -> Tetap di antrian tapi diberi log
                 await db.collection('preorders').doc(poID).update({
                     debugLogs: `[${new Date().toLocaleTimeString()}] ${detailedErrorLog}`
                 });
 
             } else {
                 console.log(`   ⏳ PENDING/RETRY: ${finalMessage}`);
-                // Tidak menghapus, hanya update logs
+                // Gagal pending -> Tetap di antrian untuk dicoba lagi nanti
                 await db.collection('preorders').doc(poID).update({
                     debugLogs: `[${new Date().toLocaleTimeString()}] [RETRY] ${finalMessage}`
                 });

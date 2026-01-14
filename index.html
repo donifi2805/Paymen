@@ -910,11 +910,10 @@
           <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">Akrab Fresh (XDA)</span><span class="mt-badge">GANGGUAN</span>
         </div>
       </div>
-      <div id="prov_ICS_CIRCLE" onclick="checkProv('ICS_CIRCLE') &amp;&amp; selectProvider('ICS_CIRCLE', 'XL Circle')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
+            <div id="prov_ICS_CIRCLE" onclick="checkProv('ICS_CIRCLE') && selectProvider('ICS_CIRCLE', 'XL Circle')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
         <div class="flex items-center">
           <span class="font-bold text-gray-700 dark:text-gray-200 group-hover:text-blue-600">XL Circle</span><span class="mt-badge">GANGGUAN</span>
         </div>
-      </div>
       </div>
       <div id="prov_XLA" onclick="checkProv('XLA') &amp;&amp; selectProvider('XLA', 'Akrab Fresh (XLA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
         <div class="flex items-center">
@@ -4144,9 +4143,14 @@
         statusEl.innerText = trx.status;
         statusEl.className = 'text-xs font-bold ' + (trx.status === 'Sukses' ? 'text-green-600' : (trx.status === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
         
-        const infoEl = document.getElementById('dtSn');
+                const infoEl = document.getElementById('dtSn');
+        infoEl.style.whiteSpace = 'white-space-pre-line'; // Agar baris baru (\n) terbaca di UI
         // MASKING SISA SALDO & SENSITIVE INFO (VIEW ONLY)
-        let cleanSn = trx.api_msg || '-';
+                let cleanSn = trx.api_msg || '-';
+        // Jika produk CFMX dan pesan masih standar Webhook, tambahkan info tujuan secara paksa di UI
+        if ((trx.raw_code === 'CFMX' || trx.provider === 'CFMX') && !cleanSn.includes('Tujuan:')) {
+            cleanSn += `\nNomor Tujuan: ${trx.dest_num || trx.targetNumber || '-'}`;
+        }
         // Regex: Hapus variasi teks (Sisa Saldo: Rp xxx) baik kurung biasa atau siku
         cleanSn = cleanSn.replace(/(\s*\(.*?Sisa\s*Saldo.*?\)|\s*\[.*?Sisa\s*Saldo.*?\]|\s*Sisa\s*Saldo.*)/gi, '');
         // Regex: Hapus parameter kredensial URL jika ada
@@ -4238,11 +4242,23 @@
                 if(res.ok && res.data) {
                     let item = res.data.data;
                     if (Array.isArray(item)) item = item[0];
-                    if (item) {
+                                                            if (item) {
                         const statusText = (item.status_text || '').toUpperCase();
                         if (statusText === 'SUKSES') freshStatus = 'Sukses';
                         else if (statusText === 'GAGAL') freshStatus = 'Gagal';
-                        sn = item.sn || item.keterangan || '';
+                        
+                        let rawSn = item.sn || item.keterangan || '';
+                        // PROTEKSI: Jika produk CFMX, abaikan pesan standar Webhook agar data asli SN tetap diproses
+                        if (item.kode_produk === 'CFMX' && rawSn.toLowerCase().includes('webhook')) {
+                            sn = 'Sedang memuat detail varian...';
+                        } else {
+                            sn = rawSn;
+                        }
+
+                        // MODIFIKASI: Format Khusus CFMX (FlexMax) - Menampilkan Varian & Tujuan
+                        if (item.kode_produk === 'CFMX' || (sn && String(sn).toLowerCase().includes('varian tersedia'))) {
+                            if (item.tujuan) sn = (sn.toLowerCase().includes('tersedia') ? sn : '') + `\nNomor Tujuan: ${item.tujuan}`;
+                        }
                         isSuccessApi = true;
                     }
                 }

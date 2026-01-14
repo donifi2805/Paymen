@@ -5,28 +5,69 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel - DompetKu</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: '#4318FF',
+              secondary: '#F4F7FE',
+              darktext: '#2B3674',
+              lighttext: '#A3AED0'
+            },
+            fontFamily: {
+              sans: ['Poppins', 'sans-serif'],
+            },
+            borderRadius: {
+              '3xl': '20px'
+            }
+          }
+        }
+      }
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     
     <style>
-        html { font-size: 13px; }
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f3f4f6; letter-spacing: -0.01em; }
-        .sidebar { width: 14rem; } 
+                html { font-size: 14px; }
+        body { font-family: 'Poppins', sans-serif; background-color: #F4F7FE; letter-spacing: -0.01em; color: #2B3674; }
+        .sidebar { width: 18rem; }
         .hide { display: none !important; }
-        .active-nav { background-color: #1e40af; border-right: 3px solid #60a5fa; }
-        .fade-in { animation: fadeIn 0.2s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        /* Style Navigasi Eduspot */
+        .active-nav {
+            color: #2B3674;
+            font-weight: 700;
+            position: relative;
+        }
+        .active-nav::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 36px;
+            width: 4px;
+            background-color: #4318FF;
+            border-radius: 4px 0 0 4px;
+        }
+        .active-nav i { color: #4318FF; }
+        
+        /* Style Kartu Dashboard */
+        .dashboard-card {
+            background: white;
+            border-radius: 20px;
+            border: none;
+            box-shadow: 0px 18px 40px rgba(112, 144, 176, 0.12);
+            transition: all 0.2s ease;
+        }
+        .dashboard-card:hover { transform: translateY(-5px); box-shadow: 0px 25px 50px rgba(112, 144, 176, 0.22); }
+        
         .custom-scroll::-webkit-scrollbar { height: 5px; width: 5px; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        .dashboard-card { transition: all 0.2s ease; cursor: pointer; }
-        .dashboard-card:hover { transform: translateY(-3px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
-        .dashboard-card:active { transform: scale(0.98); }
-        .chat-bubble { padding: 8px 12px; border-radius: 12px; font-size: 11px; max-width: 75%; line-height: 1.4; position: relative; word-wrap: break-word; }
-        .chat-out { background-color: #2563eb; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
-        .chat-in { background-color: #e5e7eb; color: #1f2937; align-self: flex-start; border-bottom-left-radius: 2px; }
-        .chat-item.active { background-color: #eff6ff; border-left: 3px solid #2563eb; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #A3AED0; border-radius: 3px; }
+        .chat-bubble { padding: 10px 16px; border-radius: 0px 16px 16px 16px; font-size: 12px; max-width: 75%; line-height: 1.5; word-wrap: break-word; }
     </style>
 </head>
 <body class="flex text-xs bg-gray-100 h-screen overflow-hidden">
@@ -65,46 +106,11 @@
         </div>
     </div>
 
-    <aside class="sidebar bg-slate-900 text-white fixed h-full z-10 transition-all duration-300 hidden md:block flex flex-col" id="sidebar">
-        <div class="p-4 border-b border-slate-800">
-            <h1 class="text-lg font-bold text-white tracking-tight"><span class="text-blue-500">Dompet</span>Ku</h1>
-            <p class="text-[9px] text-slate-400 uppercase tracking-widest opacity-70">Admin Panel</p>
+    <aside class="sidebar bg-white text-[#A3AED0] shadow-[20px_0_60px_0_rgba(112,144,176,0.08)] fixed h-full z-10 transition-all duration-300 hidden md:block flex flex-col rounded-r-3xl" id="sidebar">
+        <div class="p-8 border-b border-gray-100 flex items-center justify-center">
+             <h1 class="text-3xl font-bold text-[#2B3674] tracking-tight uppercase"><span class="text-[#4318FF]">Dompet</span>Ku</h1>
         </div>
-        <nav class="mt-2 flex-1 overflow-y-auto custom-scroll">
-            <a onclick="switchTab('dashboard')" id="nav-dashboard" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer active-nav transition group">
-                <i class="fas fa-chart-pie w-4 mr-3 group-hover:scale-110 transition"></i> Dashboard
-            </a>
-            <a onclick="switchTab('pending-trx')" id="nav-pending-trx" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
-                <i class="fas fa-exclamation-circle w-4 mr-3 group-hover:scale-110 transition"></i> Pending Trx
-            </a>
-            <a onclick="switchTab('users')" id="nav-users" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
-                <i class="fas fa-users w-4 mr-3 group-hover:scale-110 transition"></i> Data User
-            </a>
-            <a onclick="switchTab('livechat')" id="nav-livechat" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
-                <i class="fas fa-comments w-4 mr-3 group-hover:scale-110 transition"></i> Live Chat
-            </a>
-                        <a onclick="switchTab('transactions')" id="nav-transactions" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
-                <i class="fas fa-receipt w-4 mr-3 group-hover:scale-110 transition"></i> Transaksi
-            </a>
-            <a onclick="switchTab('audit')" id="nav-audit" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
-                <i class="fas fa-shield-alt w-4 mr-3 group-hover:scale-110 transition text-green-500"></i> Audit Saldo (DG)
-            </a>
-                        <a onclick="switchTab('pricing')" id="nav-pricing" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
-                <i class="fas fa-tags w-4 mr-3 group-hover:scale-110 transition"></i> Kelola Harga
-            </a>
-                        <a onclick="switchTab('preorder-run')" id="nav-preorder-run" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
-                <i class="fas fa-terminal w-4 mr-3 group-hover:scale-110 transition"></i> Preorder Run
-            </a>
-            <a onclick="switchTab('preorder')" id="nav-preorder" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
-                <i class="fas fa-clock w-4 mr-3 group-hover:scale-110 transition"></i> Preorder
-            </a>
-            <a onclick="switchTab('settings')" id="nav-settings" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
-                <i class="fas fa-cogs w-4 mr-3 group-hover:scale-110 transition"></i> Pengaturan
-            </a>
-            <a onclick="switchTab('notification')" id="nav-notification" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800 hover:text-white cursor-pointer transition group">
-                <i class="fas fa-bullhorn w-4 mr-3 group-hover:scale-110 transition"></i> Notifikasi
-            </a>
-        </nav>
+        <nav class="mt-2 flex-1 overflow-y-auto custom-scroll" id="desktopNavContainer"></nav>
         <div class="p-4 border-t border-slate-800">
              <a onclick="logout()" class="flex items-center text-red-400 hover:text-red-300 cursor-pointer transition text-[11px] font-bold">
                 <i class="fas fa-sign-out-alt w-4 mr-2"></i> Keluar
@@ -112,7 +118,7 @@
         </div>
     </aside>
 
-    <main class="md:ml-[14rem] w-full p-4 md:p-6 transition-all duration-300 h-screen overflow-y-auto custom-scroll bg-gray-100">
+    <main class="md:ml-[18rem] w-full p-6 md:p-8 transition-all duration-300 h-screen overflow-y-auto custom-scroll bg-[#F4F7FE]">
         
                 <div class="md:hidden flex justify-between items-center mb-4 bg-white p-3 rounded-lg shadow-sm sticky top-0 z-[60]">
             <div class="flex items-center gap-3">
@@ -124,24 +130,13 @@
             <button onclick="logout()" class="text-red-500 font-bold text-[10px]">Keluar</button>
         </div>
 
-        <div id="mobileMenu" class="fixed inset-0 z-[150] bg-slate-900/50 backdrop-blur-sm hidden">
-            <div class="w-64 bg-slate-900 h-full shadow-xl fade-in flex flex-col">
-                <div class="p-4 border-b border-slate-800 flex justify-between items-center">
-                    <h1 class="text-lg font-bold text-white"><span class="text-blue-500">Dompet</span>Ku</h1>
-                    <button onclick="toggleMobileMenu()" class="text-gray-400"><i class="fas fa-times"></i></button>
+        <div id="mobileMenu" class="fixed inset-0 z-[150] bg-[#2B3674]/50 backdrop-blur-sm hidden">
+            <div class="w-72 bg-white h-full shadow-2xl fade-in flex flex-col rounded-r-3xl">
+                <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                    <h1 class="text-2xl font-bold text-[#2B3674]">DompetKu</h1>
+                    <button onclick="toggleMobileMenu()" class="text-gray-400"><i class="fas fa-times text-xl"></i></button>
                 </div>
-                <nav class="mt-2 flex-1 overflow-y-auto">
-                    <a onclick="switchTab('dashboard'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-chart-pie w-4 mr-3"></i> Dashboard </a>
-                    <a onclick="switchTab('pending-trx'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-exclamation-circle w-4 mr-3"></i> Pending Trx </a>
-                    <a onclick="switchTab('users'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-users w-4 mr-3"></i> Data User </a>
-                    <a onclick="switchTab('livechat'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-comments w-4 mr-3"></i> Live Chat </a>
-                    <a onclick="switchTab('transactions'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-receipt w-4 mr-3"></i> Transaksi </a>
-                    <a onclick="switchTab('pricing'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-tags w-4 mr-3"></i> Kelola Harga </a>
-                                        <a onclick="switchTab('preorder-run'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-terminal w-4 mr-3"></i> Preorder Run </a>
-                    <a onclick="switchTab('preorder'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-clock w-4 mr-3"></i> Preorder </a>
-                    <a onclick="switchTab('settings'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-cogs w-4 mr-3"></i> Pengaturan </a>
-<a onclick="switchTab('notification'); toggleMobileMenu()" class="flex items-center px-5 py-3 text-gray-400 hover:bg-slate-800"> <i class="fas fa-bullhorn w-4 mr-3"></i> Notifikasi </a>
-                </nav>
+                <nav class="mt-2 flex-1 overflow-y-auto" id="mobileNavContainer"></nav>
             </div>
         </div>
 
@@ -154,83 +149,91 @@
                 <button onclick="loadDashboardData()" class="bg-white text-gray-600 px-3 py-1.5 rounded border hover:bg-gray-50 text-[10px] font-bold transition shadow-sm flex items-center gap-2"><i class="fas fa-sync-alt"></i> Refresh</button>
             </div>
 
-                        <div class="bg-white p-4 rounded-xl shadow-sm border border-blue-200 mb-5 relative overflow-hidden">
+                                    
+            <div class="bg-white px-4 py-3 rounded-xl shadow-sm border border-blue-200 mb-5 relative overflow-hidden flex items-center gap-3">
                 <div class="absolute top-0 left-0 w-1 h-full bg-blue-600"></div>
-                <h3 class="font-bold text-gray-800 text-sm mb-2"><i class="fas fa-satellite-dish mr-2 text-blue-600"></i>Cek Status Pusat (Realtime)</h3>
-                <div class="flex gap-2">
-                    <input type="text" id="univTrxInput" placeholder="Masukkan ID Transaksi / RefID (Contoh: TRX... atau ICS...)" class="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono font-bold focus:ring-2 focus:ring-blue-500 outline-none">
-                    <button onclick="universalDebugCheck()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-xs shadow transition flex items-center gap-2"><i class="fas fa-search"></i> CEK</button>
+                <div class="flex items-center gap-2 text-gray-700 font-bold text-xs whitespace-nowrap">
+                    <i class="fas fa-satellite-dish text-blue-600"></i> Status Pusat
                 </div>
-                <p class="text-[9px] text-gray-400 mt-1.5"><i class="fas fa-info-circle mr-1"></i>Otomatis mendeteksi server (ICS / Khfy) dan menampilkan respon asli dari pusat.</p>
+                <div class="flex flex-1 gap-2">
+                    <input type="text" id="univTrxInput" placeholder="Cek ID Trx / RefID..." class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-mono font-bold focus:ring-1 focus:ring-blue-500 outline-none">
+                    <button onclick="universalDebugCheck()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-bold text-[10px] shadow transition">CEK</button>
+                </div>
             </div>
 
-<div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
-                <div onclick="switchTab('preorder-run')" class="dashboard-card bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-700 flex items-center justify-between hover:border-blue-500">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                
+                <div onclick="switchTab('preorder-run')" class="dashboard-card bg-slate-900 px-3 py-2.5 flex items-center justify-between border border-slate-700 hover:border-blue-500 group">
                     <div>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">System Debug</p>
-                        <h3 class="text-lg font-black text-blue-400">PRE ORDER RUN</h3>
-                        <p class="text-[9px] text-blue-300 font-bold mt-1">Bypass Server <i class="fas fa-bolt ml-0.5"></i></p>
+                        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Debug</p>
+                        <h3 class="text-xs font-black text-blue-400 group-hover:text-blue-300 tracking-wide">PRE-ORDER RUN</h3>
                     </div>
-                    <div class="w-10 h-10 bg-blue-900/30 text-blue-400 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-terminal"></i></div>
+                    <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-blue-500 text-xs shadow-inner"><i class="fas fa-terminal"></i></div>
                 </div>
 
-<div onclick="openSearchTrxModal()" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-orange-400">
+                
+                <div onclick="openSearchTrxModal()" class="dashboard-card bg-white px-3 py-2.5 flex items-center justify-between border border-gray-100 hover:border-orange-300 group">
                     <div>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Cek Transaksi</p>
-                        <h3 class="text-2xl font-black text-orange-600"><i class="fas fa-search"></i></h3>
-                        <p class="text-[9px] text-orange-500 font-bold mt-1">Cari Kode 6 Digit <i class="fas fa-arrow-right ml-0.5"></i></p>
+                        <p class="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Pencarian</p>
+                        <h3 class="text-xs font-black text-gray-700 group-hover:text-orange-500 tracking-wide">CEK TRANSAKSI</h3>
                     </div>
-                    <div class="w-10 h-10 bg-orange-50 text-orange-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-receipt"></i></div>
+                    <div class="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 text-xs"><i class="fas fa-search"></i></div>
                 </div>
-                <div onclick="switchTab('pending-trx')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-yellow-400">
+
+                
+                <div onclick="switchTab('pending-trx')" class="dashboard-card bg-white px-3 py-2.5 flex items-center justify-between border border-gray-100 hover:border-yellow-400 group">
                     <div>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Trx Pending</p>
-                        <h3 class="text-2xl font-black text-yellow-600" id="statPendingCount">0</h3>
-                        <p class="text-[9px] text-yellow-500 font-bold mt-1">Proses Manual <i class="fas fa-arrow-right ml-0.5"></i></p>
+                        <p class="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Pending</p>
+                        <h3 class="text-lg font-black text-yellow-600 leading-none" id="statPendingCount">0</h3>
                     </div>
-                    <div class="w-10 h-10 bg-yellow-50 text-yellow-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="w-8 h-8 rounded-full bg-yellow-50 flex items-center justify-center text-yellow-600 text-xs"><i class="fas fa-exclamation-triangle"></i></div>
                 </div>
-                <div onclick="switchTab('livechat')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-green-200">
+
+                
+                <div onclick="switchTab('livechat')" class="dashboard-card bg-white px-3 py-2.5 flex items-center justify-between border border-gray-100 hover:border-green-400 group">
                     <div>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Pesan Terbaru</p>
-                        <h3 class="text-2xl font-black text-gray-800" id="statChatCount">0</h3>
-                        <p class="text-[9px] text-green-500 font-bold mt-1">Buka Chat <i class="fas fa-arrow-right ml-0.5"></i></p>
+                        <p class="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Pesan</p>
+                        <h3 class="text-lg font-black text-gray-800 leading-none" id="statChatCount">0</h3>
                     </div>
-                    <div class="w-10 h-10 bg-green-50 text-green-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-comments"></i></div>
+                    <div class="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center text-green-600 text-xs"><i class="fas fa-comments"></i></div>
                 </div>
-                <div onclick="switchTab('users')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-blue-200">
+
+                
+                <div onclick="switchTab('users')" class="dashboard-card bg-white px-3 py-2.5 flex items-center justify-between border border-gray-100 hover:border-blue-400 group">
                     <div>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Total User</p>
-                        <h3 class="text-2xl font-black text-gray-800" id="statUserCount">...</h3>
-                        <p class="text-[9px] text-blue-500 font-bold mt-1">Kelola <i class="fas fa-arrow-right ml-0.5"></i></p>
+                        <p class="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Total User</p>
+                        <h3 class="text-xs font-black text-gray-800 leading-none truncate w-20" id="statUserCount">...</h3>
                     </div>
-                    <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-users"></i></div>
+                    <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 text-xs"><i class="fas fa-users"></i></div>
                 </div>
-                <div class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-indigo-400">
+
+                
+                <div class="dashboard-card bg-white px-3 py-2.5 flex items-center justify-between border border-gray-100 hover:border-indigo-400 group">
                     <div>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Total Saldo User</p>
-                        <h3 class="text-lg font-black text-indigo-600" id="valUserBalance">
-                            <button onclick="calcUserBalance()" class="bg-indigo-600 text-white px-3 py-1 rounded text-[9px] hover:bg-indigo-700 shadow transition"><i class="fas fa-calculator mr-1"></i>Hitung</button>
+                        <p class="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Total Saldo</p>
+                        <h3 class="text-xs font-black text-indigo-600 leading-none" id="valUserBalance">
+                            <button onclick="calcUserBalance()" class="hover:text-indigo-800 transition"><i class="fas fa-calculator mr-1"></i>Hitung</button>
                         </h3>
-                        <p class="text-[9px] text-indigo-500 font-bold mt-1">Aset Tersimpan</p>
                     </div>
-                    <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-wallet"></i></div>
+                    <div class="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 text-xs"><i class="fas fa-wallet"></i></div>
                 </div>
-<div onclick="switchTab('transactions')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-purple-400">
+
+                
+                <div onclick="switchTab('transactions')" class="dashboard-card bg-white px-3 py-2.5 flex items-center justify-between border border-gray-100 hover:border-purple-400 group">
                     <div>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Riwayat Seluruh Transaksi</p>
-                        <h3 class="text-lg font-black text-purple-600">TRANSAKSI</h3>
-                        <p class="text-[9px] text-purple-500 font-bold mt-1">Cek Semua Data <i class="fas fa-list-ul ml-0.5"></i></p>
+                        <p class="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Riwayat</p>
+                        <h3 class="text-xs font-black text-purple-600 tracking-wide">DATA TRX</h3>
                     </div>
-                    <div class="w-10 h-10 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-receipt"></i></div>
+                    <div class="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 text-xs"><i class="fas fa-receipt"></i></div>
                 </div>
-                <div onclick="switchTab('audit')" class="dashboard-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between hover:border-green-400">
+
+                
+                <div onclick="switchTab('audit')" class="dashboard-card bg-white px-3 py-2.5 flex items-center justify-between border border-gray-100 hover:border-emerald-400 group">
                     <div>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Keamanan Sistem</p>
-                        <h3 class="text-lg font-black text-green-600">AUDIT SALDO</h3>
-                        <p class="text-[9px] text-green-500 font-bold mt-1">Cek Log DoniGuard <i class="fas fa-shield-alt ml-0.5"></i></p>
+                        <p class="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Security</p>
+                        <h3 class="text-xs font-black text-emerald-600 tracking-wide">AUDIT LOG</h3>
                     </div>
-                    <div class="w-10 h-10 bg-green-50 text-green-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-user-check"></i></div>
+                    <div class="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 text-xs"><i class="fas fa-shield-alt"></i></div>
                 </div>
             </div>
 
@@ -245,6 +248,23 @@
                 <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-hand-holding-usd"></i></div>
             </div>
             
+                        
+            <div class="grid grid-cols-2 gap-3 mb-4 w-full md:w-1/4">
+                <div class="bg-white p-2 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center h-20">
+                    <p class="text-[10px] text-red-500 font-bold uppercase" id="widgetDay">...</p>
+                    <h2 class="text-2xl font-black text-gray-800 leading-none" id="widgetDate">...</h2>
+                    <p class="text-[9px] text-gray-400" id="widgetMonthYear">...</p>
+                </div>
+                <div class="bg-white p-2 rounded-xl shadow-sm border border-gray-100 flex items-center justify-center h-20">
+                    <div class="relative w-14 h-14 rounded-full border-2 border-gray-200 flex items-center justify-center shadow-inner bg-gray-50">
+                        <div class="absolute w-1 h-1 bg-gray-800 rounded-full z-10"></div>
+                        <div id="clockHour" class="absolute w-1 h-3.5 bg-gray-700 rounded-full origin-bottom bottom-1/2"></div>
+                        <div id="clockMin" class="absolute w-0.5 h-5 bg-gray-500 rounded-full origin-bottom bottom-1/2"></div>
+                        <div id="clockSec" class="absolute w-0.5 h-6 bg-red-500 rounded-full origin-bottom bottom-1/2"></div>
+                    </div>
+                </div>
+            </div>
+
             <div class="bg-white border border-yellow-100 rounded-lg p-3 flex items-start gap-2 shadow-sm">
                 <i class="fas fa-check-circle text-green-500 mt-0.5"></i>
                 <div>
@@ -3325,6 +3345,81 @@ window.deactivateNotif = async () => {
             } catch(e) { Swal.fire('Error', e.message, 'error'); }
         }
     };
+
+
+    
+    // --- KONFIGURASI MENU OTOMATIS (EDUSPOT THEME) ---
+    const menuConfig = [
+        { id: 'dashboard', icon: 'fas fa-th-large', label: 'Dashboard' },
+        { id: 'pending-trx', icon: 'fas fa-clock', label: 'Pending Trx' },
+        { id: 'users', icon: 'fas fa-user-friends', label: 'Data User' },
+        { id: 'livechat', icon: 'fas fa-comment-dots', label: 'Live Chat' },
+        { id: 'transactions', icon: 'fas fa-exchange-alt', label: 'Transaksi' },
+        { id: 'audit', icon: 'fas fa-shield-alt', label: 'Audit Saldo', color: 'text-green-500' },
+        { id: 'pricing', icon: 'fas fa-tag', label: 'Kelola Harga' },
+        { id: 'preorder-run', icon: 'fas fa-code', label: 'Preorder Run' },
+        { id: 'preorder', icon: 'fas fa-shopping-cart', label: 'Preorder' },
+        { id: 'settings', icon: 'fas fa-cog', label: 'Pengaturan' },
+        { id: 'notification', icon: 'fas fa-bell', label: 'Notifikasi' }
+    ];
+
+    window.renderNavigation = () => {
+        const desktopContainer = document.getElementById('desktopNavContainer');
+        const mobileContainer = document.getElementById('mobileNavContainer');
+        
+        if(desktopContainer) desktopContainer.innerHTML = '';
+        if(mobileContainer) mobileContainer.innerHTML = '';
+
+        menuConfig.forEach(item => {
+            const iconClass = item.color ? `${item.icon} ${item.color}` : item.icon;
+            
+            // 1. Render Desktop (Eduspot Style)
+            if(desktopContainer) {
+                const isActive = item.id === 'dashboard' ? 'active-nav' : '';
+                const dHtml = `<a onclick="switchTab('${item.id}')" id="nav-${item.id}" class="flex items-center px-8 py-4 ${isActive} text-[#A3AED0] hover:text-[#4318FF] hover:bg-gray-50 cursor-pointer transition-all duration-200 group font-medium text-sm my-1">
+                        <i class="${iconClass} w-6 text-lg mr-3 group-hover:text-[#4318FF] transition"></i> ${item.label}
+                    </a>`;
+                desktopContainer.insertAdjacentHTML('beforeend', dHtml);
+            }
+
+            // 2. Render Mobile (Eduspot Style)
+            if(mobileContainer) {
+                const mHtml = `<a onclick="switchTab('${item.id}'); toggleMobileMenu()" class="flex items-center px-6 py-4 text-[#A3AED0] hover:bg-gray-50 hover:text-[#4318FF]">
+                    <i class="${iconClass} w-6 mr-3"></i> ${item.label}
+                </a>`;
+                mobileContainer.insertAdjacentHTML('beforeend', mHtml);
+            }
+        });
+    };
+
+    
+    // --- WIDGET JAM & KALENDER ---
+    setInterval(() => {
+        const d = new Date();
+        const sec = d.getSeconds() * 6;
+        const min = d.getMinutes() * 6 + d.getSeconds() * 0.1;
+        const hr = d.getHours() * 30 + Math.round(min / 12);
+        
+        const elSec = document.getElementById('clockSec');
+        const elMin = document.getElementById('clockMin');
+        const elHour = document.getElementById('clockHour');
+        const elDay = document.getElementById('widgetDay');
+        const elDate = document.getElementById('widgetDate');
+        const elMY = document.getElementById('widgetMonthYear');
+
+        if(elSec) elSec.style.transform = `rotate(${sec}deg)`;
+        if(elMin) elMin.style.transform = `rotate(${min}deg)`;
+        if(elHour) elHour.style.transform = `rotate(${hr}deg)`;
+        
+        if(elDay && elDate && elMY) {
+            elDay.innerText = d.toLocaleDateString('id-ID', { weekday: 'long' });
+            elDate.innerText = d.getDate();
+            elMY.innerText = d.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
+        }
+    }, 1000);
+
+    // Jalankan saat script dimuat
+    window.renderNavigation();
 
     </script>
     

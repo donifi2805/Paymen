@@ -281,12 +281,30 @@ async function runPreorderQueue() {
             if (isSuccess) {
                 console.log(`   ✅ SUKSES! Pesan: ${finalMessage}`);
                 const historyId = po.historyId || `TRX-${Date.now()}`;
+                
+                // [MODIFIKASI] MENYIMPAN JSON MENTAH KE RIWAYAT
                 await db.collection('users').doc(uidUser).collection('history').doc(historyId).set({
-                    uid: uidUser, trx_id: reffId, trx_code: Math.floor(100000 + Math.random() * 900000).toString(),
-                    title: po.productName || skuProduk, type: 'out', amount: po.price || 0, status: 'Sukses',
-                    dest_num: tujuan, sn: finalSN, trx_id_provider: trxIdProvider, provider_code: skuProduk,
-                    date: new Date().toISOString(), api_msg: finalMessage, balance_before: 0, balance_after: 0
+                    uid: uidUser, 
+                    trx_id: reffId, 
+                    trx_code: Math.floor(100000 + Math.random() * 900000).toString(),
+                    title: po.productName || skuProduk, 
+                    type: 'out', 
+                    amount: po.price || 0, 
+                    status: 'Sukses',
+                    dest_num: tujuan, 
+                    sn: finalSN, 
+                    trx_id_provider: trxIdProvider, 
+                    provider_code: skuProduk,
+                    date: new Date().toISOString(), 
+                    api_msg: finalMessage, 
+                    balance_before: 0, 
+                    balance_after: 0,
+                    
+                    // --- FIELD BARU UNTUK AUDIT ADMIN ---
+                    raw_provider_json: JSON.stringify(result),
+                    provider_source: serverType
                 });
+
                 await sendUserLog(uidUser, "Transaksi Berhasil", finalMessage, historyId);
                 console.log(`   🗑️ Menghapus dari antrian Preorder...`);
                 await db.collection('preorders').doc(poID).delete();

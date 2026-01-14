@@ -850,14 +850,19 @@
     <div id="liveChatContainer">
       <div id="liveChatModal" class="chat-window hide">
         <div class="bg-blue-600 p-4 flex justify-between items-center shadow-md shrink-0">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-white"></div>
-            <div>
-              <h4 class="text-white font-bold text-sm leading-tight">Admin Support</h4>
-              <p class="text-blue-100 text-[10px]">Online • Membalas cepat</p>
-            </div>
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-white">
+            <i class="fas fa-headset text-lg"></i>
+          </div>
+          <div>
+            <h4 class="text-white font-bold text-sm leading-tight">Admin Support</h4>
+            <p class="text-blue-100 text-[10px]">Online • Membalas cepat</p>
           </div>
         </div>
+        <button onclick="toggleChat()" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition active:scale-90">
+            <i class="fas fa-times"></i>
+        </button>
+      </div>
         <div id="chatMessages" class="chat-body flex flex-col gap-2 custom-scroll">
           <div class="text-center mt-10 opacity-50">
             <p class="text-xs text-gray-400">Mulai percakapan dengan Admin.</p>
@@ -866,6 +871,9 @@
         <div class="p-3 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 shrink-0">
           <form onsubmit="event.preventDefault(); sendChatMessage();" class="flex gap-2">
             <input type="text" id="chatInput" placeholder="Tulis pesan..." class="flex-1 bg-gray-100 dark:bg-gray-800 border-0 rounded-xl px-4 py-3 text-xs focus:ring-2 focus:ring-blue-500 dark:text-white">
+            <button type="submit" class="w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center transition shadow-md active:scale-95">
+                <i class="fas fa-paper-plane"></i>
+            </button>
           </form>
         </div>
       </div>

@@ -4127,9 +4127,14 @@
             return;
         }
 
-        document.getElementById('dtTitle').innerText = trx.title;
+                document.getElementById('dtTitle').innerText = trx.title;
         document.getElementById('dtDestNum').innerText = trx.dest_num || trx.targetNumber || '-';
-        document.getElementById('dtProvider').innerText = (trx.provider_code || trx.provider_id || 'Unknown').toUpperCase();
+        
+        // MASKING PROVIDER (ICS -> ***)
+        let showProv = (trx.provider_code || trx.provider_id || 'Unknown').toUpperCase();
+        if(showProv.includes('ICS')) showProv = showProv.replace(/ICS/g, '***');
+        document.getElementById('dtProvider').innerText = showProv;
+
         document.getElementById('dtProductType').innerText = trx.raw_code || trx.provider || '-';
         document.getElementById('dtTrxCode').innerText = trx.trx_code || '------';
         document.getElementById('dtAmount').innerText = window.formatRp(trx.amount);
@@ -4140,7 +4145,13 @@
         statusEl.className = 'text-xs font-bold ' + (trx.status === 'Sukses' ? 'text-green-600' : (trx.status === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
         
         const infoEl = document.getElementById('dtSn');
-        infoEl.innerText = trx.api_msg || '-';
+        // MASKING SISA SALDO & SENSITIVE INFO (VIEW ONLY)
+        let cleanSn = trx.api_msg || '-';
+        // Regex: Hapus variasi teks (Sisa Saldo: Rp xxx) baik kurung biasa atau siku
+        cleanSn = cleanSn.replace(/(\s*\(.*?Sisa\s*Saldo.*?\)|\s*\[.*?Sisa\s*Saldo.*?\]|\s*Sisa\s*Saldo.*)/gi, '');
+        // Regex: Hapus parameter kredensial URL jika ada
+        cleanSn = cleanSn.replace(/(kodereseller|password|pin|key)=[^&\s#]*&?/gi, "");
+        infoEl.innerText = cleanSn.trim();
 
         // Tampilkan Tombol Refresh Manual (Kecuali Dibatalkan)
         const btnRefresh = document.getElementById('btnRefreshStatus');

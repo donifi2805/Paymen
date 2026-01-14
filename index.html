@@ -337,7 +337,8 @@
     </div>
     <div id="qiosModal" class="hide fixed inset-0 z-[160] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 fade-enter">
       <div class="bg-white dark:bg-gray-900 w-full max-w-xs rounded-3xl p-6 shadow-2xl relative">
-        <div id="qiosStep1">
+        <button onclick="closeQios()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 transition shadow-sm z-10"><i class="fas fa-times"></i></button>
+<div id="qiosStep1">
           <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-1">Top Up Saldo</h3>
           <p class="text-xs text-gray-500 mb-4">Pilih nominal instan atau manual</p>
           <div class="grid grid-cols-2 gap-3 mb-4">
@@ -384,7 +385,8 @@
     </div>
     <div id="manualTopUpModal" class="hide fixed inset-0 z-[160] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 fade-enter">
       <div class="bg-white dark:bg-gray-900 w-full max-w-xs rounded-3xl p-6 shadow-2xl relative">
-        <div id="mtStep1">
+        <button onclick="closeManualTopUp()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 transition shadow-sm z-10"><i class="fas fa-times"></i></button>
+<div id="mtStep1">
           <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-1">Top Up Manual</h3>
           <p class="text-xs text-gray-500 mb-4">Metode Transfer Bank (Cek Manual)</p>
           <div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800 mb-4 text-center">
@@ -432,7 +434,10 @@
       </div>
     </div>
     <div id="topUpSheet" class="hide fixed inset-0 z-50 flex flex-col justify-end bg-black/60 backdrop-blur-sm">
-      <div class="bg-white dark:bg-gray-900 w-full rounded-t-[30px] p-6 modal-enter max-w-[480px] mx-auto">
+      <div class="bg-white dark:bg-gray-900 w-full rounded-t-[30px] p-6 modal-enter max-w-[480px] mx-auto relative">
+        <button onclick="closeTopUp()" class="absolute top-5 right-5 w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 transition shadow-sm z-10">
+            <i class="fas fa-times"></i>
+        </button>
         <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-6"></div>
         <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-4">Pilih Metode Top Up</h3>
         <div class="space-y-3">
@@ -1018,7 +1023,7 @@
 
 
     // --- FITUR AUTO UPDATE & PWA ---
-        const APP_VERSION_CODE = 'v4.8'; // Versi saat ini
+        const APP_VERSION_CODE = 'v4.9'; // Versi saat ini
 
     // Update Label Versi di Login
     setTimeout(() => {

@@ -3,113 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tools Order Akrab V2 (Auto Load)</title>
+    <title>Tools Order Mixed (ICS & KHFY)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <script>
-        tailwind.config = { darkMode: 'class' }
-    </script>
+    <script>tailwind.config = { darkMode: 'class' }</script>
     <style>
         body { background-color: #0f172a; color: white; font-family: 'Segoe UI', sans-serif; }
-        .input-group label { display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.25rem; font-weight: bold; }
-        .input-box { 
-            width: 100%; background: #1e293b; border: 1px solid #334155; 
-            padding: 0.75rem; border-radius: 0.5rem; color: white; font-weight: bold;
-        }
-        .input-box:focus { outline: 2px solid #3b82f6; border-color: transparent; }
+        .input-box { width: 100%; background: #1e293b; border: 1px solid #334155; padding: 0.75rem; border-radius: 0.5rem; color: white; font-weight: bold; }
         .input-box:disabled { opacity: 0.5; cursor: not-allowed; }
+        .status-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
     </style>
 </head>
 <body class="p-4 max-w-lg mx-auto min-h-screen flex flex-col">
 
     <div class="mb-6 border-b border-gray-700 pb-4">
-        <h1 class="text-xl font-black text-blue-500"><i class="fas fa-satellite-dish"></i> ORDER AKRAB V2</h1>
-        <p class="text-xs text-gray-400">Auto Load Produk dari Server Pusat (ICS)</p>
+        <h1 class="text-xl font-black text-blue-500"><i class="fas fa-layer-group"></i> MIXED ORDER TOOL</h1>
+        <p class="text-xs text-gray-400">Data Produk 100% Identik dengan Index.html (ICS + KHFY)</p>
     </div>
 
     <div id="loginPanel" class="bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-xl">
         <h3 class="font-bold mb-4">Login Admin</h3>
         <input type="email" id="email" placeholder="Email" class="input-box mb-3">
         <input type="password" id="pass" placeholder="Password" class="input-box mb-4">
-        <button onclick="authLogin()" class="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold transition">MASUK</button>
+        <button onclick="authLogin()" class="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold">MASUK</button>
     </div>
 
     <div id="mainPanel" class="hidden space-y-4">
-        <div class="bg-green-900/20 border border-green-900/50 p-3 rounded-xl flex justify-between items-center">
+        <div class="flex justify-between items-center bg-green-900/20 p-2 rounded-lg border border-green-900/50">
             <span class="text-xs text-green-400 font-mono" id="userStatus">Connected</span>
-            <button onclick="authLogout()" class="text-[10px] bg-red-900/30 text-red-400 px-2 py-1 rounded hover:bg-red-900/50">Logout</button>
+            <button onclick="authLogout()" class="text-[10px] text-red-400 hover:underline">Logout</button>
         </div>
 
         <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700 shadow-lg space-y-4">
             
             <div class="grid grid-cols-2 gap-3">
-                <div class="input-group col-span-2">
-                    <label>UID TARGET (USER)</label>
-                    <input type="text" id="targetUid" class="input-box text-yellow-400 font-mono text-sm" placeholder="UID User...">
+                <div class="col-span-2">
+                    <label class="text-[10px] text-gray-400 font-bold">TARGET UID</label>
+                    <input type="text" id="targetUid" class="input-box text-yellow-400 font-mono text-sm">
                 </div>
-                <div class="input-group col-span-2 bg-blue-900/20 p-2 rounded-lg border border-blue-800/30">
-                    <label class="text-blue-400">REFF ID (AUTO/MANUAL)</label>
+                <div class="col-span-2 bg-blue-900/20 p-2 rounded border border-blue-800/30">
+                    <label class="text-[10px] text-blue-400 font-bold">REFF ID (AUTO/MANUAL)</label>
                     <div class="flex gap-2">
                         <input type="text" id="reffId" class="input-box" placeholder="Ketik ReffID...">
-                        <button onclick="autoReffId()" class="bg-gray-700 px-3 rounded-lg text-xs font-bold hover:bg-gray-600"><i class="fas fa-random"></i></button>
+                        <button onclick="autoReffId()" class="bg-gray-700 px-3 rounded text-xs font-bold"><i class="fas fa-random"></i></button>
                     </div>
                 </div>
             </div>
 
-            <div class="input-group">
-                <label>PILIH PROVIDER (LIVE API)</label>
-                <select id="providerSelect" class="input-box" onchange="fetchProducts()">
+            <div>
+                <label class="text-[10px] text-gray-400 font-bold">PILIH PROVIDER (INDEX STYLE)</label>
+                <select id="providerSelect" class="input-box" onchange="loadProducts()">
                     <option value="" disabled selected>-- Pilih Provider --</option>
-                    <option value="xla">XL Akrab (XLA)</option>
-                    <option value="xda">Akrab Fresh (XDA)</option>
-                    <option value="circle">XL Circle</option>
-                    <option value="fmax">FlexMax (FMX)</option>
-                    <option value="bpa">Bagi Pulsa (BPA)</option>
+                    <optgroup label="Server ICS (Relay)">
+                        <option value="ICS_XLA">XL Akrab (XLA)</option>
+                        <option value="ICS_XDA">Akrab Fresh (XDA)</option>
+                        <option value="ICS_CIRCLE">XL Circle</option>
+                        <option value="ICS_FMX">FlexMax (FMX)</option>
+                        <option value="ICS_BPA">Bagi Pulsa (BPA)</option>
+                    </optgroup>
+                    <optgroup label="Server KHFY (Panel)">
+                        <option value="XLA">XL Akrab (XLA)</option>
+                        <option value="XDA">Akrab Fresh (XDA)</option>
+                        <option value="FMX">FlexMax (FMX)</option>
+                        <option value="XLR">XL Reguler</option>
+                        <option value="PLN">PLN Pascabayar</option>
+                    </optgroup>
                 </select>
             </div>
 
-            <div class="input-group">
-                <label>PILIH PRODUK</label>
+            <div>
+                <label class="text-[10px] text-gray-400 font-bold">DAFTAR PRODUK</label>
                 <select id="productSelect" class="input-box" disabled onchange="selectProduct()">
-                    <option>Menunggu Provider...</option>
+                    <option>Pilih Provider Dulu...</option>
                 </select>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
-                <div class="input-group">
-                    <label>NOMINAL (RP)</label>
+                <div>
+                    <label class="text-[10px] text-gray-400 font-bold">HARGA (RP)</label>
                     <input type="number" id="price" class="input-box text-green-400" value="0">
-                    <p class="text-[9px] text-gray-500 mt-1">Ubah ke 0 agar gratis.</p>
+                    <p class="text-[9px] text-gray-500 mt-1">Isi 0 = Gratis</p>
                 </div>
-                <div class="input-group">
-                    <label>KODE PRODUK (READONLY)</label>
-                    <input type="text" id="prodCode" class="input-box bg-gray-700 text-gray-400" readonly>
+                <div>
+                    <label class="text-[10px] text-gray-400 font-bold">KODE (READONLY)</label>
+                    <input type="text" id="prodCode" class="input-box bg-gray-700" readonly>
                 </div>
             </div>
-            
-            <div class="input-group">
-                <label>NOMOR TUJUAN</label>
+
+            <div>
+                <label class="text-[10px] text-gray-400 font-bold">NOMOR TUJUAN</label>
                 <input type="tel" id="destNum" class="input-box text-lg" placeholder="08xxx">
             </div>
 
-            <div class="pt-2">
-                <button onclick="executeOrder()" id="btnExec" class="w-full py-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 rounded-xl font-black shadow-lg flex justify-center items-center gap-2">
-                    <i class="fas fa-paper-plane"></i> KIRIM SEKARANG
-                </button>
-            </div>
+            <button onclick="executeMixedOrder()" id="btnExec" class="w-full py-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 rounded-xl font-black shadow-lg">
+                <i class="fas fa-paper-plane"></i> KIRIM ORDER
+            </button>
         </div>
-        
+
         <div id="logs" class="bg-black p-3 rounded-lg font-mono text-[10px] text-green-500 h-32 overflow-y-auto border border-gray-800">
-            > Menunggu Login...
+            > Ready.
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, runTransaction, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, runTransaction, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // --- FIREBASE CONFIG (SAMA) ---
+        // --- CONFIG FIREBASE ---
         const firebaseConfig = {
             apiKey: "AIzaSyBnVxgxkS8InH1PQCMGe3cY8IvPqSN6dLo",
             authDomain: "ppob-3ea96.firebaseapp.com",
@@ -119,212 +120,278 @@
             appId: "1:181320175094:web:306b79071018410b910bd7",
             measurementId: "G-0K2V796QDX"
         };
-
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- ICS API CONFIG ---
-        const ICS_CONFIG = { 
-            apiKey: "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77", 
-            baseUrl: "https://www.pandawa-digital.store/api/relay" 
-        };
+        // --- CONFIG API (SAMA DENGAN INDEX) ---
+        const ICS_CONFIG = { apiKey: "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77", baseUrl: "https://www.pandawa-digital.store/api/relay" };
+        const KHFY_CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
+        
+        // Proxy List untuk KHFY (Agar data tampil 100% sama)
+        const PROXY_LIST = [
+            { url: 'https://corsproxy.io/?' },
+            { url: 'https://api.codetabs.com/v1/proxy?quest=' },
+            { url: 'https://thingproxy.freeboard.io/fetch/' },
+            { url: '' } // Direct
+        ];
+
+        let globalKHFYData = []; // Cache KHFY
 
         // --- AUTH ---
-        window.authLogin = async () => {
-            try { await signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value); } 
-            catch(err) { alert(err.message); }
-        };
+        window.authLogin = async () => { try { await signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value); } catch(e){ alert(e.message); } };
         window.authLogout = () => signOut(auth);
-
-        onAuthStateChanged(auth, (user) => {
-            if(user) {
-                document.getElementById('loginPanel').classList.add('hidden');
-                document.getElementById('mainPanel').classList.remove('hidden');
-                document.getElementById('userStatus').innerText = user.email;
-                if(!document.getElementById('targetUid').value) document.getElementById('targetUid').value = user.uid;
-                log("Login Berhasil. Silakan pilih Provider.");
-            } else {
-                document.getElementById('loginPanel').classList.remove('hidden');
-                document.getElementById('mainPanel').classList.add('hidden');
-            }
+        onAuthStateChanged(auth, u => {
+            if(u) { document.getElementById('loginPanel').classList.add('hidden'); document.getElementById('mainPanel').classList.remove('hidden'); document.getElementById('userStatus').innerText = u.email; if(!document.getElementById('targetUid').value) document.getElementById('targetUid').value = u.uid; }
+            else { document.getElementById('loginPanel').classList.remove('hidden'); document.getElementById('mainPanel').classList.add('hidden'); }
         });
 
-        // --- LOGIC API FETCH PRODUCT (ADAPTED FROM INDEX.HTML) ---
-        window.fetchProducts = async () => {
-            const type = document.getElementById('providerSelect').value;
+        // --- LOGIC FETCHING (DUAL ENGINE) ---
+        window.loadProducts = async () => {
+            const providerCode = document.getElementById('providerSelect').value;
             const select = document.getElementById('productSelect');
-            
-            if(!type) return;
-
-            select.innerHTML = '<option>Memuat Data Server...</option>';
+            select.innerHTML = '<option>Memuat Data...</option>';
             select.disabled = true;
-            log(`Mengambil data produk tipe: ${type}...`);
+
+            log(`Memuat produk untuk: ${providerCode}...`);
+
+            let products = [];
 
             try {
-                // Panggil API Relay langsung
-                const url = `${ICS_CONFIG.baseUrl}?action=listProducts&type=${type}&apikey=${ICS_CONFIG.apiKey}`;
-                const res = await fetch(url);
-                const json = await res.json();
+                // 1. ENGINE ICS (Jika provider diawali ICS_)
+                if(providerCode.startsWith('ICS_')) {
+                    let type = 'xla'; // Default
+                    if(providerCode.includes('XDA')) type = 'xda';
+                    if(providerCode.includes('CIRCLE')) type = 'circle';
+                    if(providerCode.includes('FMX')) type = 'fmax';
+                    if(providerCode.includes('BPA')) type = 'bpa';
 
-                if(json.success && json.data) {
-                    const readyItems = json.data.ready || [];
-                    const emptyItems = json.data.empty || [];
-                    const all = [...readyItems, ...emptyItems];
+                    const res = await fetch(`${ICS_CONFIG.baseUrl}?action=listProducts&type=${type}&apikey=${ICS_CONFIG.apiKey}`);
+                    const json = await res.json();
                     
-                    // Urutkan termurah
-                    all.sort((a, b) => a.harga - b.harga);
-
-                    select.innerHTML = '<option value="" disabled selected>-- Pilih Produk --</option>';
-                    
-                    if(all.length === 0) {
-                        select.innerHTML = '<option>Produk Kosong</option>';
-                        log("Produk kosong di server.");
-                        return;
+                    if(json.success && json.data) {
+                        const raw = json.data.ready || json.data || [];
+                        const empty = json.data.empty || [];
+                        products = [...(Array.isArray(raw) ? raw : []), ...(Array.isArray(empty) ? empty : [])];
+                        
+                        // Mapping format ICS ke Standard
+                        products = products.map(p => ({
+                            code: p.kode_produk,
+                            name: p.nama_produk,
+                            price: p.harga,
+                            is_empty: (p.stok === 0 || empty.includes(p))
+                        }));
+                    }
+                } 
+                // 2. ENGINE KHFY (Jika provider biasa)
+                else {
+                    // Cek Cache dulu
+                    if(globalKHFYData.length === 0) {
+                        log("Mengambil data KHFY via Proxy...");
+                        globalKHFYData = await fetchKHFY();
                     }
 
-                    all.forEach(p => {
-                        const opt = document.createElement('option');
-                        opt.value = p.kode_produk;
-                        opt.dataset.price = p.harga;
-                        opt.dataset.name = p.nama_produk;
-                        
-                        const isHabis = (p.stok === 0 || emptyItems.includes(p));
-                        if(isHabis) {
-                            opt.text = `❌ ${p.nama_produk} (HABIS)`;
-                            opt.disabled = true;
-                        } else {
-                            opt.text = `${p.nama_produk} - Rp ${parseInt(p.harga).toLocaleString()}`;
-                        }
-                        select.appendChild(opt);
-                    });
-                    
-                    select.disabled = false;
-                    log(`Berhasil memuat ${all.length} produk.`);
-                } else {
-                    select.innerHTML = '<option>Gagal Memuat</option>';
-                    log("Gagal: " + (json.message || "Unknown Error"));
+                    // FILTERING LOGIC (100% COPY DARI INDEX.HTML)
+                    products = globalKHFYData.filter(p => {
+                        const c = (p.buyer_sku_code || '').toUpperCase();
+                        const n = (p.product_name || '').toUpperCase();
+                        const b = (p.brand || p.operator || '').toUpperCase();
+
+                        if(providerCode === 'XDA') return c.startsWith('XDA') || b.includes('AKRAB FRESH');
+                        if(providerCode === 'XLA') return (c.startsWith('XLA') || c.startsWith('XLC')) && !c.startsWith('XDA');
+                        if(providerCode === 'FMX') return (c.startsWith('FMX') || c === 'CFMX') || b === 'FMAX';
+                        if(providerCode === 'XLR') return ['FMX50', 'FMX65', 'FMX80', 'FMX150'].includes(c);
+                        if(providerCode === 'PLN') return b.includes('PLN');
+                        return b.includes(providerCode);
+                    }).map(p => ({
+                        code: p.buyer_sku_code,
+                        name: p.product_name,
+                        price: p.buyer_price,
+                        is_empty: (p.buyer_product_status === false || p.seller_product_status === false || p.stock === 0)
+                    }));
                 }
+
+                // RENDER
+                renderSelect(products);
+
             } catch(e) {
                 console.error(e);
-                select.innerHTML = '<option>Error Koneksi</option>';
-                log("Error Koneksi API: " + e.message);
+                select.innerHTML = '<option>Gagal Memuat Data</option>';
+                log("Error: " + e.message);
             }
         };
+
+        async function fetchKHFY() {
+            const endpoint = `${KHFY_CONFIG.baseUrl}/list_product?api_key=${KHFY_CONFIG.apiKey}&_t=${Date.now()}`;
+            for (const proxy of PROXY_LIST) {
+                try {
+                    const res = await fetch(proxy.url + encodeURIComponent(endpoint));
+                    if(res.ok) {
+                        const txt = await res.text();
+                        try {
+                            const json = JSON.parse(txt);
+                            return json.data || [];
+                        } catch(e) {}
+                    }
+                } catch(e) {}
+            }
+            return [];
+        }
+
+        function renderSelect(products) {
+            const select = document.getElementById('productSelect');
+            select.innerHTML = '<option value="" disabled selected>-- Pilih Produk --</option>';
+            
+            if(products.length === 0) {
+                select.innerHTML = '<option>Produk Kosong / Filter Tidak Cocok</option>';
+                return;
+            }
+
+            // Urutkan Harga Termurah
+            products.sort((a,b) => a.price - b.price);
+
+            products.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.code;
+                opt.dataset.price = p.price;
+                opt.dataset.name = p.name;
+                
+                if(p.is_empty) {
+                    opt.text = `❌ ${p.name} (GANGGUAN)`;
+                    opt.disabled = true;
+                } else {
+                    opt.text = `${p.name} - Rp ${parseInt(p.price).toLocaleString()}`;
+                }
+                select.appendChild(opt);
+            });
+            select.disabled = false;
+            log(`Menampilkan ${products.length} produk.`);
+        }
 
         window.selectProduct = () => {
-            const select = document.getElementById('productSelect');
-            const opt = select.options[select.selectedIndex];
-            
+            const sel = document.getElementById('productSelect');
+            const opt = sel.options[sel.selectedIndex];
             if(opt && opt.value) {
                 document.getElementById('prodCode').value = opt.value;
-                // Default isi harga asli, tapi user bisa ubah jadi 0
-                document.getElementById('price').value = opt.dataset.price; 
-                log(`Produk dipilih: ${opt.dataset.name}`);
+                document.getElementById('price').value = opt.dataset.price;
             }
         };
 
-        // --- CORE EXECUTION ---
-        window.executeOrder = async () => {
+        // --- EXECUTION LOGIC (MIXED) ---
+        window.executeMixedOrder = async () => {
             const uid = document.getElementById('targetUid').value;
             const reffId = document.getElementById('reffId').value;
+            const provCode = document.getElementById('providerSelect').value;
             const code = document.getElementById('prodCode').value;
             const price = parseInt(document.getElementById('price').value) || 0;
             const dest = document.getElementById('destNum').value;
+
+            if(!uid || !reffId || !code || !dest) return alert("Data tidak lengkap!");
             
-            // Mapping Provider Code (ICS_XLA, ICS_XDA, dll)
-            const type = document.getElementById('providerSelect').value;
-            const providerMap = { 
-                'xla': 'ICS_XLA', 'xda': 'ICS_XDA', 
-                'circle': 'ICS_CIRCLE', 'fmax': 'ICS_FMX', 'bpa': 'ICS_BPA' 
-            };
-            const providerCode = providerMap[type] || 'ICS';
+            // Tentukan Server Tujuan
+            const isICS = provCode.startsWith('ICS_');
+            const serverName = isICS ? "ICS (Relay)" : "KHFY (Panel)";
 
-            if(!uid || !reffId || !code || !dest) return alert("Data belum lengkap!");
+            if(!confirm(`Kirim ke ${serverName}?\n\nTarget: ${dest}\nProduk: ${code}\nUser Bayar: Rp ${price} (Gratis jika 0)`)) return;
 
-            if(!confirm(`Kirim ke ${dest}?\nProduk: ${code}\nBayar User: Rp ${price} (Gratis jika 0)`)) return;
-
-            log(`Memproses ReffID: ${reffId}...`);
-            document.getElementById('btnExec').innerText = "Memproses...";
+            log(`Mengirim ke ${serverName}...`);
             document.getElementById('btnExec').disabled = true;
+            document.getElementById('btnExec').innerText = "Memproses...";
 
             try {
-                // 1. RECORD HISTORY (NO CUT BALANCE if price is 0 or user has balance)
-                // Disini kita pakai logika: balance user tetap, tapi tercatat di history nominalnya.
+                // 1. SAVE HISTORY (Gratis jika price 0)
                 await runTransaction(db, async (t) => {
-                    const userRef = doc(db, "users", uid);
-                    const userDoc = await t.get(userRef);
-                    const currentBal = userDoc.exists() ? (userDoc.data().balance || 0) : 0;
+                    const uRef = doc(db, "users", uid);
+                    const uDoc = await t.get(uRef);
+                    const bal = uDoc.exists() ? (uDoc.data().balance || 0) : 0;
                     
-                    const histRef = doc(db, "users", uid, "history", reffId);
-                    t.set(histRef, {
+                    const hRef = doc(db, "users", uid, "history", reffId);
+                    t.set(hRef, {
                         trx_id: reffId,
                         trx_code: Math.floor(100000 + Math.random() * 900000).toString(),
-                        title: `Order Manual (${code})`,
+                        title: `Order Manual ${isICS?'ICS':'KHFY'} (${code})`,
                         amount: price,
                         type: 'out',
                         date: new Date().toISOString(),
                         status: 'Proses',
-                        api_msg: 'Requesting to Server...',
-                        provider_id: 'ICS', 
-                        provider_code: providerCode,
+                        api_msg: 'Sending to Server...',
+                        provider_id: isICS ? 'ICS' : 'KHFY', 
+                        provider_code: provCode,
                         raw_code: code,
                         dest_num: dest,
-                        balance_before: currentBal,
-                        balance_after: currentBal // SALDO TIDAK BERUBAH
+                        balance_before: bal,
+                        balance_after: bal // Saldo user AMAN
                     });
                 });
 
-                // 2. CALL API ICS (ORDER SUNGGUHAN)
-                const tStamp = Date.now();
-                const params = new URLSearchParams({
-                    action: 'createTransaction',
-                    apikey: ICS_CONFIG.apiKey,
-                    kode_produk: code,
-                    nomor_tujuan: dest,
-                    refid: reffId,
-                    _t: tStamp
-                });
-
-                const res = await fetch(`${ICS_CONFIG.baseUrl}?${params.toString()}`, { method: 'POST' });
-                const json = await res.json();
-
-                let finalStatus = 'Pending';
-                let msg = 'Menunggu Server...';
-
-                if (json.success) {
-                    msg = json.data?.message || json.message || 'Transaksi Dikirim';
-                    if (json.data?.status === 'sukses') finalStatus = 'Sukses';
+                // 2. HIT API (SESUAI SERVER)
+                let apiResult = {};
+                
+                if(isICS) {
+                    // --- LOGIC ICS ---
+                    const params = new URLSearchParams({
+                        action: 'createTransaction', apikey: ICS_CONFIG.apiKey,
+                        kode_produk: code, nomor_tujuan: dest, refid: reffId
+                    });
+                    const res = await fetch(`${ICS_CONFIG.baseUrl}?${params.toString()}`, { method: 'POST' });
+                    apiResult = await res.json();
                 } else {
-                    finalStatus = 'Gagal';
-                    msg = json.data?.message || json.message || 'Ditolak Server';
+                    // --- LOGIC KHFY ---
+                    // Note: KHFY transaction mungkin gagal jika dipanggil dari client karena CORS/IP
+                    // Tapi kita coba via Proxy.
+                    const endpoint = `/trx?api_key=${KHFY_CONFIG.apiKey}&produk=${code}&tujuan=${dest}&reff_id=${reffId}`;
+                    let success = false;
+                    
+                    for(const proxy of PROXY_LIST) {
+                        try {
+                            const res = await fetch(proxy.url + encodeURIComponent(KHFY_CONFIG.baseUrl + endpoint));
+                            const txt = await res.text();
+                            apiResult = JSON.parse(txt); // KHFY kadang return raw text
+                            success = true;
+                            break;
+                        } catch(e) {}
+                    }
+                    if(!success) throw new Error("Gagal hit KHFY (CORS/Proxy Error)");
+                }
+
+                // 3. UPDATE STATUS
+                let status = 'Pending';
+                let msg = 'Menunggu...';
+                
+                // Normalisasi Respon
+                if(apiResult.success || apiResult.status === true || (apiResult.data && apiResult.data.status)) {
+                    status = (apiResult.data?.status === 'sukses' || apiResult.status === true) ? 'Sukses' : 'Pending';
+                    msg = apiResult.data?.message || apiResult.message || apiResult.sn || 'Terkirim';
+                } else {
+                    status = 'Gagal';
+                    msg = apiResult.message || apiResult.data?.message || 'Ditolak';
                 }
 
                 await setDoc(doc(db, "users", uid, "history", reffId), {
-                    status: finalStatus,
+                    status: status,
                     api_msg: msg,
-                    raw_json: JSON.stringify(json)
+                    raw_json: JSON.stringify(apiResult)
                 }, { merge: true });
 
-                log(`SELESAI. Status: ${finalStatus}`);
-                alert(`Status: ${finalStatus}\nKet: ${msg}`);
+                log(`Selesai: ${status} - ${msg}`);
+                alert(`Status: ${status}\nInfo: ${msg}`);
 
-            } catch (e) {
-                log("ERROR: " + e.message);
-                alert("Error: " + e.message);
+            } catch(e) {
+                log("Error: " + e.message);
+                alert("Gagal: " + e.message);
             } finally {
-                document.getElementById('btnExec').innerText = "KIRIM SEKARANG";
                 document.getElementById('btnExec').disabled = false;
+                document.getElementById('btnExec').innerHTML = '<i class="fas fa-paper-plane"></i> KIRIM ORDER';
             }
         };
 
         // --- HELPERS ---
-        window.log = (msg) => { const l = document.getElementById('logs'); l.innerHTML += `> ${msg}<br>`; l.scrollTop = l.scrollHeight; }
+        window.log = (m) => { const l = document.getElementById('logs'); l.innerHTML+=`> ${m}<br>`; l.scrollTop=l.scrollHeight; }
         window.autoReffId = () => {
-            const hp = document.getElementById('destNum').value.replace(/[^0-9]/g,'') || '08xxxx';
-            const d = new Date();
-            const ts = String(d.getHours())+String(d.getMinutes())+String(d.getSeconds());
-            document.getElementById('reffId').value = `ICS-${hp}-${ts}`;
+            const hp = document.getElementById('destNum').value.replace(/\D/g,'') || '08xxx';
+            const rnd = Math.floor(Math.random()*999);
+            const prov = document.getElementById('providerSelect').value.startsWith('ICS') ? 'ICS' : 'TRX';
+            document.getElementById('reffId').value = `${prov}-${hp}-${rnd}`;
         }
     </script>
 </body>

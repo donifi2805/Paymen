@@ -3612,6 +3612,7 @@ window.executeApiTransaction = async (code, dest, price, name, provCode) => {
         const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
         const trxRef = doc(db, "users", currentUser.uid, "history", reffId);
         
+        // 1. POTONG SALDO DULU (DATABASE)
         try {
             await runTransaction(db, async (t) => {
                 const uRef = doc(db, "users", currentUser.uid);
@@ -3619,7 +3620,7 @@ window.executeApiTransaction = async (code, dest, price, name, provCode) => {
                 const currentBal = uDoc.data().balance || 0;
                 if(currentBal < price) throw "Saldo tidak cukup!";
                 
-                                                                const balanceBefore = currentBal;
+                const balanceBefore = currentBal;
                 const balanceAfter = currentBal - price;
                 t.update(uRef, { balance: balanceAfter });
                 window.logDoniGuardAudit(t, currentUser.uid, 'OUT', price, balanceBefore, balanceAfter, reffId, 'Purchase PPOB');
@@ -3629,14 +3630,14 @@ window.executeApiTransaction = async (code, dest, price, name, provCode) => {
                     amount: price,
                     type: 'out',
                     date: new Date().toISOString(),
-                    status: 'Proses',
+                    status: 'Proses', // Status Awal
                     api_msg: 'Menghubungkan ke server...',
                     trx_id: reffId,
                     trx_code: trxCode,
-                    provider_id: '', // ID Server (Akan diupdate)
-                    provider_code: provCode || '', // Kode Provider App
-                    raw_code: code, // Kode Produk
-                    dest_num: dest, // Nomor Tujuan
+                    provider_id: '', 
+                    provider_code: provCode || '', 
+                    raw_code: code, 
+                    dest_num: dest, 
                     balance_before: balanceBefore,
                     balance_after: balanceAfter
                 });
@@ -3646,45 +3647,44 @@ window.executeApiTransaction = async (code, dest, price, name, provCode) => {
             return window.showAlert("Gagal", "Gagal memproses transaksi: " + e, "error");
         }
 
-        // Update UI Lokal
+        // Update UI Lokal (Agar terasa cepat)
         currentBalance -= price;
         if(document.getElementById('displayBalance')) document.getElementById('displayBalance').innerText = window.formatRp(currentBalance);
 
-                // 2. CALL API (MODIFIED: STRICT AUTO REFUND FOR KHFY)
+        // 2. CALL API KHFY (MODIFIED: ANTI FALSE NEGATIVE)
         try {
             const result = await callApi('/trx', { produk: code, tujuan: dest, reff_id: reffId });
             window.showLoader(false);
 
-            // A. DETEKSI ERROR JARINGAN / PROXY
-            // Jika result.ok = false, artinya Relay/Proxy gagal menghubungi KHFY
+            // A. DETEKSI ERROR JARINGAN / PROXY (JANGAN REFUND DISINI)
             if (!result.ok) {
-                throw new Error("Koneksi Server Terputus (" + (result.error || 'No Response') + ")");
+                throw new Error("NETWORK_ISSUE||" + (result.error || 'No Response'));
             }
 
             const data = result.data;
+            
+            // Validasi Respon KHFY (Kadang KHFY return HTML error saat maintenance)
             const rawStr = JSON.stringify(data).toLowerCase();
-
-            // B. DETEKSI ERROR HTML / SERVER BUSY (Penyebab utama 'Menghubungkan ke server' lama)
-            // Ini menangkap error 502, 504, HTML Error, Lock Timeout dari KHFY
-            if (rawStr.includes('lock_timeout') || rawStr.includes('html error') || rawStr.includes('bad gateway') || rawStr.includes('service unavailable') || rawStr.includes('maintenance')) {
-                throw new Error("Server Sedang Sibuk/Down (Auto Refund)");
+            if (rawStr.includes('lock_timeout') || rawStr.includes('html error') || rawStr.includes('bad gateway') || rawStr.includes('service unavailable')) {
+                throw new Error("NETWORK_ISSUE||Server Sibuk/Down");
             }
 
-            // C. PROSES RESPON API NORMAL
+            // B. PROSES RESPON API
             let isSuccess = false;
             let msg = data.message || data.sn || "";
             
-            // Sensor Data Sensitif
+            // Sensor Pesan
             if(typeof msg === 'string') {
                 msg = msg.replace(/(kodereseller|password|pin)=[^&\s#]*&?/gi, "");
             }
 
+            // Logika Sukses KHFY: status=true, success=true, atau data.status='Pending'
             if (data.status === true || data.success === true || (data.data && data.data.status === 'Pending')) {
                 isSuccess = true;
             }
 
             if (isSuccess) {
-                // --- SUKSES: Update jadi Pending seperti biasa ---
+                // --- KASUS SUKSES ---
                 await updateDoc(trxRef, { 
                     status: 'Pending', 
                     api_msg: msg, 
@@ -3692,19 +3692,52 @@ window.executeApiTransaction = async (code, dest, price, name, provCode) => {
                 });
                 
                 alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
+                // Aktifkan monitoring
+                window.manualCheckTrx(reffId, provCode || 'KHFY');
                 window.nav('homePage');
             } else {
-                // --- GAGAL DARI LOGIC API: Lempar Error agar di-Refund ---
-                throw new Error(msg || "Transaksi Ditolak Server");
+                // --- KASUS DITOLAK EXPLICIT OLEH KHFY ---
+                // Hanya refund jika server membalas dengan status: false
+                throw new Error("API_REJECT||" + (msg || "Transaksi Ditolak Server"));
             }
 
         } catch(e) {
             window.showLoader(false);
-            console.error("TRANSAKSI ERROR (TRIGGERING AUTO REFUND):", e);
+            console.error("TRX EXCEPTION:", e);
+            
+            const errRaw = e.message || "";
+            const isNetworkIssue = errRaw.includes("NETWORK_ISSUE") || errRaw.includes("failed to fetch") || errRaw.includes("timeout");
+            const isApiReject = errRaw.includes("API_REJECT");
 
-                        // --- DANGER ZONE: AUTO REFUND EKSEKUSI ---
-            // Apapun errornya (Koneksi, Timeout, Gagal API), panggil fungsi refund.
-            await window.handleAutoRefund(reffId, currentUser.uid, price, e.message || "Gagal Koneksi Tak Diketahui");
+            if (isNetworkIssue) {
+                // === SOLUSI UTAMA: JANGAN REFUND ===
+                // Jika error koneksi, kita anggap statusnya PENDING / MENUNGGU.
+                // Biarkan Watchdog yang mengecek status aslinya nanti.
+                await updateDoc(trxRef, {
+                    status: 'Pending',
+                    api_msg: 'Koneksi lambat (Menunggu verifikasi otomatis...)',
+                    sn: 'MENUNGGU RESPONSE SERVER'
+                });
+
+                alert("Sinyal ke Server Pusat lambat.\nTransaksi tetap DIPROSES (Jangan beli ulang).\nStatus akan update otomatis sebentar lagi.");
+                
+                // Trigger cek manual setelah 3 detik
+                setTimeout(() => window.manualCheckTrx(reffId, provCode || 'KHFY'), 3000);
+                
+            } else if (isApiReject) {
+                // === REFUND HANYA JIKA DITOLAK TEGAS ===
+                // Contoh: Saldo KHFY Habis, Produk Gangguan, Nomor Salah
+                const reason = errRaw.replace("API_REJECT||", "");
+                await window.handleAutoRefund(reffId, currentUser.uid, price, reason);
+            } else {
+                // Error Tak Terduga (Safe Mode: Hold dulu jadi Pending)
+                await updateDoc(trxRef, {
+                    status: 'Pending',
+                    api_msg: 'Error Tak Terduga: ' + errRaw,
+                    sn: 'MENUNGGU VERIFIKASI'
+                });
+                setTimeout(() => window.manualCheckTrx(reffId, provCode || 'KHFY'), 3000);
+            }
             
             window.nav('homePage');
         }

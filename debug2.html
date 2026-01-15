@@ -3,144 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pandawa Debug Tool - Manual Order Injector</title>
+    <title>Tools Order Akrab (Free Mode)</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script>
         tailwind.config = { darkMode: 'class' }
     </script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #0f172a; color: white; }
-        .input-field {
-            width: 100%;
-            background-color: #1e293b;
-            border: 1px solid #334155;
-            color: white;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            font-size: 14px;
+        body { background-color: #0f172a; color: white; font-family: 'Segoe UI', sans-serif; }
+        .input-group label { display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.25rem; font-weight: bold; }
+        .input-box { 
+            width: 100%; background: #1e293b; border: 1px solid #334155; 
+            padding: 0.75rem; border-radius: 0.5rem; color: white; font-weight: bold;
         }
-        .input-field:focus { outline: 2px solid #3b82f6; border-color: transparent; }
-        .btn {
-            width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s;
-        }
-        .btn-primary { background-color: #3b82f6; color: white; }
-        .btn-primary:hover { background-color: #2563eb; }
-        .btn-danger { background-color: #ef4444; color: white; }
-        .btn-danger:hover { background-color: #dc2626; }
+        .input-box:focus { outline: 2px solid #3b82f6; border-color: transparent; }
+        .badge-free { background: #22c55e; color: #000; font-size: 0.6rem; padding: 2px 6px; border-radius: 4px; font-weight: 900; }
     </style>
 </head>
-<body class="p-6 max-w-2xl mx-auto">
+<body class="p-4 max-w-lg mx-auto min-h-screen flex flex-col">
 
-    <div class="mb-8 border-b border-gray-700 pb-4 flex justify-between items-center">
-        <div>
-            <h1 class="text-2xl font-bold text-blue-500"><i class="fas fa-tools"></i> PANDAWA DEBUGGER</h1>
-            <p class="text-xs text-gray-400">Manual Order Injection & Database Repair Tool</p>
+    <div class="mb-6 border-b border-gray-700 pb-4">
+        <h1 class="text-xl font-black text-blue-500"><i class="fas fa-satellite-dish"></i> TEMBAK AKRAB MANUAL</h1>
+        <p class="text-xs text-gray-400">Tools Order Gratis (Bypass Saldo) dengan Custom ReffID</p>
+    </div>
+
+    <div id="loginPanel" class="bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-xl">
+        <h3 class="font-bold mb-4">Login Admin</h3>
+        <input type="email" id="email" placeholder="Email" class="input-box mb-3">
+        <input type="password" id="pass" placeholder="Password" class="input-box mb-4">
+        <button onclick="authLogin()" class="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold transition">MASUK</button>
+    </div>
+
+    <div id="mainPanel" class="hidden space-y-4">
+        <div class="bg-green-900/20 border border-green-900/50 p-3 rounded-xl flex justify-between items-center">
+            <span class="text-xs text-green-400 font-mono" id="userStatus">Connected</span>
+            <button onclick="authLogout()" class="text-[10px] bg-red-900/30 text-red-400 px-2 py-1 rounded hover:bg-red-900/50">Logout</button>
         </div>
-        <div id="authStatus" class="text-xs font-mono text-red-400">Not Connected</div>
-    </div>
 
-    <div id="loginSection" class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg mb-6">
-        <h2 class="text-lg font-bold mb-4 text-gray-200">Login Admin/User</h2>
-        <p class="text-xs text-gray-400 mb-4">Login diperlukan untuk mendapatkan akses tulis ke Firestore.</p>
-        <input type="email" id="email" placeholder="Email Admin" class="input-field">
-        <input type="password" id="password" placeholder="Password" class="input-field">
-        <button onclick="handleLogin()" class="btn btn-primary">MASUK KE TOOLS</button>
-    </div>
+        <div class="bg-gray-800 p-5 rounded-2xl border border-gray-700 shadow-lg space-y-4">
+            
+            <div class="input-group">
+                <label>UID TARGET (USER)</label>
+                <input type="text" id="targetUid" class="input-box text-yellow-400 font-mono text-sm" placeholder="Paste UID User disini...">
+                <p class="text-[10px] text-gray-500 mt-1">Order akan masuk ke history UID ini.</p>
+            </div>
 
-    <div id="toolSection" class="hidden space-y-6">
+            <div class="input-group bg-blue-900/20 p-2 rounded-lg border border-blue-800/30">
+                <label class="text-blue-400">REFF ID / TRX ID (MANUAL)</label>
+                <div class="flex gap-2">
+                    <input type="text" id="reffId" class="input-box" placeholder="Ketik ReffID Custom...">
+                    <button onclick="autoReffId()" class="bg-gray-700 px-3 rounded-lg text-xs font-bold hover:bg-gray-600"><i class="fas fa-random"></i></button>
+                </div>
+                <p class="text-[9px] text-blue-300/60 mt-1">*Bisa diinput manual sesuai kebutuhan.</p>
+            </div>
+
+            <div class="input-group">
+                <label>PILIH PROVIDER (SESUAI INDEX)</label>
+                <select id="providerSelect" class="input-box" onchange="updateProductHint()">
+                    <option value="ICS_XLA">XL Akrab (XLA)</option>
+                    <option value="ICS_XDA">Akrab Fresh (XDA)</option>
+                    <option value="ICS_CIRCLE">XL Circle</option>
+                    <option value="ICS_FMX">FlexMax (FMX)</option>
+                    <option value="ICS_BPA">Bagi Pulsa (BPA)</option>
+                </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div class="input-group">
+                    <label>KODE PRODUK</label>
+                    <input type="text" id="prodCode" class="input-box" placeholder="Cth: XLA10">
+                </div>
+                <div class="input-group">
+                    <label>HARGA (RP)</label>
+                    <input type="number" id="price" class="input-box text-green-400" value="0">
+                </div>
+            </div>
+            
+            <div class="input-group">
+                <label>NOMOR TUJUAN</label>
+                <input type="tel" id="destNum" class="input-box text-lg" placeholder="08xxx">
+            </div>
+
+            <div class="pt-2">
+                <button onclick="executeOrder()" class="w-full py-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 rounded-xl font-black shadow-lg shadow-blue-900/20 active:scale-95 transition-transform flex justify-center items-center gap-2">
+                    <i class="fas fa-paper-plane"></i> TEMBAK PAKET (GRATIS)
+                </button>
+                <p class="text-[10px] text-center text-gray-500 mt-2">Saldo App User tidak akan terpotong.</p>
+            </div>
+
+        </div>
         
-        <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg">
-            <h2 class="text-lg font-bold mb-2 text-green-400">Inject Transaksi Manual</h2>
-            <p class="text-xs text-gray-400 mb-6">Tools ini akan membuat history transaksi baru dan opsional memotong saldo.</p>
-
-            <div class="grid grid-cols-2 gap-4">
-                <div class="col-span-2">
-                    <label class="text-xs text-gray-500">Target UID User (Default: UID Login)</label>
-                    <input type="text" id="targetUid" class="input-field font-mono text-yellow-400" placeholder="Paste UID User disini...">
-                </div>
-
-                <div class="col-span-2 bg-blue-900/20 p-3 rounded-lg border border-blue-900/50">
-                    <label class="text-xs font-bold text-blue-400">REFF ID / TRX ID (Manual)</label>
-                    <div class="flex gap-2">
-                        <input type="text" id="reffId" class="input-field mb-0 font-bold" placeholder="Contoh: TRX-MANUAL-001">
-                        <button onclick="generateReffId()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 rounded-lg text-xs font-bold">Auto</button>
-                    </div>
-                    <p class="text-[10px] text-gray-500 mt-1">*Wajib unik. Gunakan ini untuk memperbaiki transaksi yang hilang/stuck.</p>
-                </div>
-
-                <div>
-                    <label class="text-xs text-gray-500">Kode Produk</label>
-                    <input type="text" id="prodCode" class="input-field" placeholder="Ex: XLA10">
-                </div>
-                <div>
-                    <label class="text-xs text-gray-500">Provider ID</label>
-                    <select id="provId" class="input-field">
-                        <option value="MANUAL">MANUAL (Umum)</option>
-                        <option value="ICS">ICS / Relay</option>
-                        <option value="KHFY">KHFY (Panel)</option>
-                        <option value="DIGIFLAZZ">Digiflazz</option>
-                    </select>
-                </div>
-
-                <div class="col-span-2">
-                    <label class="text-xs text-gray-500">Nama Produk (Title)</label>
-                    <input type="text" id="prodName" class="input-field" placeholder="Ex: XL Akrab 10GB Manual">
-                </div>
-
-                <div>
-                    <label class="text-xs text-gray-500">Nomor Tujuan</label>
-                    <input type="text" id="destNum" class="input-field" placeholder="08xxx">
-                </div>
-                <div>
-                    <label class="text-xs text-gray-500">Harga (Nominal)</label>
-                    <input type="number" id="price" class="input-field" placeholder="0">
-                </div>
-                
-                <div>
-                    <label class="text-xs text-gray-500">Status Awal</label>
-                    <select id="status" class="input-field">
-                        <option value="Sukses">Sukses</option>
-                        <option value="Pending">Pending</option>
-                        <option value="Proses">Proses</option>
-                        <option value="Gagal">Gagal</option>
-                    </select>
-                </div>
-                 <div>
-                    <label class="text-xs text-gray-500">SN / Pesan API</label>
-                    <input type="text" id="sn" class="input-field" placeholder="SN Manual...">
-                </div>
-            </div>
-
-            <div class="mt-4 p-3 bg-gray-900 rounded-lg flex items-center gap-3">
-                <input type="checkbox" id="cutBalance" class="w-5 h-5 rounded text-blue-600 focus:ring-blue-500 bg-gray-700 border-gray-600">
-                <div>
-                    <label for="cutBalance" class="text-sm font-bold text-white block">Potong Saldo User?</label>
-                    <p class="text-[10px] text-gray-400">Centang jika ini transaksi baru. Jangan centang jika hanya memperbaiki history.</p>
-                </div>
-            </div>
-
-            <button onclick="executeInjection()" class="btn btn-primary mt-6 shadow-lg shadow-blue-500/20">
-                <i class="fas fa-bolt mr-2"></i> EKSEKUSI TRANSAKSI
-            </button>
+        <div id="logs" class="bg-black p-3 rounded-lg font-mono text-[10px] text-green-500 h-32 overflow-y-auto border border-gray-800">
+            > Ready...
         </div>
-
-        <div class="text-center">
-            <button onclick="handleLogout()" class="text-xs text-red-500 font-bold hover:underline">Keluar / Logout</button>
-        </div>
-    </div>
-
-    <div class="mt-8 bg-black p-4 rounded-lg font-mono text-xs text-green-400 h-40 overflow-y-auto border border-gray-800" id="consoleLog">
-        > Ready to debug...<br>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, runTransaction, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // --- KONFIGURASI FIREBASE (SAMA DENGAN INDEX.HTML) ---
+        // --- 1. CONFIG FIREBASE (SAMA DENGAN INDEX.HTML) ---
         const firebaseConfig = {
             apiKey: "AIzaSyBnVxgxkS8InH1PQCMGe3cY8IvPqSN6dLo",
             authDomain: "ppob-3ea96.firebaseapp.com",
@@ -155,136 +118,153 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- AUTH LOGIC ---
-        window.handleLogin = async () => {
-            const e = document.getElementById('email').value;
-            const p = document.getElementById('password').value;
-            log("Attempting login...");
-            try {
-                await signInWithEmailAndPassword(auth, e, p);
-            } catch(err) {
-                log("Error: " + err.message);
-                alert(err.message);
-            }
+        // --- 2. KONFIGURASI API ICS (RELAY) ---
+        const ICS_CONFIG = { 
+            apiKey: "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77", 
+            baseUrl: "https://www.pandawa-digital.store/api/relay" 
         };
 
-        window.handleLogout = () => signOut(auth);
+        // --- 3. AUTH LOGIC ---
+        window.authLogin = async () => {
+            const e = document.getElementById('email').value;
+            const p = document.getElementById('pass').value;
+            try { await signInWithEmailAndPassword(auth, e, p); } catch(err) { alert(err.message); }
+        };
+
+        window.authLogout = () => signOut(auth);
 
         onAuthStateChanged(auth, (user) => {
-            if (user) {
-                document.getElementById('loginSection').classList.add('hidden');
-                document.getElementById('toolSection').classList.remove('hidden');
-                document.getElementById('authStatus').innerHTML = `<span class="text-green-400">Connected: ${user.email}</span>`;
-                
-                // Auto fill target UID with own UID initially
-                if(!document.getElementById('targetUid').value) {
-                    document.getElementById('targetUid').value = user.uid;
-                }
-                log("User authenticated: " + user.uid);
+            if(user) {
+                document.getElementById('loginPanel').classList.add('hidden');
+                document.getElementById('mainPanel').classList.remove('hidden');
+                document.getElementById('userStatus').innerText = "Admin: " + user.email;
+                if(!document.getElementById('targetUid').value) document.getElementById('targetUid').value = user.uid; // Auto fill self
+                log("Login sukses. Siap tembak paket.");
             } else {
-                document.getElementById('loginSection').classList.remove('hidden');
-                document.getElementById('toolSection').classList.add('hidden');
-                document.getElementById('authStatus').innerHTML = `<span class="text-red-400">Not Connected</span>`;
+                document.getElementById('loginPanel').classList.remove('hidden');
+                document.getElementById('mainPanel').classList.add('hidden');
             }
         });
 
-        // --- HELPER ---
+        // --- 4. HELPER FUNCTIONS ---
         window.log = (msg) => {
-            const c = document.getElementById('consoleLog');
-            c.innerHTML += `> ${msg}<br>`;
-            c.scrollTop = c.scrollHeight;
-        };
+            const l = document.getElementById('logs');
+            l.innerHTML += `> ${msg}<br>`;
+            l.scrollTop = l.scrollHeight;
+        }
 
-        window.generateReffId = () => {
+        window.autoReffId = () => {
+            // Format ICS Standard: ICS-NoHP-Waktu
+            const hp = document.getElementById('destNum').value.replace(/[^0-9]/g,'') || '08123456789';
             const d = new Date();
             const timeStr = String(d.getHours()).padStart(2, '0') + String(d.getMinutes()).padStart(2, '0') + String(d.getSeconds()).padStart(2, '0');
-            const random = Math.floor(Math.random() * 1000);
-            document.getElementById('reffId').value = `TRX-MANUAL-${timeStr}-${random}`;
-        };
+            document.getElementById('reffId').value = `ICS-${hp}-${timeStr}`;
+        }
 
-        // --- CORE INJECTION LOGIC ---
-        window.executeInjection = async () => {
-            const uid = document.getElementById('targetUid').value.trim();
-            const reffId = document.getElementById('reffId').value.trim();
-            const prodCode = document.getElementById('prodCode').value.trim();
-            const prodName = document.getElementById('prodName').value.trim();
-            const destNum = document.getElementById('destNum').value.trim();
-            const price = parseInt(document.getElementById('price').value) || 0;
-            const status = document.getElementById('status').value;
-            const provId = document.getElementById('provId').value;
-            const sn = document.getElementById('sn').value;
-            const shouldCutBalance = document.getElementById('cutBalance').checked;
+        window.updateProductHint = () => {
+            const p = document.getElementById('providerSelect').value;
+            let hint = "";
+            if(p.includes('XLA')) hint = "Cth: XLA10, XLA25, XLA50";
+            if(p.includes('XDA')) hint = "Cth: XDA3, XDA5, XDA10";
+            if(p.includes('CIRCLE')) hint = "Cth: XCL10, XCL20";
+            if(p.includes('FMX')) hint = "Cth: FMX50, FMX65";
+            document.getElementById('prodCode').placeholder = hint;
+        }
 
-            if(!uid || !reffId || !prodCode) {
-                alert("Mohon lengkapi UID, Reff ID, dan Kode Produk");
-                return;
-            }
+        // --- 5. CORE ORDER LOGIC (GRATIS/BYPASS BALANCE) ---
+        window.executeOrder = async () => {
+            const uid = document.getElementById('targetUid').value;
+            const reffId = document.getElementById('reffId').value;
+            const provider = document.getElementById('providerSelect').value;
+            const code = document.getElementById('prodCode').value;
+            const price = parseInt(document.getElementById('price').value) || 0; // Nominal di history (bisa 0 agar terlihat gratis)
+            const dest = document.getElementById('destNum').value;
 
-            if(!confirm(`YAKIN INJECT DATA?\n\nTarget: ${uid}\nReffID: ${reffId}\nPotong Saldo: ${shouldCutBalance ? 'YA' : 'TIDAK'}`)) return;
+            if(!uid || !reffId || !code || !dest) return alert("Data belum lengkap!");
 
-            log(`Starting injection for ${reffId}...`);
+            if(!confirm(`KONFIRMASI TEMBAK GRATIS?\n\nTarget: ${dest}\nProduk: ${code}\nReffID: ${reffId}\n\nSaldo User TIDAK akan dipotong.`)) return;
+
+            log(`Memproses ReffID: ${reffId}...`);
 
             try {
-                await runTransaction(db, async (transaction) => {
-                    // 1. Ambil Data User
+                // A. CREATE HISTORY DI DATABASE (TANPA POTONG SALDO)
+                await runTransaction(db, async (t) => {
                     const userRef = doc(db, "users", uid);
-                    const userDoc = await transaction.get(userRef);
+                    const userDoc = await t.get(userRef);
+                    if(!userDoc.exists()) throw "User UID tidak valid!";
 
-                    if (!userDoc.exists()) throw "User UID tidak ditemukan di database!";
-
-                    const currentBalance = userDoc.data().balance || 0;
-                    let balanceAfter = currentBalance;
-
-                    // 2. Logic Potong Saldo (Opsional)
-                    if (shouldCutBalance) {
-                        if (currentBalance < price) throw "Saldo user tidak cukup untuk dipotong!";
-                        balanceAfter = currentBalance - price;
-                        transaction.update(userRef, { balance: balanceAfter });
-                        log(`Balance deducted: ${currentBalance} -> ${balanceAfter}`);
-                    } else {
-                        log(`Balance untouched: ${currentBalance}`);
-                    }
-
-                    // 3. Buat History Transaction
-                    const histRef = doc(db, "users", uid, "history", reffId);
+                    const currentBal = userDoc.data().balance || 0;
                     
-                    // Cek duplikat
-                    const histDoc = await transaction.get(histRef);
-                    if(histDoc.exists()) throw "Reff ID ini sudah ada di history user! Gunakan Reff ID lain.";
-
-                    transaction.set(histRef, {
+                    // Simpan history sebagai 'Proses'
+                    const histRef = doc(db, "users", uid, "history", reffId);
+                    t.set(histRef, {
                         trx_id: reffId,
                         trx_code: Math.floor(100000 + Math.random() * 900000).toString(),
-                        title: prodName || "Order Manual Debug",
-                        amount: price,
-                        type: 'out', // Selalu 'out' untuk pembelian
+                        title: `Order Manual (${code})`,
+                        amount: price, // Nominal yang tercatat (bisa 0)
+                        type: 'out',
                         date: new Date().toISOString(),
-                        status: status,
-                        api_msg: sn || "Inject Manual via Debug Tool",
-                        sn: sn || "-",
-                        provider_id: provId,
-                        provider_code: provId,
-                        raw_code: prodCode,
-                        dest_num: destNum,
-                        balance_before: currentBalance,
-                        balance_after: balanceAfter,
-                        injected_via: 'debug_tools.html'
+                        status: 'Proses',
+                        api_msg: 'Memproses Order Gratis...',
+                        provider_id: 'ICS', 
+                        provider_code: provider, // ICS_XLA, ICS_XDA, dll
+                        raw_code: code,
+                        dest_num: dest,
+                        balance_before: currentBal,
+                        balance_after: currentBal // Saldo Tetap (Gratis)
                     });
                 });
 
-                log("SUCCESS! Transaksi berhasil disuntikkan.");
-                alert("Berhasil Inject Data!");
-                
-                // Clear form untuk mencegah double submit
-                document.getElementById('reffId').value = "";
-                
+                log("Database tercatat. Mengirim request ke Server ICS...");
+
+                // B. HIT API ICS (SUPAYA ORDER MASUK KE PROVIDER)
+                // Kita gunakan fungsi fetch manual karena callIcsApi ada di file lain
+                const tStamp = Date.now();
+                const params = new URLSearchParams({
+                    action: 'createTransaction',
+                    apikey: ICS_CONFIG.apiKey,
+                    kode_produk: code,
+                    nomor_tujuan: dest,
+                    refid: reffId,
+                    _t: tStamp
+                });
+
+                const res = await fetch(`${ICS_CONFIG.baseUrl}?${params.toString()}`, { method: 'POST' });
+                const json = await res.json();
+
+                log("Response Server: " + JSON.stringify(json));
+
+                // C. UPDATE STATUS BERDASARKAN RESPON API
+                let finalStatus = 'Pending';
+                let msg = 'Menunggu Server...';
+
+                if (json.success) {
+                    msg = json.data?.message || json.message || 'Transaksi Dikirim';
+                    if (json.data?.status === 'sukses') finalStatus = 'Sukses';
+                } else {
+                    finalStatus = 'Gagal';
+                    msg = json.data?.message || json.message || 'Ditolak Server';
+                }
+
+                // Update status akhir di DB
+                await setDoc(doc(db, "users", uid, "history", reffId), {
+                    status: finalStatus,
+                    api_msg: msg,
+                    raw_json: JSON.stringify(json)
+                }, { merge: true });
+
+                log(`SELESAI. Status: ${finalStatus}`);
+                alert(`Order Terkirim!\nStatus: ${finalStatus}\nPesan: ${msg}`);
+
             } catch (e) {
                 console.error(e);
-                log("ERROR: " + (typeof e === 'string' ? e : e.message));
-                alert("GAGAL: " + (typeof e === 'string' ? e : e.message));
+                log("ERROR: " + e.message);
+                alert("Terjadi Kesalahan: " + e.message);
             }
         };
 
+        // Inisialisasi
+        updateProductHint();
     </script>
 </body>
 </html>

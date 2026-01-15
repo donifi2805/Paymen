@@ -3,216 +3,288 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kaje Store - Official</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    
+    <title>Pandawa Debug Tool - Manual Order Injector</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class' }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
-        body { font-family: 'Poppins', sans-serif; background-color: #f4f6f9; }
-        .app-container { max-width: 480px; margin: 0 auto; background: #fff; min-height: 100vh; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
-        .header { background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; padding: 25px 20px; border-radius: 0 0 25px 25px; }
-        .saldo-card { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); border-radius: 15px; padding: 15px; margin-top: 15px; display: flex; justify-content: space-between; align-items: center; }
-        .menu-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 20px; }
-        .menu-item { text-align: center; padding: 10px; border-radius: 12px; transition: 0.2s; cursor: pointer; border: 1px solid #f0f0f0; }
-        .menu-item:hover, .menu-item.active { background: #eef2ff; border-color: #2a5298; color: #2a5298; }
-        .product-list { padding: 0 20px 20px; }
-        .product-card { border: 1px solid #eee; border-radius: 12px; padding: 15px; margin-bottom: 12px; cursor: pointer; transition: 0.2s; background: white; }
-        .product-card:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.05); border-color: #2a5298; }
-        .price { color: #2a5298; font-weight: 700; font-size: 1.1em; }
-        .loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.9); z-index: 9999; display: none; justify-content: center; align-items: center; flex-direction: column; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #0f172a; color: white; }
+        .input-field {
+            width: 100%;
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .input-field:focus { outline: 2px solid #3b82f6; border-color: transparent; }
+        .btn {
+            width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s;
+        }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-primary:hover { background-color: #2563eb; }
+        .btn-danger { background-color: #ef4444; color: white; }
+        .btn-danger:hover { background-color: #dc2626; }
     </style>
 </head>
-<body>
+<body class="p-6 max-w-2xl mx-auto">
 
-<div class="app-container">
-    <div class="header">
-        <div class="d-flex justify-content-between align-items-center">
-            <h5 class="mb-0 fw-bold"><i class="fas fa-bolt me-2"></i>Kaje Store</h5>
-            <button class="btn btn-sm btn-light rounded-circle text-primary" onclick="cekSaldo()">
-                <i class="fas fa-sync-alt"></i>
+    <div class="mb-8 border-b border-gray-700 pb-4 flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-blue-500"><i class="fas fa-tools"></i> PANDAWA DEBUGGER</h1>
+            <p class="text-xs text-gray-400">Manual Order Injection & Database Repair Tool</p>
+        </div>
+        <div id="authStatus" class="text-xs font-mono text-red-400">Not Connected</div>
+    </div>
+
+    <div id="loginSection" class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg mb-6">
+        <h2 class="text-lg font-bold mb-4 text-gray-200">Login Admin/User</h2>
+        <p class="text-xs text-gray-400 mb-4">Login diperlukan untuk mendapatkan akses tulis ke Firestore.</p>
+        <input type="email" id="email" placeholder="Email Admin" class="input-field">
+        <input type="password" id="password" placeholder="Password" class="input-field">
+        <button onclick="handleLogin()" class="btn btn-primary">MASUK KE TOOLS</button>
+    </div>
+
+    <div id="toolSection" class="hidden space-y-6">
+        
+        <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg">
+            <h2 class="text-lg font-bold mb-2 text-green-400">Inject Transaksi Manual</h2>
+            <p class="text-xs text-gray-400 mb-6">Tools ini akan membuat history transaksi baru dan opsional memotong saldo.</p>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div class="col-span-2">
+                    <label class="text-xs text-gray-500">Target UID User (Default: UID Login)</label>
+                    <input type="text" id="targetUid" class="input-field font-mono text-yellow-400" placeholder="Paste UID User disini...">
+                </div>
+
+                <div class="col-span-2 bg-blue-900/20 p-3 rounded-lg border border-blue-900/50">
+                    <label class="text-xs font-bold text-blue-400">REFF ID / TRX ID (Manual)</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="reffId" class="input-field mb-0 font-bold" placeholder="Contoh: TRX-MANUAL-001">
+                        <button onclick="generateReffId()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 rounded-lg text-xs font-bold">Auto</button>
+                    </div>
+                    <p class="text-[10px] text-gray-500 mt-1">*Wajib unik. Gunakan ini untuk memperbaiki transaksi yang hilang/stuck.</p>
+                </div>
+
+                <div>
+                    <label class="text-xs text-gray-500">Kode Produk</label>
+                    <input type="text" id="prodCode" class="input-field" placeholder="Ex: XLA10">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500">Provider ID</label>
+                    <select id="provId" class="input-field">
+                        <option value="MANUAL">MANUAL (Umum)</option>
+                        <option value="ICS">ICS / Relay</option>
+                        <option value="KHFY">KHFY (Panel)</option>
+                        <option value="DIGIFLAZZ">Digiflazz</option>
+                    </select>
+                </div>
+
+                <div class="col-span-2">
+                    <label class="text-xs text-gray-500">Nama Produk (Title)</label>
+                    <input type="text" id="prodName" class="input-field" placeholder="Ex: XL Akrab 10GB Manual">
+                </div>
+
+                <div>
+                    <label class="text-xs text-gray-500">Nomor Tujuan</label>
+                    <input type="text" id="destNum" class="input-field" placeholder="08xxx">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500">Harga (Nominal)</label>
+                    <input type="number" id="price" class="input-field" placeholder="0">
+                </div>
+                
+                <div>
+                    <label class="text-xs text-gray-500">Status Awal</label>
+                    <select id="status" class="input-field">
+                        <option value="Sukses">Sukses</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Proses">Proses</option>
+                        <option value="Gagal">Gagal</option>
+                    </select>
+                </div>
+                 <div>
+                    <label class="text-xs text-gray-500">SN / Pesan API</label>
+                    <input type="text" id="sn" class="input-field" placeholder="SN Manual...">
+                </div>
+            </div>
+
+            <div class="mt-4 p-3 bg-gray-900 rounded-lg flex items-center gap-3">
+                <input type="checkbox" id="cutBalance" class="w-5 h-5 rounded text-blue-600 focus:ring-blue-500 bg-gray-700 border-gray-600">
+                <div>
+                    <label for="cutBalance" class="text-sm font-bold text-white block">Potong Saldo User?</label>
+                    <p class="text-[10px] text-gray-400">Centang jika ini transaksi baru. Jangan centang jika hanya memperbaiki history.</p>
+                </div>
+            </div>
+
+            <button onclick="executeInjection()" class="btn btn-primary mt-6 shadow-lg shadow-blue-500/20">
+                <i class="fas fa-bolt mr-2"></i> EKSEKUSI TRANSAKSI
             </button>
         </div>
-        
-        <div class="saldo-card">
-            <div>
-                <small class="text-white-50">Saldo Tersedia</small>
-                <h3 class="mb-0 fw-bold" id="saldoText">Rp -</h3>
-            </div>
-            <i class="fas fa-wallet fa-2x text-white-50"></i>
+
+        <div class="text-center">
+            <button onclick="handleLogout()" class="text-xs text-red-500 font-bold hover:underline">Keluar / Logout</button>
         </div>
     </div>
 
-    <div class="p-4 pb-0">
-        <label class="fw-bold text-secondary small mb-2">NOMOR TUJUAN</label>
-        <div class="input-group input-group-lg mb-3">
-            <span class="input-group-text bg-white"><i class="fas fa-phone text-primary"></i></span>
-            <input type="tel" id="nomorHP" class="form-control border-start-0 ps-0" placeholder="08xx xxxx xxxx">
-        </div>
+    <div class="mt-8 bg-black p-4 rounded-lg font-mono text-xs text-green-400 h-40 overflow-y-auto border border-gray-800" id="consoleLog">
+        > Ready to debug...<br>
     </div>
 
-    <div class="menu-grid">
-        <div class="menu-item active" onclick="filterProduk('tsel')">
-            <i class="fas fa-signal fa-lg mb-2 text-danger"></i><br><small>Tsel</small>
-        </div>
-        <div class="menu-item" onclick="filterProduk('isat')">
-            <i class="fas fa-globe fa-lg mb-2 text-warning"></i><br><small>Isat</small>
-        </div>
-        <div class="menu-item" onclick="filterProduk('xl')">
-            <i class="fas fa-bolt fa-lg mb-2 text-primary"></i><br><small>XL</small>
-        </div>
-        <div class="menu-item" onclick="filterProduk('tri')">
-            <i class="fas fa-infinity fa-lg mb-2 text-dark"></i><br><small>Tri</small>
-        </div>
-    </div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    <div class="product-list" id="productList">
-        <div class="text-center text-muted mt-5">Silakan pilih kategori</div>
-    </div>
-</div>
+        // --- KONFIGURASI FIREBASE (SAMA DENGAN INDEX.HTML) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyBnVxgxkS8InH1PQCMGe3cY8IvPqSN6dLo",
+            authDomain: "ppob-3ea96.firebaseapp.com",
+            projectId: "ppob-3ea96",
+            storageBucket: "ppob-3ea96.firebasestorage.app",
+            messagingSenderId: "181320175094",
+            appId: "1:181320175094:web:306b79071018410b910bd7",
+            measurementId: "G-0K2V796QDX"
+        };
 
-<div class="loading-overlay" id="loading">
-    <div class="spinner-border text-primary mb-3" role="status"></div>
-    <span class="fw-bold text-secondary">Memproses...</span>
-</div>
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-<div class="modal fade" id="modalConfirm" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header border-0">
-                <h5 class="modal-title fw-bold">Konfirmasi Beli</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body text-center">
-                <div class="bg-light p-3 rounded mb-3">
-                    <h6 class="text-muted mb-1" id="confirmName">Nama Produk</h6>
-                    <h3 class="text-primary fw-bold" id="confirmPrice">Rp 0</h3>
-                </div>
-                <p class="mb-1">Nomor Tujuan:</p>
-                <h5 class="fw-bold" id="confirmPhone">-</h5>
-            </div>
-            <div class="modal-footer border-0 justify-content-center">
-                <button type="button" class="btn btn-primary w-100 rounded-pill py-2" onclick="prosesTransaksi()">
-                    <i class="fas fa-check-circle me-2"></i>BAYAR SEKARANG
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-<script>
-    // URL Backend Anda (Relay)
-    // Jika dijalankan di localhost port 3000, gunakan http://localhost:3000/api/relaykaje
-    // Jika file relay ada di folder yang sama di server statis, gunakan 'api/relaykaje.js' (Tapi js harus dijalankan node)
-    
-    // Asumsi: Anda menjalankan server backend di path relative /api/relaykaje
-    const RELAY_URL = '/api/relaykaje'; 
-
-    document.addEventListener('DOMContentLoaded', () => {
-        cekSaldo();
-        filterProduk('tsel'); // Default view
-    });
-
-    // 1. FUNGSI CEK SALDO (Via Relay)
-    async function cekSaldo() {
-        const display = document.getElementById('saldoText');
-        display.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-
-        try {
-            const res = await fetch(RELAY_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'saldo' }) // Mengirim instruksi ke Relay
-            });
-            
-            const result = await res.json();
-            
-            if (result.success && result.data) {
-                display.innerText = result.data.formatted;
-            } else {
-                display.innerText = "Gagal";
-                console.error(result);
+        // --- AUTH LOGIC ---
+        window.handleLogin = async () => {
+            const e = document.getElementById('email').value;
+            const p = document.getElementById('password').value;
+            log("Attempting login...");
+            try {
+                await signInWithEmailAndPassword(auth, e, p);
+            } catch(err) {
+                log("Error: " + err.message);
+                alert(err.message);
             }
-        } catch (e) {
-            console.error(e);
-            display.innerText = "Error";
-        }
-    }
+        };
 
-    // 2. DATA DUMMY (Menunggu API Pricelist)
-    const dbProduk = {
-        tsel: [
-            { code: 'S1', name: 'Telkomsel 1GB', price: 15000 },
-            { code: 'S5', name: 'Telkomsel 5GB', price: 55000 }
-        ],
-        isat: [
-            { code: 'I1', name: 'Indosat 1GB', price: 12000 }
-        ],
-        xl: [],
-        tri: []
-    };
+        window.handleLogout = () => signOut(auth);
 
-    let selectedItem = null;
-
-    // 3. Render Produk
-    function filterProduk(kategori) {
-        document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
-        event.currentTarget.classList.add('active');
-        
-        const list = document.getElementById('productList');
-        list.innerHTML = '';
-        
-        const items = dbProduk[kategori] || [];
-        if(items.length === 0) {
-            list.innerHTML = '<div class="text-center text-muted mt-4">Produk belum tersedia</div>';
-            return;
-        }
-
-        items.forEach(item => {
-            list.innerHTML += `
-                <div class="product-card" onclick="bukaModal('${item.code}', '${item.name}', ${item.price})">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="fw-bold text-dark">${item.name}</div>
-                            <small class="text-muted">Kode: ${item.code}</small>
-                        </div>
-                        <div class="price">Rp ${item.price.toLocaleString('id-ID')}</div>
-                    </div>
-                </div>
-            `;
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('toolSection').classList.remove('hidden');
+                document.getElementById('authStatus').innerHTML = `<span class="text-green-400">Connected: ${user.email}</span>`;
+                
+                // Auto fill target UID with own UID initially
+                if(!document.getElementById('targetUid').value) {
+                    document.getElementById('targetUid').value = user.uid;
+                }
+                log("User authenticated: " + user.uid);
+            } else {
+                document.getElementById('loginSection').classList.remove('hidden');
+                document.getElementById('toolSection').classList.add('hidden');
+                document.getElementById('authStatus').innerHTML = `<span class="text-red-400">Not Connected</span>`;
+            }
         });
-    }
 
-    function bukaModal(code, name, price) {
-        const hp = document.getElementById('nomorHP').value;
-        if(hp.length < 10) {
-            Swal.fire('Eits!', 'Masukkan nomor HP yang benar dulu ya.', 'warning');
-            return;
-        }
-        selectedItem = { code, name, price };
-        document.getElementById('confirmName').innerText = name;
-        document.getElementById('confirmPrice').innerText = 'Rp ' + price.toLocaleString('id-ID');
-        document.getElementById('confirmPhone').innerText = hp;
-        new bootstrap.Modal(document.getElementById('modalConfirm')).show();
-    }
+        // --- HELPER ---
+        window.log = (msg) => {
+            const c = document.getElementById('consoleLog');
+            c.innerHTML += `> ${msg}<br>`;
+            c.scrollTop = c.scrollHeight;
+        };
 
-    // 4. TRANSAKSI (Logic siap konek ke Relay)
-    async function prosesTransaksi() {
-        bootstrap.Modal.getInstance(document.getElementById('modalConfirm')).hide();
-        document.getElementById('loading').style.display = 'flex';
+        window.generateReffId = () => {
+            const d = new Date();
+            const timeStr = String(d.getHours()).padStart(2, '0') + String(d.getMinutes()).padStart(2, '0') + String(d.getSeconds()).padStart(2, '0');
+            const random = Math.floor(Math.random() * 1000);
+            document.getElementById('reffId').value = `TRX-MANUAL-${timeStr}-${random}`;
+        };
 
-        // Disini nanti kita panggil Relay lagi dengan action: 'transaksi'
-        // Saat ini hanya simulasi sukses
-        setTimeout(() => {
-            document.getElementById('loading').style.display = 'none';
-            Swal.fire('Berhasil!', 'Permintaan sedang diproses.', 'success');
-            cekSaldo(); // Refresh saldo
-        }, 2000);
-    }
-</script>
+        // --- CORE INJECTION LOGIC ---
+        window.executeInjection = async () => {
+            const uid = document.getElementById('targetUid').value.trim();
+            const reffId = document.getElementById('reffId').value.trim();
+            const prodCode = document.getElementById('prodCode').value.trim();
+            const prodName = document.getElementById('prodName').value.trim();
+            const destNum = document.getElementById('destNum').value.trim();
+            const price = parseInt(document.getElementById('price').value) || 0;
+            const status = document.getElementById('status').value;
+            const provId = document.getElementById('provId').value;
+            const sn = document.getElementById('sn').value;
+            const shouldCutBalance = document.getElementById('cutBalance').checked;
 
+            if(!uid || !reffId || !prodCode) {
+                alert("Mohon lengkapi UID, Reff ID, dan Kode Produk");
+                return;
+            }
+
+            if(!confirm(`YAKIN INJECT DATA?\n\nTarget: ${uid}\nReffID: ${reffId}\nPotong Saldo: ${shouldCutBalance ? 'YA' : 'TIDAK'}`)) return;
+
+            log(`Starting injection for ${reffId}...`);
+
+            try {
+                await runTransaction(db, async (transaction) => {
+                    // 1. Ambil Data User
+                    const userRef = doc(db, "users", uid);
+                    const userDoc = await transaction.get(userRef);
+
+                    if (!userDoc.exists()) throw "User UID tidak ditemukan di database!";
+
+                    const currentBalance = userDoc.data().balance || 0;
+                    let balanceAfter = currentBalance;
+
+                    // 2. Logic Potong Saldo (Opsional)
+                    if (shouldCutBalance) {
+                        if (currentBalance < price) throw "Saldo user tidak cukup untuk dipotong!";
+                        balanceAfter = currentBalance - price;
+                        transaction.update(userRef, { balance: balanceAfter });
+                        log(`Balance deducted: ${currentBalance} -> ${balanceAfter}`);
+                    } else {
+                        log(`Balance untouched: ${currentBalance}`);
+                    }
+
+                    // 3. Buat History Transaction
+                    const histRef = doc(db, "users", uid, "history", reffId);
+                    
+                    // Cek duplikat
+                    const histDoc = await transaction.get(histRef);
+                    if(histDoc.exists()) throw "Reff ID ini sudah ada di history user! Gunakan Reff ID lain.";
+
+                    transaction.set(histRef, {
+                        trx_id: reffId,
+                        trx_code: Math.floor(100000 + Math.random() * 900000).toString(),
+                        title: prodName || "Order Manual Debug",
+                        amount: price,
+                        type: 'out', // Selalu 'out' untuk pembelian
+                        date: new Date().toISOString(),
+                        status: status,
+                        api_msg: sn || "Inject Manual via Debug Tool",
+                        sn: sn || "-",
+                        provider_id: provId,
+                        provider_code: provId,
+                        raw_code: prodCode,
+                        dest_num: destNum,
+                        balance_before: currentBalance,
+                        balance_after: balanceAfter,
+                        injected_via: 'debug_tools.html'
+                    });
+                });
+
+                log("SUCCESS! Transaksi berhasil disuntikkan.");
+                alert("Berhasil Inject Data!");
+                
+                // Clear form untuk mencegah double submit
+                document.getElementById('reffId').value = "";
+                
+            } catch (e) {
+                console.error(e);
+                log("ERROR: " + (typeof e === 'string' ? e : e.message));
+                alert("GAGAL: " + (typeof e === 'string' ? e : e.message));
+            }
+        };
+
+    </script>
 </body>
 </html>

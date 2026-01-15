@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tools Order Fix (Index Logic)</title>
+    <title>Tools Order V3.5 (Auto JSON Logs)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script>tailwind.config = { darkMode: 'class' }</script>
@@ -11,14 +11,19 @@
         body { background-color: #0f172a; color: white; font-family: 'Segoe UI', sans-serif; }
         .input-box { width: 100%; background: #1e293b; border: 1px solid #334155; padding: 0.75rem; border-radius: 0.5rem; color: white; font-weight: bold; }
         .input-box:disabled { opacity: 0.5; cursor: not-allowed; }
-        .input-box:focus { outline: 2px solid #3b82f6; border-color: transparent; }
+        
+        /* Styling Log agar JSON rapi */
+        #logs { font-family: 'Consolas', 'Monaco', monospace; font-size: 10px; white-space: pre-wrap; word-wrap: break-word; }
+        .log-entry { margin-bottom: 8px; border-bottom: 1px dashed #334155; padding-bottom: 4px; }
+        .log-json { color: #4ade80; background: #022c22; padding: 5px; border-radius: 4px; margin-top: 2px; display: block; }
+        .log-time { color: #94a3b8; font-size: 9px; }
     </style>
 </head>
 <body class="p-4 max-w-lg mx-auto min-h-screen flex flex-col">
 
     <div class="mb-6 border-b border-gray-700 pb-4">
-        <h1 class="text-xl font-black text-blue-500"><i class="fas fa-wrench"></i> TOOLS ORDER V3 (FIX)</h1>
-        <p class="text-xs text-gray-400">Parsing Logic 100% Clone Index.html</p>
+        <h1 class="text-xl font-black text-blue-500"><i class="fas fa-robot"></i> TOOLS AUTO CHECK V3.5</h1>
+        <p class="text-xs text-gray-400">Full Raw JSON Logs & Auto Refresh (6s)</p>
     </div>
 
     <div id="loginPanel" class="bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-xl mb-6">
@@ -82,7 +87,7 @@
                 <div>
                     <label class="text-[10px] text-gray-400 font-bold">HARGA (RP)</label>
                     <input type="number" id="price" class="input-box text-green-400" value="0">
-                    <p class="text-[9px] text-gray-500 mt-1">Ubah ke 0 untuk Gratis (History Only)</p>
+                    <p class="text-[9px] text-gray-500 mt-1">Ubah ke 0 untuk Gratis</p>
                 </div>
                 <div>
                     <label class="text-[10px] text-gray-400 font-bold">KODE (READONLY)</label>
@@ -96,21 +101,27 @@
             </div>
 
             <button onclick="executeMixedOrder()" id="btnExec" class="w-full py-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 rounded-xl font-black shadow-lg">
-                <i class="fas fa-paper-plane"></i> KIRIM ORDER
+                <i class="fas fa-paper-plane"></i> KIRIM ORDER & AUTO MONITOR
             </button>
         </div>
 
-        <div id="logs" class="bg-black p-3 rounded-lg font-mono text-[10px] text-green-500 h-32 overflow-y-auto border border-gray-800">
-            > System Ready.
+        <div class="bg-black p-3 rounded-lg border border-gray-800 h-64 flex flex-col">
+            <div class="flex justify-between items-center mb-2 border-b border-gray-800 pb-2">
+                <span class="text-xs font-bold text-gray-400">SERVER LOGS</span>
+                <button onclick="document.getElementById('logs').innerHTML=''" class="text-[9px] text-red-500 hover:text-red-400">Clear Logs</button>
+            </div>
+            <div id="logs" class="flex-1 overflow-y-auto custom-scroll text-green-500">
+                > System Ready...
+            </div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, runTransaction, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, runTransaction, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // CONFIG
+        // --- CONFIG FIREBASE ---
         const firebaseConfig = {
             apiKey: "AIzaSyBnVxgxkS8InH1PQCMGe3cY8IvPqSN6dLo",
             authDomain: "ppob-3ea96.firebaseapp.com",
@@ -124,13 +135,14 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // --- CONFIG API ---
         const ICS_CONFIG = { apiKey: "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77", baseUrl: "https://www.pandawa-digital.store/api/relay" };
         const KHFY_CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
         
         const PROXY_LIST = [ { url: 'https://corsproxy.io/?' }, { url: 'https://api.codetabs.com/v1/proxy?quest=' }, { url: '' } ];
         let globalKHFYData = [];
 
-        // AUTH
+        // --- AUTH ---
         window.authLogin = async () => { try { await signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value); } catch(e){ alert(e.message); } };
         window.authLogout = () => signOut(auth);
         onAuthStateChanged(auth, u => {
@@ -138,32 +150,46 @@
             else { document.getElementById('loginPanel').classList.remove('hidden'); document.getElementById('mainPanel').classList.add('hidden'); }
         });
 
-        // --- CORE LOGIC (DIAMBIL DARI INDEX.HTML) ---
+        // --- LOG FUNCTION (PRETTY JSON) ---
+        window.log = (msg, jsonData = null) => { 
+            const l = document.getElementById('logs'); 
+            const time = new Date().toLocaleTimeString();
+            let html = `<div class="log-entry"><span class="log-time">[${time}]</span> ${msg}`;
+            
+            if(jsonData) {
+                // Pretty Print JSON
+                const jsonStr = JSON.stringify(jsonData, null, 2);
+                html += `<code class="log-json">${jsonStr}</code>`;
+            }
+            html += `</div>`;
+            
+            l.innerHTML += html; 
+            l.scrollTop = l.scrollHeight; 
+        };
+
+        // --- FETCH PRODUCT LOGIC (SAME AS INDEX.HTML) ---
         window.loadProducts = async () => {
             const providerCode = document.getElementById('providerSelect').value;
             const select = document.getElementById('productSelect');
             select.innerHTML = '<option>Memuat Data Server...</option>';
             select.disabled = true;
-            log(`Fetching data untuk ${providerCode}...`);
-
-            let products = [];
+            log(`Fetching data produk: ${providerCode}...`);
 
             try {
-                // === LOGIC 1: ICS SERVER (MIRROR INDEX.HTML) ===
+                let products = [];
+                // LOGIC 1: ICS
                 if (providerCode.startsWith('ICS_')) {
                     let icsType = 'xla';
-                    if(providerCode === 'ICS_XDA') icsType = 'xda';
-                    if(providerCode === 'ICS_CIRCLE') icsType = 'circle';
-                    if(providerCode === 'ICS_FMX') icsType = 'fmax';
-                    if(providerCode === 'ICS_BPA') icsType = 'bpa';
+                    if(providerCode.includes('XDA')) icsType = 'xda';
+                    if(providerCode.includes('CIRCLE')) icsType = 'circle';
+                    if(providerCode.includes('FMX')) icsType = 'fmax';
+                    if(providerCode.includes('BPA')) icsType = 'bpa';
 
-                    const t = Date.now();
-                    const url = `${ICS_CONFIG.baseUrl}?action=listProducts&type=${icsType}&apikey=${ICS_CONFIG.apiKey}&_t=${t}`;
+                    const url = `${ICS_CONFIG.baseUrl}?action=listProducts&type=${icsType}&apikey=${ICS_CONFIG.apiKey}&_t=${Date.now()}`;
                     const res = await fetch(url);
                     const json = await res.json();
 
-                    // --- PARSING SUPER ROBUST (INDEX.HTML LOGIC) ---
-                    // Ini bagian yang memperbaiki "Undefined" dan "Kosong"
+                    // Full Parsing Logic
                     let allProducts = [];
                     if (json) {
                         if (json.ready && Array.isArray(json.ready)) allProducts = json.ready;
@@ -172,42 +198,22 @@
                         else if (Array.isArray(json)) allProducts = json;
                     }
 
-                    // --- FILTERING STRICT (INDEX.HTML LOGIC) ---
-                    if (providerCode === 'ICS_CIRCLE') {
-                        allProducts = allProducts.filter(p => (p.type === 'circle' || (p.code || p.kode_produk || '').toUpperCase().startsWith('XCL')));
-                    } 
-                    else if (providerCode === 'ICS_XDA') {
-                        allProducts = allProducts.filter(p => (p.type === 'xda' || (p.code || p.kode_produk || '').toUpperCase().startsWith('XDA')));
-                    }
-                    else if (providerCode === 'ICS_XLA') {
-                        // Filter XLA tapi BUKAN XDA
-                        allProducts = allProducts.filter(p => (p.type === 'xla' || ((p.code || p.kode_produk || '').toUpperCase().startsWith('XLA') && !(p.code || p.kode_produk || '').toUpperCase().startsWith('XDA'))));
-                    }
-                    else if (providerCode === 'ICS_FMX') {
-                        allProducts = allProducts.filter(p => (p.type === 'fmax' || p.type === 'fmx' || (p.code || p.kode_produk || '').toUpperCase().startsWith('FMX') || (p.code || p.kode_produk || '').toUpperCase() === 'CFMX'));
-                    }
+                    // Strict Filter
+                    if (providerCode === 'ICS_CIRCLE') allProducts = allProducts.filter(p => (p.type === 'circle' || (p.code || p.kode_produk || '').toUpperCase().startsWith('XCL')));
+                    else if (providerCode === 'ICS_XDA') allProducts = allProducts.filter(p => (p.type === 'xda' || (p.code || p.kode_produk || '').toUpperCase().startsWith('XDA')));
+                    else if (providerCode === 'ICS_XLA') allProducts = allProducts.filter(p => (p.type === 'xla' || ((p.code || p.kode_produk || '').toUpperCase().startsWith('XLA') && !(p.code || p.kode_produk || '').toUpperCase().startsWith('XDA'))));
+                    else if (providerCode === 'ICS_FMX') allProducts = allProducts.filter(p => (p.type === 'fmax' || p.type === 'fmx' || (p.code || p.kode_produk || '').toUpperCase().startsWith('FMX') || (p.code || p.kode_produk || '').toUpperCase() === 'CFMX'));
 
-                    // Mapping Data
                     products = allProducts.map(p => ({
-                        // Handle variasi nama field (nama_produk vs name, harga vs price)
-                        name: p.nama_produk || p.name || 'Produk Tanpa Nama',
-                        code: p.kode_produk || p.code,
-                        price: parseInt(p.harga || p.price || 0),
-                        is_empty: (p.stok === 0 || p.status === 'empty')
+                        name: p.nama_produk || p.name, code: p.kode_produk || p.code, price: parseInt(p.harga || p.price || 0), is_empty: (p.stok === 0 || p.status === 'empty')
                     }));
-
                 } 
-                // === LOGIC 2: KHFY SERVER (MIRROR INDEX.HTML) ===
+                // LOGIC 2: KHFY
                 else {
-                    if(globalKHFYData.length === 0) {
-                        log("Load KHFY via Proxy...");
-                        globalKHFYData = await fetchKHFY();
-                    }
-
+                    if(globalKHFYData.length === 0) globalKHFYData = await fetchKHFY();
                     products = globalKHFYData.filter(p => {
                         const c = (p.buyer_sku_code || '').toUpperCase();
                         const b = (p.brand || p.operator || '').toUpperCase();
-                        
                         if(providerCode === 'XDA') return c.startsWith('XDA') || b.includes('AKRAB FRESH');
                         if(providerCode === 'XLA') return (c.startsWith('XLA') || c.startsWith('XLC')) && !c.startsWith('XDA');
                         if(providerCode === 'FMX') return (c.startsWith('FMX') || c === 'CFMX') || b === 'FMAX';
@@ -215,20 +221,11 @@
                         if(providerCode === 'PLN') return b.includes('PLN');
                         return b.includes(providerCode);
                     }).map(p => ({
-                        name: p.product_name,
-                        code: p.buyer_sku_code,
-                        price: p.buyer_price,
-                        is_empty: (p.buyer_product_status === false || p.seller_product_status === false || p.stock === 0)
+                        name: p.product_name, code: p.buyer_sku_code, price: p.buyer_price, is_empty: (p.buyer_product_status === false || p.stock === 0)
                     }));
                 }
-
                 renderSelect(products);
-
-            } catch(e) {
-                console.error(e);
-                select.innerHTML = '<option>Error: Lihat Console</option>';
-                log("Error: " + e.message);
-            }
+            } catch(e) { select.innerHTML = '<option>Error</option>'; log("Error Load: " + e.message); }
         };
 
         async function fetchKHFY() {
@@ -236,54 +233,25 @@
             for (const proxy of PROXY_LIST) {
                 try {
                     const res = await fetch(proxy.url + encodeURIComponent(endpoint));
-                    if(res.ok) {
-                        const txt = await res.text();
-                        const json = JSON.parse(txt);
-                        return json.data || [];
-                    }
+                    if(res.ok) { const txt = await res.text(); return JSON.parse(txt).data || []; }
                 } catch(e) {}
-            }
-            return [];
+            } return [];
         }
 
         function renderSelect(products) {
-            const select = document.getElementById('productSelect');
-            select.innerHTML = '<option value="" disabled selected>-- Pilih Produk --</option>';
-            
-            if(products.length === 0) {
-                select.innerHTML = '<option>Produk Kosong / Filter Tidak Cocok</option>';
-                return;
-            }
-
-            products.sort((a,b) => a.price - b.price);
-
-            products.forEach(p => {
-                const opt = document.createElement('option');
-                opt.value = p.code;
-                opt.dataset.price = p.price;
-                opt.dataset.name = p.name;
-                
-                if(p.is_empty) {
-                    opt.text = `❌ ${p.name} (GANGGUAN)`;
-                    opt.disabled = true;
-                } else {
-                    opt.text = `${p.name} - Rp ${parseInt(p.price).toLocaleString()}`;
-                }
-                select.appendChild(opt);
-            });
-            select.disabled = false;
-            log(`Sukses memuat ${products.length} produk.`);
+            const s = document.getElementById('productSelect'); s.innerHTML = '<option value="" disabled selected>-- Pilih Produk --</option>';
+            if(products.length === 0) { s.innerHTML = '<option>Kosong</option>'; return; }
+            products.sort((a,b)=>a.price-b.price).forEach(p => {
+                const opt = document.createElement('option'); opt.value = p.code; opt.dataset.price = p.price; opt.text = `${p.name} - Rp ${p.price}`; if(p.is_empty) opt.disabled=true; s.appendChild(opt);
+            }); s.disabled = false;
         }
 
         window.selectProduct = () => {
-            const s = document.getElementById('productSelect');
-            const opt = s.options[s.selectedIndex];
-            if(opt && opt.value) {
-                document.getElementById('prodCode').value = opt.value;
-                document.getElementById('price').value = opt.dataset.price;
-            }
+            const s = document.getElementById('productSelect'); const o = s.options[s.selectedIndex];
+            if(o && o.value) { document.getElementById('prodCode').value = o.value; document.getElementById('price').value = o.dataset.price; }
         };
 
+        // --- CORE ORDER LOGIC (AUTO REFRESH) ---
         window.executeMixedOrder = async () => {
             const uid = document.getElementById('targetUid').value;
             const reffId = document.getElementById('reffId').value;
@@ -292,12 +260,13 @@
             const price = parseInt(document.getElementById('price').value) || 0;
             const dest = document.getElementById('destNum').value;
 
-            if(!uid || !reffId || !code || !dest) return alert("Data Belum Lengkap!");
-            
-            if(!confirm(`Kirim Order?\n\nTarget: ${dest}\nProduk: ${code}\nServer: ${prov}`)) return;
+            if(!uid || !reffId || !code) return alert("Data Kurang!");
+            if(!confirm(`Kirim ke ${dest}?`)) return;
 
-            log("Memproses...");
+            log(`MENGIRIM ORDER: ${code} ke ${dest}...`);
             document.getElementById('btnExec').disabled = true;
+
+            const isICS = prov.startsWith('ICS_');
 
             try {
                 // 1. Catat History
@@ -305,44 +274,134 @@
                     const hRef = doc(db, "users", uid, "history", reffId);
                     t.set(hRef, {
                         trx_id: reffId, trx_code: Math.floor(Math.random()*900000).toString(),
-                        title: "Manual Order " + code, amount: price, type: 'out',
+                        title: `Manual ${code}`, amount: price, type: 'out',
                         date: new Date().toISOString(), status: 'Proses',
                         provider_code: prov, raw_code: code, dest_num: dest,
-                        api_msg: "Sending...", balance_after: 0
+                        api_msg: "Requesting...", balance_after: 0
                     });
                 });
 
-                // 2. Tembak API
+                // 2. Hit API
                 let res = {};
-                if(prov.startsWith('ICS_')) {
+                let fullResponse = null;
+
+                if(isICS) {
                     const p = new URLSearchParams({ action: 'createTransaction', apikey: ICS_CONFIG.apiKey, kode_produk: code, nomor_tujuan: dest, refid: reffId });
                     const r = await fetch(`${ICS_CONFIG.baseUrl}?${p}`);
-                    res = await r.json();
+                    fullResponse = await r.json();
                 } else {
-                    // KHFY Dummy hit (Since CORS usually blocks direct hit from browser)
-                    // Disini kita simpan history saja, asumsikan sukses manual atau via backend lain
-                    res = { success: true, message: "Order KHFY via Tools (Check Panel)" };
+                    // KHFY Dummy (karena CORS)
+                    fullResponse = { success: true, message: "Order KHFY via Tools (Cek Panel)", data: { status: 'Pending', sn: 'Menunggu...' } };
                 }
 
-                // 3. Update Status
-                const status = (res.success || res.status===true || res.data?.status==='Pending') ? 'Pending' : 'Gagal';
-                await setDoc(doc(db, "users", uid, "history", reffId), {
-                    status: status, api_msg: res.message || res.data?.message || "Processed",
-                    raw_json: JSON.stringify(res)
-                }, { merge: true });
+                // TAMPILKAN RAW JSON DI LOG!
+                log("RESPON SERVER (AWAL):", fullResponse);
 
-                log("Selesai: " + status);
-                alert("Status: " + status);
+                // 3. Update Status
+                const status = (fullResponse.success || fullResponse.status===true || fullResponse.data?.status==='Pending') ? 'Pending' : 'Gagal';
+                
+                await updateDoc(doc(db, "users", uid, "history", reffId), {
+                    status: status,
+                    api_msg: fullResponse.message || fullResponse.data?.message || "Processed",
+                    raw_json: JSON.stringify(fullResponse)
+                });
+
+                // --- AUTO REFRESH LOGIC ---
+                if(status === 'Pending') {
+                    log(`⚠️ STATUS PENDING. Menunggu 6 detik untuk RE-CHECK JSON ASLI...`);
+                    
+                    setTimeout(() => {
+                        autoCheckStatus(reffId, isICS, uid);
+                    }, 6000); // 6 Detik
+                } else {
+                    log(`Selesai. Status Akhir: ${status}`);
+                    alert(`Selesai: ${status}`);
+                }
 
             } catch(e) {
-                log("Error: " + e.message);
+                log("ERROR FATAL: " + e.message);
                 alert("Error: " + e.message);
             } finally {
                 document.getElementById('btnExec').disabled = false;
             }
         };
 
-        window.log = (m) => { const l = document.getElementById('logs'); l.innerHTML+=`> ${m}<br>`; l.scrollTop=l.scrollHeight; };
+        // --- FUNGSI AUTO CHECK (6 DETIK) ---
+        window.autoCheckStatus = async (reffId, isICS, uid) => {
+            log(`🔄 MEMULAI AUTO REFRESH UNTUK ${reffId}...`);
+            
+            try {
+                let checkRes = null;
+
+                if (isICS) {
+                    // ICS Check Transaction
+                    const url = `${ICS_CONFIG.baseUrl}?action=checkTransaction&apikey=${ICS_CONFIG.apiKey}&refid=${reffId}&_t=${Date.now()}`;
+                    const r = await fetch(url);
+                    checkRes = await r.json();
+                } else {
+                    // KHFY History Check
+                    const endpoint = `${KHFY_CONFIG.baseUrl}/history?api_key=${KHFY_CONFIG.apiKey}&reff_id=${reffId}&_t=${Date.now()}`;
+                    // Gunakan proxy karena KHFY sering CORS
+                    for (const proxy of PROXY_LIST) {
+                         try {
+                             const r = await fetch(proxy.url + encodeURIComponent(endpoint));
+                             if(r.ok) {
+                                 const txt = await r.text();
+                                 checkRes = JSON.parse(txt);
+                                 break;
+                             }
+                         } catch(e) {}
+                    }
+                }
+
+                if (!checkRes) {
+                    log("❌ Gagal mengambil data terbaru dari server (Koneksi/Null).");
+                    return;
+                }
+
+                // TAMPILKAN RAW JSON BARU
+                log("✅ RESPON SERVER TERBARU (6 Detik Kemudian):", checkRes);
+
+                // Update DB dengan JSON Terbaru
+                let newStatus = 'Pending';
+                let newMsg = 'Menunggu...';
+                
+                // Analisa Status Baru
+                if(isICS) {
+                    const st = (checkRes.data?.status || checkRes.status || '').toLowerCase();
+                    if(st === 'sukses' || st === 'success') newStatus = 'Sukses';
+                    else if(st === 'gagal' || st === 'failed') newStatus = 'Gagal';
+                    newMsg = checkRes.data?.message || checkRes.message || checkRes.data?.sn || '';
+                } else {
+                    const d = checkRes.data?.data?.[0] || checkRes.data;
+                    if(d) {
+                        const st = (d.status_text || '').toUpperCase();
+                        if(st === 'SUKSES') newStatus = 'Sukses';
+                        else if(st === 'GAGAL') newStatus = 'Gagal';
+                        newMsg = d.sn || d.keterangan || '';
+                    }
+                }
+
+                // Update Firestore
+                await updateDoc(doc(db, "users", uid, "history", reffId), {
+                    status: newStatus,
+                    api_msg: newMsg,
+                    raw_json: JSON.stringify(checkRes) // SIMPAN JSON MENTAH BARU
+                });
+
+                log(`📌 UPDATE DB SELESAI. Status Sekarang: ${newStatus}`);
+
+                if(newStatus !== 'Pending') {
+                    alert(`STATUS UPDATE: ${newStatus}\nSN: ${newMsg}`);
+                } else {
+                    log("ℹ️ Masih Pending. Silakan cek manual nanti.");
+                }
+
+            } catch(e) {
+                log("❌ ERROR SAAT RE-CHECK: " + e.message);
+            }
+        };
+
         window.autoReffId = () => { document.getElementById('reffId').value = `TRX-${Date.now()}`; };
     </script>
 </body>

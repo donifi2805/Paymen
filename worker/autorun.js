@@ -15,16 +15,40 @@ try {
 
 const db = admin.firestore();
 
-// --- 2. KONFIGURASI RELAY VERCEL ---
+// --- 2. KONFIGURASI RELAY & TELEGRAM ---
 const VERCEL_DOMAIN = "https://www.pandawa-digital.store"; 
 const KHFY_KEY = process.env.KHFY_API_KEY; 
 const ICS_KEY = process.env.ICS_API_KEY; 
+
+// 🔥 KONFIGURASI TELEGRAM (SESUAI REQUEST ANDA) 🔥
+const TG_TOKEN = "7850521841:AAH84wtuxnDWg5u04lMkL5zqVcY1hIpzGJg";
+const TG_CHAT_ID = "7348139166";
+
+// Fungsi Kirim Log ke Telegram
+async function sendTelegramLog(message, isUrgent = false) {
+    if (!TG_TOKEN || !TG_CHAT_ID) return;
+    try {
+        const url = `https://api.telegram.org/bot${TG_TOKEN}/sendMessage`;
+        // Gunakan fetch fire-and-forget (tidak perlu await response body biar cepat)
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: TG_CHAT_ID,
+                text: message,
+                parse_mode: 'HTML', // Agar bisa pakai bold <b>
+                disable_notification: !isUrgent // Jika urgent (Sukses/Hard Fail) bunyi, sisanya silent
+            })
+        }).catch(err => console.log("TG Err:", err.message));
+    } catch (e) {
+        // Abaikan error telegram agar worker tetap jalan
+    }
+}
 
 // ============================================================
 // 🛠️ FUNGSI CEK STOK (DIPANGGIL CUMA 1X DI AWAL)
 // ============================================================
 
-// A. AMBIL DATA STOK KHFY
 async function getKHFYStockList() {
     console.log("      📋 [PHASE 1] Mengunduh Database Stok KHFY...");
     const params = new URLSearchParams();
@@ -40,9 +64,7 @@ async function getKHFYStockList() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000); 
         const response = await fetch(targetUrl, { 
-            method: 'GET',
-            headers: { 'User-Agent': 'Pandawa-Worker/1.0' },
-            signal: controller.signal 
+            method: 'GET', headers: { 'User-Agent': 'Pandawa-Worker/1.0' }, signal: controller.signal 
         });
         clearTimeout(timeoutId);
 
@@ -51,68 +73,42 @@ async function getKHFYStockList() {
         if (json && json.data && Array.isArray(json.data)) {
             json.data.forEach(item => {
                 stockMap[item.kode_produk] = {
-                    gangguan: item.gangguan == 1, 
-                    kosong: item.kosong == 1,
-                    status: item.status // 1 = aktif, 0 = nonaktif
+                    gangguan: item.gangguan == 1, kosong: item.kosong == 1, status: item.status
                 };
             });
-            console.log(`      ✅ KHFY Ready: ${json.data.length} produk terdata.`);
             return stockMap;
         }
         return null; 
-    } catch (error) {
-        console.error("      ⚠️ Gagal ambil stok KHFY:", error.message);
-        return null; 
-    }
+    } catch (error) { return null; }
 }
 
-// B. AMBIL DATA STOK ICS
 async function getICSStockList() {
     console.log("      📋 [PHASE 1] Mengunduh Database Stok ICS...");
     const params = new URLSearchParams();
-    params.append('action', 'pricelist'); 
-    params.append('apikey', ICS_KEY);
-    
+    params.append('action', 'pricelist'); params.append('apikey', ICS_KEY);
     const targetUrl = `${VERCEL_DOMAIN}/api/relay?${params.toString()}`;
 
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000); 
         const response = await fetch(targetUrl, { 
-            method: 'GET',
-            headers: { 'User-Agent': 'Pandawa-Worker/1.0' },
-            signal: controller.signal 
+            method: 'GET', headers: { 'User-Agent': 'Pandawa-Worker/1.0' }, signal: controller.signal 
         });
         clearTimeout(timeoutId);
-
         const json = await response.json();
         const stockMap = {};
-
         if (json && json.data && Array.isArray(json.data)) {
             json.data.forEach(item => {
                 const isGangguan = item.status === 'gangguan' || item.status === 'error';
                 const isKosong = item.status === 'empty' || item.stock === 0 || item.status === 'kosong';
                 const isNonAktif = item.status === 'nonactive';
-
-                stockMap[item.code] = {
-                    gangguan: isGangguan,
-                    kosong: isKosong,
-                    nonaktif: isNonAktif
-                };
+                stockMap[item.code] = { gangguan: isGangguan, kosong: isKosong, nonaktif: isNonAktif };
             });
-            console.log(`      ✅ ICS Ready: ${json.data.length} produk terdata.`);
             return stockMap;
         }
         return null;
-    } catch (error) {
-        console.warn("      ⚠️ Gagal ambil stok ICS. Lanjut tanpa cek ICS.");
-        return null; 
-    }
+    } catch (error) { return null; }
 }
-
-// ============================================================
-// 🚀 FUNGSI TRANSAKSI
-// ============================================================
 
 async function hitVercelRelay(serverType, data, isRecheck = false) {
     let targetUrl = '';
@@ -127,7 +123,6 @@ async function hitVercelRelay(serverType, data, isRecheck = false) {
         params.append('refid', data.reffId);
         targetUrl = `${VERCEL_DOMAIN}/api/relay?${params.toString()}`;
     } else {
-        // KHFY
         params.append('api_key', KHFY_KEY);
         if (isRecheck) params.append('endpoint', '/history');
         else params.append('endpoint', '/trx');
@@ -137,32 +132,19 @@ async function hitVercelRelay(serverType, data, isRecheck = false) {
         targetUrl = `${VERCEL_DOMAIN}/api/relaykhfy?${params.toString()}`;
     }
 
-    if (!isRecheck) console.log(`      🚀 Menembak Relay Vercel (${serverType})...`);
-    else console.log(`      🔍 Checking Real Status (${serverType})...`);
-    
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 60000); 
-
         const response = await fetch(targetUrl, { 
-            method: 'GET',
-            headers: { 'User-Agent': 'Pandawa-Worker/1.0' },
-            signal: controller.signal 
+            method: 'GET', headers: { 'User-Agent': 'Pandawa-Worker/1.0' }, signal: controller.signal 
         });
         clearTimeout(timeoutId);
-
         const text = await response.text();
-        try {
-            return JSON.parse(text);
-        } catch (e) {
-            return { status: false, message: "HTML Error / Server Pusat Gangguan", raw: text };
-        }
-    } catch (error) {
-        return { status: false, message: "Relay Timeout" };
-    }
+        try { return JSON.parse(text); } 
+        catch (e) { return { status: false, message: "HTML Error", raw: text }; }
+    } catch (error) { return { status: false, message: "Relay Timeout" }; }
 }
 
-// --- FUNGSI NOTIFIKASI ---
 async function sendUserLog(uid, title, message, trxId) {
     if (!uid) return;
     try {
@@ -170,7 +152,7 @@ async function sendUserLog(uid, title, message, trxId) {
             title, message, type: 'transaksi', trxId, isRead: false,
             timestamp: admin.firestore.FieldValue.serverTimestamp()
         });
-    } catch (e) { console.error("Err Notif:", e.message); }
+    } catch (e) { }
 }
 
 // ============================================================
@@ -180,54 +162,33 @@ async function runPreorderQueue() {
     console.log(`[${new Date().toISOString()}] MEMULAI WORKER...`);
 
     try {
-        // [QUOTA SAVER]: 1 Read per dokumen. Wajib dilakukan untuk tahu antrean.
-        const snapshot = await db.collection('preorders')
-                                 .orderBy('timestamp', 'asc') 
-                                 .limit(100) 
-                                 .get();
+        const snapshot = await db.collection('preorders').orderBy('timestamp', 'asc').limit(100).get();
 
         if (snapshot.empty) {
-            console.log("ℹ️ Tidak ada antrian. Worker Istirahat.");
+            console.log("ℹ️ Tidak ada antrian.");
             return;
         }
-
-        console.log(`✅ DITEMUKAN ${snapshot.size} ANTRIAN.`);
-
-        // ---------------------------------------------------------
-        // 🔥 PHASE 1: PREPARATION (CEK STOK CUMA DISINI)
-        // ---------------------------------------------------------
-        // Download stok dari API (Gratis Quota Firebase)
-        console.log("\n--- PHASE 1: DOWNLOAD DATA STOK ---");
-        const [stockMapKHFY, stockMapICS] = await Promise.all([
-            getKHFYStockList(),
-            getICSStockList()
-        ]);
-        console.log("--- DATA STOK SIAP DIGUNAKAN ---\n");
-
-
-        // ---------------------------------------------------------
-        // 🔥 PHASE 2: EXECUTION (LOOPING TRANSAKSI)
-        // ---------------------------------------------------------
+        
+        // Cek Stok Sekali Saja di Awal
+        const [stockMapKHFY, stockMapICS] = await Promise.all([getKHFYStockList(), getICSStockList()]);
         
         for (const doc of snapshot.docs) {
             const po = doc.data();
             const poID = doc.id;
             const uidUser = po.uid; 
-            
             const skuProduk = po.productCode || po.provider || po.code;
             const tujuan = po.targetNumber || po.target || po.tujuan;
             const serverType = po.serverType || 'KHFY'; 
 
             console.log(`🔹 TRX: ${poID} | ${serverType} | ${skuProduk}`);
 
-            // 1. CEK KELENGKAPAN DATA
+            // 1. Validasi Data
             if (!skuProduk || !tujuan) {
-                console.log(`   ❌ DATA RUSAK. Hapus.`);
-                await db.collection('preorders').doc(poID).delete(); // Write (Perlu)
+                await db.collection('preorders').doc(poID).delete(); 
                 continue; 
             }
 
-            // 2. CEK STOK (SILENT MODE - NO DATABASE WRITE)
+            // 2. CEK STOK (SILENT MODE KE TELEGRAM)
             let isSkip = false;
             let skipReason = '';
 
@@ -247,49 +208,44 @@ async function runPreorderQueue() {
                 }
             }
 
-            // [SUPER IRIT QUOTA]: Jika skip, JANGAN UPDATE DATABASE. Cukup console.log.
             if (isSkip) {
-                console.log(`   ⛔ SKIP (Info Phase 1): ${skipReason}. [SILENT MODE - NO DB WRITE]`);
-                // KITA HAPUS BAGIAN update() debugLogs DISINI UNTUK HEMAT
+                console.log(`   ⛔ SKIP: ${skipReason}`);
+                // LOG KE TELEGRAM (GRATIS) - Database Firebase AMAN (Write = 0)
+                await sendTelegramLog(`⛔ <b>SKIP TRX (Hemat Saldo)</b>\nAlasan: ${skipReason}\nProduk: ${skuProduk}\nTujuan: ${tujuan}`);
                 continue; 
             }
 
-            // 3. LOCK REFF ID (Hanya Write 1x Seumur Hidup Transaksi)
+            // 3. LOCK REFF ID
             let reffId = po.active_reff_id;
             if (!reffId) {
                 reffId = `AUTO-${Date.now()}`; 
-                // Write (Wajib untuk safety)
                 await db.collection('preorders').doc(poID).update({ active_reff_id: reffId });
             }
 
-            // --- EKSEKUSI TRANSAKSI ---
+            // 4. EKSEKUSI TRANSAKSI
             const requestData = { sku: skuProduk, tujuan: tujuan, reffId: reffId };
             let result = await hitVercelRelay(serverType, requestData, false);
 
-            // --- DETEKSI DUPLIKAT & SMART RECHECK ---
+            // Deteksi Duplikat/Pending
             let msgRaw = (result.msg || result.message || (result.data ? result.data.message : '')).toLowerCase();
-            let isDuplicate = msgRaw.includes('sudah ada') || msgRaw.includes('sudah pernah') || msgRaw.includes('duplicate') || msgRaw.includes('exists');
+            let isDuplicate = msgRaw.includes('sudah ada') || msgRaw.includes('sudah pernah') || msgRaw.includes('duplicate');
 
             if (serverType !== 'ICS' && !isDuplicate) {
                 const isQueued = msgRaw.includes('proses') || msgRaw.includes('berhasil') || msgRaw.includes('pending');
                 if (result.ok === true && isQueued) {
-                    console.log(`      ⏳ Respon Awal OK. Wait 5s...`);
                     await new Promise(r => setTimeout(r, 5000));
-                    isDuplicate = true; // Mode Recheck
+                    isDuplicate = true; // Switch ke mode cek status
                 }
             }
 
             if (isDuplicate) {
-                console.log(`      ⚠️ Re-Check Status...`);
                 const checkResult = await hitVercelRelay(serverType, requestData, true);
                 if (checkResult && (checkResult.ok === true || checkResult.data)) {
                     result = checkResult; 
                 }
             }
             
-            console.log("      📡 Final:", JSON.stringify(result));
-
-            // --- ANALISA FINAL ---
+            // 5. ANALISA HASIL
             let isSuccess = false;
             let finalMessage = '-';
             let finalSN = '-';
@@ -299,46 +255,32 @@ async function runPreorderQueue() {
             if (serverType === 'ICS') {
                 if (result.success === true && result.data) {
                     if (result.data.status === 'success') {
-                        isSuccess = true;
-                        finalMessage = result.data.message; 
-                        finalSN = result.data.sn || '-'; 
-                        trxIdProvider = result.data.refid || '-';
+                        isSuccess = true; finalMessage = result.data.message; finalSN = result.data.sn || '-'; trxIdProvider = result.data.refid || '-';
                     } else if (result.data.status === 'failed') {
-                        isHardFail = true; 
-                        finalMessage = result.data.message;
-                    } else {
-                        finalMessage = result.data.message || 'Pending';
-                    }
+                        isHardFail = true; finalMessage = result.data.message;
+                    } else { finalMessage = result.data.message || 'Pending'; }
                 } 
                 if (!isSuccess && !isHardFail) finalMessage = result.message || 'Gagal/Pending ICS';
 
             } else {
-                // KHFY Logic
                 let dataItem = null;
                 if (result.data) {
-                    if (Array.isArray(result.data)) dataItem = result.data[0];
-                    else dataItem = result.data;
+                    if (Array.isArray(result.data)) dataItem = result.data[0]; else dataItem = result.data;
                 }
                 const statusText = dataItem ? (dataItem.status_text || '') : '';
                 const isExplicitSuccess = (statusText === 'SUKSES'); 
                 
                 if (result.ok === true && isExplicitSuccess) {
-                    isSuccess = true;
-                    trxIdProvider = dataItem.kode || dataItem.trxid || '-';
-                    finalSN = dataItem.sn || '-';
+                    isSuccess = true; trxIdProvider = dataItem.kode || dataItem.trxid || '-'; finalSN = dataItem.sn || '-';
                     if (dataItem.kode_produk === 'CFMX' || (finalSN && finalSN.toLowerCase().includes('varian'))) {
                          finalMessage = `${finalSN}. Tujuan: ${dataItem.tujuan || tujuan}`;
-                    } else {
-                        finalMessage = `${statusText}. SN: ${finalSN}`;
-                    }
+                    } else { finalMessage = `${statusText}. SN: ${finalSN}`; }
                 } else {
                     const msg = (result.msg || result.message || '').toLowerCase();
                     if (msg.includes('stok kosong') || msg.includes('#gagal')) {
-                        isHardFail = true; 
-                        finalMessage = msg;
+                        isHardFail = true; finalMessage = msg;
                     } else if (dataItem && dataItem.status_text === 'GAGAL') {
-                        isHardFail = true;
-                        finalMessage = dataItem.keterangan || 'Transaksi Gagal';
+                        isHardFail = true; finalMessage = dataItem.keterangan || 'Transaksi Gagal';
                     } else {
                         if (dataItem) finalMessage = dataItem.keterangan || dataItem.status_text || 'Pending';
                         else finalMessage = result.message || 'Pending/Maintenance';
@@ -346,53 +288,50 @@ async function runPreorderQueue() {
                 }
             }
 
-            // --- KEPUTUSAN DATABASE (HEMAT WRITE) ---
+            // 6. KEPUTUSAN & LOGGING
             if (isSuccess) {
-                console.log(`   ✅ SUKSES! Simpan History.`);
+                console.log(`   ✅ SUKSES!`);
                 const historyId = po.historyId || `TRX-${Date.now()}`;
                 let finalTitle = po.productName || skuProduk;
                 if (!finalTitle.toLowerCase().includes('preorder')) finalTitle = `[PreOrder] ${finalTitle}`;
 
-                // Write 1: Simpan History (PENTING)
+                // TULIS DB: HANYA JIKA SUKSES
                 await db.collection('users').doc(uidUser).collection('history').doc(historyId).set({
                     uid: uidUser, trx_id: reffId, trx_code: Math.floor(100000 + Math.random() * 900000).toString(),
                     title: finalTitle, type: 'out', amount: po.price || 0, status: 'Sukses',
                     dest_num: tujuan, sn: finalSN, trx_id_provider: trxIdProvider, provider_code: skuProduk,
                     date: new Date().toISOString(), api_msg: finalMessage, balance_before: 0, balance_after: 0,
-                    is_preorder: true, 
-                    raw_provider_json: JSON.stringify(result), 
-                    provider_source: serverType
+                    is_preorder: true, raw_provider_json: JSON.stringify(result), provider_source: serverType
                 });
 
-                // Write 2: Notifikasi (PENTING)
                 await sendUserLog(uidUser, "PreOrder Berhasil", `Sukses: ${finalTitle}`, historyId);
                 
-                // Write 3: Hapus Antrean (PENTING)
+                // NOTIF TELEGRAM (URGENT = BUNYI)
+                await sendTelegramLog(`✅ <b>SUKSES!</b>\nProduk: ${finalTitle}\nSN: ${finalSN}\nTujuan: ${tujuan}`, true);
+                
                 await db.collection('preorders').doc(poID).delete();
 
             } else {
                 if (isHardFail) {
-                     // Write: Reset ID karena gagal total (PENTING)
                      console.log(`   ⚠️ HARD FAIL. Reset ID.`);
+                     // LOG HARD FAIL KE TELEGRAM
+                     await sendTelegramLog(`⚠️ <b>HARD FAIL (Reset ID)</b>\nPesan: ${finalMessage}\nProduk: ${skuProduk}\nTujuan: ${tujuan}`);
+                     
+                     // TULIS DB: HANYA UNTUK RESET ID
                      await db.collection('preorders').doc(poID).update({
                         active_reff_id: admin.firestore.FieldValue.delete(), 
                         debugLogs: `[${new Date().toLocaleTimeString()}] [FAIL-RESET] ${finalMessage}`
                     });
                 } else {
-                    // [SUPER IRIT QUOTA]: Jika pending biasa, JANGAN UPDATE DB
-                    // Cukup console log saja. Biarkan user menunggu tanpa spam database.
-                    console.log(`   ⏳ PENDING/SOFT FAIL. [SILENT MODE - NO DB WRITE]`);
-                    // Update log dibawah ini DIHAPUS agar irit
-                    // await db.collection('preorders').doc(poID).update(...)
+                    console.log(`   ⏳ PENDING/SOFT FAIL.`);
+                    // LOG PENDING KE TELEGRAM (GRATIS - NO DB WRITE)
+                    await sendTelegramLog(`⏳ <b>PENDING/RETRY</b>\nPesan: ${finalMessage}\nProduk: ${skuProduk}`);
                 }
             }
             await new Promise(r => setTimeout(r, 2000));
         }
 
-    } catch (error) {
-        console.error("CRITICAL ERROR:", error);
-        process.exit(1);
-    }
+    } catch (error) { console.error("CRITICAL ERROR:", error); process.exit(1); }
     console.log("\n--- SELESAI ---");
 }
 

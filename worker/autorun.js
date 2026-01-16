@@ -21,12 +21,12 @@ const KHFY_KEY = process.env.KHFY_API_KEY;
 const ICS_KEY = process.env.ICS_API_KEY; 
 
 // ============================================================
-// 🛠️ FUNGSI CEK STOK (PRE-CHECK SYSTEM)
+// 🛠️ FUNGSI CEK STOK (DIPANGGIL CUMA 1X DI AWAL)
 // ============================================================
 
 // A. AMBIL DATA STOK KHFY
 async function getKHFYStockList() {
-    console.log("      📋 [PRE-CHECK] Mengunduh Data Stok KHFY...");
+    console.log("      📋 [PHASE 1] Mengunduh Database Stok KHFY...");
     const params = new URLSearchParams();
     params.append('api_key', KHFY_KEY);
     params.append('endpoint', '/list_product'); 
@@ -50,14 +50,13 @@ async function getKHFYStockList() {
         const stockMap = {};
         if (json && json.data && Array.isArray(json.data)) {
             json.data.forEach(item => {
-                // Simpan status ke Map
                 stockMap[item.kode_produk] = {
                     gangguan: item.gangguan == 1, 
                     kosong: item.kosong == 1,
                     status: item.status // 1 = aktif, 0 = nonaktif
                 };
             });
-            console.log(`      ✅ KHFY: ${json.data.length} produk terdata.`);
+            console.log(`      ✅ KHFY Ready: ${json.data.length} produk terdata.`);
             return stockMap;
         }
         return null; 
@@ -67,11 +66,11 @@ async function getKHFYStockList() {
     }
 }
 
-// B. AMBIL DATA STOK ICS (BARU!)
+// B. AMBIL DATA STOK ICS
 async function getICSStockList() {
-    console.log("      📋 [PRE-CHECK] Mengunduh Data Stok ICS...");
+    console.log("      📋 [PHASE 1] Mengunduh Database Stok ICS...");
     const params = new URLSearchParams();
-    params.append('action', 'pricelist'); // Biasanya action pricelist untuk cek status
+    params.append('action', 'pricelist'); 
     params.append('apikey', ICS_KEY);
     
     const targetUrl = `${VERCEL_DOMAIN}/api/relay?${params.toString()}`;
@@ -89,11 +88,8 @@ async function getICSStockList() {
         const json = await response.json();
         const stockMap = {};
 
-        // Sesuaikan parsing dengan format JSON ICS Anda
         if (json && json.data && Array.isArray(json.data)) {
             json.data.forEach(item => {
-                // Asumsi field dari ICS (sesuaikan jika beda)
-                // Biasanya ada status: 'active'/'gangguan'/'kosong'
                 const isGangguan = item.status === 'gangguan' || item.status === 'error';
                 const isKosong = item.status === 'empty' || item.stock === 0 || item.status === 'kosong';
                 const isNonAktif = item.status === 'nonactive';
@@ -104,18 +100,18 @@ async function getICSStockList() {
                     nonaktif: isNonAktif
                 };
             });
-            console.log(`      ✅ ICS: ${json.data.length} produk terdata.`);
+            console.log(`      ✅ ICS Ready: ${json.data.length} produk terdata.`);
             return stockMap;
         }
         return null;
     } catch (error) {
-        console.warn("      ⚠️ Gagal ambil stok ICS (Mungkin endpoint beda/timeout). Lanjut tanpa cek ICS.");
-        return null; // Jika gagal, return null agar tidak nge-block transaksi
+        console.warn("      ⚠️ Gagal ambil stok ICS. Lanjut tanpa cek ICS.");
+        return null; 
     }
 }
 
 // ============================================================
-// 🚀 FUNGSI TRANSAKSI UTAMA
+// 🚀 FUNGSI TRANSAKSI
 // ============================================================
 
 async function hitVercelRelay(serverType, data, isRecheck = false) {
@@ -181,28 +177,38 @@ async function sendUserLog(uid, title, message, trxId) {
 // 🏁 LOGIKA UTAMA (WORKER)
 // ============================================================
 async function runPreorderQueue() {
-    console.log(`[${new Date().toISOString()}] MEMULAI CEK PREORDER QUEUE...`);
+    console.log(`[${new Date().toISOString()}] MEMULAI WORKER...`);
 
     try {
+        // [QUOTA SAVER]: 1 Read per dokumen. Wajib dilakukan untuk tahu antrean.
         const snapshot = await db.collection('preorders')
                                  .orderBy('timestamp', 'asc') 
                                  .limit(100) 
                                  .get();
 
         if (snapshot.empty) {
-            console.log("ℹ️ Tidak ada antrian.");
+            console.log("ℹ️ Tidak ada antrian. Worker Istirahat.");
             return;
         }
 
-        console.log(`✅ DITEMUKAN ${snapshot.size} DATA. Memproses...`);
+        console.log(`✅ DITEMUKAN ${snapshot.size} ANTRIAN.`);
 
-        // 1. DOWNLOAD DATA STOK DARI KEDUA SERVER (PARALLEL)
-        // Kita pakai Promise.all agar downloadnya bersamaan (lebih cepat)
+        // ---------------------------------------------------------
+        // 🔥 PHASE 1: PREPARATION (CEK STOK CUMA DISINI)
+        // ---------------------------------------------------------
+        // Download stok dari API (Gratis Quota Firebase)
+        console.log("\n--- PHASE 1: DOWNLOAD DATA STOK ---");
         const [stockMapKHFY, stockMapICS] = await Promise.all([
             getKHFYStockList(),
             getICSStockList()
         ]);
+        console.log("--- DATA STOK SIAP DIGUNAKAN ---\n");
 
+
+        // ---------------------------------------------------------
+        // 🔥 PHASE 2: EXECUTION (LOOPING TRANSAKSI)
+        // ---------------------------------------------------------
+        
         for (const doc of snapshot.docs) {
             const po = doc.data();
             const poID = doc.id;
@@ -212,25 +218,16 @@ async function runPreorderQueue() {
             const tujuan = po.targetNumber || po.target || po.tujuan;
             const serverType = po.serverType || 'KHFY'; 
 
-            // --- A. SAFETY: STICKY REFF ID ---
-            let reffId = po.active_reff_id;
-            if (!reffId) {
-                reffId = `AUTO-${Date.now()}`; 
-                console.log(`   🔐 Mengunci Reff ID Baru: ${reffId}`);
-                await db.collection('preorders').doc(poID).update({ active_reff_id: reffId });
-            } else {
-                console.log(`   🔒 Menggunakan Reff ID Lama: ${reffId}`);
-            }
+            console.log(`🔹 TRX: ${poID} | ${serverType} | ${skuProduk}`);
 
-            console.log(`\n🔹 TRX: ${poID} | ${serverType} | ${skuProduk} -> ${tujuan}`);
-
+            // 1. CEK KELENGKAPAN DATA
             if (!skuProduk || !tujuan) {
-                console.log(`   ❌ DATA TIDAK LENGKAP.`);
-                await db.collection('preorders').doc(poID).delete(); 
+                console.log(`   ❌ DATA RUSAK. Hapus.`);
+                await db.collection('preorders').doc(poID).delete(); // Write (Perlu)
                 continue; 
             }
 
-            // --- B. PENGECEKAN STOK (LOGIKA BARU) ---
+            // 2. CEK STOK (SILENT MODE - NO DATABASE WRITE)
             let isSkip = false;
             let skipReason = '';
 
@@ -239,55 +236,60 @@ async function runPreorderQueue() {
                 if (info) {
                     if (info.gangguan) { isSkip = true; skipReason = 'KHFY GANGGUAN'; }
                     else if (info.kosong) { isSkip = true; skipReason = 'KHFY STOK KOSONG'; }
-                    else if (info.status === 0) { isSkip = true; skipReason = 'KHFY PRODUK NONAKTIF'; }
+                    else if (info.status === 0) { isSkip = true; skipReason = 'KHFY NONAKTIF'; }
                 }
             } else if (serverType === 'ICS' && stockMapICS) {
                 const info = stockMapICS[skuProduk];
                 if (info) {
                     if (info.gangguan) { isSkip = true; skipReason = 'ICS GANGGUAN'; }
                     else if (info.kosong) { isSkip = true; skipReason = 'ICS STOK KOSONG'; }
-                    else if (info.nonaktif) { isSkip = true; skipReason = 'ICS PRODUK NONAKTIF'; }
+                    else if (info.nonaktif) { isSkip = true; skipReason = 'ICS NONAKTIF'; }
                 }
             }
 
+            // [SUPER IRIT QUOTA]: Jika skip, JANGAN UPDATE DATABASE. Cukup console.log.
             if (isSkip) {
-                console.log(`   ⛔ SKIP (Pre-Check): ${skipReason}. Hemat Saldo & API.`);
-                await db.collection('preorders').doc(poID).update({
-                    debugLogs: `[${new Date().toLocaleTimeString()}] [SKIP-STOCK] ${skipReason}`
-                });
-                // Kita continue (loncat) agar tidak menembak API transaksi
+                console.log(`   ⛔ SKIP (Info Phase 1): ${skipReason}. [SILENT MODE - NO DB WRITE]`);
+                // KITA HAPUS BAGIAN update() debugLogs DISINI UNTUK HEMAT
                 continue; 
             }
 
-            // --- C. EKSEKUSI TRANSAKSI (JIKA STOK AMAN) ---
+            // 3. LOCK REFF ID (Hanya Write 1x Seumur Hidup Transaksi)
+            let reffId = po.active_reff_id;
+            if (!reffId) {
+                reffId = `AUTO-${Date.now()}`; 
+                // Write (Wajib untuk safety)
+                await db.collection('preorders').doc(poID).update({ active_reff_id: reffId });
+            }
+
+            // --- EKSEKUSI TRANSAKSI ---
             const requestData = { sku: skuProduk, tujuan: tujuan, reffId: reffId };
             let result = await hitVercelRelay(serverType, requestData, false);
 
-            // --- D. DETEKSI DUPLIKAT & SMART RECHECK ---
+            // --- DETEKSI DUPLIKAT & SMART RECHECK ---
             let msgRaw = (result.msg || result.message || (result.data ? result.data.message : '')).toLowerCase();
             let isDuplicate = msgRaw.includes('sudah ada') || msgRaw.includes('sudah pernah') || msgRaw.includes('duplicate') || msgRaw.includes('exists');
 
             if (serverType !== 'ICS' && !isDuplicate) {
                 const isQueued = msgRaw.includes('proses') || msgRaw.includes('berhasil') || msgRaw.includes('pending');
                 if (result.ok === true && isQueued) {
-                    console.log(`      ⏳ Respon Awal OK. Menunggu 5 detik lalu Cek Status...`);
+                    console.log(`      ⏳ Respon Awal OK. Wait 5s...`);
                     await new Promise(r => setTimeout(r, 5000));
                     isDuplicate = true; // Mode Recheck
                 }
             }
 
             if (isDuplicate) {
-                console.log(`      ⚠️ Transaksi dianggap duplikat/pending. Melakukan RE-CHECK...`);
+                console.log(`      ⚠️ Re-Check Status...`);
                 const checkResult = await hitVercelRelay(serverType, requestData, true);
                 if (checkResult && (checkResult.ok === true || checkResult.data)) {
-                    console.log(`      ✅ Data Status Asli Ditemukan.`);
                     result = checkResult; 
                 }
             }
             
-            console.log("      📡 Respon Final:", JSON.stringify(result));
+            console.log("      📡 Final:", JSON.stringify(result));
 
-            // --- E. ANALISA FINAL ---
+            // --- ANALISA FINAL ---
             let isSuccess = false;
             let finalMessage = '-';
             let finalSN = '-';
@@ -344,13 +346,14 @@ async function runPreorderQueue() {
                 }
             }
 
-            // --- F. KEPUTUSAN DATABASE ---
+            // --- KEPUTUSAN DATABASE (HEMAT WRITE) ---
             if (isSuccess) {
-                console.log(`   ✅ SUKSES! Pesan: ${finalMessage}`);
+                console.log(`   ✅ SUKSES! Simpan History.`);
                 const historyId = po.historyId || `TRX-${Date.now()}`;
                 let finalTitle = po.productName || skuProduk;
                 if (!finalTitle.toLowerCase().includes('preorder')) finalTitle = `[PreOrder] ${finalTitle}`;
 
+                // Write 1: Simpan History (PENTING)
                 await db.collection('users').doc(uidUser).collection('history').doc(historyId).set({
                     uid: uidUser, trx_id: reffId, trx_code: Math.floor(100000 + Math.random() * 900000).toString(),
                     title: finalTitle, type: 'out', amount: po.price || 0, status: 'Sukses',
@@ -361,22 +364,26 @@ async function runPreorderQueue() {
                     provider_source: serverType
                 });
 
+                // Write 2: Notifikasi (PENTING)
                 await sendUserLog(uidUser, "PreOrder Berhasil", `Sukses: ${finalTitle}`, historyId);
-                console.log(`   🗑️ Pesanan Selesai. Menghapus dari antrian...`);
+                
+                // Write 3: Hapus Antrean (PENTING)
                 await db.collection('preorders').doc(poID).delete();
 
             } else {
                 if (isHardFail) {
-                     console.log(`   ⚠️ HARD FAIL: ${finalMessage}. Resetting Reff ID...`);
+                     // Write: Reset ID karena gagal total (PENTING)
+                     console.log(`   ⚠️ HARD FAIL. Reset ID.`);
                      await db.collection('preorders').doc(poID).update({
                         active_reff_id: admin.firestore.FieldValue.delete(), 
                         debugLogs: `[${new Date().toLocaleTimeString()}] [FAIL-RESET] ${finalMessage}`
                     });
                 } else {
-                    console.log(`   ⏳ SOFT FAIL (Keep ID): ${finalMessage}`);
-                    await db.collection('preorders').doc(poID).update({
-                        debugLogs: `[${new Date().toLocaleTimeString()}] [PENDING] ${finalMessage}`
-                    });
+                    // [SUPER IRIT QUOTA]: Jika pending biasa, JANGAN UPDATE DB
+                    // Cukup console log saja. Biarkan user menunggu tanpa spam database.
+                    console.log(`   ⏳ PENDING/SOFT FAIL. [SILENT MODE - NO DB WRITE]`);
+                    // Update log dibawah ini DIHAPUS agar irit
+                    // await db.collection('preorders').doc(poID).update(...)
                 }
             }
             await new Promise(r => setTimeout(r, 2000));

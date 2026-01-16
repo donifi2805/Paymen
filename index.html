@@ -324,7 +324,10 @@
     <div id="qiosModal" class="hide fixed inset-0 z-[160] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 fade-enter">
       <div class="bg-white dark:bg-gray-900 w-full max-w-xs rounded-3xl p-6 shadow-2xl relative">
         <div id="qiosStep1">
-          <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-1">Top Up Saldo</h3>
+          <div class="flex justify-between items-center mb-1">
+          <h3 class="text-lg font-bold text-gray-800 dark:text-white">Top Up Saldo</h3>
+          <button onclick="closeQios()" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 transition"><i class="fas fa-times"></i></button>
+        </div>
           <p class="text-xs text-gray-500 mb-4">Pilih nominal instan atau manual</p>
           <div class="grid grid-cols-2 gap-3 mb-4">
             <button onclick="setTopUpAmount(50000)" class="py-3 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold border border-blue-100 dark:border-blue-800 hover:bg-blue-100 transition shadow-sm">50.000</button> <button onclick="setTopUpAmount(100000)" class="py-3 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold border border-blue-100 dark:border-blue-800 hover:bg-blue-100 transition shadow-sm">100.000</button>
@@ -371,7 +374,10 @@
     <div id="manualTopUpModal" class="hide fixed inset-0 z-[160] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 fade-enter">
       <div class="bg-white dark:bg-gray-900 w-full max-w-xs rounded-3xl p-6 shadow-2xl relative">
         <div id="mtStep1">
-          <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-1">Top Up Manual</h3>
+          <div class="flex justify-between items-center mb-1">
+          <h3 class="text-lg font-bold text-gray-800 dark:text-white">Top Up Manual</h3>
+          <button onclick="closeManualTopUp()" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 transition"><i class="fas fa-times"></i></button>
+        </div>
           <p class="text-xs text-gray-500 mb-4">Metode Transfer Bank (Cek Manual)</p>
           <div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800 mb-4 text-center">
             <p class="text-[10px] text-gray-500">Bank Tujuan</p><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTOXd7uJlgyXODfLIhtY64i_e5FRtHLSIE7KwhQ9c_MZg&amp;s=10" class="h-6 mx-auto my-1" alt="images">
@@ -420,7 +426,10 @@
     <div id="topUpSheet" class="hide fixed inset-0 z-50 flex flex-col justify-end bg-black/60 backdrop-blur-sm">
       <div class="bg-white dark:bg-gray-900 w-full rounded-t-[30px] p-6 modal-enter max-w-[480px] mx-auto">
         <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-6"></div>
-        <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-4">Pilih Metode Top Up</h3>
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-bold text-gray-800 dark:text-white">Pilih Metode Top Up</h3>
+          <button onclick="closeTopUp()" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 transition"><i class="fas fa-times"></i></button>
+        </div>
         <div class="space-y-3">
           <div onclick="openManualTopUp()" class="flex items-center gap-4 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition mb-3">
             <div class="w-10 h-10 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center"></div>
@@ -832,12 +841,13 @@
       <div id="liveChatModal" class="chat-window hide">
         <div class="bg-blue-600 p-4 flex justify-between items-center shadow-md shrink-0">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-white"></div>
+            <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-white"><i class="fas fa-headset"></i></div>
             <div>
               <h4 class="text-white font-bold text-sm leading-tight">Admin Support</h4>
               <p class="text-blue-100 text-[10px]">Online • Membalas cepat</p>
             </div>
           </div>
+          <button onclick="toggleChat()" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition"><i class="fas fa-times"></i></button>
         </div>
         <div id="chatMessages" class="chat-body flex flex-col gap-2 custom-scroll">
           <div class="text-center mt-10 opacity-50">
@@ -847,6 +857,7 @@
         <div class="p-3 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 shrink-0">
           <form onsubmit="event.preventDefault(); sendChatMessage();" class="flex gap-2">
             <input type="text" id="chatInput" placeholder="Tulis pesan..." class="flex-1 bg-gray-100 dark:bg-gray-800 border-0 rounded-xl px-4 py-3 text-xs focus:ring-2 focus:ring-blue-500 dark:text-white">
+            <button type="submit" class="w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center transition shadow-lg shadow-blue-600/30"><i class="fas fa-paper-plane"></i></button>
           </form>
         </div>
       </div>
@@ -4116,6 +4127,23 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
             btnCancelPo.onclick = () => window.cancelPreorder(trx.trx_id);
         } else {
             btnCancelPo.classList.add('hide');
+        }
+
+                // --- SENSOR RAW JSON ---
+        if(trx.raw_json) {
+            let clean = String(trx.raw_json);
+            // Regex untuk sensor saldo/balance dan nama server
+            clean = clean.replace(/("(?:saldo|balance|sisa_saldo|current_balance|buyer_last_saldo)"\s*:\s*)(?:"[^"]+"|\d+)/gi, '$1"SENSOR-AMAN"');
+            clean = clean.replace(/(khfy|ics|h2h|supplier)/gi, 'SERVER-PUSAT');
+            
+            try {
+                const parsed = JSON.parse(clean);
+                document.getElementById('dtRawJson').innerText = JSON.stringify(parsed, null, 2);
+            } catch(e) {
+                document.getElementById('dtRawJson').innerText = clean;
+            }
+        } else {
+             document.getElementById('dtRawJson').innerText = "Menunggu data server...";
         }
 
         document.getElementById('detailTrxModal').classList.remove('hide');

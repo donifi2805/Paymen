@@ -581,7 +581,21 @@
                     <button onclick="switchTab('dashboard')" class="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition"><i class="fas fa-arrow-left"></i></button>
                     <div><h2 class="text-lg font-bold text-gray-800 leading-none">Pengaturan Sistem</h2><p class="text-[10px] text-gray-500">Kelola status layanan</p></div>
                 </div>
-                <button onclick="saveTopupSettings()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-[10px] shadow hover:bg-blue-700 transition"><i class="fas fa-save mr-1"></i> SIMPAN</button>
+                                <button onclick="saveTopupSettings()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-[10px] shadow hover:bg-blue-700 transition"><i class="fas fa-save mr-1"></i> SIMPAN</button>
+            </div>
+
+            
+            <div class="bg-red-50 p-5 rounded-xl shadow-sm border border-red-100 mb-4">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h3 class="font-bold text-red-700 text-lg"><i class="fas fa-biohazard mr-2"></i>Maintenance Total (Darurat)</h3>
+                        <p class="text-[10px] text-red-500 mt-1">Jika aktif, seluruh aplikasi user akan terkunci (Layar Merah) dan transaksi dihentikan.</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggleGlobalMt" onchange="saveGlobalMaintenance()" class="sr-only peer">
+                        <div class="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-red-600"></div>
+                    </label>
+                </div>
             </div>
 
             <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
@@ -1344,7 +1358,7 @@ window.listenDebugPreOrders = () => {
             document.querySelectorAll('nav a').forEach(el => el.classList.remove('active-nav', 'text-white'));
             const activeLink = document.getElementById('nav-' + tabId);
             if(activeLink) activeLink.classList.add('active-nav', 'text-white');
-                                if(tabId === 'settings') { loadTopupSettings(); loadAppVersion(); }
+                                if(tabId === 'settings') { loadTopupSettings(); loadAppVersion(); loadGlobalMaintenance(); }
             if(tabId === 'notification') loadActiveNotif();
             if(tabId === 'users') { if(!lastUserDoc && !isAllUsersLoaded) loadUsers(true); }
 if(tabId === 'pricing') loadPricingData();
@@ -3131,6 +3145,44 @@ window.loadChatList = () => {
         }
     };
 
+
+    window.loadGlobalMaintenance = async () => {
+        const toggle = document.getElementById('toggleGlobalMt');
+        try {
+            const snap = await getDoc(doc(db, "settings", "global"));
+            if (snap.exists()) {
+                toggle.checked = snap.data().maintenance === true;
+            } else {
+                toggle.checked = false;
+            }
+        } catch (e) { console.log('Err load MT:', e); }
+    };
+
+    window.saveGlobalMaintenance = async () => {
+        const isActive = document.getElementById('toggleGlobalMt').checked;
+        const { isConfirmed } = await Swal.fire({
+            title: isActive ? 'Aktifkan Maintenance?' : 'Matikan Maintenance?',
+            text: isActive ? "Aplikasi user akan dikunci total!" : "Aplikasi akan dibuka kembali untuk user.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: isActive ? '#d33' : '#059669',
+            confirmButtonText: isActive ? 'Ya, Kunci Sistem' : 'Ya, Onlinekan'
+        });
+
+        if(!isConfirmed) {
+            document.getElementById('toggleGlobalMt').checked = !isActive;
+            return;
+        }
+
+        try {
+            Swal.fire({ title: 'Menyimpan...', didOpen: () => Swal.showLoading() });
+            await setDoc(doc(db, "settings", "global"), { maintenance: isActive, updated_at: new Date().toISOString() }, { merge: true });
+            Swal.fire('Berhasil', isActive ? 'SYSTEM LOCKED: Maintenance Total Aktif' : 'SYSTEM ONLINE: Aplikasi dibuka kembali', isActive ? 'warning' : 'success');
+        } catch(e) { 
+            Swal.fire('Gagal', e.message, 'error');
+            document.getElementById('toggleGlobalMt').checked = !isActive; 
+        }
+    };
 
 window.loadTopupSettings = async () => {
         const mToggle = document.getElementById('toggleManual');

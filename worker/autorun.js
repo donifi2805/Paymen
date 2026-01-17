@@ -33,7 +33,7 @@ function getWIBTime() {
     }).replace(/\./g, ':');
 }
 
-// Helper: Sanitasi HTML (Agar Spoiler Tidak Bocor)
+// Helper: Sanitasi HTML (Penting agar JSON tidak merusak tampilan Telegram)
 function escapeHtml(text) {
     if (!text) return text;
     return text
@@ -343,14 +343,15 @@ async function runPreorderQueue() {
                 dataLog = { ...result, data: filteredData, note: `Filter: Terbaru + Sukses Tgl ${refDate}` };
             }
 
-            // --- BUILD MESSAGE (DENGAN SAFE SPOILER) ---
+            // --- BUILD MESSAGE (DENGAN EXPANDABLE BLOCKQUOTE) ---
             // 1. Stringify JSON
             const rawJsonStr = JSON.stringify(dataLog, null, 2); 
-            // 2. Escape HTML Chars agar spoiler tidak bocor
+            // 2. Escape HTML Chars agar tag tidak rusak
             const safeJsonStr = escapeHtml(rawJsonStr.substring(0, 3500));
             
-            // 3. Bungkus dengan Spoiler
-            const jsonBlock = `\n<tg-spoiler><b>🔽 TAMPILKAN JSON 🔽</b>\n<pre><code class="json">${safeJsonStr}</code></pre></tg-spoiler>`;
+            // 3. Gunakan <blockquote expandable> (Fitur Baru Telegram)
+            // Ini akan membuat log JSON terlipat (collapsible) secara otomatis.
+            const jsonBlock = `\n<b>🔽 JSON RESPONSE:</b>\n<blockquote expandable><pre><code class="json">${safeJsonStr}</code></pre></blockquote>`;
 
             if (isSuccess) {
                 console.log(`   ✅ SUKSES!`);

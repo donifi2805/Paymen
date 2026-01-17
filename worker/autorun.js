@@ -175,6 +175,9 @@ async function runPreorderQueue() {
             return;
         }
         
+        // --- START DIVIDER (Hanya dikirim jika ada antrean) ---
+        await sendTelegramLog("================================");
+
         const [stockMapKHFY, stockMapICS] = await Promise.all([getKHFYStockList(), getICSStockList()]);
         
         for (const doc of snapshot.docs) {
@@ -186,18 +189,15 @@ async function runPreorderQueue() {
             const serverType = po.serverType || 'KHFY'; 
 
             // --- AMBIL USERNAME PEMBELI ---
-            let buyerName = po.username || 'User'; // Cek kalau di data PO ada username
+            let buyerName = po.username || 'User'; 
             if (uidUser) {
                 try {
-                    // Ambil dari users collection untuk nama terbaru
                     const userSnap = await db.collection('users').doc(uidUser).get();
                     if (userSnap.exists) {
                         const userData = userSnap.data();
                         buyerName = userData.username || userData.name || userData.email || 'Tanpa Nama';
                     }
-                } catch (e) {
-                    console.log("Gagal ambil nama user:", e.message);
-                }
+                } catch (e) {}
             }
             
             console.log(`🔹 TRX: ${poID} | ${buyerName} | ${serverType} | ${skuProduk}`);
@@ -230,7 +230,7 @@ async function runPreorderQueue() {
                 }
             }
 
-            // --- LOG SKIP (DENGAN USERNAME) ---
+            // --- LOG SKIP ---
             if (isSkip) {
                 console.log(`   ⛔ SKIP: ${skipReason}`);
                 const rawJsonStr = JSON.stringify(debugStockInfo, null, 2); 
@@ -356,7 +356,7 @@ async function runPreorderQueue() {
                 dataLog = { ...result, data: filteredData, note: `Filter: Terbaru + Sukses Tgl ${refDate}` };
             }
 
-            // --- BUILD MESSAGE (DENGAN USERNAME) ---
+            // --- BUILD MESSAGE ---
             const rawJsonStr = JSON.stringify(dataLog, null, 2); 
             const jsonBlock = `\n<pre><code class="json">${rawJsonStr.substring(0, 3500)}</code></pre>`;
 
@@ -377,7 +377,7 @@ async function runPreorderQueue() {
 
                 await sendUserLog(uidUser, "PreOrder Berhasil", `Sukses: ${finalTitle}`, historyId);
                 
-                // FORMAT LOG SUKSES
+                // LOG SUKSES
                 const logMsg = `<b>LOG (${getWIBTime()})</b>\n` +
                                `✅ <b>STATUS: SUKSES</b>\n` +
                                `---------------------------\n` +
@@ -394,7 +394,7 @@ async function runPreorderQueue() {
                 if (isHardFail) {
                      console.log(`   ⚠️ HARD FAIL: ${finalMessage}. Reset ID.`);
                      
-                     // FORMAT LOG HARD FAIL
+                     // LOG HARD FAIL
                      const logMsg = `<b>LOG (${getWIBTime()})</b>\n` +
                                     `⚠️ <b>STATUS: HARD FAIL (RESET ID)</b>\n` +
                                     `---------------------------\n` +
@@ -413,7 +413,7 @@ async function runPreorderQueue() {
                 } else {
                     console.log(`   ⏳ PENDING/SOFT FAIL.`);
                     
-                    // FORMAT LOG PENDING
+                    // LOG PENDING
                     const logMsg = `<b>LOG (${getWIBTime()})</b>\n` +
                                    `⏳ <b>STATUS: PENDING/RETRY</b>\n` +
                                    `---------------------------\n` +
@@ -427,6 +427,9 @@ async function runPreorderQueue() {
             }
             await new Promise(r => setTimeout(r, 2000));
         }
+
+        // --- END DIVIDER (Penutup Session) ---
+        await sendTelegramLog("================================");
 
     } catch (error) { console.error("CRITICAL ERROR:", error); process.exit(1); }
     console.log("\n--- SELESAI ---");

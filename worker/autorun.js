@@ -39,9 +39,7 @@ async function sendTelegramLog(message, isUrgent = false) {
                 disable_notification: !isUrgent 
             })
         }).catch(err => console.log("TG Err:", err.message));
-    } catch (e) {
-        // Silent error
-    }
+    } catch (e) { }
 }
 
 // ============================================================
@@ -56,7 +54,6 @@ async function getKHFYStockList() {
     params.append('produk', 'LIST'); 
     params.append('tujuan', 'LIST');
     params.append('reff_id', 'CHECK-STOCK');
-
     const targetUrl = `${VERCEL_DOMAIN}/api/relaykhfy?${params.toString()}`;
 
     try {
@@ -66,16 +63,12 @@ async function getKHFYStockList() {
             method: 'GET', headers: { 'User-Agent': 'Pandawa-Worker/1.0' }, signal: controller.signal 
         });
         clearTimeout(timeoutId);
-
         const json = await response.json();
         const stockMap = {};
         if (json && json.data && Array.isArray(json.data)) {
             json.data.forEach(item => {
                 stockMap[item.kode_produk] = {
-                    gangguan: item.gangguan == 1, 
-                    kosong: item.kosong == 1, 
-                    status: item.status,
-                    keterangan: "Data dari KHFY Phase 1" // Marker
+                    gangguan: item.gangguan == 1, kosong: item.kosong == 1, status: item.status, keterangan: "Data KHFY Phase 1"
                 };
             });
             return stockMap;
@@ -105,10 +98,7 @@ async function getICSStockList() {
                 const isKosong = item.status === 'empty' || item.stock === 0 || item.status === 'kosong';
                 const isNonAktif = item.status === 'nonactive';
                 stockMap[item.code] = { 
-                    gangguan: isGangguan, 
-                    kosong: isKosong, 
-                    nonaktif: isNonAktif,
-                    keterangan: "Data dari ICS Phase 1" // Marker
+                    gangguan: isGangguan, kosong: isKosong, nonaktif: isNonAktif, keterangan: "Data ICS Phase 1"
                 };
             });
             return stockMap;
@@ -197,12 +187,12 @@ async function runPreorderQueue() {
             // 2. CEK STOK (SILENT)
             let isSkip = false;
             let skipReason = '';
-            let debugStockInfo = null; // Variabel untuk menyimpan JSON Stok
+            let debugStockInfo = null; 
 
             if (serverType === 'KHFY' && stockMapKHFY) {
                 const info = stockMapKHFY[skuProduk];
                 if (info) {
-                    debugStockInfo = info; // Simpan info stok
+                    debugStockInfo = info; 
                     if (info.gangguan) { isSkip = true; skipReason = 'KHFY GANGGUAN'; }
                     else if (info.kosong) { isSkip = true; skipReason = 'KHFY STOK KOSONG'; }
                     else if (info.status === 0) { isSkip = true; skipReason = 'KHFY NONAKTIF'; }
@@ -210,21 +200,17 @@ async function runPreorderQueue() {
             } else if (serverType === 'ICS' && stockMapICS) {
                 const info = stockMapICS[skuProduk];
                 if (info) {
-                    debugStockInfo = info; // Simpan info stok
+                    debugStockInfo = info; 
                     if (info.gangguan) { isSkip = true; skipReason = 'ICS GANGGUAN'; }
                     else if (info.kosong) { isSkip = true; skipReason = 'ICS STOK KOSONG'; }
                     else if (info.nonaktif) { isSkip = true; skipReason = 'ICS NONAKTIF'; }
                 }
             }
 
-            // JIKA SKIP: Tampilkan JSON Stok Phase 1
             if (isSkip) {
                 console.log(`   ⛔ SKIP: ${skipReason}`);
-                
-                // Siapkan JSON Info Stok
                 const rawJsonStr = JSON.stringify(debugStockInfo, null, 2); 
                 const rawLogBlock = `\n<pre><code class="json">${rawJsonStr}</code></pre>`;
-                
                 await sendTelegramLog(`⛔ <b>SKIP TRX (Hemat Saldo)</b>\nAlasan: ${skipReason}\nProduk: ${skuProduk}\nTujuan: ${tujuan}${rawLogBlock}`);
                 continue; 
             }
@@ -236,17 +222,46 @@ async function runPreorderQueue() {
                 await db.collection('preorders').doc(poID).update({ active_reff_id: reffId });
             }
 
-            // 4. EKSEKUSI
+            // 4. EKSEKUSI TRANSAKSI
             const requestData = { sku: skuProduk, tujuan: tujuan, reffId: reffId };
             let result = await hitVercelRelay(serverType, requestData, false);
 
+            // ============================================================
+            // 🔥 FITUR BARU: AUTO-WAIT 6 DETIK JIKA PENDING 🔥
+            // ============================================================
+            // Cek apakah JSON cocok dengan kriteria: success:true & status:pending
+            const isExplicitPending = result.success === true && 
+                                      result.data && 
+                                      result.data.status === 'pending';
+
+            if (isExplicitPending) {
+                console.log(`      ⏳ Respon Pending Spesifik: "Transaction processing". Menunggu 6 detik...`);
+                
+                // 1. Tahan 6 Detik
+                await new Promise(r => setTimeout(r, 6000));
+                
+                // 2. Cek Status Ulang (Recheck)
+                console.log(`      🔄 Melakukan Cek Status Ulang (Get Real JSON)...`);
+                const checkResult = await hitVercelRelay(serverType, requestData, true);
+
+                // 3. Timpa hasil lama dengan hasil baru (Real JSON)
+                if (checkResult) {
+                    result = checkResult;
+                    console.log(`      ✅ Data Terupdate Diterima.`);
+                }
+            }
+            // ============================================================
+
+
+            // Logika Smart Recheck Lama (untuk case Duplicate/KHFY process)
             let msgRaw = (result.msg || result.message || (result.data ? result.data.message : '')).toLowerCase();
             let isDuplicate = msgRaw.includes('sudah ada') || msgRaw.includes('sudah pernah') || msgRaw.includes('duplicate');
 
             if (serverType !== 'ICS' && !isDuplicate) {
                 const isQueued = msgRaw.includes('proses') || msgRaw.includes('berhasil') || msgRaw.includes('pending');
                 if (result.ok === true && isQueued) {
-                    await new Promise(r => setTimeout(r, 5000));
+                    // Logic lama: tunggu 5 detik
+                    if(!isExplicitPending) await new Promise(r => setTimeout(r, 5000)); 
                     isDuplicate = true; 
                 }
             }
@@ -258,7 +273,7 @@ async function runPreorderQueue() {
                 }
             }
             
-            // 5. ANALISA HASIL
+            // 5. ANALISA HASIL AKHIR
             let isSuccess = false;
             let finalMessage = '-';
             let finalSN = '-';
@@ -313,7 +328,6 @@ async function runPreorderQueue() {
             const rawJsonStr = JSON.stringify(dataLog, null, 2); 
             const rawLogBlock = `\n<pre><code class="json">${rawJsonStr.substring(0, 3000)}</code></pre>`;
 
-
             // 6. KEPUTUSAN & LOGGING
             if (isSuccess) {
                 console.log(`   ✅ SUKSES!`);
@@ -338,7 +352,6 @@ async function runPreorderQueue() {
             } else {
                 if (isHardFail) {
                      console.log(`   ⚠️ HARD FAIL: ${finalMessage}. Reset ID.`);
-                     
                      // Log Hard Fail
                      await sendTelegramLog(`⚠️ <b>HARD FAIL (Reset ID)</b>\nPesan: ${finalMessage}\nProduk: ${skuProduk}\nTujuan: ${tujuan}${rawLogBlock}`);
                      
@@ -348,7 +361,6 @@ async function runPreorderQueue() {
                     });
                 } else {
                     console.log(`   ⏳ PENDING/SOFT FAIL.`);
-                    
                     // Log Pending
                     await sendTelegramLog(`⏳ <b>PENDING/RETRY</b>\nPesan: ${finalMessage}\nProduk: ${skuProduk}${rawLogBlock}`);
                 }

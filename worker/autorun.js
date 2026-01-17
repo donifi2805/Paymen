@@ -24,7 +24,7 @@ const ICS_KEY = process.env.ICS_API_KEY;
 const TG_TOKEN = "7850521841:AAH84wtuxnDWg5u04lMkL5zqVcY1hIpzGJg";
 const TG_CHAT_ID = "7348139166";
 
-// Fungsi Kirim Log ke Telegram (TANPA TOMBOL)
+// Fungsi Kirim Log ke Telegram
 async function sendTelegramLog(message, isUrgent = false) {
     if (!TG_TOKEN || !TG_CHAT_ID) return;
     try {
@@ -45,7 +45,7 @@ async function sendTelegramLog(message, isUrgent = false) {
 }
 
 // ============================================================
-// 🛠️ FUNGSI CEK STOK (DIPANGGIL CUMA 1X DI AWAL)
+// 🛠️ FUNGSI CEK STOK (PHASE 1)
 // ============================================================
 
 async function getKHFYStockList() {
@@ -72,7 +72,10 @@ async function getKHFYStockList() {
         if (json && json.data && Array.isArray(json.data)) {
             json.data.forEach(item => {
                 stockMap[item.kode_produk] = {
-                    gangguan: item.gangguan == 1, kosong: item.kosong == 1, status: item.status
+                    gangguan: item.gangguan == 1, 
+                    kosong: item.kosong == 1, 
+                    status: item.status,
+                    keterangan: "Data dari KHFY Phase 1" // Marker
                 };
             });
             return stockMap;
@@ -101,7 +104,12 @@ async function getICSStockList() {
                 const isGangguan = item.status === 'gangguan' || item.status === 'error';
                 const isKosong = item.status === 'empty' || item.stock === 0 || item.status === 'kosong';
                 const isNonAktif = item.status === 'nonactive';
-                stockMap[item.code] = { gangguan: isGangguan, kosong: isKosong, nonaktif: isNonAktif };
+                stockMap[item.code] = { 
+                    gangguan: isGangguan, 
+                    kosong: isKosong, 
+                    nonaktif: isNonAktif,
+                    keterangan: "Data dari ICS Phase 1" // Marker
+                };
             });
             return stockMap;
         }
@@ -189,10 +197,12 @@ async function runPreorderQueue() {
             // 2. CEK STOK (SILENT)
             let isSkip = false;
             let skipReason = '';
+            let debugStockInfo = null; // Variabel untuk menyimpan JSON Stok
 
             if (serverType === 'KHFY' && stockMapKHFY) {
                 const info = stockMapKHFY[skuProduk];
                 if (info) {
+                    debugStockInfo = info; // Simpan info stok
                     if (info.gangguan) { isSkip = true; skipReason = 'KHFY GANGGUAN'; }
                     else if (info.kosong) { isSkip = true; skipReason = 'KHFY STOK KOSONG'; }
                     else if (info.status === 0) { isSkip = true; skipReason = 'KHFY NONAKTIF'; }
@@ -200,15 +210,22 @@ async function runPreorderQueue() {
             } else if (serverType === 'ICS' && stockMapICS) {
                 const info = stockMapICS[skuProduk];
                 if (info) {
+                    debugStockInfo = info; // Simpan info stok
                     if (info.gangguan) { isSkip = true; skipReason = 'ICS GANGGUAN'; }
                     else if (info.kosong) { isSkip = true; skipReason = 'ICS STOK KOSONG'; }
                     else if (info.nonaktif) { isSkip = true; skipReason = 'ICS NONAKTIF'; }
                 }
             }
 
+            // JIKA SKIP: Tampilkan JSON Stok Phase 1
             if (isSkip) {
                 console.log(`   ⛔ SKIP: ${skipReason}`);
-                await sendTelegramLog(`⛔ <b>SKIP TRX (Hemat Saldo)</b>\nAlasan: ${skipReason}\nProduk: ${skuProduk}\nTujuan: ${tujuan}`);
+                
+                // Siapkan JSON Info Stok
+                const rawJsonStr = JSON.stringify(debugStockInfo, null, 2); 
+                const rawLogBlock = `\n<pre><code class="json">${rawJsonStr}</code></pre>`;
+                
+                await sendTelegramLog(`⛔ <b>SKIP TRX (Hemat Saldo)</b>\nAlasan: ${skipReason}\nProduk: ${skuProduk}\nTujuan: ${tujuan}${rawLogBlock}`);
                 continue; 
             }
 
@@ -284,10 +301,9 @@ async function runPreorderQueue() {
                 }
             }
 
-            // --- FILTER JSON UNTUK TELEGRAM (Agar Tidak Ganda) ---
+            // --- FILTER JSON UNTUK TELEGRAM ---
             let dataLog = result;
             if (result.data && Array.isArray(result.data)) {
-                // Ambil yang terbaru saja
                 dataLog = { 
                     ...result, 
                     data: result.data[0], 
@@ -323,7 +339,7 @@ async function runPreorderQueue() {
                 if (isHardFail) {
                      console.log(`   ⚠️ HARD FAIL: ${finalMessage}. Reset ID.`);
                      
-                     // Kirim Log (TANPA TOMBOL)
+                     // Log Hard Fail
                      await sendTelegramLog(`⚠️ <b>HARD FAIL (Reset ID)</b>\nPesan: ${finalMessage}\nProduk: ${skuProduk}\nTujuan: ${tujuan}${rawLogBlock}`);
                      
                      await db.collection('preorders').doc(poID).update({
@@ -333,7 +349,7 @@ async function runPreorderQueue() {
                 } else {
                     console.log(`   ⏳ PENDING/SOFT FAIL.`);
                     
-                    // Kirim Log (TANPA TOMBOL)
+                    // Log Pending
                     await sendTelegramLog(`⏳ <b>PENDING/RETRY</b>\nPesan: ${finalMessage}\nProduk: ${skuProduk}${rawLogBlock}`);
                 }
             }

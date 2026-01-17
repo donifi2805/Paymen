@@ -20,7 +20,7 @@ const VERCEL_DOMAIN = "https://www.pandawa-digital.store";
 const KHFY_KEY = process.env.KHFY_API_KEY; 
 const ICS_KEY = process.env.ICS_API_KEY; 
 
-// 🔥 KONFIGURASI TELEGRAM 🔥
+// 🔥 KONFIGURASI TELEGRAM LOG 🔥
 const TG_TOKEN = "7850521841:AAH84wtuxnDWg5u04lMkL5zqVcY1hIpzGJg";
 const TG_CHAT_ID = "7348139166";
 
@@ -35,7 +35,7 @@ async function sendTelegramLog(message, isUrgent = false) {
             body: JSON.stringify({
                 chat_id: TG_CHAT_ID,
                 text: message,
-                parse_mode: 'HTML', // Agar bisa baca tag <pre> dan <b>
+                parse_mode: 'HTML', 
                 disable_notification: !isUrgent 
             })
         }).catch(err => console.log("TG Err:", err.message));
@@ -187,7 +187,7 @@ async function runPreorderQueue() {
                 continue; 
             }
 
-            // 2. CEK STOK (SILENT)
+            // 2. CEK STOK (SILENT MODE)
             let isSkip = false;
             let skipReason = '';
 
@@ -285,10 +285,19 @@ async function runPreorderQueue() {
                 }
             }
 
-            // --- SIAPKAN RAW JSON UNTUK TELEGRAM (Pretty Print) ---
-            const rawJsonStr = JSON.stringify(result, null, 2); // Format rapi
-            // Kita potong jika terlalu panjang (Telegram limit 4096 char)
+            // --- FILTER JSON UNTUK TELEGRAM (Agar Tidak Ganda) ---
+            let dataLog = result;
+            if (result.data && Array.isArray(result.data)) {
+                // Jika data berupa Array (Banyak History), ambil index 0 (Terbaru)
+                dataLog = { 
+                    ...result, 
+                    data: result.data[0], 
+                    note: "Data difilter (Ambil yg terbaru saja)"
+                };
+            }
+            const rawJsonStr = JSON.stringify(dataLog, null, 2); 
             const rawLogBlock = `\n<pre><code class="json">${rawJsonStr.substring(0, 3000)}</code></pre>`;
+
 
             // 6. KEPUTUSAN & LOGGING
             if (isSuccess) {

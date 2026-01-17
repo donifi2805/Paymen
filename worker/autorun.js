@@ -20,7 +20,7 @@ const VERCEL_DOMAIN = "https://www.pandawa-digital.store";
 const KHFY_KEY = process.env.KHFY_API_KEY; 
 const ICS_KEY = process.env.ICS_API_KEY; 
 
-// 🔥 KONFIGURASI TELEGRAM (SESUAI REQUEST ANDA) 🔥
+// 🔥 KONFIGURASI TELEGRAM 🔥
 const TG_TOKEN = "7850521841:AAH84wtuxnDWg5u04lMkL5zqVcY1hIpzGJg";
 const TG_CHAT_ID = "7348139166";
 
@@ -29,19 +29,18 @@ async function sendTelegramLog(message, isUrgent = false) {
     if (!TG_TOKEN || !TG_CHAT_ID) return;
     try {
         const url = `https://api.telegram.org/bot${TG_TOKEN}/sendMessage`;
-        // Gunakan fetch fire-and-forget (tidak perlu await response body biar cepat)
         fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 chat_id: TG_CHAT_ID,
                 text: message,
-                parse_mode: 'HTML', // Agar bisa pakai bold <b>
-                disable_notification: !isUrgent // Jika urgent (Sukses/Hard Fail) bunyi, sisanya silent
+                parse_mode: 'HTML', // Agar bisa baca tag <pre> dan <b>
+                disable_notification: !isUrgent 
             })
         }).catch(err => console.log("TG Err:", err.message));
     } catch (e) {
-        // Abaikan error telegram agar worker tetap jalan
+        // Silent error
     }
 }
 
@@ -169,7 +168,7 @@ async function runPreorderQueue() {
             return;
         }
         
-        // Cek Stok Sekali Saja di Awal
+        // Cek Stok Sekali Saja
         const [stockMapKHFY, stockMapICS] = await Promise.all([getKHFYStockList(), getICSStockList()]);
         
         for (const doc of snapshot.docs) {
@@ -182,13 +181,13 @@ async function runPreorderQueue() {
 
             console.log(`🔹 TRX: ${poID} | ${serverType} | ${skuProduk}`);
 
-            // 1. Validasi Data
+            // 1. Validasi
             if (!skuProduk || !tujuan) {
                 await db.collection('preorders').doc(poID).delete(); 
                 continue; 
             }
 
-            // 2. CEK STOK (SILENT MODE KE TELEGRAM)
+            // 2. CEK STOK (SILENT)
             let isSkip = false;
             let skipReason = '';
 
@@ -210,7 +209,6 @@ async function runPreorderQueue() {
 
             if (isSkip) {
                 console.log(`   ⛔ SKIP: ${skipReason}`);
-                // LOG KE TELEGRAM (GRATIS) - Database Firebase AMAN (Write = 0)
                 await sendTelegramLog(`⛔ <b>SKIP TRX (Hemat Saldo)</b>\nAlasan: ${skipReason}\nProduk: ${skuProduk}\nTujuan: ${tujuan}`);
                 continue; 
             }
@@ -222,11 +220,10 @@ async function runPreorderQueue() {
                 await db.collection('preorders').doc(poID).update({ active_reff_id: reffId });
             }
 
-            // 4. EKSEKUSI TRANSAKSI
+            // 4. EKSEKUSI
             const requestData = { sku: skuProduk, tujuan: tujuan, reffId: reffId };
             let result = await hitVercelRelay(serverType, requestData, false);
 
-            // Deteksi Duplikat/Pending
             let msgRaw = (result.msg || result.message || (result.data ? result.data.message : '')).toLowerCase();
             let isDuplicate = msgRaw.includes('sudah ada') || msgRaw.includes('sudah pernah') || msgRaw.includes('duplicate');
 
@@ -234,7 +231,7 @@ async function runPreorderQueue() {
                 const isQueued = msgRaw.includes('proses') || msgRaw.includes('berhasil') || msgRaw.includes('pending');
                 if (result.ok === true && isQueued) {
                     await new Promise(r => setTimeout(r, 5000));
-                    isDuplicate = true; // Switch ke mode cek status
+                    isDuplicate = true; 
                 }
             }
 
@@ -288,6 +285,11 @@ async function runPreorderQueue() {
                 }
             }
 
+            // --- SIAPKAN RAW JSON UNTUK TELEGRAM (Pretty Print) ---
+            const rawJsonStr = JSON.stringify(result, null, 2); // Format rapi
+            // Kita potong jika terlalu panjang (Telegram limit 4096 char)
+            const rawLogBlock = `\n<pre><code class="json">${rawJsonStr.substring(0, 3000)}</code></pre>`;
+
             // 6. KEPUTUSAN & LOGGING
             if (isSuccess) {
                 console.log(`   ✅ SUKSES!`);
@@ -295,7 +297,6 @@ async function runPreorderQueue() {
                 let finalTitle = po.productName || skuProduk;
                 if (!finalTitle.toLowerCase().includes('preorder')) finalTitle = `[PreOrder] ${finalTitle}`;
 
-                // TULIS DB: HANYA JIKA SUKSES
                 await db.collection('users').doc(uidUser).collection('history').doc(historyId).set({
                     uid: uidUser, trx_id: reffId, trx_code: Math.floor(100000 + Math.random() * 900000).toString(),
                     title: finalTitle, type: 'out', amount: po.price || 0, status: 'Sukses',
@@ -306,26 +307,25 @@ async function runPreorderQueue() {
 
                 await sendUserLog(uidUser, "PreOrder Berhasil", `Sukses: ${finalTitle}`, historyId);
                 
-                // NOTIF TELEGRAM (URGENT = BUNYI)
-                await sendTelegramLog(`✅ <b>SUKSES!</b>\nProduk: ${finalTitle}\nSN: ${finalSN}\nTujuan: ${tujuan}`, true);
+                // NOTIF TELEGRAM + RAW JSON
+                await sendTelegramLog(`✅ <b>SUKSES!</b>\nProduk: ${finalTitle}\nSN: ${finalSN}\nTujuan: ${tujuan}${rawLogBlock}`, true);
                 
                 await db.collection('preorders').doc(poID).delete();
 
             } else {
                 if (isHardFail) {
-                     console.log(`   ⚠️ HARD FAIL. Reset ID.`);
-                     // LOG HARD FAIL KE TELEGRAM
-                     await sendTelegramLog(`⚠️ <b>HARD FAIL (Reset ID)</b>\nPesan: ${finalMessage}\nProduk: ${skuProduk}\nTujuan: ${tujuan}`);
+                     console.log(`   ⚠️ HARD FAIL: ${finalMessage}. Reset ID.`);
+                     // LOG HARD FAIL + RAW JSON
+                     await sendTelegramLog(`⚠️ <b>HARD FAIL (Reset ID)</b>\nPesan: ${finalMessage}\nProduk: ${skuProduk}\nTujuan: ${tujuan}${rawLogBlock}`);
                      
-                     // TULIS DB: HANYA UNTUK RESET ID
                      await db.collection('preorders').doc(poID).update({
                         active_reff_id: admin.firestore.FieldValue.delete(), 
                         debugLogs: `[${new Date().toLocaleTimeString()}] [FAIL-RESET] ${finalMessage}`
                     });
                 } else {
                     console.log(`   ⏳ PENDING/SOFT FAIL.`);
-                    // LOG PENDING KE TELEGRAM (GRATIS - NO DB WRITE)
-                    await sendTelegramLog(`⏳ <b>PENDING/RETRY</b>\nPesan: ${finalMessage}\nProduk: ${skuProduk}`);
+                    // LOG PENDING + RAW JSON
+                    await sendTelegramLog(`⏳ <b>PENDING/RETRY</b>\nPesan: ${finalMessage}\nProduk: ${skuProduk}${rawLogBlock}`);
                 }
             }
             await new Promise(r => setTimeout(r, 2000));

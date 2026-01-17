@@ -185,7 +185,22 @@ async function runPreorderQueue() {
             const tujuan = po.targetNumber || po.target || po.tujuan;
             const serverType = po.serverType || 'KHFY'; 
 
-            console.log(`🔹 TRX: ${poID} | ${serverType} | ${skuProduk}`);
+            // --- AMBIL USERNAME PEMBELI ---
+            let buyerName = po.username || 'User'; // Cek kalau di data PO ada username
+            if (uidUser) {
+                try {
+                    // Ambil dari users collection untuk nama terbaru
+                    const userSnap = await db.collection('users').doc(uidUser).get();
+                    if (userSnap.exists) {
+                        const userData = userSnap.data();
+                        buyerName = userData.username || userData.name || userData.email || 'Tanpa Nama';
+                    }
+                } catch (e) {
+                    console.log("Gagal ambil nama user:", e.message);
+                }
+            }
+            
+            console.log(`🔹 TRX: ${poID} | ${buyerName} | ${serverType} | ${skuProduk}`);
 
             if (!skuProduk || !tujuan) {
                 await db.collection('preorders').doc(poID).delete(); 
@@ -215,13 +230,14 @@ async function runPreorderQueue() {
                 }
             }
 
-            // --- LOG SKIP (DENGAN FORMAT BARU) ---
+            // --- LOG SKIP (DENGAN USERNAME) ---
             if (isSkip) {
                 console.log(`   ⛔ SKIP: ${skipReason}`);
                 const rawJsonStr = JSON.stringify(debugStockInfo, null, 2); 
                 const logMsg = `<b>LOG (${getWIBTime()})</b>\n` +
                                `⛔ <b>STATUS: SKIP (HEMAT SALDO)</b>\n` +
                                `---------------------------\n` +
+                               `👤 <b>Pembeli:</b> ${buyerName}\n` +
                                `📦 <b>Produk:</b> ${skuProduk}\n` +
                                `📱 <b>Tujuan:</b> ${tujuan}\n` +
                                `📝 <b>Alasan:</b> ${skipReason}\n` +
@@ -329,7 +345,7 @@ async function runPreorderQueue() {
                 const refDate = (firstItem.tgl_entri || firstItem.tgl_status || firstItem.date || new Date().toISOString()).substring(0, 10);
                 
                 const filteredData = result.data.filter((item, index) => {
-                    if (index === 0) return true; // Selalu ambil yg pertama
+                    if (index === 0) return true; 
                     const tgl = item.tgl_entri || item.tgl_status || item.date || '';
                     const status = (item.status_text || item.status || '').toUpperCase();
                     const isSameDay = tgl.includes(refDate);
@@ -340,7 +356,7 @@ async function runPreorderQueue() {
                 dataLog = { ...result, data: filteredData, note: `Filter: Terbaru + Sukses Tgl ${refDate}` };
             }
 
-            // --- BUILD MESSAGE (FORMAT BARU) ---
+            // --- BUILD MESSAGE (DENGAN USERNAME) ---
             const rawJsonStr = JSON.stringify(dataLog, null, 2); 
             const jsonBlock = `\n<pre><code class="json">${rawJsonStr.substring(0, 3500)}</code></pre>`;
 
@@ -365,6 +381,7 @@ async function runPreorderQueue() {
                 const logMsg = `<b>LOG (${getWIBTime()})</b>\n` +
                                `✅ <b>STATUS: SUKSES</b>\n` +
                                `---------------------------\n` +
+                               `👤 <b>Pembeli:</b> ${buyerName}\n` +
                                `📦 <b>Produk:</b> ${finalTitle}\n` +
                                `📱 <b>Tujuan:</b> ${tujuan}\n` +
                                `🧾 <b>SN:</b> ${finalSN}\n` +
@@ -381,6 +398,7 @@ async function runPreorderQueue() {
                      const logMsg = `<b>LOG (${getWIBTime()})</b>\n` +
                                     `⚠️ <b>STATUS: HARD FAIL (RESET ID)</b>\n` +
                                     `---------------------------\n` +
+                                    `👤 <b>Pembeli:</b> ${buyerName}\n` +
                                     `📦 <b>Produk:</b> ${skuProduk}\n` +
                                     `📱 <b>Tujuan:</b> ${tujuan}\n` +
                                     `💬 <b>Pesan:</b> ${finalMessage}\n` +
@@ -399,6 +417,7 @@ async function runPreorderQueue() {
                     const logMsg = `<b>LOG (${getWIBTime()})</b>\n` +
                                    `⏳ <b>STATUS: PENDING/RETRY</b>\n` +
                                    `---------------------------\n` +
+                                   `👤 <b>Pembeli:</b> ${buyerName}\n` +
                                    `📦 <b>Produk:</b> ${skuProduk}\n` +
                                    `💬 <b>Pesan:</b> ${finalMessage}\n` +
                                    jsonBlock;

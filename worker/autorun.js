@@ -228,9 +228,9 @@ async function runPreorderQueue() {
             // AUTO-WAIT 6 DETIK JIKA PENDING
             const isExplicitPending = result.success === true && result.data && result.data.status === 'pending';
             if (isExplicitPending) {
-                console.log(`      ⏳ Respon Pending Spesifik: "Transaction processing". Menunggu 6 detik...`);
+                console.log(`      ⏳ Respon Pending Spesifik. Menunggu 6 detik...`);
                 await new Promise(r => setTimeout(r, 6000));
-                console.log(`      🔄 Melakukan Cek Status Ulang (Get Real JSON)...`);
+                console.log(`      🔄 Recheck Status...`);
                 const checkResult = await hitVercelRelay(serverType, requestData, true);
                 if (checkResult) {
                     result = checkResult;
@@ -238,8 +238,6 @@ async function runPreorderQueue() {
                 }
             }
 
-            // --- PERBAIKAN BUG DISINI (Anti Crash toLowerCase) ---
-            // Kita pastikan ambil pesan dengan aman (Safe Access)
             let msgRaw = String(
                 result.msg || 
                 result.message || 
@@ -307,15 +305,38 @@ async function runPreorderQueue() {
                 }
             }
 
-            // FILTER JSON
+            // ============================================================
+            // 🔍 FILTER JSON CERDAS (TERBARU + SUKSES HARI INI)
+            // ============================================================
             let dataLog = result;
-            if (result.data && Array.isArray(result.data)) {
+            if (result.data && Array.isArray(result.data) && result.data.length > 0) {
+                // Ambil tanggal dari data pertama sebagai patokan "Hari Ini"
+                // (Untuk menangani perbedaan zona waktu server provider)
+                const firstItem = result.data[0];
+                const refDate = (firstItem.tgl_entri || firstItem.tgl_status || firstItem.date || new Date().toISOString()).substring(0, 10);
+                
+                const filteredData = result.data.filter((item, index) => {
+                    // 1. Selalu ambil yang paling baru (Index 0)
+                    if (index === 0) return true;
+                    
+                    // 2. Ambil juga jika statusnya SUKSES dan Tanggalnya SAMA dengan refDate
+                    const tgl = item.tgl_entri || item.tgl_status || item.date || '';
+                    const status = (item.status_text || item.status || '').toUpperCase();
+                    
+                    const isSameDay = tgl.includes(refDate);
+                    const isSuccess = status.includes('SUKSES') || status === 'SUCCESS';
+                    
+                    return isSuccess && isSameDay;
+                });
+
                 dataLog = { 
                     ...result, 
-                    data: result.data[0], 
-                    note: "Data difilter (Ambil yg terbaru saja)"
+                    data: filteredData, 
+                    note: `Filter: Terbaru + Sukses Tgl ${refDate} (Total: ${filteredData.length})`
                 };
             }
+            // ============================================================
+
             const rawJsonStr = JSON.stringify(dataLog, null, 2); 
             const rawLogBlock = `\n<pre><code class="json">${rawJsonStr.substring(0, 3000)}</code></pre>`;
 

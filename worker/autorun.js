@@ -178,13 +178,12 @@ async function runPreorderQueue() {
 
             console.log(`🔹 TRX: ${poID} | ${serverType} | ${skuProduk}`);
 
-            // 1. Validasi
             if (!skuProduk || !tujuan) {
                 await db.collection('preorders').doc(poID).delete(); 
                 continue; 
             }
 
-            // 2. CEK STOK (SILENT)
+            // CEK STOK (SILENT)
             let isSkip = false;
             let skipReason = '';
             let debugStockInfo = null; 
@@ -215,52 +214,44 @@ async function runPreorderQueue() {
                 continue; 
             }
 
-            // 3. LOCK REFF ID
+            // LOCK REFF ID
             let reffId = po.active_reff_id;
             if (!reffId) {
                 reffId = `AUTO-${Date.now()}`; 
                 await db.collection('preorders').doc(poID).update({ active_reff_id: reffId });
             }
 
-            // 4. EKSEKUSI TRANSAKSI
+            // EKSEKUSI TRANSAKSI
             const requestData = { sku: skuProduk, tujuan: tujuan, reffId: reffId };
             let result = await hitVercelRelay(serverType, requestData, false);
 
-            // ============================================================
-            // 🔥 FITUR BARU: AUTO-WAIT 6 DETIK JIKA PENDING 🔥
-            // ============================================================
-            // Cek apakah JSON cocok dengan kriteria: success:true & status:pending
-            const isExplicitPending = result.success === true && 
-                                      result.data && 
-                                      result.data.status === 'pending';
-
+            // AUTO-WAIT 6 DETIK JIKA PENDING
+            const isExplicitPending = result.success === true && result.data && result.data.status === 'pending';
             if (isExplicitPending) {
                 console.log(`      ⏳ Respon Pending Spesifik: "Transaction processing". Menunggu 6 detik...`);
-                
-                // 1. Tahan 6 Detik
                 await new Promise(r => setTimeout(r, 6000));
-                
-                // 2. Cek Status Ulang (Recheck)
                 console.log(`      🔄 Melakukan Cek Status Ulang (Get Real JSON)...`);
                 const checkResult = await hitVercelRelay(serverType, requestData, true);
-
-                // 3. Timpa hasil lama dengan hasil baru (Real JSON)
                 if (checkResult) {
                     result = checkResult;
                     console.log(`      ✅ Data Terupdate Diterima.`);
                 }
             }
-            // ============================================================
 
-
-            // Logika Smart Recheck Lama (untuk case Duplicate/KHFY process)
-            let msgRaw = (result.msg || result.message || (result.data ? result.data.message : '')).toLowerCase();
+            // --- PERBAIKAN BUG DISINI (Anti Crash toLowerCase) ---
+            // Kita pastikan ambil pesan dengan aman (Safe Access)
+            let msgRaw = String(
+                result.msg || 
+                result.message || 
+                (result.data && result.data.message) || 
+                ''
+            ).toLowerCase();
+            
             let isDuplicate = msgRaw.includes('sudah ada') || msgRaw.includes('sudah pernah') || msgRaw.includes('duplicate');
 
             if (serverType !== 'ICS' && !isDuplicate) {
                 const isQueued = msgRaw.includes('proses') || msgRaw.includes('berhasil') || msgRaw.includes('pending');
                 if (result.ok === true && isQueued) {
-                    // Logic lama: tunggu 5 detik
                     if(!isExplicitPending) await new Promise(r => setTimeout(r, 5000)); 
                     isDuplicate = true; 
                 }
@@ -273,7 +264,7 @@ async function runPreorderQueue() {
                 }
             }
             
-            // 5. ANALISA HASIL AKHIR
+            // ANALISA HASIL
             let isSuccess = false;
             let finalMessage = '-';
             let finalSN = '-';
@@ -316,7 +307,7 @@ async function runPreorderQueue() {
                 }
             }
 
-            // --- FILTER JSON UNTUK TELEGRAM ---
+            // FILTER JSON
             let dataLog = result;
             if (result.data && Array.isArray(result.data)) {
                 dataLog = { 
@@ -328,7 +319,7 @@ async function runPreorderQueue() {
             const rawJsonStr = JSON.stringify(dataLog, null, 2); 
             const rawLogBlock = `\n<pre><code class="json">${rawJsonStr.substring(0, 3000)}</code></pre>`;
 
-            // 6. KEPUTUSAN & LOGGING
+            // KEPUTUSAN
             if (isSuccess) {
                 console.log(`   ✅ SUKSES!`);
                 const historyId = po.historyId || `TRX-${Date.now()}`;
@@ -344,15 +335,12 @@ async function runPreorderQueue() {
                 });
 
                 await sendUserLog(uidUser, "PreOrder Berhasil", `Sukses: ${finalTitle}`, historyId);
-                
                 await sendTelegramLog(`✅ <b>SUKSES!</b>\nProduk: ${finalTitle}\nSN: ${finalSN}\nTujuan: ${tujuan}${rawLogBlock}`, true);
-                
                 await db.collection('preorders').doc(poID).delete();
 
             } else {
                 if (isHardFail) {
                      console.log(`   ⚠️ HARD FAIL: ${finalMessage}. Reset ID.`);
-                     // Log Hard Fail
                      await sendTelegramLog(`⚠️ <b>HARD FAIL (Reset ID)</b>\nPesan: ${finalMessage}\nProduk: ${skuProduk}\nTujuan: ${tujuan}${rawLogBlock}`);
                      
                      await db.collection('preorders').doc(poID).update({
@@ -361,7 +349,6 @@ async function runPreorderQueue() {
                     });
                 } else {
                     console.log(`   ⏳ PENDING/SOFT FAIL.`);
-                    // Log Pending
                     await sendTelegramLog(`⏳ <b>PENDING/RETRY</b>\nPesan: ${finalMessage}\nProduk: ${skuProduk}${rawLogBlock}`);
                 }
             }

@@ -77,7 +77,7 @@ async function getKHFYStockList() {
         if (json && json.data && Array.isArray(json.data)) {
             json.data.forEach(item => {
                 stockMap[item.kode_produk] = {
-                    gangguan: item.gangguan == 1, kosong: item.kosong == 1, status: item.status, keterangan: "Data KHFY Phase 1"
+                    gangguan: item.gangguan == 1, kosong: item.kosong == 1, status: item.status
                 };
             });
             return stockMap;
@@ -107,7 +107,7 @@ async function getICSStockList() {
                 const isKosong = item.status === 'empty' || item.stock === 0 || item.status === 'kosong';
                 const isNonAktif = item.status === 'nonactive';
                 stockMap[item.code] = { 
-                    gangguan: isGangguan, kosong: isKosong, nonaktif: isNonAktif, keterangan: "Data ICS Phase 1"
+                    gangguan: isGangguan, kosong: isKosong, nonaktif: isNonAktif
                 };
             });
             return stockMap;
@@ -175,11 +175,14 @@ async function runPreorderQueue() {
             return;
         }
         
-        // --- START DIVIDER (Hanya dikirim jika ada antrean) ---
+        // DIVIDER AWAL
         await sendTelegramLog("================================");
 
         const [stockMapKHFY, stockMapICS] = await Promise.all([getKHFYStockList(), getICSStockList()]);
         
+        // 🔥 ARRAY PENAMPUNG SKIP 🔥
+        let skippedTransactions = [];
+
         for (const doc of snapshot.docs) {
             const po = doc.data();
             const poID = doc.id;
@@ -188,7 +191,7 @@ async function runPreorderQueue() {
             const tujuan = po.targetNumber || po.target || po.tujuan;
             const serverType = po.serverType || 'KHFY'; 
 
-            // --- AMBIL USERNAME PEMBELI ---
+            // AMBIL USERNAME
             let buyerName = po.username || 'User'; 
             if (uidUser) {
                 try {
@@ -210,72 +213,59 @@ async function runPreorderQueue() {
             // CEK STOK (SILENT)
             let isSkip = false;
             let skipReason = '';
-            let debugStockInfo = null; 
 
             if (serverType === 'KHFY' && stockMapKHFY) {
                 const info = stockMapKHFY[skuProduk];
                 if (info) {
-                    debugStockInfo = info; 
-                    if (info.gangguan) { isSkip = true; skipReason = 'KHFY GANGGUAN'; }
-                    else if (info.kosong) { isSkip = true; skipReason = 'KHFY STOK KOSONG'; }
-                    else if (info.status === 0) { isSkip = true; skipReason = 'KHFY NONAKTIF'; }
+                    if (info.gangguan) { isSkip = true; skipReason = 'GANGGUAN'; }
+                    else if (info.kosong) { isSkip = true; skipReason = 'KOSONG'; }
+                    else if (info.status === 0) { isSkip = true; skipReason = 'NONAKTIF'; }
                 }
             } else if (serverType === 'ICS' && stockMapICS) {
                 const info = stockMapICS[skuProduk];
                 if (info) {
-                    debugStockInfo = info; 
-                    if (info.gangguan) { isSkip = true; skipReason = 'ICS GANGGUAN'; }
-                    else if (info.kosong) { isSkip = true; skipReason = 'ICS STOK KOSONG'; }
-                    else if (info.nonaktif) { isSkip = true; skipReason = 'ICS NONAKTIF'; }
+                    if (info.gangguan) { isSkip = true; skipReason = 'GANGGUAN'; }
+                    else if (info.kosong) { isSkip = true; skipReason = 'KOSONG'; }
+                    else if (info.nonaktif) { isSkip = true; skipReason = 'NONAKTIF'; }
                 }
             }
 
-            // --- LOG SKIP ---
+            // --- JIKA SKIP: KUMPULKAN KE ARRAY (JANGAN KIRIM TELEGRAM DULU) ---
             if (isSkip) {
                 console.log(`   ⛔ SKIP: ${skipReason}`);
-                const rawJsonStr = JSON.stringify(debugStockInfo, null, 2); 
-                const logMsg = `<b>LOG (${getWIBTime()})</b>\n` +
-                               `⛔ <b>STATUS: SKIP (HEMAT SALDO)</b>\n` +
-                               `---------------------------\n` +
-                               `👤 <b>Pembeli:</b> ${buyerName}\n` +
-                               `📦 <b>Produk:</b> ${skuProduk}\n` +
-                               `📱 <b>Tujuan:</b> ${tujuan}\n` +
-                               `📝 <b>Alasan:</b> ${skipReason}\n` +
-                               `\n<pre><code class="json">${rawJsonStr}</code></pre>`;
                 
-                await sendTelegramLog(logMsg);
-                continue; 
+                // Push ke penampung
+                skippedTransactions.push({
+                    buyer: buyerName,
+                    sku: skuProduk,
+                    dest: tujuan,
+                    reason: skipReason
+                });
+
+                continue; // Lanjut antrean berikutnya
             }
 
-            // LOCK REFF ID
+            // --- PROSES TRANSAKSI NORMAL ---
             let reffId = po.active_reff_id;
             if (!reffId) {
                 reffId = `AUTO-${Date.now()}`; 
                 await db.collection('preorders').doc(poID).update({ active_reff_id: reffId });
             }
 
-            // EKSEKUSI TRANSAKSI
             const requestData = { sku: skuProduk, tujuan: tujuan, reffId: reffId };
             let result = await hitVercelRelay(serverType, requestData, false);
 
-            // AUTO-WAIT 6 DETIK JIKA PENDING
             const isExplicitPending = result.success === true && result.data && result.data.status === 'pending';
             if (isExplicitPending) {
                 console.log(`      ⏳ Respon Pending Spesifik. Menunggu 6 detik...`);
                 await new Promise(r => setTimeout(r, 6000));
                 console.log(`      🔄 Recheck Status...`);
                 const checkResult = await hitVercelRelay(serverType, requestData, true);
-                if (checkResult) {
-                    result = checkResult;
-                    console.log(`      ✅ Data Terupdate Diterima.`);
-                }
+                if (checkResult) { result = checkResult; }
             }
 
             let msgRaw = String(
-                result.msg || 
-                result.message || 
-                (result.data && result.data.message) || 
-                ''
+                result.msg || result.message || (result.data && result.data.message) || ''
             ).toLowerCase();
             
             let isDuplicate = msgRaw.includes('sudah ada') || msgRaw.includes('sudah pernah') || msgRaw.includes('duplicate');
@@ -290,12 +280,9 @@ async function runPreorderQueue() {
 
             if (isDuplicate) {
                 const checkResult = await hitVercelRelay(serverType, requestData, true);
-                if (checkResult && (checkResult.ok === true || checkResult.data)) {
-                    result = checkResult; 
-                }
+                if (checkResult && (checkResult.ok === true || checkResult.data)) { result = checkResult; }
             }
             
-            // ANALISA HASIL
             let isSuccess = false;
             let finalMessage = '-';
             let finalSN = '-';
@@ -343,7 +330,6 @@ async function runPreorderQueue() {
             if (result.data && Array.isArray(result.data) && result.data.length > 0) {
                 const firstItem = result.data[0];
                 const refDate = (firstItem.tgl_entri || firstItem.tgl_status || firstItem.date || new Date().toISOString()).substring(0, 10);
-                
                 const filteredData = result.data.filter((item, index) => {
                     if (index === 0) return true; 
                     const tgl = item.tgl_entri || item.tgl_status || item.date || '';
@@ -352,15 +338,12 @@ async function runPreorderQueue() {
                     const isSuccess = status.includes('SUKSES') || status === 'SUCCESS';
                     return isSuccess && isSameDay;
                 });
-
                 dataLog = { ...result, data: filteredData, note: `Filter: Terbaru + Sukses Tgl ${refDate}` };
             }
 
-            // --- BUILD MESSAGE ---
             const rawJsonStr = JSON.stringify(dataLog, null, 2); 
             const jsonBlock = `\n<pre><code class="json">${rawJsonStr.substring(0, 3500)}</code></pre>`;
 
-            // KEPUTUSAN
             if (isSuccess) {
                 console.log(`   ✅ SUKSES!`);
                 const historyId = po.historyId || `TRX-${Date.now()}`;
@@ -377,7 +360,6 @@ async function runPreorderQueue() {
 
                 await sendUserLog(uidUser, "PreOrder Berhasil", `Sukses: ${finalTitle}`, historyId);
                 
-                // LOG SUKSES
                 const logMsg = `<b>LOG (${getWIBTime()})</b>\n` +
                                `✅ <b>STATUS: SUKSES</b>\n` +
                                `---------------------------\n` +
@@ -393,8 +375,6 @@ async function runPreorderQueue() {
             } else {
                 if (isHardFail) {
                      console.log(`   ⚠️ HARD FAIL: ${finalMessage}. Reset ID.`);
-                     
-                     // LOG HARD FAIL
                      const logMsg = `<b>LOG (${getWIBTime()})</b>\n` +
                                     `⚠️ <b>STATUS: HARD FAIL (RESET ID)</b>\n` +
                                     `---------------------------\n` +
@@ -405,15 +385,12 @@ async function runPreorderQueue() {
                                     jsonBlock;
 
                      await sendTelegramLog(logMsg);
-                     
                      await db.collection('preorders').doc(poID).update({
                         active_reff_id: admin.firestore.FieldValue.delete(), 
                         debugLogs: `[${new Date().toLocaleTimeString()}] [FAIL-RESET] ${finalMessage}`
                     });
                 } else {
                     console.log(`   ⏳ PENDING/SOFT FAIL.`);
-                    
-                    // LOG PENDING
                     const logMsg = `<b>LOG (${getWIBTime()})</b>\n` +
                                    `⏳ <b>STATUS: PENDING/RETRY</b>\n` +
                                    `---------------------------\n` +
@@ -421,14 +398,30 @@ async function runPreorderQueue() {
                                    `📦 <b>Produk:</b> ${skuProduk}\n` +
                                    `💬 <b>Pesan:</b> ${finalMessage}\n` +
                                    jsonBlock;
-
                     await sendTelegramLog(logMsg);
                 }
             }
             await new Promise(r => setTimeout(r, 2000));
         }
 
-        // --- END DIVIDER (Penutup Session) ---
+        // --- 🔥 KIRIM REKAP SKIP (1 LOG UNTUK SEMUA) 🔥 ---
+        if (skippedTransactions.length > 0) {
+            let skipMsg = `<b>LOG (${getWIBTime()})</b>\n`;
+            skipMsg += `⛔ <b>DAFTAR SKIP (HEMAT SALDO)</b>\n`;
+            skipMsg += `---------------------------\n`;
+            
+            // Loop data skip dan buat list sederhana
+            skippedTransactions.forEach((item, index) => {
+                skipMsg += `${index + 1}. <b>${item.buyer}</b> | ${item.sku} | ${item.dest} (${item.reason})\n`;
+            });
+
+            skipMsg += `\n<i>Total: ${skippedTransactions.length} Transaksi ditahan sementara.</i>`;
+            
+            // Kirim 1 pesan rekap
+            await sendTelegramLog(skipMsg);
+        }
+
+        // DIVIDER PENUTUP
         await sendTelegramLog("================================");
 
     } catch (error) { console.error("CRITICAL ERROR:", error); process.exit(1); }

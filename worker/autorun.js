@@ -24,6 +24,15 @@ const ICS_KEY = process.env.ICS_API_KEY;
 const TG_TOKEN = "7850521841:AAH84wtuxnDWg5u04lMkL5zqVcY1hIpzGJg";
 const TG_CHAT_ID = "7348139166";
 
+// Helper: Get Jam WIB
+function getWIBTime() {
+    return new Date().toLocaleTimeString('id-ID', { 
+        timeZone: 'Asia/Jakarta', 
+        hour12: false,
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+    }).replace(/\./g, ':');
+}
+
 // Fungsi Kirim Log ke Telegram
 async function sendTelegramLog(message, isUrgent = false) {
     if (!TG_TOKEN || !TG_CHAT_ID) return;
@@ -206,11 +215,19 @@ async function runPreorderQueue() {
                 }
             }
 
+            // --- LOG SKIP (DENGAN FORMAT BARU) ---
             if (isSkip) {
                 console.log(`   ⛔ SKIP: ${skipReason}`);
                 const rawJsonStr = JSON.stringify(debugStockInfo, null, 2); 
-                const rawLogBlock = `\n<pre><code class="json">${rawJsonStr}</code></pre>`;
-                await sendTelegramLog(`⛔ <b>SKIP TRX (Hemat Saldo)</b>\nAlasan: ${skipReason}\nProduk: ${skuProduk}\nTujuan: ${tujuan}${rawLogBlock}`);
+                const logMsg = `<b>LOG (${getWIBTime()})</b>\n` +
+                               `⛔ <b>STATUS: SKIP (HEMAT SALDO)</b>\n` +
+                               `---------------------------\n` +
+                               `📦 <b>Produk:</b> ${skuProduk}\n` +
+                               `📱 <b>Tujuan:</b> ${tujuan}\n` +
+                               `📝 <b>Alasan:</b> ${skipReason}\n` +
+                               `\n<pre><code class="json">${rawJsonStr}</code></pre>`;
+                
+                await sendTelegramLog(logMsg);
                 continue; 
             }
 
@@ -305,40 +322,27 @@ async function runPreorderQueue() {
                 }
             }
 
-            // ============================================================
-            // 🔍 FILTER JSON CERDAS (TERBARU + SUKSES HARI INI)
-            // ============================================================
+            // FILTER JSON CERDAS
             let dataLog = result;
             if (result.data && Array.isArray(result.data) && result.data.length > 0) {
-                // Ambil tanggal dari data pertama sebagai patokan "Hari Ini"
-                // (Untuk menangani perbedaan zona waktu server provider)
                 const firstItem = result.data[0];
                 const refDate = (firstItem.tgl_entri || firstItem.tgl_status || firstItem.date || new Date().toISOString()).substring(0, 10);
                 
                 const filteredData = result.data.filter((item, index) => {
-                    // 1. Selalu ambil yang paling baru (Index 0)
-                    if (index === 0) return true;
-                    
-                    // 2. Ambil juga jika statusnya SUKSES dan Tanggalnya SAMA dengan refDate
+                    if (index === 0) return true; // Selalu ambil yg pertama
                     const tgl = item.tgl_entri || item.tgl_status || item.date || '';
                     const status = (item.status_text || item.status || '').toUpperCase();
-                    
                     const isSameDay = tgl.includes(refDate);
                     const isSuccess = status.includes('SUKSES') || status === 'SUCCESS';
-                    
                     return isSuccess && isSameDay;
                 });
 
-                dataLog = { 
-                    ...result, 
-                    data: filteredData, 
-                    note: `Filter: Terbaru + Sukses Tgl ${refDate} (Total: ${filteredData.length})`
-                };
+                dataLog = { ...result, data: filteredData, note: `Filter: Terbaru + Sukses Tgl ${refDate}` };
             }
-            // ============================================================
 
+            // --- BUILD MESSAGE (FORMAT BARU) ---
             const rawJsonStr = JSON.stringify(dataLog, null, 2); 
-            const rawLogBlock = `\n<pre><code class="json">${rawJsonStr.substring(0, 3000)}</code></pre>`;
+            const jsonBlock = `\n<pre><code class="json">${rawJsonStr.substring(0, 3500)}</code></pre>`;
 
             // KEPUTUSAN
             if (isSuccess) {
@@ -356,13 +360,33 @@ async function runPreorderQueue() {
                 });
 
                 await sendUserLog(uidUser, "PreOrder Berhasil", `Sukses: ${finalTitle}`, historyId);
-                await sendTelegramLog(`✅ <b>SUKSES!</b>\nProduk: ${finalTitle}\nSN: ${finalSN}\nTujuan: ${tujuan}${rawLogBlock}`, true);
+                
+                // FORMAT LOG SUKSES
+                const logMsg = `<b>LOG (${getWIBTime()})</b>\n` +
+                               `✅ <b>STATUS: SUKSES</b>\n` +
+                               `---------------------------\n` +
+                               `📦 <b>Produk:</b> ${finalTitle}\n` +
+                               `📱 <b>Tujuan:</b> ${tujuan}\n` +
+                               `🧾 <b>SN:</b> ${finalSN}\n` +
+                               jsonBlock;
+
+                await sendTelegramLog(logMsg, true);
                 await db.collection('preorders').doc(poID).delete();
 
             } else {
                 if (isHardFail) {
                      console.log(`   ⚠️ HARD FAIL: ${finalMessage}. Reset ID.`);
-                     await sendTelegramLog(`⚠️ <b>HARD FAIL (Reset ID)</b>\nPesan: ${finalMessage}\nProduk: ${skuProduk}\nTujuan: ${tujuan}${rawLogBlock}`);
+                     
+                     // FORMAT LOG HARD FAIL
+                     const logMsg = `<b>LOG (${getWIBTime()})</b>\n` +
+                                    `⚠️ <b>STATUS: HARD FAIL (RESET ID)</b>\n` +
+                                    `---------------------------\n` +
+                                    `📦 <b>Produk:</b> ${skuProduk}\n` +
+                                    `📱 <b>Tujuan:</b> ${tujuan}\n` +
+                                    `💬 <b>Pesan:</b> ${finalMessage}\n` +
+                                    jsonBlock;
+
+                     await sendTelegramLog(logMsg);
                      
                      await db.collection('preorders').doc(poID).update({
                         active_reff_id: admin.firestore.FieldValue.delete(), 
@@ -370,7 +394,16 @@ async function runPreorderQueue() {
                     });
                 } else {
                     console.log(`   ⏳ PENDING/SOFT FAIL.`);
-                    await sendTelegramLog(`⏳ <b>PENDING/RETRY</b>\nPesan: ${finalMessage}\nProduk: ${skuProduk}${rawLogBlock}`);
+                    
+                    // FORMAT LOG PENDING
+                    const logMsg = `<b>LOG (${getWIBTime()})</b>\n` +
+                                   `⏳ <b>STATUS: PENDING/RETRY</b>\n` +
+                                   `---------------------------\n` +
+                                   `📦 <b>Produk:</b> ${skuProduk}\n` +
+                                   `💬 <b>Pesan:</b> ${finalMessage}\n` +
+                                   jsonBlock;
+
+                    await sendTelegramLog(logMsg);
                 }
             }
             await new Promise(r => setTimeout(r, 2000));

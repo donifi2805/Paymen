@@ -218,6 +218,10 @@
             <p class="text-[10px] text-gray-500 mb-1">Produk / Layanan</p>
             <p class="text-sm font-bold text-gray-800 dark:text-white leading-tight" id="dtTitle">-</p>
           </div>
+          <div class="p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+            <p class="text-[10px] text-gray-500 mb-1">Nomor Tujuan</p>
+            <p class="text-sm font-bold text-gray-800 dark:text-white leading-tight font-mono" id="dtDestNum">-</p>
+          </div>
           <div class="flex gap-3">
             <div class="flex-1 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 relative">
               <div class="flex justify-between items-center mb-1">
@@ -4118,6 +4122,8 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
         }
 
         document.getElementById('dtTitle').innerText = trx.title;
+
+        document.getElementById('dtDestNum').innerText = trx.dest_num || trx.targetNumber || '-';
         document.getElementById('dtTrxCode').innerText = trx.trx_code || '------';
         document.getElementById('dtAmount').innerText = window.formatRp(trx.amount);
         document.getElementById('dtDate').innerText = new Date(trx.date).toLocaleString('id-ID');

@@ -24,28 +24,20 @@ const ICS_KEY = process.env.ICS_API_KEY;
 const TG_TOKEN = "7850521841:AAH84wtuxnDWg5u04lMkL5zqVcY1hIpzGJg";
 const TG_CHAT_ID = "7348139166";
 
-// Fungsi Kirim Log ke Telegram + TOMBOL
-async function sendTelegramLog(message, isUrgent = false, buttons = null) {
+// Fungsi Kirim Log ke Telegram (TANPA TOMBOL)
+async function sendTelegramLog(message, isUrgent = false) {
     if (!TG_TOKEN || !TG_CHAT_ID) return;
     try {
-        const body = {
-            chat_id: TG_CHAT_ID,
-            text: message,
-            parse_mode: 'HTML', 
-            disable_notification: !isUrgent 
-        };
-
-        // Jika ada tombol, masukkan ke payload
-        if (buttons) {
-            body.reply_markup = { inline_keyboard: buttons };
-        }
-
         const url = `https://api.telegram.org/bot${TG_TOKEN}/sendMessage`;
-        
         fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
+            body: JSON.stringify({
+                chat_id: TG_CHAT_ID,
+                text: message,
+                parse_mode: 'HTML', 
+                disable_notification: !isUrgent 
+            })
         }).catch(err => console.log("TG Err:", err.message));
     } catch (e) {
         // Silent error
@@ -292,9 +284,10 @@ async function runPreorderQueue() {
                 }
             }
 
-            // --- FILTER JSON UNTUK TELEGRAM ---
+            // --- FILTER JSON UNTUK TELEGRAM (Agar Tidak Ganda) ---
             let dataLog = result;
             if (result.data && Array.isArray(result.data)) {
+                // Ambil yang terbaru saja
                 dataLog = { 
                     ...result, 
                     data: result.data[0], 
@@ -304,15 +297,6 @@ async function runPreorderQueue() {
             const rawJsonStr = JSON.stringify(dataLog, null, 2); 
             const rawLogBlock = `\n<pre><code class="json">${rawJsonStr.substring(0, 3000)}</code></pre>`;
 
-            // --- SIAPKAN TOMBOL (ACTION BUTTONS) ---
-            // Format callback_data: "AKSI:PO_ID:UID_USER"
-            // Kita batasi panjang data agar muat di tombol
-            const manualButtons = [
-                [
-                    { text: "✅ ACC Manual (Sukseskan)", callback_data: `acc:${poID}:${uidUser}` },
-                    { text: "❌ Tolak Manual (Refund)", callback_data: `fail:${poID}:${uidUser}` }
-                ]
-            ];
 
             // 6. KEPUTUSAN & LOGGING
             if (isSuccess) {
@@ -339,12 +323,8 @@ async function runPreorderQueue() {
                 if (isHardFail) {
                      console.log(`   ⚠️ HARD FAIL: ${finalMessage}. Reset ID.`);
                      
-                     // Kirim Log dengan TOMBOL
-                     await sendTelegramLog(
-                         `⚠️ <b>HARD FAIL (Reset ID)</b>\nPesan: ${finalMessage}\nProduk: ${skuProduk}\nTujuan: ${tujuan}${rawLogBlock}`, 
-                         false, 
-                         manualButtons // <--- TOMBOL DIKIRIM DISINI
-                     );
+                     // Kirim Log (TANPA TOMBOL)
+                     await sendTelegramLog(`⚠️ <b>HARD FAIL (Reset ID)</b>\nPesan: ${finalMessage}\nProduk: ${skuProduk}\nTujuan: ${tujuan}${rawLogBlock}`);
                      
                      await db.collection('preorders').doc(poID).update({
                         active_reff_id: admin.firestore.FieldValue.delete(), 
@@ -353,12 +333,8 @@ async function runPreorderQueue() {
                 } else {
                     console.log(`   ⏳ PENDING/SOFT FAIL.`);
                     
-                    // Kirim Log dengan TOMBOL
-                    await sendTelegramLog(
-                        `⏳ <b>PENDING/RETRY</b>\nPesan: ${finalMessage}\nProduk: ${skuProduk}${rawLogBlock}`, 
-                        false,
-                        manualButtons // <--- TOMBOL DIKIRIM DISINI
-                    );
+                    // Kirim Log (TANPA TOMBOL)
+                    await sendTelegramLog(`⏳ <b>PENDING/RETRY</b>\nPesan: ${finalMessage}\nProduk: ${skuProduk}${rawLogBlock}`);
                 }
             }
             await new Promise(r => setTimeout(r, 2000));

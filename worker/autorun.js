@@ -33,7 +33,7 @@ function getWIBTime() {
     }).replace(/\./g, ':');
 }
 
-// Helper: Sanitasi HTML (Penting agar JSON tidak merusak tampilan Telegram)
+// Helper: Sanitasi HTML
 function escapeHtml(text) {
     if (!text) return text;
     return text
@@ -227,22 +227,27 @@ async function runPreorderQueue() {
                 const info = stockMapKHFY[skuProduk];
                 if (info) {
                     if (info.gangguan) { isSkip = true; skipReason = 'GANGGUAN'; }
-                    else if (info.kosong) { isSkip = true; skipReason = 'KOSONG'; }
+                    else if (info.kosong) { isSkip = true; skipReason = 'STOK KOSONG'; }
                     else if (info.status === 0) { isSkip = true; skipReason = 'NONAKTIF'; }
                 }
             } else if (serverType === 'ICS' && stockMapICS) {
                 const info = stockMapICS[skuProduk];
                 if (info) {
                     if (info.gangguan) { isSkip = true; skipReason = 'GANGGUAN'; }
-                    else if (info.kosong) { isSkip = true; skipReason = 'KOSONG'; }
+                    else if (info.kosong) { isSkip = true; skipReason = 'STOK KOSONG'; }
                     else if (info.nonaktif) { isSkip = true; skipReason = 'NONAKTIF'; }
                 }
             }
 
             if (isSkip) {
                 console.log(`   ⛔ SKIP: ${skipReason}`);
+                // Masukkan data lengkap untuk log
                 skippedTransactions.push({
-                    buyer: buyerName, sku: skuProduk, dest: tujuan, reason: skipReason
+                    buyer: buyerName, 
+                    sku: skuProduk, 
+                    dest: tujuan, 
+                    reason: skipReason,
+                    server: serverType
                 });
                 continue; 
             }
@@ -344,13 +349,8 @@ async function runPreorderQueue() {
             }
 
             // --- BUILD MESSAGE (DENGAN EXPANDABLE BLOCKQUOTE) ---
-            // 1. Stringify JSON
             const rawJsonStr = JSON.stringify(dataLog, null, 2); 
-            // 2. Escape HTML Chars agar tag tidak rusak
             const safeJsonStr = escapeHtml(rawJsonStr.substring(0, 3500));
-            
-            // 3. Gunakan <blockquote expandable> (Fitur Baru Telegram)
-            // Ini akan membuat log JSON terlipat (collapsible) secara otomatis.
             const jsonBlock = `\n<b>🔽 JSON RESPONSE:</b>\n<blockquote expandable><pre><code class="json">${safeJsonStr}</code></pre></blockquote>`;
 
             if (isSuccess) {
@@ -413,14 +413,24 @@ async function runPreorderQueue() {
             await new Promise(r => setTimeout(r, 2000));
         }
 
+        // --- 🔥 KIRIM REKAP SKIP (FORMAT BARU RAPIH) 🔥 ---
         if (skippedTransactions.length > 0) {
             let skipMsg = `<b>LOG (${getWIBTime()})</b>\n`;
-            skipMsg += `⛔ <b>DAFTAR SKIP (HEMAT SALDO)</b>\n`;
-            skipMsg += `---------------------------\n`;
-            skippedTransactions.forEach((item, index) => {
-                skipMsg += `${index + 1}. <b>${item.buyer}</b> | ${item.sku} | ${item.dest} (${item.reason})\n`;
+            skipMsg += `⏳ <b>DAFTAR ANTREAN STOK KOSONG</b>\n`; // Judul Baru
+            
+            // Loop data skip dengan format card
+            skippedTransactions.forEach((item) => {
+                skipMsg += `➖➖➖➖➖➖➖➖➖➖\n`; // Garis putus-putus
+                skipMsg += `<b>${item.buyer}</b>\n`; // Nama Pembeli (Bold)
+                skipMsg += `${item.dest} | ${item.sku}\n`; // Nomor | Produk
+                skipMsg += `⚠️ ${item.reason} (Menunggu Role)\n`; // Alasan
+                skipMsg += `📡 Server: ${item.server}\n`; // Server
             });
-            skipMsg += `\n<i>Total: ${skippedTransactions.length} Transaksi ditahan sementara.</i>`;
+
+            skipMsg += `➖➖➖➖➖➖➖➖➖➖\n`;
+            skipMsg += `<i>Total: ${skippedTransactions.length} Antrean ditunda.</i>`;
+            
+            // Kirim 1 pesan rekap
             await sendTelegramLog(skipMsg);
         }
 

@@ -175,12 +175,9 @@ async function runPreorderQueue() {
             return;
         }
         
-        // DIVIDER AWAL
         await sendTelegramLog("================================");
 
         const [stockMapKHFY, stockMapICS] = await Promise.all([getKHFYStockList(), getICSStockList()]);
-        
-        // 🔥 ARRAY PENAMPUNG SKIP 🔥
         let skippedTransactions = [];
 
         for (const doc of snapshot.docs) {
@@ -230,22 +227,15 @@ async function runPreorderQueue() {
                 }
             }
 
-            // --- JIKA SKIP: KUMPULKAN KE ARRAY (JANGAN KIRIM TELEGRAM DULU) ---
             if (isSkip) {
                 console.log(`   ⛔ SKIP: ${skipReason}`);
-                
-                // Push ke penampung
                 skippedTransactions.push({
-                    buyer: buyerName,
-                    sku: skuProduk,
-                    dest: tujuan,
-                    reason: skipReason
+                    buyer: buyerName, sku: skuProduk, dest: tujuan, reason: skipReason
                 });
-
-                continue; // Lanjut antrean berikutnya
+                continue; 
             }
 
-            // --- PROSES TRANSAKSI NORMAL ---
+            // PROSES TRANSAKSI
             let reffId = po.active_reff_id;
             if (!reffId) {
                 reffId = `AUTO-${Date.now()}`; 
@@ -341,8 +331,10 @@ async function runPreorderQueue() {
                 dataLog = { ...result, data: filteredData, note: `Filter: Terbaru + Sukses Tgl ${refDate}` };
             }
 
+            // --- BUILD MESSAGE (DENGAN SPOILER HIDDEN) ---
             const rawJsonStr = JSON.stringify(dataLog, null, 2); 
-            const jsonBlock = `\n<pre><code class="json">${rawJsonStr.substring(0, 3500)}</code></pre>`;
+            // Menggunakan <tg-spoiler> agar tersembunyi sampai diklik
+            const jsonBlock = `\n<tg-spoiler>📂 <b>KLIK UNTUK LIHAT JSON</b>\n<pre><code class="json">${rawJsonStr.substring(0, 3500)}</code></pre></tg-spoiler>`;
 
             if (isSuccess) {
                 console.log(`   ✅ SUKSES!`);
@@ -404,24 +396,18 @@ async function runPreorderQueue() {
             await new Promise(r => setTimeout(r, 2000));
         }
 
-        // --- 🔥 KIRIM REKAP SKIP (1 LOG UNTUK SEMUA) 🔥 ---
+        // --- KIRIM REKAP SKIP ---
         if (skippedTransactions.length > 0) {
             let skipMsg = `<b>LOG (${getWIBTime()})</b>\n`;
             skipMsg += `⛔ <b>DAFTAR SKIP (HEMAT SALDO)</b>\n`;
             skipMsg += `---------------------------\n`;
-            
-            // Loop data skip dan buat list sederhana
             skippedTransactions.forEach((item, index) => {
                 skipMsg += `${index + 1}. <b>${item.buyer}</b> | ${item.sku} | ${item.dest} (${item.reason})\n`;
             });
-
             skipMsg += `\n<i>Total: ${skippedTransactions.length} Transaksi ditahan sementara.</i>`;
-            
-            // Kirim 1 pesan rekap
             await sendTelegramLog(skipMsg);
         }
 
-        // DIVIDER PENUTUP
         await sendTelegramLog("================================");
 
     } catch (error) { console.error("CRITICAL ERROR:", error); process.exit(1); }

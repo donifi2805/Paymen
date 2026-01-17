@@ -33,6 +33,17 @@ function getWIBTime() {
     }).replace(/\./g, ':');
 }
 
+// Helper: Sanitasi HTML (Agar Spoiler Tidak Bocor)
+function escapeHtml(text) {
+    if (!text) return text;
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 // Fungsi Kirim Log ke Telegram
 async function sendTelegramLog(message, isUrgent = false) {
     if (!TG_TOKEN || !TG_CHAT_ID) return;
@@ -72,6 +83,7 @@ async function getKHFYStockList() {
             method: 'GET', headers: { 'User-Agent': 'Pandawa-Worker/1.0' }, signal: controller.signal 
         });
         clearTimeout(timeoutId);
+
         const json = await response.json();
         const stockMap = {};
         if (json && json.data && Array.isArray(json.data)) {
@@ -331,10 +343,14 @@ async function runPreorderQueue() {
                 dataLog = { ...result, data: filteredData, note: `Filter: Terbaru + Sukses Tgl ${refDate}` };
             }
 
-            // --- BUILD MESSAGE (DENGAN SPOILER HIDDEN) ---
+            // --- BUILD MESSAGE (DENGAN SAFE SPOILER) ---
+            // 1. Stringify JSON
             const rawJsonStr = JSON.stringify(dataLog, null, 2); 
-            // Menggunakan <tg-spoiler> agar tersembunyi sampai diklik
-            const jsonBlock = `\n<tg-spoiler>📂 <b>KLIK UNTUK LIHAT JSON</b>\n<pre><code class="json">${rawJsonStr.substring(0, 3500)}</code></pre></tg-spoiler>`;
+            // 2. Escape HTML Chars agar spoiler tidak bocor
+            const safeJsonStr = escapeHtml(rawJsonStr.substring(0, 3500));
+            
+            // 3. Bungkus dengan Spoiler
+            const jsonBlock = `\n<tg-spoiler><b>🔽 TAMPILKAN JSON 🔽</b>\n<pre><code class="json">${safeJsonStr}</code></pre></tg-spoiler>`;
 
             if (isSuccess) {
                 console.log(`   ✅ SUKSES!`);
@@ -396,7 +412,6 @@ async function runPreorderQueue() {
             await new Promise(r => setTimeout(r, 2000));
         }
 
-        // --- KIRIM REKAP SKIP ---
         if (skippedTransactions.length > 0) {
             let skipMsg = `<b>LOG (${getWIBTime()})</b>\n`;
             skipMsg += `⛔ <b>DAFTAR SKIP (HEMAT SALDO)</b>\n`;

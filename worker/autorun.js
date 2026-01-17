@@ -190,7 +190,10 @@ async function runPreorderQueue() {
         await sendTelegramLog("================================");
 
         const [stockMapKHFY, stockMapICS] = await Promise.all([getKHFYStockList(), getICSStockList()]);
+        
+        // 🔥 COUNTER (Penghitung) 🔥
         let skippedTransactions = [];
+        let successCount = 0;
 
         for (const doc of snapshot.docs) {
             const po = doc.data();
@@ -241,7 +244,6 @@ async function runPreorderQueue() {
 
             if (isSkip) {
                 console.log(`   ⛔ SKIP: ${skipReason}`);
-                // Masukkan data lengkap untuk log
                 skippedTransactions.push({
                     buyer: buyerName, 
                     sku: skuProduk, 
@@ -355,6 +357,8 @@ async function runPreorderQueue() {
 
             if (isSuccess) {
                 console.log(`   ✅ SUKSES!`);
+                successCount++; // 🔥 Increment Sukses
+
                 const historyId = po.historyId || `TRX-${Date.now()}`;
                 let finalTitle = po.productName || skuProduk;
                 if (!finalTitle.toLowerCase().includes('preorder')) finalTitle = `[PreOrder] ${finalTitle}`;
@@ -413,25 +417,29 @@ async function runPreorderQueue() {
             await new Promise(r => setTimeout(r, 2000));
         }
 
-        // --- 🔥 KIRIM REKAP SKIP (FORMAT BARU RAPIH) 🔥 ---
-        if (skippedTransactions.length > 0) {
-            let skipMsg = `<b>LOG (${getWIBTime()})</b>\n`;
-            skipMsg += `⏳ <b>DAFTAR ANTREAN STOK KOSONG</b>\n`; // Judul Baru
+        // --- 🔥 KIRIM REKAP (JIKA ADA AKTIVITAS) 🔥 ---
+        if (skippedTransactions.length > 0 || successCount > 0) {
+            let rekapMsg = `<b>LOG (${getWIBTime()})</b>\n`;
             
-            // Loop data skip dengan format card
-            skippedTransactions.forEach((item) => {
-                skipMsg += `➖➖➖➖➖➖➖➖➖➖\n`; // Garis putus-putus
-                skipMsg += `<b>${item.buyer}</b>\n`; // Nama Pembeli (Bold)
-                skipMsg += `${item.dest} | ${item.sku}\n`; // Nomor | Produk
-                skipMsg += `⚠️ ${item.reason} (Menunggu Role)\n`; // Alasan
-                skipMsg += `📡 Server: ${item.server}\n`; // Server
-            });
+            if (skippedTransactions.length > 0) {
+                rekapMsg += `⏳ <b>DAFTAR ANTREAN STOK KOSONG</b>\n`;
+                skippedTransactions.forEach((item) => {
+                    rekapMsg += `➖➖➖➖➖➖➖➖➖➖\n`;
+                    rekapMsg += `<b>${item.buyer}</b>\n`;
+                    rekapMsg += `${item.dest} | ${item.sku}\n`;
+                    rekapMsg += `⚠️ ${item.reason} (Menunggu Role)\n`;
+                    rekapMsg += `📡 Server: ${item.server}\n`;
+                });
+                rekapMsg += `➖➖➖➖➖➖➖➖➖➖\n`;
+            } else {
+                rekapMsg += `✅ <b>REKAP SESI</b>\n`;
+                rekapMsg += `---------------------------\n`;
+            }
 
-            skipMsg += `➖➖➖➖➖➖➖➖➖➖\n`;
-            skipMsg += `<i>Total: ${skippedTransactions.length} Antrean ditunda.</i>`;
+            rekapMsg += `<i>Total: ${skippedTransactions.length} Antrean ditunda.</i>\n`;
+            rekapMsg += `<i>Total: ${successCount} Antrean berhasil.</i>`;
             
-            // Kirim 1 pesan rekap
-            await sendTelegramLog(skipMsg);
+            await sendTelegramLog(rekapMsg);
         }
 
         await sendTelegramLog("================================");

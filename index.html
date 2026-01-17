@@ -192,7 +192,7 @@
         </div>
       </div>
     </div>
-    <div id="customConfirmModal" class="hide fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 fade-enter">
+    <div id="customConfirmModal" class="hide fixed inset-0 z-[250] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 fade-enter">
       <div class="bg-white dark:bg-gray-900 w-full max-w-xs rounded-[2rem] p-6 shadow-2xl border border-white/20 dark:border-gray-800 transform transition-all scale-100 relative overflow-hidden">
         <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-brand"></div>
         <div class="text-center mb-6 mt-2">
@@ -3432,6 +3432,15 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
             
         
     window.cancelPreorder = async (trxId) => {
+
+        const now = new Date();
+        const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+        const wibTime = new Date(utc + (3600000 * 7));
+        const currentHour = wibTime.getHours();
+
+        if (currentHour >= 6 && currentHour < 13) {
+            return window.showAlert("Akses Ditolak", "Pembatalan Po harus antara jam 13.00 sampai jam 06.00, diluar jam itu pembatalan PO tidak dapat di lakukan, terimakasih", "error");
+        }
         window.customConfirm("Batalkan Preorder", "Apakah Anda yakin ingin membatalkan preorder ini?\nSaldo akan dikembalikan otomatis.", async () => {
             window.showLoader(true);
             try {

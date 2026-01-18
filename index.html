@@ -698,68 +698,120 @@
         </div>
       </div>
     </section>
-    <section id="preorderPage" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen z-40 absolute top-0 w-full max-w-[480px]">
-      <div class="p-4 bg-white dark:bg-gray-900 sticky top-0 z-20 shadow-sm flex items-center gap-3">
-        <button onclick="nav('homePage')" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 transition">
-            <i class="fa-solid fa-arrow-left"></i>
-        </button>
-        <h2 class="font-bold text-lg text-gray-800 dark:text-white">Layanan Preorder</h2>
+    <section id="preorderPage" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen z-40 absolute top-0 w-full max-w-[480px] overflow-x-hidden">
+      <div class="bg-gradient-brand text-white pt-10 pb-28 px-6 rounded-b-[40px] shadow-lg relative overflow-hidden">
+        <div class="relative z-10 flex items-center gap-4">
+            <button onclick="nav('homePage')" class="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center hover:bg-white/30 transition active:scale-95 text-white">
+                <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <div>
+                <h2 class="font-bold text-xl text-white leading-tight">Layanan Preorder</h2>
+                <p class="text-xs text-blue-100 opacity-90">Pesan Stok yang Kosong</p>
+            </div>
+        </div>
+        <div class="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
+        <div class="absolute top-20 -left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
       </div>
-      <div class="p-4 pb-24">
-        <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-800">
-          <div class="mb-4">
-            <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Pilih Provider</label>
-            <div onclick="openSheet('provider')" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white text-sm rounded-xl px-4 py-3 font-bold flex justify-between items-center cursor-pointer">
-              <span id="displayProviderPO">-- Pilih Provider --</span>
+
+      <div class="px-6 -mt-20 pb-24 relative z-20">
+        <div id="inputSectionPO" class="transition-all duration-300">
+          <div class="bg-white dark:bg-gray-900 p-6 rounded-[2.5rem] shadow-xl shadow-blue-900/10 dark:shadow-none border border-white/50 dark:border-gray-800">
+            
+            <div class="mb-6">
+              <label class="block text-xs font-bold text-gray-500 mb-3 ml-2">Pilih Provider</label>
+              <div id="providerTabsContainerPO" class="flex gap-3 overflow-x-auto no-scrollbar pb-2 items-center">
+                <div class="w-24 h-10 bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse"></div>
+              </div>
+              <input type="hidden" id="formProviderPO">
             </div>
-          </div>
-          <div class="mb-4">
-            <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Pilih Produk</label>
-            <div onclick="openSheet('product')" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white text-sm rounded-xl px-4 py-3 font-bold flex justify-between items-center cursor-pointer">
-              <span id="displayProductPO">-- Pilih Produk --</span>
+
+            <div class="mb-6">
+              <label class="block text-xs font-bold text-gray-500 mb-2 ml-2">Nomor Tujuan</label>
+              <div class="input-group">
+                <input type="tel" id="poNumber" placeholder="Nomor HP / ID Pelanggan" class="w-full h-14 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-800 text-gray-800 dark:text-white text-lg font-bold pl-12 tracking-wide">
+                <i class="fas fa-mobile-alt text-lg" style="left: 20px;"></i>
+              </div>
             </div>
+
+            <div id="etalaseSectionPO">
+               <label class="block text-xs font-bold text-gray-500 mb-3 ml-2">Pilih Paket</label>
+               <div id="etalaseGridPO" class="grid grid-cols-2 gap-3">
+                  <div class="col-span-2 text-center py-10 opacity-50">
+                    <i class="fas fa-hand-pointer text-2xl mb-2 text-gray-400"></i>
+                    <p class="text-xs text-gray-400">Silakan pilih provider di atas</p>
+                  </div>
+               </div>
+            </div>
+
+            <input type="hidden" id="formProductPO"> 
+            <input type="hidden" id="selectedProductNamePO"> 
+            <input type="hidden" id="selectedProductPricePO">
+            <div id="productDescriptionPO" class="hide"></div>
+
           </div>
-          <div class="mb-6">
-            <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Nomor Tujuan</label> <input type="tel" id="poNumber" placeholder="08xxxx" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 text-sm font-bold dark:text-white">
-          </div><button onclick="submitPreorder()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3.5 rounded-xl shadow-lg">Kirim Pesanan (PO)</button>
         </div>
       </div>
     </section>
-    <section id="ppobPage" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen z-40 absolute top-0 w-full max-w-[480px]">
-      <div class="p-4 bg-white dark:bg-gray-900 sticky top-0 z-20 shadow-sm flex items-center gap-3">
-        <button onclick="nav('homePage')" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 transition">
-            <i class="fa-solid fa-arrow-left"></i>
-        </button>
-        <h2 class="font-bold text-lg text-gray-800 dark:text-white" id="ppobTitle">Isi Pulsa (Live API)</h2>
+    <section id="ppobPage" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen z-40 absolute top-0 w-full max-w-[480px] overflow-x-hidden">
+      
+      <div class="bg-gradient-brand text-white pt-10 pb-28 px-6 rounded-b-[40px] shadow-lg relative overflow-hidden">
+        <div class="relative z-10 flex items-center gap-4">
+            <button onclick="nav('homePage')" class="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center hover:bg-white/30 transition active:scale-95 text-white">
+                <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <div>
+                <h2 class="font-bold text-xl text-white leading-tight" id="ppobTitle">Isi Pulsa</h2>
+                <p class="text-xs text-blue-100 opacity-90">Transaksi Cepat & Aman</p>
+            </div>
+        </div>
+        
+        <div class="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
+        <div class="absolute top-20 -left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
       </div>
-      <div class="p-4 pb-24">
+
+      
+      <div class="px-6 -mt-20 pb-24 relative z-20">
         <div id="inputSection" class="transition-all duration-300">
-          <div class="bg-white dark:bg-gray-900 p-5 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-800">
-            <div class="mb-4">
-              <div class="flex justify-between items-center mb-1">
-                <label class="block text-xs font-bold text-gray-500 ml-1">Provider</label> <button onclick="initProductData()" class="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded-md hover:bg-blue-100">Refresh Data</button>
-              </div>
-              <div onclick="openSheet('provider')" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white text-sm rounded-xl px-4 py-3 font-bold flex justify-between items-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-                <span id="displayProvider">-- Pilih Provider --</span>
-              </div><input type="hidden" id="formProvider" onchange="updateProductDropdown()">
-            </div>
-            <div class="mb-4">
-              <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Produk</label>
-              <div onclick="openSheet('product')" id="btnProductTrigger" class="w-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm rounded-xl px-4 py-3 font-medium flex justify-between items-center cursor-not-allowed transition">
-                <span id="displayProduct">Menunggu Provider...</span>
-              </div><input type="hidden" id="formProduct"> <input type="hidden" id="selectedProductName"> <input type="hidden" id="selectedProductPrice">
-              <p class="text-[10px] text-blue-500 mt-1 text-right font-bold" id="priceDisplay"></p>
-            </div>
+          <div class="bg-white dark:bg-gray-900 p-6 rounded-[2.5rem] shadow-xl shadow-blue-900/10 dark:shadow-none border border-white/50 dark:border-gray-800">
+            
+            
             <div class="mb-6">
-              <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Nomor Tujuan</label>
-              <div class="input-group" id="singleNumContainer">
-                <input type="tel" id="ppobNumber" placeholder="Nomor HP / ID Pelanggan" class="w-full h-12 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-800 text-gray-800 dark:text-white text-sm font-bold pl-11">
+              <label class="block text-xs font-bold text-gray-500 mb-3 ml-2">Pilih Provider</label>
+              <div id="providerTabsContainer" class="flex gap-3 overflow-x-auto no-scrollbar pb-2 items-center">
+                
+                <div class="w-24 h-10 bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse"></div>
               </div>
-              <div id="productDescription" class="hide mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-xs text-gray-600 dark:text-gray-300 border border-blue-100 dark:border-blue-800 leading-relaxed transition-all animate-fade-in-down"></div>
-            </div><button onclick="processFormTransaction()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/30 active:scale-95 transition-transform flex justify-center items-center gap-2"><span>Beli Paket</span></button>
+              <input type="hidden" id="formProvider">
+            </div>
+
+            
+            <div class="mb-6">
+              <label class="block text-xs font-bold text-gray-500 mb-2 ml-2">Nomor Tujuan</label>
+              <div class="input-group" id="singleNumContainer">
+                <input type="tel" id="ppobNumber" placeholder="Nomor HP / ID Pelanggan" class="w-full h-14 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-800 text-gray-800 dark:text-white text-lg font-bold pl-12 tracking-wide">
+                <i class="fas fa-mobile-alt text-lg" style="left: 20px;"></i>
+              </div>
+            </div>
+
+            
+            <div id="etalaseSection">
+               <label class="block text-xs font-bold text-gray-500 mb-3 ml-2">Pilih Paket</label>
+               <div id="etalaseGrid" class="grid grid-cols-2 gap-3">
+                  <div class="col-span-2 text-center py-10 opacity-50">
+                    <i class="fas fa-hand-pointer text-2xl mb-2 text-gray-400"></i>
+                    <p class="text-xs text-gray-400">Silakan pilih provider di atas</p>
+                  </div>
+               </div>
+            </div>
+
+            
+            <input type="hidden" id="formProduct"> 
+            <input type="hidden" id="selectedProductName"> 
+            <input type="hidden" id="selectedProductPrice">
+            <div id="productDescription" class="hide"></div>
+
           </div>
         </div>
-      </div>
     </section>
     <section id="akrabV2Page" class="page hide bg-gray-50 dark:bg-gray-950 min-h-screen z-40 absolute top-0 w-full max-w-[480px]">
       <div class="p-4 bg-white dark:bg-gray-900 sticky top-0 z-20 shadow-sm flex items-center gap-3">
@@ -1287,11 +1339,10 @@
 
 
 
-        window.initAkrabV2Data = async () => {
+            window.initAkrabV2Data = async () => {
         const select = document.getElementById('icsProductSelect');
         select.innerHTML = '<option>Memuat...</option>';
         
-        // Muat Aturan Harga & Nama Custom
         try {
             const settingsSnap = await getDoc(doc(db, "settings", "pricing"));
             if (settingsSnap.exists()) pricingRules = settingsSnap.data().rules || {};
@@ -1300,11 +1351,9 @@
         const res = await callIcsApi('listProducts', { type: currentIcsType });
         select.innerHTML = '';
 
-        // PERBAIKAN: Handle Respon Sukses (Gabung Ready + Empty)
         if (res.success && res.data) {
             const readyItems = res.data.ready || [];
             const emptyItems = res.data.empty || [];
-            // 1. Gabungkan kedua array
             const allProducts = [...readyItems, ...emptyItems];
 
             if(allProducts.length === 0) {
@@ -1312,17 +1361,16 @@
                  return;
             }
 
-            // 2. Urutkan dari harga termurah
             allProducts.sort((a, b) => a.harga - b.harga);
 
             select.innerHTML = '<option value="" disabled selected>-- Pilih Produk --</option>';
             
             allProducts.forEach(p => {
-                let sellPrice = p.harga;
+                // FIX HARGA AKRAB: Gunakan += parseInt()
+                let sellPrice = parseInt(p.harga || 0);
                 let name = p.nama_produk;
                 const code = p.kode_produk;
 
-                // LOGIKA BARU: Markup & Rename (Akrab V2)
                 if(pricingRules[code]) {
                     const r = pricingRules[code];
                     if(typeof r === 'object') {
@@ -1332,10 +1380,9 @@
                         sellPrice += parseInt(r);
                     }
                 } else {
-                    sellPrice += 2000; // Default Margin
+                    sellPrice += 2000;
                 }
                 
-                // Cek apakah produk ini berasal dari list 'empty' atau stoknya 0
                 const isHabis = p.stok === 0 || p.stok === '0' || emptyItems.includes(p);
 
                 const opt = document.createElement('option');
@@ -1347,7 +1394,7 @@
                 if (isHabis) {
                     opt.innerHTML = `❌ ${name} (Habis) - Rp ${window.formatRp(sellPrice)}`;
                     opt.disabled = true;
-                    opt.style.color = '#ef4444'; // Warna Merah
+                    opt.style.color = '#ef4444';
                 } else {
                     opt.innerHTML = `${name} - Rp ${window.formatRp(sellPrice)}`;
                 }
@@ -1948,7 +1995,7 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
         });
     };
 
-    window.nav = (pageId) => {
+        window.nav = (pageId) => {
         document.querySelectorAll('.page').forEach(el => el.classList.add('hide'));
         document.getElementById(pageId).classList.remove('hide');
         document.querySelectorAll('.nav-item').forEach(el => { el.classList.remove('text-blue-600', 'dark:text-blue-400'); el.classList.add('text-gray-400', 'dark:text-gray-500'); });
@@ -1956,6 +2003,7 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
         if(document.getElementById(navId)) { document.getElementById(navId).classList.remove('text-gray-400', 'dark:text-gray-500'); document.getElementById(navId).classList.add('text-blue-600', 'dark:text-blue-400'); }
         if(pageId === 'loginPage' || pageId === 'scanPage') document.getElementById('bottomNav').classList.add('hide'); else document.getElementById('bottomNav').classList.remove('hide');
         if(pageId === 'homePage') renderHistoryList();
+        if(pageId === 'preorderPage') window.initProviderTabsPO();
     };
 
     // --- FITUR KIRIM (TRANSFER) ---
@@ -2931,41 +2979,186 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
         closeAllSheets();
     };
 
-    window.initProductData = async () => {
-        const btnProd = document.getElementById('btnProductTrigger');
-        const txtProd = document.getElementById('displayProduct');
+    
+    // --- LOGIKA ETALASE BARU (INJECTED) ---
+    const PPOB_PROVIDERS = [
+        { code: 'ICS_XDA', name: 'Akrab Fresh', type: 'ics', icon: 'fa-bolt' },
+        { code: 'ICS_CIRCLE', name: 'XL Circle', type: 'ics', icon: 'fa-circle-nodes' },
+                        { code: 'ICS_XLA', name: 'Akrab v2 (XLA)', type: 'ics', icon: 'fa-star' },
+        { code: 'XLA', name: 'Akrab v1 (XLA)', type: 'khfy', icon: 'fa-mobile-screen' },
+        { code: 'XLR', name: 'XL Reguler', type: 'khfy', icon: 'fa-mobile-screen' },
+        { code: 'FMX', name: 'FlexMax', type: 'khfy', icon: 'fa-fire' },
+        { code: 'PLN', name: 'Token PLN', type: 'khfy', icon: 'fa-lightbulb' }
+    ];
+
+    window.initProviderTabs = () => {
+        const container = document.getElementById('providerTabsContainer');
+        if(!container) return;
+        container.innerHTML = '';
         
+        PPOB_PROVIDERS.forEach((p, index) => {
+            const btn = document.createElement('div');
+            btn.className = `tab-item flex-shrink-0 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 cursor-pointer transition flex items-center gap-2 group select-none active:scale-95`;
+            btn.dataset.code = p.code;
+            btn.onclick = () => window.selectProviderTab(p.code);
+            btn.innerHTML = `<i class="fa-solid ${p.icon} text-gray-400 group-hover:text-blue-500 transition"></i><span class="text-xs font-bold text-gray-600 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 whitespace-nowrap">${p.name}</span>`;
+            container.appendChild(btn);
+            if(index === 0) setTimeout(() => window.selectProviderTab(p.code), 500);
+        });
+    };
+
+        window.selectProviderTab = async (code) => {
+        // 1. Reset Semua Tab ke Tampilan Tidak Aktif (Abu-abu)
+        document.querySelectorAll('.tab-item').forEach(el => {
+            const pCode = el.dataset.code;
+            // Cari data provider asli untuk reset icon/nama yang benar
+            const provData = PPOB_PROVIDERS.find(p => p.code === pCode);
+            const pName = provData ? provData.name : el.querySelector('span').innerText;
+            const pIcon = provData ? provData.icon : 'fa-star';
+
+            // Set class inactive
+            el.className = 'tab-item flex-shrink-0 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 cursor-pointer transition hover:bg-blue-50 dark:hover:bg-blue-900/20 flex items-center gap-2 group opacity-70 hover:opacity-100';
+            
+            // Reset HTML (Penting: Kembalikan warna text ke gray)
+            el.innerHTML = `<i class="fa-solid ${pIcon} text-gray-400 group-hover:text-blue-500 transition"></i><span class="text-xs font-bold text-gray-600 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 whitespace-nowrap">${pName}</span>`;
+        });
+
+        // 2. Highlight Tab yang Dipilih (Aktif)
+        const activeBtn = document.querySelector(`.tab-item[data-code="${code}"]`);
+        if(activeBtn) {
+            // Ubah style container jadi gradient
+            activeBtn.className = 'tab-item flex-shrink-0 px-5 py-3 bg-gradient-brand text-white rounded-2xl shadow-lg shadow-blue-600/30 cursor-pointer transition flex items-center gap-2 transform scale-105 border border-transparent';
+            
+            // Paksa ubah warna icon dan text jadi putih
+            const icon = activeBtn.querySelector('i');
+            const span = activeBtn.querySelector('span');
+            
+            // Hapus class warna lama, tambah text-white
+            if(icon) icon.className = icon.className.replace(/text-gray-\d+|group-hover:text-[a-z]+-\d+/g, '').trim() + ' text-white';
+            if(span) span.className = 'text-xs font-bold text-white whitespace-nowrap';
+        }
+
+        document.getElementById('formProvider').value = code;
+        const grid = document.getElementById('etalaseGrid');
+        grid.innerHTML = '<div class="col-span-2 text-center py-12"><div class="loader mx-auto mb-3"></div><p class="text-xs text-gray-500 font-bold animate-pulse">Memuat Produk...</p></div>';
+
+        let products = [];
+        if(code.startsWith('ICS_')) {
+             let icsType = 'xda';
+             if(code === 'ICS_CIRCLE') icsType = 'circle';
+             if(code === 'ICS_XLA') icsType = 'xla';
+             const res = await callIcsApi('listProducts', { type: icsType });
+             if (res) {
+                if (res.ready && Array.isArray(res.ready)) products = res.ready;
+                else if (res.data && res.data.ready && Array.isArray(res.data.ready)) products = res.data.ready;
+                else if (Array.isArray(res.data)) products = res.data;
+                
+                if (code === 'ICS_CIRCLE') products = products.filter(p => (p.type === 'circle' || (p.code||'').toUpperCase().startsWith('XCL')));
+                                else if (code === 'ICS_XDA') products = products.filter(p => (p.type === 'xda' || (p.code||'').toUpperCase().startsWith('XDA')));
+                else if (code === 'ICS_XLA') products = products.filter(p => (p.type === 'xla' || (p.code||'').toUpperCase().startsWith('XLA')));
+             }
+        } else {
+             if(!globalProducts || globalProducts.length === 0) {
+                 const res = await callApi('/list_product');
+                 if (res.ok && res.data) {
+                    if (res.data.data && Array.isArray(res.data.data)) globalProducts = res.data.data;
+                    else if (Array.isArray(res.data)) globalProducts = res.data;
+                    else if (res.data.products) globalProducts = res.data.products;
+                 }
+             }
+             products = globalProducts.filter(p => {
+                const c = (p.code || p.kode_produk || '').toUpperCase();
+                const b = (p.brand || p.operator || '').toUpperCase();
+                if (code === 'XLA') return (c.startsWith('XLA') || c.startsWith('XLC')) && !c.startsWith('XDA');
+                if (code === 'FMX') return c.startsWith('FMX') || c === 'CFMX' || b === 'FMAX';
+                if (code === 'XLR') return ['FMX50','FMX65','FMX80','FMX150'].includes(c);
+                if (code === 'PLN') return b.includes('PLN') || c.includes('PLN');
+                return false;
+             });
+        }
+        window.renderEtalaseGrid(products, code);
+    };
+
+            window.renderEtalaseGrid = (products, provCode) => {
+         const grid = document.getElementById('etalaseGrid');
+         grid.innerHTML = '';
+         if(products.length === 0) {
+             grid.innerHTML = '<div class="col-span-2 text-center py-10 bg-gray-50 dark:bg-gray-800 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700"><i class="fas fa-box-open text-3xl mb-2 text-gray-300"></i><p class="text-xs text-gray-400">Produk Kosong / Gangguan</p></div>';
+             return;
+         }
+         
+         products.sort((a, b) => {
+             const pa = parseInt(a.harga || a.price || a.buyer_price || a.harga_final || 0);
+             const pb = parseInt(b.harga || b.price || b.buyer_price || b.harga_final || 0);
+             return pa - pb;
+         });
+
+         products.forEach(p => {
+             let rawPrice = parseInt(p.harga || p.price || p.buyer_price || p.harga_final || 0);
+             let price = rawPrice;
+             let name = p.nama_produk || p.name || p.product_name || 'Produk';
+             const code = p.kode_produk || p.code || p.buyer_sku_code;
+
+             if(typeof pricingRules !== 'undefined' && pricingRules[code]) {
+                const r = pricingRules[code];
+                if(typeof r === 'object') { 
+                    if(r.price) price += parseInt(r.price); 
+                    if(r.name) name = r.name; 
+                } else { price += parseInt(r); }
+             } else { price += 2000; }
+
+             // --- PERBAIKAN LOGIKA GANGGUAN/KOSONG ---
+             let isHabis = false;
+             // 1. Cek Flag Dasar
+             if (p.gangguan == 1) isHabis = true;
+             if (p.kosong == 1) isHabis = true;
+             if (p.status === 'empty' || p.status === 'failed') isHabis = true;
+             // 2. Cek Status Transaksi API (Penting!)
+             if (p.buyer_product_status === false || p.buyer_product_status === 0) isHabis = true;
+             if (p.seller_product_status === false || p.seller_product_status === 0) isHabis = true;
+             // 3. Cek Stok (String '0' atau Number 0)
+             if (p.stock === 0 || p.stock === '0') isHabis = true;
+
+             // Pengecualian Khusus (Jika ada)
+             if(provCode === 'ICS_XDA' || provCode === 'ICS_CIRCLE') isHabis = false;
+             
+             const card = document.createElement('div');
+             // Tambahkan pointer-events-none jika habis agar benar-benar tidak bisa diklik
+             card.className = `relative p-4 rounded-3xl border transition-all duration-300 ${isHabis ? 'bg-gray-100 dark:bg-gray-800 border-gray-200 opacity-60 grayscale cursor-not-allowed pointer-events-none' : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-lg hover:border-blue-200 dark:hover:border-blue-800 cursor-pointer group'}`;
+             
+             // Hanya pasang onclick jika TIDAK habis
+             if(!isHabis) {
+                 card.onclick = () => {
+                     document.getElementById('formProduct').value = code;
+                     document.getElementById('selectedProductName').value = name;
+                     document.getElementById('selectedProductPrice').value = price;
+                     window.processFormTransaction();
+                 };
+             }
+             
+             card.innerHTML = `
+                <div class="flex flex-col h-full justify-between">
+                    <div class="mb-3">
+                        <h4 class="text-xs font-bold text-gray-700 dark:text-gray-200 leading-tight ${!isHabis ? 'group-hover:text-blue-600 transition' : ''}">${name}</h4>
+                        <p class="text-[9px] text-gray-400 mt-1">${isHabis ? 'Stok Habis / Gangguan' : 'Tersedia'}</p>
+                    </div>
+                    <div class="flex justify-between items-end">
+                        <span class="text-[10px] font-bold px-2 py-1 rounded-lg ${isHabis ? 'bg-red-100 text-red-600' : 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'}">${isHabis ? 'GANGGUAN' : 'BELI'}</span>
+                        <p class="text-sm font-black text-gray-800 dark:text-white">${window.formatRp(price).replace(',00', '').replace('Rp', '')}<span class="text-[9px] font-normal text-gray-400">rb</span></p>
+                    </div>
+                </div>`;
+             grid.appendChild(card);
+         });
+    };
+
+    window.initProductData = async (silent = false) => {
+        if(!silent && document.getElementById('providerTabsContainer')) window.initProviderTabs();
         try {
             const settingsSnap = await getDoc(doc(db, "settings", "pricing"));
             if (settingsSnap.exists()) pricingRules = settingsSnap.data().rules || {};
         } catch(e) { console.log("Gagal load harga custom", e); }
-
-        if(txtProd) txtProd.innerText = 'Menghubungkan Server...';
-        if(btnProd) btnProd.classList.add('cursor-not-allowed', 'opacity-50');
-        
-        const result = await callApi('/list_product');
-        
-        if (result.ok && result.data) {
-            if (result.data.data && Array.isArray(result.data.data)) globalProducts = result.data.data;
-            else if (Array.isArray(result.data)) globalProducts = result.data;
-            else if (result.data.products) globalProducts = result.data.products;
-            
-            console.log("Total Produk Dimuat:", globalProducts.length);
-
-            if (globalProducts.length > 0) {
-                if(document.getElementById('formProvider').value) {
-                    window.updateProductDropdown();
-                } else {
-                    if(txtProd) txtProd.innerText = 'Pilih Provider Dahulu';
-                }
-            } else {
-                if(txtProd) txtProd.innerText = 'Produk Kosong';
-            }
-        } else {
-            if(txtProd) txtProd.innerText = 'Gagal Koneksi';
-            alert('Gagal mengambil data produk (Koneksi Bermasalah).\n' + result.error);
-        }
     };
+
 
         window.updateProductDropdown = async () => {
         const providerCode = document.getElementById('formProvider').value;
@@ -3492,14 +3685,14 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
         });
     };
 
-  window.submitPreorder = async () => {
-        const prov = document.getElementById('formProvider').value;
-        const code = document.getElementById('formProduct').value;
-        const name = document.getElementById('selectedProductName').value;
-        const price = parseInt(document.getElementById('selectedProductPrice').value) || parseInt(document.getElementById('icsProductSelect')?.options[document.getElementById('icsProductSelect').selectedIndex]?.dataset.price || 0);
+      window.submitPreorder = async () => {
+        const prov = document.getElementById('formProviderPO').value;
+        const code = document.getElementById('formProductPO').value;
+        const name = document.getElementById('selectedProductNamePO').value;
+        const price = parseInt(document.getElementById('selectedProductPricePO').value) || 0;
         const num = document.getElementById('poNumber').value;
 
-        if(!code || !num) return alert('Lengkapi data preorder!');
+        if(!code || !num) return alert('Lengkapi data preorder (Pilih Produk & Masukkan Nomor)!');
         
         window.showLoader(true);
         try {
@@ -3519,10 +3712,8 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
                 // 1. Potong Saldo User
                 transaction.update(userRef, { balance: balanceAfter });
 
-                                // 2. Tambah ke Antrean Admin
+                // 2. Tambah ke Antrean Admin
                 const poRef = doc(db, "preorders", trxId);
-                
-                // Deteksi Server Type Otomatis (ICS/KHFY)
                 const serverType = prov.startsWith('ICS_') ? 'ICS' : 'KHFY';
 
                 transaction.set(poRef, {
@@ -3535,11 +3726,11 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
                     price: price,
                     status: "Pending",
                     historyId: trxId,
-                    serverType: serverType, // Data Baru: Identitas Server
+                    serverType: serverType,
                     timestamp: serverTimestamp()
                 });
 
-                // 3. Catat di Riwayat User (Status Pending & Saldo Terpotong)
+                // 3. Catat di Riwayat User
                 const historyRef = doc(db, "users", currentUser.uid, "history", trxId);
                 transaction.set(historyRef, {
                     title: "Preorder: " + name,
@@ -3556,7 +3747,7 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
                 });
             });
 
-                        // Kirim Notif Telegram Preorder
+            // Kirim Notif Telegram
             if(typeof window.sendTelegramNotif === 'function') {
                  window.sendTelegramNotif('ORDER', { 
                     title: "PREORDER - " + name, 
@@ -3566,14 +3757,143 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
                 });
             }
 
-            
-  window.showLoader(false);
+            window.showLoader(false);
             alert('Pesanan Preorder dikirim! Saldo telah dipotong dan menunggu konfirmasi admin.');
             window.nav('homePage');
         } catch(e) {
             window.showLoader(false);
             alert(typeof e === 'string' ? e : e.message);
         }
+    };
+
+    // --- PREORDER SYSTEM BARU ---
+    window.initProviderTabsPO = () => {
+        const container = document.getElementById('providerTabsContainerPO');
+        if(!container) return;
+        container.innerHTML = '';
+        
+        PPOB_PROVIDERS.forEach((p, index) => {
+            const btn = document.createElement('div');
+            btn.className = `tab-item-po flex-shrink-0 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 cursor-pointer transition flex items-center gap-2 group select-none active:scale-95`;
+            btn.dataset.code = p.code;
+            btn.onclick = () => window.selectProviderTabPO(p.code);
+            btn.innerHTML = `<i class="fa-solid ${p.icon} text-gray-400 group-hover:text-purple-500 transition"></i><span class="text-xs font-bold text-gray-600 dark:text-gray-300 group-hover:text-purple-600 dark:group-hover:text-purple-400 whitespace-nowrap">${p.name}</span>`;
+            container.appendChild(btn);
+            if(index === 0) setTimeout(() => window.selectProviderTabPO(p.code), 500);
+        });
+    };
+
+    window.selectProviderTabPO = async (code) => {
+        document.querySelectorAll('.tab-item-po').forEach(el => {
+            const pCode = el.dataset.code;
+            const provData = PPOB_PROVIDERS.find(p => p.code === pCode);
+            const pIcon = provData ? provData.icon : 'fa-star';
+            el.className = 'tab-item-po flex-shrink-0 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 cursor-pointer transition hover:bg-purple-50 dark:hover:bg-purple-900/20 flex items-center gap-2 group opacity-70 hover:opacity-100';
+            el.innerHTML = `<i class="fa-solid ${pIcon} text-gray-400 group-hover:text-purple-500 transition"></i><span class="text-xs font-bold text-gray-600 dark:text-gray-300 group-hover:text-purple-600 dark:group-hover:text-purple-400 whitespace-nowrap">${provData.name}</span>`;
+        });
+
+        const activeBtn = document.querySelector(`.tab-item-po[data-code="${code}"]`);
+        if(activeBtn) {
+            activeBtn.className = 'tab-item-po flex-shrink-0 px-5 py-3 bg-purple-600 text-white rounded-2xl shadow-lg shadow-purple-600/30 cursor-pointer transition flex items-center gap-2 transform scale-105 border border-transparent';
+            const provData = PPOB_PROVIDERS.find(p => p.code === code);
+            activeBtn.innerHTML = `<i class="fa-solid ${provData.icon} text-white"></i><span class="text-xs font-bold text-white whitespace-nowrap">${provData.name}</span>`;
+        }
+
+        document.getElementById('formProviderPO').value = code;
+        const grid = document.getElementById('etalaseGridPO');
+        grid.innerHTML = '<div class="col-span-2 text-center py-12"><div class="loader mx-auto mb-3"></div><p class="text-xs text-gray-500 font-bold animate-pulse">Memuat Produk Preorder...</p></div>';
+
+        let products = [];
+        if(code.startsWith('ICS_')) {
+             let icsType = 'xda';
+             if(code === 'ICS_CIRCLE') icsType = 'circle';
+             if(code === 'ICS_XLA') icsType = 'xla';
+             const res = await callIcsApi('listProducts', { type: icsType });
+             if (res) {
+                if (res.ready && Array.isArray(res.ready)) products = res.ready;
+                else if (res.data && res.data.ready && Array.isArray(res.data.ready)) products = res.data.ready;
+                else if (Array.isArray(res.data)) products = res.data;
+                
+                if (code === 'ICS_CIRCLE') products = products.filter(p => (p.type === 'circle' || (p.code||'').toUpperCase().startsWith('XCL')));
+                                else if (code === 'ICS_XDA') products = products.filter(p => (p.type === 'xda' || (p.code||'').toUpperCase().startsWith('XDA')));
+                else if (code === 'ICS_XLA') products = products.filter(p => (p.type === 'xla' || (p.code||'').toUpperCase().startsWith('XLA')));
+             }
+        } else {
+             if(!globalProducts || globalProducts.length === 0) {
+                 const res = await callApi('/list_product');
+                 if (res.ok && res.data) {
+                    if (res.data.data && Array.isArray(res.data.data)) globalProducts = res.data.data;
+                    else if (Array.isArray(res.data)) globalProducts = res.data;
+                    else if (res.data.products) globalProducts = res.data.products;
+                 }
+             }
+             products = globalProducts.filter(p => {
+                const c = (p.code || p.kode_produk || '').toUpperCase();
+                const b = (p.brand || p.operator || '').toUpperCase();
+                if (code === 'XLA') return (c.startsWith('XLA') || c.startsWith('XLC')) && !c.startsWith('XDA');
+                if (code === 'FMX') return c.startsWith('FMX') || c === 'CFMX' || b === 'FMAX';
+                if (code === 'XLR') return ['FMX50','FMX65','FMX80','FMX150'].includes(c);
+                if (code === 'PLN') return b.includes('PLN') || c.includes('PLN');
+                return false;
+             });
+        }
+        window.renderEtalaseGridPO(products, code);
+    };
+
+        window.renderEtalaseGridPO = (products, provCode) => {
+         const grid = document.getElementById('etalaseGridPO');
+         grid.innerHTML = '';
+         if(products.length === 0) {
+             grid.innerHTML = '<div class="col-span-2 text-center py-10 bg-gray-50 dark:bg-gray-800 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700"><i class="fas fa-box-open text-3xl mb-2 text-gray-300"></i><p class="text-xs text-gray-400">Produk Kosong</p></div>';
+             return;
+         }
+         
+         // Fix Sort: Gunakan logika harga yang lengkap
+         products.sort((a, b) => {
+             const pa = parseInt(a.harga || a.price || a.buyer_price || a.harga_final || 0);
+             const pb = parseInt(b.harga || b.price || b.buyer_price || b.harga_final || 0);
+             return pa - pb;
+         });
+
+         products.forEach(p => {
+             // FIX HARGA PO: Ambil semua kemungkinan key harga (termasuk harga_final)
+             let rawPrice = parseInt(p.harga || p.price || p.buyer_price || p.harga_final || 0);
+             let price = rawPrice;
+             let name = p.nama_produk || p.name || p.product_name || 'Produk';
+             const code = p.kode_produk || p.code || p.buyer_sku_code;
+
+             // FIX MARKUP: Gunakan += (tambah), bukan = (ganti)
+             if(typeof pricingRules !== 'undefined' && pricingRules[code]) {
+                const r = pricingRules[code];
+                if(typeof r === 'object') { 
+                    if(r.price) price += parseInt(r.price); 
+                    if(r.name) name = r.name; 
+                } else { price += parseInt(r); }
+             } else { price += 2000; } // Default Markup
+
+             const card = document.createElement('div');
+             card.className = `relative p-4 rounded-3xl border transition-all duration-300 bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-lg hover:border-purple-200 dark:hover:border-purple-800 cursor-pointer group`;
+             
+             card.onclick = () => {
+                 document.getElementById('formProductPO').value = code;
+                 document.getElementById('selectedProductNamePO').value = name;
+                 document.getElementById('selectedProductPricePO').value = price;
+                 window.customConfirm('Preorder', `Pesan ${name}?\nHarga: ${window.formatRp(price)}`, () => window.submitPreorder());
+             };
+             
+             card.innerHTML = `
+                <div class="flex flex-col h-full justify-between">
+                    <div class="mb-3">
+                        <h4 class="text-xs font-bold text-gray-700 dark:text-gray-200 leading-tight group-hover:text-purple-600 transition">${name}</h4>
+                        <p class="text-[9px] text-gray-400 mt-1">Preorder</p>
+                    </div>
+                    <div class="flex justify-between items-end">
+                        <span class="text-[10px] font-bold px-2 py-1 rounded-lg bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">PO</span>
+                        <p class="text-sm font-black text-gray-800 dark:text-white">${window.formatRp(price).replace(',00', '').replace('Rp', '')}<span class="text-[9px] font-normal text-gray-400">rb</span></p>
+                    </div>
+                </div>`;
+             grid.appendChild(card);
+         });
     };
     window.executeApiTransaction = async (code, dest, price, name, provCode) => {
         window.showLoader(true);

@@ -3376,7 +3376,16 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
                 window.executeMultiBatch(code, numbers, price, name);
             });
         } else {
-            if(number.length < 5) return window.showAlert('Validasi', 'Masukkan Nomor Tujuan yang valid!', 'error');
+                        // 1. Validasi Angka Saja
+            if (!/^\d+$/.test(number)) return window.showAlert('Validasi', 'Nomor harus berupa angka saja (tidak boleh ada spasi/simbol)!', 'error');
+
+            // 2. Validasi Prefix XL/AXIS
+            const allowedPrefixes = ['0877', '0878', '0876', '0879', '0817', '0818', '0819', '0859', '0831', '0832', '0833', '0838'];
+            const prefix = number.substring(0, 4);
+            if (!allowedPrefixes.includes(prefix)) return window.showAlert('Validasi', 'Maaf, hanya melayani nomor XL & AXIS! (Awalan: 087x, 081x, 0859, 083x)', 'error');
+
+            // 3. Validasi Panjang Minimal
+            if (number.length < 10) return window.showAlert('Validasi', 'Nomor terlalu pendek (Min 10 digit)!', 'error');
             window.confirmTransaction(code, name, price);
         }
     };

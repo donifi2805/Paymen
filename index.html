@@ -349,7 +349,12 @@
           </div>
         </div>
         <div id="qiosStep2" class="hide text-center">
-          <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-2">Scan & Bayar</h3>
+          <div class="flex justify-between items-center mb-2">
+          <h3 class="text-lg font-bold text-gray-800 dark:text-white">Scan & Bayar</h3>
+          <button onclick="closeQios()" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 transition">
+            <i class="fas fa-minus"></i>
+          </button>
+          </div>
           <div class="bg-white p-2 rounded-xl border border-gray-200 inline-block mb-2">
             <img id="qiosQrDisplay" src="" class="w-48 h-48 object-contain cursor-pointer hover:opacity-90 transition" onclick="openFullQr()" alt="">
             <p class="text-[9px] text-gray-400 mt-1">(Klik gambar untuk memperbesar)</p>
@@ -394,6 +399,7 @@
         </div>
         <div id="mtStep2" class="hide">
           <div class="text-center mb-6">
+<div class="absolute top-0 right-0 z-20"><button onclick="closeManualTopUp()" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 transition shadow-sm"><i class="fas fa-minus"></i></button></div>
             <div class="w-20 h-20 bg-white rounded-full shadow-lg mx-auto flex items-center justify-center -mt-10 mb-3 relative z-10 border-4 border-white dark:border-gray-800"><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTOXd7uJlgyXODfLIhtY64i_e5FRtHLSIE7KwhQ9c_MZg&amp;s=10" alt="Seabank" class="w-16"></div>
             <h3 class="text-xl font-black text-gray-800 dark:text-white">Menunggu Pembayaran</h3>
             <p class="text-xs text-gray-500">Selesaikan pembayaran sebelum waktu habis</p>
@@ -956,6 +962,9 @@
     <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-6"></div>
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-lg font-bold text-gray-800 dark:text-white">Pilih Provider</h3>
+      <button onclick="closeAllSheets()" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 transition">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
     <div class="space-y-2 max-h-[60vh] overflow-y-auto no-scrollbar pb-8">
       <div id="prov_ICS_XDA" onclick="checkProv('ICS_XDA') &amp;&amp; selectProvider('ICS_XDA', 'Akrab Fresh (XDA)')" class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer flex justify-between items-center group transition">
@@ -3010,12 +3019,30 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
         if(!container) return;
         container.innerHTML = '';
         
+        // Array Warna Warni untuk Tombol
+        const colors = [
+            { bg: 'bg-blue-50 dark:bg-blue-900/20', border: 'border-blue-200 dark:border-blue-800', text: 'text-blue-600 dark:text-blue-400', icon: 'text-blue-500' },
+            { bg: 'bg-purple-50 dark:bg-purple-900/20', border: 'border-purple-200 dark:border-purple-800', text: 'text-purple-600 dark:text-purple-400', icon: 'text-purple-500' },
+            { bg: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-200 dark:border-emerald-800', text: 'text-emerald-600 dark:text-emerald-400', icon: 'text-emerald-500' },
+            { bg: 'bg-orange-50 dark:bg-orange-900/20', border: 'border-orange-200 dark:border-orange-800', text: 'text-orange-600 dark:text-orange-400', icon: 'text-orange-500' },
+            { bg: 'bg-rose-50 dark:bg-rose-900/20', border: 'border-rose-200 dark:border-rose-800', text: 'text-rose-600 dark:text-rose-400', icon: 'text-rose-500' },
+            { bg: 'bg-cyan-50 dark:bg-cyan-900/20', border: 'border-cyan-200 dark:border-cyan-800', text: 'text-cyan-600 dark:text-cyan-400', icon: 'text-cyan-500' }
+        ];
+
         PPOB_PROVIDERS.forEach((p, index) => {
+            const c = colors[index % colors.length];
             const btn = document.createElement('div');
-            btn.className = `tab-item flex-shrink-0 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 cursor-pointer transition flex items-center gap-2 group select-none active:scale-95`;
+            // Ukuran diperkecil (padding & font), Warna diterapkan
+            const baseClass = `tab-item flex-shrink-0 px-3 py-2 ${c.bg} rounded-xl border ${c.border} cursor-pointer transition flex items-center gap-1.5 group select-none active:scale-95 hover:brightness-95`;
+            
+            btn.className = baseClass;
             btn.dataset.code = p.code;
+            btn.dataset.baseClass = baseClass; // Simpan class dasar untuk reset
+            btn.dataset.iconClass = `fa-solid ${p.icon} ${c.icon} text-xs transition`;
+            btn.dataset.textClass = `text-[10px] font-bold ${c.text} whitespace-nowrap`;
+            
             btn.onclick = () => window.selectProviderTab(p.code);
-            btn.innerHTML = `<i class="fa-solid ${p.icon} text-gray-400 group-hover:text-blue-500 transition"></i><span class="text-xs font-bold text-gray-600 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 whitespace-nowrap">${p.name}</span>`;
+            btn.innerHTML = `<i class="${btn.dataset.iconClass}"></i><span class="${btn.dataset.textClass}">${p.name}</span>`;
             container.appendChild(btn);
             if(index === 0) setTimeout(() => window.selectProviderTab(p.code), 500);
         });
@@ -3023,34 +3050,32 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
 
             window.selectProviderTab = async (code) => {
         if(!checkProv(code)) return;
-        // 1. Reset Semua Tab ke Tampilan Tidak Aktif (Abu-abu)
+        // 1. Reset Semua Tab ke Tampilan Warna-warni (Kondisi Tidak Aktif)
         document.querySelectorAll('.tab-item').forEach(el => {
-            const pCode = el.dataset.code;
-            // Cari data provider asli untuk reset icon/nama yang benar
-            const provData = PPOB_PROVIDERS.find(p => p.code === pCode);
-            const pName = provData ? provData.name : el.querySelector('span').innerText;
-            const pIcon = provData ? provData.icon : 'fa-star';
-
-            // Set class inactive
-            el.className = 'tab-item flex-shrink-0 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 cursor-pointer transition hover:bg-blue-50 dark:hover:bg-blue-900/20 flex items-center gap-2 group opacity-70 hover:opacity-100';
+            // Kembalikan ke class warna asli
+            if(el.dataset.baseClass) el.className = el.dataset.baseClass + ' opacity-70 scale-100 border-dashed';
             
-            // Reset HTML (Penting: Kembalikan warna text ke gray)
-            el.innerHTML = `<i class="fa-solid ${pIcon} text-gray-400 group-hover:text-blue-500 transition"></i><span class="text-xs font-bold text-gray-600 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 whitespace-nowrap">${pName}</span>`;
+            // Kembalikan warna text dan icon asli
+            const icon = el.querySelector('i');
+            const span = el.querySelector('span');
+            if(icon && el.dataset.iconClass) icon.className = el.dataset.iconClass;
+            if(span && el.dataset.textClass) span.className = el.dataset.textClass;
         });
 
         // 2. Highlight Tab yang Dipilih (Aktif)
         const activeBtn = document.querySelector(`.tab-item[data-code="${code}"]`);
         if(activeBtn) {
-            // Ubah style container jadi gradient
-            activeBtn.className = 'tab-item flex-shrink-0 px-5 py-3 bg-gradient-brand text-white rounded-2xl shadow-lg shadow-blue-600/30 cursor-pointer transition flex items-center gap-2 transform scale-105 border border-transparent';
+            // Ubah style jadi Solid Brand Color saat aktif
+            activeBtn.className = 'tab-item flex-shrink-0 px-4 py-2 bg-gradient-brand text-white rounded-xl shadow-md shadow-blue-600/30 cursor-pointer transition flex items-center gap-1.5 transform scale-105 border border-transparent opacity-100';
             
             // Paksa ubah warna icon dan text jadi putih
             const icon = activeBtn.querySelector('i');
             const span = activeBtn.querySelector('span');
             
-            // Hapus class warna lama, tambah text-white
-            if(icon) icon.className = icon.className.replace(/text-gray-\d+|group-hover:text-[a-z]+-\d+/g, '').trim() + ' text-white';
-            if(span) span.className = 'text-xs font-bold text-white whitespace-nowrap';
+            // Ambil icon asli tapi hapus class warna, ganti text-white
+            const originalIcon = activeBtn.dataset.iconClass ? activeBtn.dataset.iconClass.split(' ')[1] : 'fa-star'; // ambil fa-icon nya
+            if(icon) icon.className = `fa-solid ${originalIcon} text-white text-xs`;
+            if(span) span.className = 'text-[10px] font-bold text-white whitespace-nowrap';
         }
 
         document.getElementById('formProvider').value = code;

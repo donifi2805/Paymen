@@ -1686,17 +1686,31 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
         return true;
     };
 
-    function initProviderListener() {
+        function initProviderListener() {
         onSnapshot(doc(db, "settings", "providers"), (docSnap) => {
             if (docSnap.exists()) {
                 providerStatus = docSnap.data();
-                // Update UI
+                
+                // 1. Update List Sheet (Menu Bawah)
                 Object.keys(providerStatus).forEach(key => {
-                    // Cek ID Main (prov_KEY) dan ID ICS (prov_ICS_KEY)
                     const el = document.getElementById('prov_' + key) || document.getElementById('prov_ICS_' + key);
                     if(el) {
                         if(providerStatus[key]) el.classList.add('prov-maintenance');
                         else el.classList.remove('prov-maintenance');
+                    }
+                });
+
+                // 2. Update Tabs PPOB & Preorder (Menu Atas)
+                document.querySelectorAll('.tab-item, .tab-item-po').forEach(tab => {
+                    const code = tab.dataset.code;
+                    if (providerStatus[code]) {
+                        tab.classList.add('prov-maintenance');
+                        const span = tab.querySelector('span');
+                        if(span && !span.innerText.includes('(Gangguan)')) span.innerText += ' (Gangguan)';
+                    } else {
+                        tab.classList.remove('prov-maintenance');
+                        const span = tab.querySelector('span');
+                        if(span) span.innerText = span.innerText.replace(' (Gangguan)', '');
                     }
                 });
             }
@@ -3007,7 +3021,8 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
         });
     };
 
-        window.selectProviderTab = async (code) => {
+            window.selectProviderTab = async (code) => {
+        if(!checkProv(code)) return;
         // 1. Reset Semua Tab ke Tampilan Tidak Aktif (Abu-abu)
         document.querySelectorAll('.tab-item').forEach(el => {
             const pCode = el.dataset.code;
@@ -3783,7 +3798,8 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
         });
     };
 
-    window.selectProviderTabPO = async (code) => {
+        window.selectProviderTabPO = async (code) => {
+        if(!checkProv(code)) return;
         document.querySelectorAll('.tab-item-po').forEach(el => {
             const pCode = el.dataset.code;
             const provData = PPOB_PROVIDERS.find(p => p.code === pCode);

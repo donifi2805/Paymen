@@ -33,7 +33,7 @@ function getWIBTime() {
     }).replace(/\./g, ':');
 }
 
-// Helper: Sanitasi HTML
+// Helper: Sanitasi HTML (Agar JSON tidak merusak tampilan Telegram)
 function escapeHtml(text) {
     if (!text) return text;
     return text
@@ -67,7 +67,7 @@ async function sendTelegramLog(message, isUrgent = false) {
 // ============================================================
 
 async function getKHFYStockList() {
-    console.log("      📋 [PHASE 1] Mengunduh Database Stok KHFY...");
+    console.log("      📋 [PHASE 1] Mengunduh Database Stok KHFY (Akrab v1)...");
     const params = new URLSearchParams();
     params.append('api_key', KHFY_KEY);
     params.append('endpoint', '/list_product'); 
@@ -89,7 +89,10 @@ async function getKHFYStockList() {
         if (json && json.data && Array.isArray(json.data)) {
             json.data.forEach(item => {
                 stockMap[item.kode_produk] = {
-                    gangguan: item.gangguan == 1, kosong: item.kosong == 1, status: item.status
+                    gangguan: item.gangguan == 1, 
+                    kosong: item.kosong == 1, 
+                    status: item.status,
+                    source: 'KHFY'
                 };
             });
             return stockMap;
@@ -99,7 +102,7 @@ async function getKHFYStockList() {
 }
 
 async function getICSStockList() {
-    console.log("      📋 [PHASE 1] Mengunduh Database Stok ICS...");
+    console.log("      📋 [PHASE 1] Mengunduh Database Stok ICS (Akrab v2)...");
     const params = new URLSearchParams();
     params.append('action', 'pricelist'); params.append('apikey', ICS_KEY);
     const targetUrl = `${VERCEL_DOMAIN}/api/relay?${params.toString()}`;
@@ -113,13 +116,23 @@ async function getICSStockList() {
         clearTimeout(timeoutId);
         const json = await response.json();
         const stockMap = {};
-        if (json && json.data && Array.isArray(json.data)) {
-            json.data.forEach(item => {
+        
+        let dataList = [];
+        if (json && json.ready && Array.isArray(json.ready)) dataList = json.ready; // Format baru ICS
+        else if (json && json.data && Array.isArray(json.data)) dataList = json.data; // Format lama
+
+        if (dataList.length > 0) {
+            dataList.forEach(item => {
+                // Normalisasi Status ICS
                 const isGangguan = item.status === 'gangguan' || item.status === 'error';
                 const isKosong = item.status === 'empty' || item.stock === 0 || item.status === 'kosong';
                 const isNonAktif = item.status === 'nonactive';
+                
                 stockMap[item.code] = { 
-                    gangguan: isGangguan, kosong: isKosong, nonaktif: isNonAktif
+                    gangguan: isGangguan, 
+                    kosong: isKosong, 
+                    nonaktif: isNonAktif,
+                    source: 'ICS'
                 };
             });
             return stockMap;
@@ -191,7 +204,6 @@ async function runPreorderQueue() {
 
         const [stockMapKHFY, stockMapICS] = await Promise.all([getKHFYStockList(), getICSStockList()]);
         
-        // 🔥 COUNTER (Penghitung) 🔥
         let skippedTransactions = [];
         let successCount = 0;
 
@@ -201,7 +213,18 @@ async function runPreorderQueue() {
             const uidUser = po.uid; 
             const skuProduk = po.productCode || po.provider || po.code;
             const tujuan = po.targetNumber || po.target || po.tujuan;
-            const serverType = po.serverType || 'KHFY'; 
+            
+            // --- SMART SERVER DETECTION (SESUAI INDEX BARU) ---
+            let serverType = po.serverType;
+            if (!serverType) {
+                // Jika serverType tidak tersimpan, deteksi dari kode provider
+                const provCode = (po.provider || "").toUpperCase();
+                if (provCode.startsWith('ICS')) {
+                    serverType = 'ICS';
+                } else {
+                    serverType = 'KHFY';
+                }
+            }
 
             // AMBIL USERNAME
             let buyerName = po.username || 'User'; 
@@ -222,23 +245,23 @@ async function runPreorderQueue() {
                 continue; 
             }
 
-            // CEK STOK (SILENT)
+            // CEK STOK (SESUAI SERVER TYPE)
             let isSkip = false;
             let skipReason = '';
 
             if (serverType === 'KHFY' && stockMapKHFY) {
                 const info = stockMapKHFY[skuProduk];
                 if (info) {
-                    if (info.gangguan) { isSkip = true; skipReason = 'GANGGUAN'; }
-                    else if (info.kosong) { isSkip = true; skipReason = 'STOK KOSONG'; }
-                    else if (info.status === 0) { isSkip = true; skipReason = 'NONAKTIF'; }
+                    if (info.gangguan) { isSkip = true; skipReason = 'KHFY GANGGUAN'; }
+                    else if (info.kosong) { isSkip = true; skipReason = 'KHFY STOK KOSONG'; }
+                    else if (info.status === 0) { isSkip = true; skipReason = 'KHFY NONAKTIF'; }
                 }
             } else if (serverType === 'ICS' && stockMapICS) {
                 const info = stockMapICS[skuProduk];
                 if (info) {
-                    if (info.gangguan) { isSkip = true; skipReason = 'GANGGUAN'; }
-                    else if (info.kosong) { isSkip = true; skipReason = 'STOK KOSONG'; }
-                    else if (info.nonaktif) { isSkip = true; skipReason = 'NONAKTIF'; }
+                    if (info.gangguan) { isSkip = true; skipReason = 'ICS GANGGUAN'; }
+                    else if (info.kosong) { isSkip = true; skipReason = 'ICS STOK KOSONG'; }
+                    else if (info.nonaktif) { isSkip = true; skipReason = 'ICS NONAKTIF'; }
                 }
             }
 
@@ -249,7 +272,7 @@ async function runPreorderQueue() {
                     sku: skuProduk, 
                     dest: tujuan, 
                     reason: skipReason,
-                    server: serverType
+                    server: serverType // Menampilkan Server yang sesuai
                 });
                 continue; 
             }
@@ -257,7 +280,8 @@ async function runPreorderQueue() {
             // PROSES TRANSAKSI
             let reffId = po.active_reff_id;
             if (!reffId) {
-                reffId = `AUTO-${Date.now()}`; 
+                // Beri prefix agar unik antar server
+                reffId = `${serverType}-AUTO-${Date.now()}`; 
                 await db.collection('preorders').doc(poID).update({ active_reff_id: reffId });
             }
 
@@ -300,9 +324,9 @@ async function runPreorderQueue() {
 
             if (serverType === 'ICS') {
                 if (result.success === true && result.data) {
-                    if (result.data.status === 'success') {
+                    if (result.data.status === 'success' || result.data.status === 'sukses') {
                         isSuccess = true; finalMessage = result.data.message; finalSN = result.data.sn || '-'; trxIdProvider = result.data.refid || '-';
-                    } else if (result.data.status === 'failed') {
+                    } else if (result.data.status === 'failed' || result.data.status === 'gagal') {
                         isHardFail = true; finalMessage = result.data.message;
                     } else { finalMessage = result.data.message || 'Pending'; }
                 } 
@@ -350,14 +374,14 @@ async function runPreorderQueue() {
                 dataLog = { ...result, data: filteredData, note: `Filter: Terbaru + Sukses Tgl ${refDate}` };
             }
 
-            // --- BUILD MESSAGE (DENGAN EXPANDABLE BLOCKQUOTE) ---
+            // --- BUILD MESSAGE ---
             const rawJsonStr = JSON.stringify(dataLog, null, 2); 
             const safeJsonStr = escapeHtml(rawJsonStr.substring(0, 3500));
-            const jsonBlock = `\n<b>🔽 JSON RESPONSE:</b>\n<blockquote expandable><pre><code class="json">${safeJsonStr}</code></pre></blockquote>`;
+            const jsonBlock = `\n<b>🔽 JSON RESPONSE (${serverType}):</b>\n<blockquote expandable><pre><code class="json">${safeJsonStr}</code></pre></blockquote>`;
 
             if (isSuccess) {
                 console.log(`   ✅ SUKSES!`);
-                successCount++; // 🔥 Increment Sukses
+                successCount++; 
 
                 const historyId = po.historyId || `TRX-${Date.now()}`;
                 let finalTitle = po.productName || skuProduk;
@@ -428,7 +452,7 @@ async function runPreorderQueue() {
                     rekapMsg += `<b>${item.buyer}</b>\n`;
                     rekapMsg += `${item.dest} | ${item.sku}\n`;
                     rekapMsg += `⚠️ ${item.reason} (Menunggu Role)\n`;
-                    rekapMsg += `📡 Server: ${item.server}\n`;
+                    rekapMsg += `📡 Server: ${item.server}\n`; // Info Server
                 });
                 rekapMsg += `➖➖➖➖➖➖➖➖➖➖\n`;
             } else {

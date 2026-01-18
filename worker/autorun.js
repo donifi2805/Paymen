@@ -118,12 +118,11 @@ async function getICSStockList() {
         const stockMap = {};
         
         let dataList = [];
-        if (json && json.ready && Array.isArray(json.ready)) dataList = json.ready; // Format baru ICS
-        else if (json && json.data && Array.isArray(json.data)) dataList = json.data; // Format lama
+        if (json && json.ready && Array.isArray(json.ready)) dataList = json.ready; 
+        else if (json && json.data && Array.isArray(json.data)) dataList = json.data; 
 
         if (dataList.length > 0) {
             dataList.forEach(item => {
-                // Normalisasi Status ICS
                 const isGangguan = item.status === 'gangguan' || item.status === 'error';
                 const isKosong = item.status === 'empty' || item.stock === 0 || item.status === 'kosong';
                 const isNonAktif = item.status === 'nonactive';
@@ -141,22 +140,44 @@ async function getICSStockList() {
     } catch (error) { return null; }
 }
 
+// 🔥 FUNGSI HIT RELAY (FIXED: SUPPORT POST UNTUK ICS) 🔥
 async function hitVercelRelay(serverType, data, isRecheck = false) {
     let targetUrl = '';
-    const params = new URLSearchParams();
+    let method = 'GET';
+    let body = null;
+    let headers = { 'User-Agent': 'Pandawa-Worker/1.0' };
 
+    // --- LOGIKA KHUSUS ICS (POST untuk Transaksi) ---
     if (serverType === 'ICS') {
-        if (isRecheck) params.append('action', 'checkStatus'); 
-        else params.append('action', 'createTransaction');
-        params.append('apikey', ICS_KEY);
-        params.append('kode_produk', data.sku);
-        params.append('nomor_tujuan', data.tujuan);
-        params.append('refid', data.reffId);
-        targetUrl = `${VERCEL_DOMAIN}/api/relay?${params.toString()}`;
-    } else {
+        if (isRecheck) {
+            // Cek Status tetap GET (Action: checkTransaction/checkStatus)
+            const params = new URLSearchParams();
+            params.append('action', 'checkTransaction'); 
+            params.append('apikey', ICS_KEY);
+            params.append('refid', data.reffId);
+            targetUrl = `${VERCEL_DOMAIN}/api/relay?${params.toString()}`;
+        } else {
+            // Transaksi Baru WAJIB POST (Agar tidak dianggap list produk)
+            method = 'POST';
+            headers['Content-Type'] = 'application/json';
+            
+            // API Key di URL, Data Transaksi di Body
+            targetUrl = `${VERCEL_DOMAIN}/api/relay?action=createTransaction&apikey=${ICS_KEY}`;
+            
+            body = JSON.stringify({
+                kode_produk: data.sku,
+                nomor_tujuan: data.tujuan,
+                refid: data.reffId
+            });
+        }
+    } 
+    // --- LOGIKA KHFY (Tetap GET) ---
+    else {
+        const params = new URLSearchParams();
         params.append('api_key', KHFY_KEY);
         if (isRecheck) params.append('endpoint', '/history');
         else params.append('endpoint', '/trx');
+        
         params.append('produk', data.sku); 
         params.append('tujuan', data.tujuan); 
         params.append('reff_id', data.reffId);
@@ -166,10 +187,20 @@ async function hitVercelRelay(serverType, data, isRecheck = false) {
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 60000); 
-        const response = await fetch(targetUrl, { 
-            method: 'GET', headers: { 'User-Agent': 'Pandawa-Worker/1.0' }, signal: controller.signal 
-        });
+        
+        const fetchOptions = { 
+            method: method, 
+            headers: headers, 
+            signal: controller.signal 
+        };
+
+        if (body) {
+            fetchOptions.body = body;
+        }
+
+        const response = await fetch(targetUrl, fetchOptions);
         clearTimeout(timeoutId);
+        
         const text = await response.text();
         try { return JSON.parse(text); } 
         catch (e) { return { status: false, message: "HTML Error", raw: text }; }
@@ -214,10 +245,9 @@ async function runPreorderQueue() {
             const skuProduk = po.productCode || po.provider || po.code;
             const tujuan = po.targetNumber || po.target || po.tujuan;
             
-            // --- SMART SERVER DETECTION (SESUAI INDEX BARU) ---
+            // --- SMART SERVER DETECTION ---
             let serverType = po.serverType;
             if (!serverType) {
-                // Jika serverType tidak tersimpan, deteksi dari kode provider
                 const provCode = (po.provider || "").toUpperCase();
                 if (provCode.startsWith('ICS')) {
                     serverType = 'ICS';
@@ -272,7 +302,7 @@ async function runPreorderQueue() {
                     sku: skuProduk, 
                     dest: tujuan, 
                     reason: skipReason,
-                    server: serverType // Menampilkan Server yang sesuai
+                    server: serverType 
                 });
                 continue; 
             }
@@ -280,12 +310,12 @@ async function runPreorderQueue() {
             // PROSES TRANSAKSI
             let reffId = po.active_reff_id;
             if (!reffId) {
-                // Beri prefix agar unik antar server
                 reffId = `${serverType}-AUTO-${Date.now()}`; 
                 await db.collection('preorders').doc(poID).update({ active_reff_id: reffId });
             }
 
             const requestData = { sku: skuProduk, tujuan: tujuan, reffId: reffId };
+            // Hit Relay (POST untuk ICS, GET untuk KHFY)
             let result = await hitVercelRelay(serverType, requestData, false);
 
             const isExplicitPending = result.success === true && result.data && result.data.status === 'pending';
@@ -322,6 +352,7 @@ async function runPreorderQueue() {
             let trxIdProvider = '-';
             let isHardFail = false; 
 
+            // ANALISA HASIL
             if (serverType === 'ICS') {
                 if (result.success === true && result.data) {
                     if (result.data.status === 'success' || result.data.status === 'sukses') {
@@ -374,7 +405,7 @@ async function runPreorderQueue() {
                 dataLog = { ...result, data: filteredData, note: `Filter: Terbaru + Sukses Tgl ${refDate}` };
             }
 
-            // --- BUILD MESSAGE ---
+            // BUILD MESSAGE
             const rawJsonStr = JSON.stringify(dataLog, null, 2); 
             const safeJsonStr = escapeHtml(rawJsonStr.substring(0, 3500));
             const jsonBlock = `\n<b>🔽 JSON RESPONSE (${serverType}):</b>\n<blockquote expandable><pre><code class="json">${safeJsonStr}</code></pre></blockquote>`;
@@ -452,7 +483,7 @@ async function runPreorderQueue() {
                     rekapMsg += `<b>${item.buyer}</b>\n`;
                     rekapMsg += `${item.dest} | ${item.sku}\n`;
                     rekapMsg += `⚠️ ${item.reason} (Menunggu Role)\n`;
-                    rekapMsg += `📡 Server: ${item.server}\n`; // Info Server
+                    rekapMsg += `📡 Server: ${item.server}\n`; 
                 });
                 rekapMsg += `➖➖➖➖➖➖➖➖➖➖\n`;
             } else {

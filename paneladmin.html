@@ -705,10 +705,11 @@
                     <optgroup label="Server ICS">
                         <option value="ICS_XDA">Akrab Fresh (XDA)</option>
                         <option value="ICS_CIRCLE">XL Circle</option>
+                        <option value="ICS_XLA">Akrab v2 (XLA)</option>
                     </optgroup>
                     <optgroup label="Server Khfy">
                         <option value="XDA">Akrab v2 (XDA)</option>
-<option value="XLA">Akrab Fresh (XLA)</option>
+<option value="XLA">Akrab v1 (XLA)</option>
                         <option value="FMX">FlexMax (FMX)</option>
                         <option value="XLR">XL Reguler</option>
                         <option value="PLN">PLN Pascabayar</option>
@@ -933,7 +934,10 @@ window.listenDebugPreOrders = () => {
                         serverTrxId = result.data.trxid;
                     }
                 } else {
-                    const params = { kode_produk: code, nomor_tujuan: num, refid: reffId };
+                                        let icsType = 'xda';
+                    if(code === 'ICS_CIRCLE' || String(code).toUpperCase().startsWith('XCL')) icsType = 'circle';
+                    if(code === 'ICS_XLA' || String(code).toUpperCase().startsWith('XLA')) icsType = 'xla';
+                    const params = { kode_produk: code, nomor_tujuan: num, refid: reffId, type: icsType };
                     const apiRes = await callIcsApi('createTransaction', params, 'POST');
                     result = apiRes;
                 }
@@ -3329,8 +3333,9 @@ window.loadTopupSettings = async () => {
             const providers = [
                 { key: 'ICS_XDA', name: 'Akrab Fresh (XDA)', cat: 'Server ICS' },
                 { key: 'ICS_CIRCLE', name: 'XL Circle', cat: 'Server ICS' },
+                { key: 'ICS_XLA', name: 'Akrab v2 (XLA)', cat: 'Server ICS' },
                 { key: 'XDA', name: 'Akrab v2 (XDA)', cat: 'Server Khfy' },
-{ key: 'XLA', name: 'Akrab Fresh (XLA)', cat: 'Server Khfy' },
+{ key: 'XLA', name: 'Akrab v1 (XLA)', cat: 'Server Khfy' },
                 { key: 'FMX', name: 'FlexMax (FMX)', cat: 'Server Khfy' },
                 { key: 'XLR', name: 'XL Reguler', cat: 'Server Khfy' },
                 { key: 'PLN', name: 'PLN Pascabayar', cat: 'Server Khfy' }

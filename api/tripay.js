@@ -15,60 +15,140 @@ export default async function handler(req, res) {
   const pin = '0502'; 
   // ==================================================================
   
-  // URL UTAMA (PPOB)
-  const baseUrl = 'https://tripay.co.id/api-v2/pembelian'; 
-  
-  // URL CEK SERVER (Sesuai dokumentasi baru Anda)
-  const checkServerUrl = 'https://tripay.id/api/v2/cekserver';
+  // URL API BASE
+  const apiBaseUrl = 'https://tripay.id/api/v2';
 
   try {
-    // Handler Callback TriPay (Agar tidak error saat tes koneksi di dashboard)
+    // Handler Callback TriPay
     if (req.headers['x-callback-event'] || (req.body && req.body.id && req.body.status)) {
         return res.status(200).json({ success: true, message: 'Callback received OK' });
     }
 
-    const { action, code, dest, reff_id } = req.body || {};
+    // Ambil parameter dari frontend
+    // Menambahkan 'trxid' dan 'api_trxid' untuk fitur detail
+    const { action, code, dest, reff_id, category_id, operator_id, trxid, api_trxid } = req.body || {};
 
-    // --- FITUR BARU: CEK SERVER ---
+    // ==================================================================
+    // 1. CEK SERVER
+    // ==================================================================
     if (action === 'cekserver') {
-      const response = await fetch(checkServerUrl, {
+      const response = await fetch(`${apiBaseUrl}/cekserver`, {
         method: 'GET',
-        headers: { 
-          'Authorization': `Bearer ${apiKey}` 
-        }
+        headers: { 'Authorization': `Bearer ${apiKey}` }
       });
-      
       const data = await response.json();
       return res.status(200).json(data);
     }
 
-    // --- FITUR 1: CEK DAFTAR PRODUK (Pricelist) ---
+    // ==================================================================
+    // 2. CEK KATEGORI
+    // ==================================================================
+    if (action === 'category') {
+      let url = `${apiBaseUrl}/pembelian/category`;
+      if (category_id) url += `?category_id=${category_id}`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${apiKey}` }
+      });
+      const data = await response.json();
+      return res.status(200).json(data);
+    }
+
+    // ==================================================================
+    // 3. CEK OPERATOR
+    // ==================================================================
+    if (action === 'operator') {
+      let url = `${apiBaseUrl}/pembelian/operator`;
+      const params = new URLSearchParams();
+      if (category_id) params.append('category_id', category_id);
+      if (operator_id) params.append('operator_id', operator_id);
+      if (params.toString()) url += `?${params.toString()}`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${apiKey}` }
+      });
+      const data = await response.json();
+      return res.status(200).json(data);
+    }
+
+    // ==================================================================
+    // 4. CEK DAFTAR PRODUK (Pricelist)
+    // ==================================================================
     if (action === 'pricelist') {
-      const response = await fetch(`${baseUrl}/produk`, {
+      const response = await fetch(`${apiBaseUrl}/pembelian/produk`, {
         method: 'GET',
-        headers: { 
-          'Authorization': `Bearer ${apiKey}` 
-        }
+        headers: { 'Authorization': `Bearer ${apiKey}` }
       });
-      
       const data = await response.json();
       return res.status(200).json(data);
     }
 
-    // --- FITUR 2: CEK SALDO (Profile) ---
+    // ==================================================================
+    // 5. CEK SALDO (Profile)
+    // ==================================================================
     if (action === 'profile') {
-      const response = await fetch(`${baseUrl}/profile`, {
+      const response = await fetch(`${apiBaseUrl}/pembelian/profile`, {
         method: 'GET',
-        headers: { 
-          'Authorization': `Bearer ${apiKey}` 
-        }
+        headers: { 'Authorization': `Bearer ${apiKey}` }
       });
-      
       const data = await response.json();
       return res.status(200).json(data);
     }
 
-    // --- FITUR 3: TRANSAKSI (Beli Pulsa/Data) ---
+    // ==================================================================
+    // 6. RIWAYAT TRANSAKSI (SEMUA)
+    // ==================================================================
+    if (action === 'history') {
+      const response = await fetch(`${apiBaseUrl}/histori/transaksi/all`, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${apiKey}` }
+      });
+      const data = await response.json();
+      return res.status(200).json(data);
+    }
+
+    // ==================================================================
+    // 7. DETAIL TRANSAKSI (FITUR BARU)
+    // Endpoint: https://tripay.id/api/v2/histori/transaksi/detail
+    // ==================================================================
+    if (action === 'detail') {
+      // Validasi: Harus ada salah satu ID
+      if (!trxid && !api_trxid) {
+         return res.status(400).json({ 
+            success: false, 
+            message: 'Butuh trxid (TriPay) atau api_trxid (Lokal) untuk cek detail.' 
+         });
+      }
+
+      // Menyusun Payload
+      const payload = {};
+      if (trxid) payload.trxid = trxid;
+      if (api_trxid) payload.api_trxid = api_trxid;
+
+      // Convert ke format form-urlencoded
+      const formData = new URLSearchParams();
+      for (const key in payload) {
+          formData.append(key, payload[key]);
+      }
+
+      const response = await fetch(`${apiBaseUrl}/histori/transaksi/detail`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: formData
+      });
+
+      const result = await response.json();
+      return res.status(200).json(result);
+    }
+
+    // ==================================================================
+    // 8. REQUEST TRANSAKSI
+    // ==================================================================
     if (action === 'trx') {
       if (!code || !dest || !reff_id) {
         return res.status(400).json({ 
@@ -77,30 +157,42 @@ export default async function handler(req, res) {
         });
       }
 
+      const isPln = code.toUpperCase().includes('PLN') || category_id === 'PLN'; 
+      const inquiryType = isPln ? 'PLN' : 'I';
+
       const payload = {
-        kode_produk: code,
-        no_tujuan_utama: dest,
-        no_tujuan_tambahan: dest, 
+        inquiry: inquiryType,
+        code: code,
+        phone: dest,
         api_trxid: reff_id,
-        pin: pin 
+        pin: pin
       };
 
-      const response = await fetch(`${baseUrl}/transaksi`, {
+      if (isPln) {
+          payload.no_meter_pln = dest; 
+      }
+
+      const formData = new URLSearchParams();
+      for (const key in payload) {
+          formData.append(key, payload[key]);
+      }
+
+      const response = await fetch(`${apiBaseUrl}/transaksi/pembelian`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/x-www-form-urlencoded'
         },
-        body: JSON.stringify(payload)
+        body: formData
       });
 
       const result = await response.json();
 
-      if (result.success && result.data && result.data.status === 2) { 
+      if (result.success === false) { 
            return res.status(200).json({
                success: false,
-               message: result.data.pesan || 'Transaksi Gagal dari Pusat',
-               data: result.data
+               message: result.message || 'Transaksi Gagal dari Pusat',
+               data: result
            });
       }
 

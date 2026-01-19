@@ -1,10 +1,9 @@
 export default async function handler(req, res) {
-  // 1. Setup CORS (Agar bisa dipanggil dari frontend & menerima Callback TriPay)
+  // 1. Setup CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Callback-Event');
 
-  // Handle preflight request
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
@@ -16,17 +15,32 @@ export default async function handler(req, res) {
   const pin = '0502'; 
   // ==================================================================
   
+  // URL UTAMA (PPOB)
   const baseUrl = 'https://tripay.co.id/api-v2/pembelian'; 
+  
+  // URL CEK SERVER (Sesuai dokumentasi baru Anda)
+  const checkServerUrl = 'https://tripay.id/api/v2/cekserver';
 
   try {
-    // --- FITUR 0: HANDLER CALLBACK (PENTING AGAR URL BISA DISIMPAN DI DASHBOARD) ---
-    // Jika TriPay mengirim data callback atau tes koneksi
+    // Handler Callback TriPay (Agar tidak error saat tes koneksi di dashboard)
     if (req.headers['x-callback-event'] || (req.body && req.body.id && req.body.status)) {
         return res.status(200).json({ success: true, message: 'Callback received OK' });
     }
 
-    // Ambil data dari Request Frontend
     const { action, code, dest, reff_id } = req.body || {};
+
+    // --- FITUR BARU: CEK SERVER ---
+    if (action === 'cekserver') {
+      const response = await fetch(checkServerUrl, {
+        method: 'GET',
+        headers: { 
+          'Authorization': `Bearer ${apiKey}` 
+        }
+      });
+      
+      const data = await response.json();
+      return res.status(200).json(data);
+    }
 
     // --- FITUR 1: CEK DAFTAR PRODUK (Pricelist) ---
     if (action === 'pricelist') {
@@ -56,7 +70,6 @@ export default async function handler(req, res) {
 
     // --- FITUR 3: TRANSAKSI (Beli Pulsa/Data) ---
     if (action === 'trx') {
-      // Validasi input
       if (!code || !dest || !reff_id) {
         return res.status(400).json({ 
           success: false, 
@@ -64,13 +77,12 @@ export default async function handler(req, res) {
         });
       }
 
-      // Payload sesuai dokumentasi TriPay PPOB
       const payload = {
         kode_produk: code,
         no_tujuan_utama: dest,
-        no_tujuan_tambahan: dest, // Opsional
+        no_tujuan_tambahan: dest, 
         api_trxid: reff_id,
-        pin: pin // PIN 0502
+        pin: pin 
       };
 
       const response = await fetch(`${baseUrl}/transaksi`, {
@@ -84,7 +96,6 @@ export default async function handler(req, res) {
 
       const result = await response.json();
 
-      // Normalisasi Respon: TriPay kadang merespon success: true tapi status transaksi 'gagal' (status: 2)
       if (result.success && result.data && result.data.status === 2) { 
            return res.status(200).json({
                success: false,
@@ -96,7 +107,6 @@ export default async function handler(req, res) {
       return res.status(200).json(result);
     }
 
-    // Jika tidak ada action yang cocok
     return res.status(400).json({ success: false, message: 'Action tidak dikenal' });
 
   } catch (error) {

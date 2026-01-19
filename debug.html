@@ -3161,6 +3161,13 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
              if (p.stock === 0 || p.stock === '0') isHabis = true;
 
              // Pengecualian Khusus (Jika ada)
+                          // --- FIX: LOGIKA TAMPILAN PRODUK TRIPAY ---
+             // Bypass stok 0 khusus TriPay (Karena seringkali PPOB digital stoknya unlimited/hidden)
+             if(provCode === 'TRIPAY') {
+                 // Selama statusnya 1 (Tersedia), paksa tampil
+                 if (p.status == 1 || p.status === '1') isHabis = false;
+             }
+
              if(provCode === 'ICS_XDA' || provCode === 'ICS_CIRCLE') isHabis = false;
              
              const card = document.createElement('div');
@@ -5056,18 +5063,41 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
 
         let products = [];
 
+        // --- DEBUG MODE TRIPAY (AUTO FIX) ---
         if (code === 'TRIPAY') {
              try {
+                 console.log("[Frontend] Memulai Request ke /api/tripay...");
                  const res = await fetch('/api/tripay', {
                      method: 'POST',
                      headers: { 'Content-Type': 'application/json' },
                      body: JSON.stringify({ action: 'pricelist' })
                  });
-                 const json = await res.json();
-                 if (json.success && json.data) products = json.data;
-             } catch (e) { console.error("Gagal load TriPay", e); }
-        }
-        else if(code.startsWith('ICS_')) {
+                 console.log("[Frontend] Status HTTP:", res.status);
+                 
+                 const text = await res.text();
+                 console.log("[Frontend] Body Respon:", text);
+
+                 try {
+                     const json = JSON.parse(text);
+                     if (json.success && json.data) {
+                         products = json.data;
+                     } else {
+                         console.error("[Frontend] Gagal/Data Kosong:", json);
+                         const errMsg = json.message || 'Data Produk Kosong dari Server';
+                         document.getElementById('etalaseGrid').innerHTML = `<div class='col-span-2 text-center py-6 text-red-500 text-xs font-mono border border-red-200 bg-red-50 rounded-xl'>❌ ${errMsg}<br><span class='text-[9px] text-gray-400'>Cek Console untuk detail</span></div>`;
+                         return;
+                     }
+                 } catch(parseErr) {
+                     console.error("[Frontend] Respon Bukan JSON:", text);
+                     document.getElementById('etalaseGrid').innerHTML = `<div class='col-span-2 text-center py-6 text-red-500 text-xs font-mono border border-red-200 bg-red-50 rounded-xl'>⚠️ Error Parse JSON<br>Respon Server: "${text.substring(0, 50)}..."<br><span class='text-[9px] text-gray-400'>Mungkin API Key Salah / Server Error</span></div>`;
+                     return;
+                 }
+             } catch (e) { 
+                 console.error("[Frontend] Network Error", e); 
+                 document.getElementById('etalaseGrid').innerHTML = `<div class='col-span-2 text-center py-6 text-red-500 text-xs font-mono border border-red-200 bg-red-50 rounded-xl'>🔌 Koneksi Gagal: ${e.message}</div>`;
+                 return;
+             }
+        }else if(code.startsWith('ICS_')) {
              let icsType = 'xda';
              if(code === 'ICS_CIRCLE') icsType = 'circle';
              if(code === 'ICS_XLA') icsType = 'xla';

@@ -4601,7 +4601,29 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                     isSuccessApi = true;
                 }
             } 
-            // B. Cek Mode KHFY (Default)
+                        // B. Cek Mode TRIPAY
+            else if (String(docId).startsWith('TRX-TP-') || providerId === 'TRIPAY' || (localData.provider_code && localData.provider_code === 'TRIPAY')) {
+                try {
+                    const res = await fetch('/api/tripay', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'detail', api_trxid: docId })
+                    });
+                    const json = await res.json();
+                    rawJson = JSON.stringify(json);
+                    
+                    if (json.success && json.data) {
+                        const d = json.data;
+                        // 0=Pending, 1=Sukses, 2=Gagal, 3=Refund
+                        if (d.status === 1 || d.status === '1') freshStatus = 'Sukses';
+                        else if (d.status === 2 || d.status === '2' || d.status === 3 || d.status === '3') freshStatus = 'Gagal';
+                        
+                        sn = d.sn || d.token || d.note || d.message || '';
+                        isSuccessApi = true;
+                    }
+                } catch(e) { console.log('TriPay Check Error', e); }
+            }
+            // C. Cek Mode KHFY (Default)
             else {
                 const res = await callApi('/history', { refid: docId });
                 rawJson = JSON.stringify(res);

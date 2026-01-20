@@ -20,7 +20,7 @@ const KHFY_BASE_URL = "https://panel.khfy-store.com/api_v2";
 const KHFY_AKRAB_URL = "https://panel.khfy-store.com/api_v3/cek_stock_akrab";
 const ICS_BASE_URL = "https://api.ics-store.my.id/api/reseller";
 
-// ⚠️ API KEYS (DEV LOCAL)
+// ⚠️ API KEYS (HARDCODED)
 const KHFY_KEY = "8F1199C1-483A-4C96-825E-F5EBD33AC60A"; 
 const ICS_KEY = "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77"; 
 
@@ -28,7 +28,7 @@ const ICS_KEY = "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff7
 const TG_TOKEN = "7850521841:AAH84wtuxnDWg5u04lMkL5zqVcY1hIpzGJg";
 const TG_CHAT_ID = "7348139166";
 
-// DAFTAR SLOT V3
+// DAFTAR SLOT V3 (Untuk dipisahkan tampilannya)
 const KHFY_SPECIAL_CODES = ['XLA14', 'XLA32', 'XLA39', 'XLA51', 'XLA65', 'XLA89'];
 const PRODUCT_NAMES = {
     'XLA14': 'Super Mini', 'XLA32': 'Mini', 'XLA39': 'Big',
@@ -64,7 +64,7 @@ async function sendTelegramLog(message, isUrgent = false) {
 }
 
 // ============================================================
-// 🛠️ FUNGSI FETCH DATA STOK (FIXED)
+// 🛠️ FUNGSI FETCH DATA STOK
 // ============================================================
 
 // 1. KHFY Regular
@@ -98,15 +98,15 @@ async function getKHFYFullStock() {
     } catch (error) { return { error: error.message }; }
 }
 
-// 2. ICS Full Stock (FIXED AUTH)
+// 2. ICS Full Stock
 async function getICSFullStock() {
     const targetUrl = new URL(`${ICS_BASE_URL}/products`);
-    targetUrl.searchParams.append('apikey', ICS_KEY); // Hybrid Auth (URL)
+    targetUrl.searchParams.append('apikey', ICS_KEY); 
 
     const headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'application/json',
-        'Authorization': `Bearer ${ICS_KEY}` // Header Auth
+        'Authorization': `Bearer ${ICS_KEY}`
     };
 
     try {
@@ -176,7 +176,7 @@ async function hitProviderDirect(serverType, data, isRecheck = false) {
 
     if (serverType === 'ICS') {
         headers['Authorization'] = `Bearer ${ICS_KEY}`;
-        headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'; // User Agent Valid
+        headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'; 
 
         if (isRecheck) {
             targetUrl = new URL(`${ICS_BASE_URL}/trx/${data.reffId}`);
@@ -240,7 +240,7 @@ async function sendUserLog(uid, title, message, trxId) {
 // 🏁 LOGIKA UTAMA (WORKER)
 // ============================================================
 async function runPreorderQueue() {
-    console.log(`[${new Date().toISOString()}] MEMULAI WORKER (FIX STOCK DISPLAY)...`);
+    console.log(`[${new Date().toISOString()}] MEMULAI WORKER (FULL UNLOCK MODE)...`);
 
     try {
         const snapshot = await db.collection('preorders').orderBy('timestamp', 'asc').limit(100).get();
@@ -278,14 +278,13 @@ async function runPreorderQueue() {
             reportMsg += "⚠️ Gagal mengambil data slot V3\n";
         }
 
-        // --- FUNGSI PRINT STATUS (FIXED LOGIC) ---
+        // --- FUNGSI PRINT STATUS ---
         const printStatus = (item, source) => {
             let status = "Unknown";
             let icon = "⚪";
             
             if (source === 'ICS') {
-                // [FIX] Baca Properti Raw Langsung
-                const stock = (item.stock !== undefined) ? item.stock : 0; // Fix undefined
+                const stock = (item.stock !== undefined) ? item.stock : 0; 
                 const isGangguan = item.status === 'gangguan' || item.status === 'error';
                 const isKosong = item.status === 'empty' || stock === 0 || item.status === 'kosong';
 
@@ -315,19 +314,22 @@ async function runPreorderQueue() {
             reportMsg += `⚠️ Gagal ICS: ${errMsg}\n`;
         }
 
-        // C. DAFTAR PRODUK KHFY
+        // C. DAFTAR PRODUK KHFY (FULL UNLOCKED)
         reportMsg += "\n📡 <b>SERVER KHFY</b>\n";
         if (khfyData && khfyData.list) {
-            const khfyItems = khfyData.list.filter(i => {
+            // Urutkan kode produk
+            const sortedKhfy = khfyData.list.sort((a,b) => (a.kode_produk||'').localeCompare(b.kode_produk||''));
+
+            // Filter: Tampilkan SEMUA kecuali yang sudah ada di "Slot V3" (XLA14 dll)
+            const khfyItems = sortedKhfy.filter(i => {
                 const c = (i.kode_produk || "").toUpperCase();
-                const isSpecial = KHFY_SPECIAL_CODES.includes(c);
-                return !isSpecial && (c.startsWith('FMX') || c.startsWith('CFMX') || c.startsWith('PLN') || c.startsWith('XLC') || c.startsWith('XLA'));
+                return !KHFY_SPECIAL_CODES.includes(c); 
             });
-            khfyItems.sort((a,b) => a.kode_produk.localeCompare(b.kode_produk));
+
             if (khfyItems.length > 0) {
                 khfyItems.forEach(i => reportMsg += printStatus(i, 'KHFY'));
             } else {
-                reportMsg += "<i>Tidak ada produk KHFY relevan</i>\n";
+                reportMsg += "<i>Tidak ada produk KHFY terdeteksi</i>\n";
             }
         }
 

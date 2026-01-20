@@ -3176,15 +3176,47 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
                  };
              }
              
+                                       // --- LOGIKA STOK DINAMIS ---
+             let stockLabel = 'Tersedia';
+             let stockClass = 'text-green-500';
+             let badgeStyle = 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-800';
+             
+             let currentStock = 9999;
+             if(p.stock !== undefined && p.stock !== null) currentStock = parseInt(p.stock);
+             else if(p.stok !== undefined && p.stok !== null) currentStock = parseInt(p.stok);
+
+             // KHUSUS ICS: Tampilkan Angka Stok (Bukan cuma 'Tersedia')
+             if (provCode && provCode.startsWith('ICS_')) {
+                 stockLabel = `Stok: ${currentStock}`;
+             }
+
+             if(currentStock <= 900 && currentStock > 0) {
+                 stockLabel = `Sisa ${currentStock}`;
+                 stockClass = 'text-orange-500';
+                 badgeStyle = 'bg-orange-50 text-orange-600 border-orange-200';
+             }
+
+             if(isHabis) {
+                 stockLabel = 'Habis / Gangguan';
+                 stockClass = 'text-red-500';
+                 badgeStyle = 'bg-gray-100 text-gray-500 border-gray-200';
+             }
+
              card.innerHTML = `
                 <div class="flex flex-col h-full justify-between">
                     <div class="mb-3">
                         <h4 class="text-xs font-bold text-gray-700 dark:text-gray-200 leading-tight ${!isHabis ? 'group-hover:text-blue-600 transition' : ''}">${name}</h4>
-                        <p class="text-[9px] text-gray-400 mt-1">${isHabis ? 'Stok Habis / Gangguan' : 'Tersedia'}</p>
+                        <div class="flex items-center gap-1 mt-1.5">
+                            <i class="fas fa-box text-[9px] ${stockClass}"></i>
+                            <p class="text-[9px] text-gray-400">${stockLabel}</p>
+                        </div>
                     </div>
-                    <div class="flex justify-between items-end">
-                        <span class="text-[10px] font-bold px-2 py-1 rounded-lg ${isHabis ? 'bg-red-100 text-red-600' : 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'}">${isHabis ? 'GANGGUAN' : 'BELI'}</span>
-                        <p class="text-sm font-black text-gray-800 dark:text-white">${window.formatRp(price).replace(',00', '').replace('Rp', '')}<span class="text-[9px] font-normal text-gray-400">rb</span></p>
+                    <div class="flex justify-between items-end border-t border-dashed border-gray-100 dark:border-gray-800 pt-2">
+                        <div>
+                            <p class="text-[9px] text-gray-400">Harga</p>
+                            <p class="text-sm font-black text-gray-800 dark:text-white">${window.formatRp(price).replace(',00', '').replace('Rp', '')}<span class="text-[9px] font-normal text-gray-400">rb</span></p>
+                        </div>
+                        <span class="text-[9px] font-bold px-2 py-1 rounded-lg border ${badgeStyle}">${isHabis ? 'GANGGUAN' : 'BELI'}</span>
                     </div>
                 </div>`;
              grid.appendChild(card);
@@ -3881,7 +3913,7 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
         window.renderEtalaseGridPO(products, code);
     };
 
-        window.renderEtalaseGridPO = (products, provCode) => {
+            window.renderEtalaseGridPO = (products, provCode) => {
          const grid = document.getElementById('etalaseGridPO');
          grid.innerHTML = '';
          if(products.length === 0) {
@@ -3897,20 +3929,22 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
          });
 
          products.forEach(p => {
-             // FIX HARGA PO: Ambil semua kemungkinan key harga (termasuk harga_final)
              let rawPrice = parseInt(p.harga || p.price || p.buyer_price || p.harga_final || 0);
              let price = rawPrice;
              let name = p.nama_produk || p.name || p.product_name || 'Produk';
              const code = p.kode_produk || p.code || p.buyer_sku_code;
 
-             // FIX MARKUP: Gunakan += (tambah), bukan = (ganti)
              if(typeof pricingRules !== 'undefined' && pricingRules[code]) {
                 const r = pricingRules[code];
                 if(typeof r === 'object') { 
                     if(r.price) price += parseInt(r.price); 
                     if(r.name) name = r.name; 
                 } else { price += parseInt(r); }
-             } else { price += 2000; } // Default Markup
+             } else { price += 2000; }
+
+             // --- FIX: DEFINISI VARIABEL isHabis ---
+             // Default FALSE agar produk SELALU TAMPIL dan BISA DIKLIK untuk Preorder
+             let isHabis = false;
 
              const card = document.createElement('div');
              card.className = `relative p-4 rounded-3xl border transition-all duration-300 bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-lg hover:border-purple-200 dark:hover:border-purple-800 cursor-pointer group`;
@@ -3922,20 +3956,57 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
                  window.customConfirm('Preorder', `Pesan ${name}?\nHarga: ${window.formatRp(price)}`, () => window.submitPreorder());
              };
              
+             // --- LOGIKA TAMPILAN STOK ---
+             let stockLabel = 'Tersedia';
+             let stockClass = 'text-green-500';
+             let badgeStyle = 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-800';
+             
+             let currentStock = 9999;
+             if(p.stock !== undefined && p.stock !== null) currentStock = parseInt(p.stock);
+             else if(p.stok !== undefined && p.stok !== null) currentStock = parseInt(p.stok);
+
+             // KHUSUS ICS: Tampilkan Angka Stok
+             if (provCode && provCode.startsWith('ICS_')) {
+                 stockLabel = `Stok: ${currentStock}`;
+             }
+
+             // Logic Badge Preorder
+             if(currentStock <= 0) {
+                 stockLabel = `Stok: 0 (Preorder)`;
+                 stockClass = 'text-purple-500';
+                 badgeStyle = 'bg-purple-50 text-purple-600 border-purple-200';
+             } else if(currentStock <= 900) {
+                 stockLabel = `Sisa ${currentStock}`;
+                 stockClass = 'text-orange-500';
+             }
+
+             // Safety check kalau isHabis true (meski di atas kita set false)
+             if(isHabis) {
+                 stockLabel = 'Habis / Gangguan';
+                 stockClass = 'text-red-500';
+                 badgeStyle = 'bg-gray-100 text-gray-500 border-gray-200';
+             }
+
              card.innerHTML = `
                 <div class="flex flex-col h-full justify-between">
                     <div class="mb-3">
                         <h4 class="text-xs font-bold text-gray-700 dark:text-gray-200 leading-tight group-hover:text-purple-600 transition">${name}</h4>
-                        <p class="text-[9px] text-gray-400 mt-1">Preorder</p>
+                        <div class="flex items-center gap-1 mt-1.5">
+                            <i class="fas fa-box text-[9px] ${stockClass}"></i>
+                            <p class="text-[9px] text-gray-400">${stockLabel}</p>
+                        </div>
                     </div>
-                    <div class="flex justify-between items-end">
-                        <span class="text-[10px] font-bold px-2 py-1 rounded-lg bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">PO</span>
-                        <p class="text-sm font-black text-gray-800 dark:text-white">${window.formatRp(price).replace(',00', '').replace('Rp', '')}<span class="text-[9px] font-normal text-gray-400">rb</span></p>
+                    <div class="flex justify-between items-end border-t border-dashed border-gray-100 dark:border-gray-800 pt-2">
+                        <div>
+                            <p class="text-[9px] text-gray-400">Harga</p>
+                            <p class="text-sm font-black text-gray-800 dark:text-white">${window.formatRp(price).replace(',00', '').replace('Rp', '')}<span class="text-[9px] font-normal text-gray-400">rb</span></p>
+                        </div>
+                        <span class="text-[9px] font-bold px-2 py-1 rounded-lg border ${badgeStyle}">ORDER</span>
                     </div>
                 </div>`;
              grid.appendChild(card);
          });
-    };
+        };
     window.executeApiTransaction = async (code, dest, price, name, provCode) => {
         window.showLoader(true);
         // Format Baru: TRX-08xx-JamMenitDetik

@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DEBUG MODE - SUPER ADMIN</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        body { background-color: #0f172a; color: #e2e8f0; font-family: 'Courier New', Courier, monospace; }
+        .debug-card { background-color: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .btn-action { @apply w-full py-2 rounded font-bold transition transform active:scale-95; }
+        .input-dark { @apply w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-red-500 focus:outline-none mb-3; }
+    </style>
+</head>
+<body class="p-6">
+
+    <div class="max-w-2xl mx-auto">
+        <div class="flex justify-between items-center mb-8 border-b border-red-900 pb-4">
+            <div>
+                <h1 class="text-2xl font-bold text-red-500"><i class="fas fa-bug"></i> DEBUG TOOLS</h1>
+                <p class="text-xs text-slate-500">ROOT ACCESS // OWNER ONLY</p>
+            </div>
+            <div id="adminStatus" class="text-xs font-bold text-slate-400">Checking Auth...</div>
+        </div>
+
+        <div class="debug-card border-l-4 border-l-green-500">
+            <h3 class="font-bold text-green-400 mb-4"><i class="fas fa-money-bill-wave"></i> Injeksi Topup (QRIS Fake)</h3>
+            <p class="text-[10px] text-slate-400 mb-3">Saldo bertambah, History tercatat "Top Up QRIS Berhasil", Notif Telegram terkirim.</p>
+            
+            <input type="text" id="targetUsername" placeholder="Username Target" class="input-dark">
+            <input type="number" id="topupAmount" placeholder="Nominal (Rp)" class="input-dark">
+            
+            <button onclick="injectTopup()" class="btn-action bg-green-600 hover:bg-green-700 text-white">
+                <i class="fas fa-syringe"></i> INJECT SALDO & NOTIF
+            </button>
+        </div>
+
+        <div class="debug-card border-l-4 border-l-purple-500">
+            <h3 class="font-bold text-purple-400 mb-4"><i class="fas fa-bolt"></i> Transaksi PPOB (Bypass Saldo)</h3>
+            <p class="text-[10px] text-slate-400 mb-3">Tembak ke Server (ICS/KHFY) tapi saldo user TIDAK dipotong (Harga Database = 0).</p>
+            
+            <input type="text" id="trxProduct" placeholder="Kode Produk (Cth: XLA10, PLN20)" class="input-dark">
+            <input type="text" id="trxDest" placeholder="Nomor Tujuan" class="input-dark">
+            <select id="trxProvider" class="input-dark">
+                <option value="ICS">ICS (Relay)</option>
+                <option value="KHFY">KHFY (Direct/Proxy)</option>
+            </select>
+            
+            <button onclick="processFreeTrx()" class="btn-action bg-purple-600 hover:bg-purple-700 text-white">
+                <i class="fas fa-magic"></i> PROSES GRATIS (0 RUPIAH)
+            </button>
+        </div>
+
+        <div class="debug-card border-l-4 border-l-red-500">
+            <h3 class="font-bold text-red-500 mb-4"><i class="fas fa-trash-alt"></i> Force Delete History</h3>
+            <p class="text-[10px] text-slate-400 mb-3">Menghapus dokumen history secara permanen dari database.</p>
+            
+            <input type="text" id="delUid" placeholder="UID User" class="input-dark">
+            <input type="text" id="delTrxId" placeholder="ID Transaksi (Cth: TRX-08xx...)" class="input-dark">
+            
+            <button onclick="forceDelete()" class="btn-action bg-red-600 hover:bg-red-700 text-white">
+                <i class="fas fa-bomb"></i> HAPUS PERMANEN
+            </button>
+        </div>
+        
+        <div class="text-center mt-8">
+            <button onclick="window.location.href='index.html'" class="text-xs text-slate-500 hover:text-white underline">Kembali ke App Utama</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // KONFIGURASI SESUAI INDEX.HTML ANDA
+        const firebaseConfig = {
+            apiKey: "AIzaSyBnVxgxkS8InH1PQCMGe3cY8IvPqSN6dLo",
+            authDomain: "ppob-3ea96.firebaseapp.com",
+            projectId: "ppob-3ea96",
+            storageBucket: "ppob-3ea96.firebasestorage.app",
+            messagingSenderId: "181320175094",
+            appId: "1:181320175094:web:306b79071018410b910bd7",
+            measurementId: "G-0K2V796QDX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        // GLOBAL VARIABLES
+        let currentUser = null;
+        let currentUsername = "Admin"; // Default
+
+        // 1. AUTH CHECK
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                // Ambil Username Admin untuk keperluan notifikasi
+                const uDoc = await getDoc(doc(db, "users", user.uid));
+                if(uDoc.exists()) currentUsername = uDoc.data().username;
+                
+                document.getElementById('adminStatus').innerHTML = `<span class="text-green-500">GRANTED: ${user.email}</span>`;
+            } else {
+                document.getElementById('adminStatus').innerHTML = `<span class="text-red-500">ACCESS DENIED</span>`;
+                alert("Silakan Login di Panel Admin atau Index terlebih dahulu!");
+                window.location.href = 'index.html';
+            }
+        });
+
+        // ==========================================
+        // FITUR 1: INJEKSI TOPUP & NOTIF TELEGRAM
+        // ==========================================
+        
+        // KONFIGURASI TELEGRAM (Sama seperti index.html)
+        const TELEGRAM_CONFIG = {
+            token: "7507761189:AAGUCYltzj_IMuDRgjUzUPiZDz4nbVXvOME",
+            chatId: "-1002997407612"
+        };
+        
+        const PROXY_LIST = [
+            { name: 'CorsProxyIO', url: 'https://corsproxy.io/?' },
+            { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
+            { name: 'Direct', url: '' }
+        ];
+
+        window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+
+        // Fungsi Notifikasi Telegram (Disalin dari Index agar Format Sama)
+        window.sendTelegramNotif = async (type, data) => {
+            let message = "";
+            let topicId = null;
+            const now = new Date();
+            const options = { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+            const formattedDate = now.toLocaleDateString('id-ID', options).replace(/ pukul /g, ' | ');
+            
+            // Masking ID Transaksi agar terlihat seperti asli
+            let safeTrxId = data.trxId || "QP-FAKE-" + Date.now(); 
+
+            // LOGIKA TOPUP (Topic 7)
+            if (type === 'TOPUP') {
+                topicId = 7;
+                message = `✅ DEPOSIT BERHASIL \n` +
+                          `━━━━━━━━━━━━━━━━━━\n` +
+                          `💳 Jumlah : Rp ${window.formatRp(data.amount).replace('Rp', '').trim()}\n` +
+                          `🕒 Waktu : ${formattedDate}\n` +
+                          `👤 User ID : ${data.username || currentUsername}\n` +
+                          `📌 Status : BERHASIL\n` +
+                          `🆔 ID Transaksi :\n` +
+                          `${safeTrxId}\n` +
+                          `━━━━━━━━━━━━━━━━━━\n` +
+                          `🏢 PANDAWA SYSTEM\n` +
+                          `https://www.pandawa-digital.store`;
+            }
+
+            const baseUrl = `https://api.telegram.org/bot${TELEGRAM_CONFIG.token}/sendMessage`;
+            const params = new URLSearchParams({
+                chat_id: TELEGRAM_CONFIG.chatId,
+                text: message,
+                message_thread_id: topicId
+            });
+            const targetUrl = `${baseUrl}?${params.toString()}`;
+
+            for (const proxy of PROXY_LIST) {
+                try {
+                    const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
+                    await fetch(fullUrl);
+                    console.log("Notif Sent via " + proxy.name);
+                    break;
+                } catch (e) {}
+            }
+        };
+
+        window.injectTopup = async () => {
+            const targetUser = document.getElementById('targetUsername').value;
+            const amount = parseInt(document.getElementById('topupAmount').value);
+
+            if(!targetUser || !amount) return alert("Data kurang lengkap!");
+
+            try {
+                // Cari User
+                const q = query(collection(db, "users"), where("username", "==", targetUser));
+                const snap = await getDocs(q);
+                
+                if(snap.empty) return alert("Username tidak ditemukan!");
+                
+                const userDoc = snap.docs[0];
+                const uid = userDoc.id;
+                const currentBal = userDoc.data().balance || 0;
+                
+                // Buat ID Transaksi seolah-olah dari QiosPay
+                // Format: QP-[Timestamp]
+                const fakeTime = Date.now();
+                const trxId = "QP-" + fakeTime;
+
+                await runTransaction(db, async (t) => {
+                    const uRef = doc(db, "users", uid);
+                    const hRef = doc(db, "users", uid, "history", trxId);
+
+                    // Update Saldo
+                    t.update(uRef, { balance: currentBal + amount });
+
+                    // Tulis History mirip Asli (Method: QiosPay)
+                    t.set(hRef, {
+                        title: "Top Up QRIS Berhasil",
+                        amount: amount,
+                        type: "in",
+                        date: new Date().toISOString(),
+                        status: "Sukses",
+                        method: "QiosPay", // Menyamarkan metode
+                        trx_id: trxId,
+                        note: "Injected by Admin" // Penanda internal admin
+                    });
+                });
+
+                // Kirim Notif Telegram
+                await window.sendTelegramNotif('TOPUP', {
+                    amount: amount,
+                    trxId: trxId,
+                    username: targetUser
+                });
+
+                alert("INJEKSI SUKSES! Saldo masuk & Notif Telegram terkirim.");
+
+            } catch(e) {
+                alert("Error: " + e.message);
+            }
+        }
+
+        // ==========================================
+        // FITUR 2: TRANSAKSI BIAYA 0
+        // ==========================================
+        
+        // API Config
+        const CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
+        const ICS_CONFIG = { apiKey: "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77", baseUrl: "https://www.pandawa-digital.store/api/relay" };
+
+        window.processFreeTrx = async () => {
+            if(!currentUser) return alert("Login dulu!");
+            
+            const code = document.getElementById('trxProduct').value;
+            const dest = document.getElementById('trxDest').value;
+            const provider = document.getElementById('trxProvider').value;
+
+            if(!code || !dest) return alert("Isi Kode Produk & Nomor Tujuan!");
+
+            if(!confirm(`Yakin tembak ${code} ke ${dest} dengan BIAYA 0 RUPIAH di Database? \n(Saldo Supplier Tetap Terpotong)`)) return;
+
+            const trxId = (provider === 'ICS' ? 'ICS-' : 'TRX-') + Date.now();
+            const trxRef = doc(db, "users", currentUser.uid, "history", trxId);
+
+            // 1. Catat ke Database (TANPA POTONG SALDO)
+            // Kita lewati logika pengurangan saldo (balance - price)
+            try {
+                await setDoc(trxRef, {
+                    title: `Free Trx (${code})`,
+                    amount: 0, // DISINI KUNCINYA: BIAYA 0
+                    type: 'out',
+                    date: new Date().toISOString(),
+                    status: 'Proses',
+                    api_msg: 'Sending to server (Free Mode)...',
+                    trx_id: trxId,
+                    dest_num: dest,
+                    raw_code: code,
+                    provider: provider
+                });
+            } catch(e) { return alert("Gagal tulis DB: " + e.message); }
+
+            // 2. Tembak API Asli
+            let result = null;
+            try {
+                if (provider === 'ICS') {
+                    // Call ICS API
+                    const url = `${ICS_CONFIG.baseUrl}?action=createTransaction&apikey=${ICS_CONFIG.apiKey}&kode_produk=${code}&nomor_tujuan=${dest}&refid=${trxId}`;
+                    const res = await fetch(url); // Direct fetch (tambahkan proxy jika perlu)
+                    result = await res.json();
+                } else {
+                    // Call KHFY API
+                    const url = `${CONFIG.baseUrl}/trx?api_key=${CONFIG.apiKey}&produk=${code}&tujuan=${dest}&reff_id=${trxId}`;
+                    // Gunakan Proxy CodeTabs agar tidak CORS
+                    const res = await fetch('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url));
+                    result = await res.json();
+                }
+
+                // 3. Update Status Hasil
+                await updateDoc(trxRef, {
+                    status: 'Pending', // Biarkan sistem auto-check di index yang update jadi Sukses/Gagal
+                    api_msg: 'Request Sent. Check App History.',
+                    raw_json: JSON.stringify(result)
+                });
+
+                alert("Request Terkirim! Cek status di aplikasi utama/Index.");
+
+            } catch(e) {
+                await updateDoc(trxRef, { status: 'Gagal', api_msg: 'Error: ' + e.message });
+                alert("Gagal Tembak API: " + e.message);
+            }
+        };
+
+        // ==========================================
+        // FITUR 3: HAPUS RIWAYAT
+        // ==========================================
+        window.forceDelete = async () => {
+            const uid = document.getElementById('delUid').value;
+            const tid = document.getElementById('delTrxId').value;
+
+            if(!uid || !tid) return alert("Isi UID dan TRX ID!");
+            if(!confirm("PERINGATAN: Data akan hilang permanen! Lanjut?")) return;
+
+            try {
+                await deleteDoc(doc(db, "users", uid, "history", tid));
+                alert("Dokumen berhasil dimusnahkan.");
+            } catch(e) {
+                alert("Gagal hapus: " + e.message);
+            }
+        }
+
+    </script>
+</body>
+</html>

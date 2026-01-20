@@ -6,6 +6,8 @@ import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 
 // --- KONFIGURASI ---
 const token = '8576099469:AAHxURiNMnVhWdLqHLlAoX7ayAVX6HsCSiY';
+// Ganti dengan URL domain Anda sendiri agar bot bisa menembak API Relay internal
+const BASE_URL = 'https://www.pandawa-digital.store'; 
 
 const firebaseConfig = {
     apiKey: "AIzaSyBnVxgxkS8InH1PQCMGe3cY8IvPqSN6dLo",
@@ -19,13 +21,13 @@ const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT
 
 const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
 
-// --- LAYOUT TOMBOL MENU UTAMA ---
+// --- MENU BARU KHUSUS PREORDER ---
 const mainMenu = {
     resize_keyboard: true,
     one_time_keyboard: false,
     keyboard: [
-        [{ text: "📊 Dashboard" }, { text: "⏳ Pending Trx" }],
-        [{ text: "🔍 Cari User" }, { text: "ℹ️ Status Bot" }],
+        [{ text: "🚀 RUN AUTO MASSAL" }],
+        [{ text: "📋 Cek Antrian Preorder" }],
         [{ text: "🚪 Logout" }]
     ]
 };
@@ -36,8 +38,6 @@ if (!admin.apps.length) {
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccount)
         });
-    } else {
-        console.error("CRITICAL: Service Account belum disetting di Vercel!");
     }
 }
 const db = admin.firestore();
@@ -45,6 +45,46 @@ const clientApp = initializeApp(firebaseConfig, 'clientBotApp');
 const clientAuth = getAuth(clientApp);
 
 const formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+
+// --- HELPER: EXECUTE TRANSACTION VIA RELAY ---
+async function executeTransaction(poData) {
+    const { targetNumber, provider, serverType, id } = poData;
+    const reffId = `BOT-${Date.now()}-${id.substring(0,4)}`;
+    
+    try {
+        let url = '';
+        if (serverType === 'KHFY') {
+            url = `${BASE_URL}/api/relaykhfy?endpoint=/trx&produk=${provider}&tujuan=${targetNumber}&reff_id=${reffId}`;
+        } else {
+            // Default ICS
+            let icsType = 'xda';
+            if(String(provider).toUpperCase().startsWith('XCL')) icsType = 'circle';
+            else if(String(provider).toUpperCase().startsWith('XLA')) icsType = 'xla';
+            
+            url = `${BASE_URL}/api/relay?action=createTransaction&apikey=7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77&kode_produk=${provider}&nomor_tujuan=${targetNumber}&refid=${reffId}&type=${icsType}`;
+        }
+
+        const res = await fetch(url);
+        const json = await res.json();
+        
+        // Cek Keberhasilan berdasarkan Server
+        let isSuccess = false;
+        let sn = 'Proses Bot';
+        
+        if (serverType === 'KHFY') {
+            const msg = (json.message || json.msg || '').toLowerCase();
+            isSuccess = (json.status === true || json.ok === true || msg.includes('sukses') || msg.includes('proses'));
+            if(json.data && json.data.message) sn = json.data.message;
+        } else {
+            isSuccess = json.success === true;
+            if(json.data && json.data.message) sn = json.data.message;
+        }
+
+        return { success: isSuccess, sn: sn, raw: json };
+    } catch (e) {
+        return { success: false, sn: e.message, raw: null };
+    }
+}
 
 // --- HANDLER UTAMA ---
 export default async function handler(req, res) {
@@ -54,55 +94,82 @@ export default async function handler(req, res) {
     const bot = new TelegramBot(token);
     const body = req.body;
 
-    // A. HANDLE TOMBOL INLINE (ACC/TOLAK TRANSAKSI)
+    // A. HANDLE CALLBACK QUERY (TOMBOL MANUAL)
     if (body.callback_query) {
         const query = body.callback_query;
         const chatId = query.message.chat.id;
-        const data = query.data; // Format: ACC_uid_trxid_amount
+        const data = query.data; 
         
-        // Cek Sesi
         const sessionRef = db.collection('bot_sessions').doc(String(chatId));
         const sessionSnap = await sessionRef.get();
         if (!sessionSnap.exists || !sessionSnap.data().isLoggedIn) {
-            await bot.answerCallbackQuery(query.id, { text: "Sesi habis. Login lagi." });
+            await bot.answerCallbackQuery(query.id, { text: "Sesi habis." });
             return res.status(200).send('OK');
         }
 
-        const [action, uid, trxId, amountStr] = data.split('_');
+        const [action, poId] = data.split('__'); // Menggunakan separator double underscore
 
         try {
-            if (action === 'ACC') {
-                const amount = parseInt(amountStr);
-                await db.runTransaction(async (t) => {
-                    const userRef = db.collection('users').doc(uid);
-                    const trxRef = userRef.collection('history').doc(trxId);
-                    const uDoc = await t.get(userRef);
-                    if (!uDoc.exists) throw "User hilang";
+            const poRef = db.collection('preorders').doc(poId);
+            const poSnap = await poRef.get();
+            
+            if (!poSnap.exists) {
+                await bot.answerCallbackQuery(query.id, { text: "Data sudah hilang/terhapus." });
+                return res.status(200).send('OK');
+            }
+            
+            const poData = poSnap.data();
+            const uid = poData.uid;
+            const historyId = poData.historyId || ("PO-" + poId);
 
-                    const newBal = (uDoc.data().balance || 0) + amount;
-                    t.update(userRef, { balance: newBal });
-                    t.update(trxRef, { 
-                        status: 'Sukses', 
-                        api_msg: 'Approved via Telegram Bot',
-                        balance_after: newBal,
+            if (action === 'MANUAL_ACC') {
+                // FORCE SUKSES
+                await db.runTransaction(async (t) => {
+                    const hRef = db.collection('users').doc(uid).collection('history').doc(historyId);
+                    const hDoc = await t.get(hRef);
+                    if(hDoc.exists && hDoc.data().status !== 'Pending') throw "Status bukan Pending!";
+                    
+                    t.update(hRef, {
+                        status: 'Sukses',
+                        api_msg: 'Diterima Manual (Bot)',
                         date_updated: new Date().toISOString()
                     });
+                    t.delete(poRef); // Hapus dari antrian preorder
                 });
-                await bot.sendMessage(chatId, `✅ Topup Rp ${formatRp(amountStr)} BERHASIL di-ACC.`);
-                await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: query.message.message_id });
+                await bot.sendMessage(chatId, `✅ Antrian ${poData.targetNumber} di-SET SUKSES.`);
             } 
-            else if (action === 'REJ') {
-                await db.collection('users').doc(uid).collection('history').doc(trxId).update({
-                    status: 'Gagal',
-                    api_msg: 'Ditolak via Telegram Bot',
-                    date_updated: new Date().toISOString()
+            else if (action === 'MANUAL_REJ') {
+                // MANUAL TOLAK (REFUND)
+                await db.runTransaction(async (t) => {
+                    const uRef = db.collection('users').doc(uid);
+                    const hRef = uRef.collection('history').doc(historyId);
+                    
+                    const uDoc = await t.get(uRef);
+                    const hDoc = await t.get(hRef);
+                    
+                    if(hDoc.exists && hDoc.data().status !== 'Pending') throw "Status bukan Pending!";
+
+                    const refundAmount = poData.price || 0;
+                    const newBal = (uDoc.data().balance || 0) + refundAmount;
+
+                    t.update(uRef, { balance: newBal });
+                    t.update(hRef, {
+                        status: 'Gagal',
+                        api_msg: 'Ditolak Manual (Bot) - Refund',
+                        balance_final: newBal,
+                        date_updated: new Date().toISOString()
+                    });
+                    t.delete(poRef); // Hapus dari antrian
                 });
-                await bot.sendMessage(chatId, `❌ Transaksi DITOLAK.`);
-                await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: query.message.message_id });
+                await bot.sendMessage(chatId, `❌ Antrian ${poData.targetNumber} DITOLAK (Refund Rp ${refundAmount}).`);
             }
+            
+            // Hapus tombol setelah diklik
+            await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: query.message.message_id });
             await bot.answerCallbackQuery(query.id);
+
         } catch (e) {
-            await bot.sendMessage(chatId, `⚠️ Gagal: ${e.message}`);
+            await bot.sendMessage(chatId, `⚠️ Gagal: ${e.message || e}`);
         }
         return res.status(200).send('OK');
     }
@@ -119,140 +186,146 @@ export default async function handler(req, res) {
     const session = sessionSnap.exists ? sessionSnap.data() : { isLoggedIn: false };
 
     try {
-        // --- LOGIC LOGOUT ---
+        // LOGIN & LOGOUT (Sama seperti sebelumnya)
         if (text === '/logout' || text === '🚪 Logout') {
             await sessionRef.delete();
-            // Hapus keyboard saat logout
-            await bot.sendMessage(chatId, "👋 Logout berhasil. Sampai jumpa!", {
-                reply_markup: { remove_keyboard: true }
-            });
+            await bot.sendMessage(chatId, "👋 Logout berhasil.", { reply_markup: { remove_keyboard: true } });
             return res.status(200).send('OK');
         }
-
-        // --- LOGIC START & LOGIN ---
+        
         if (text === '/start') {
             if (session.isLoggedIn) {
-                await bot.sendMessage(chatId, `Halo Admin! Menu siap digunakan.`, { reply_markup: mainMenu });
+                await bot.sendMessage(chatId, `⚙️ *PANEL DEBUG PREORDER*\nMode: Auto Run & Manual Control`, { parse_mode: 'Markdown', reply_markup: mainMenu });
             } else {
-                await bot.sendMessage(chatId, `🔐 *ADMIN LOGIN*\n\nSilakan login dengan format:\n\`/login email password\``, { parse_mode: 'Markdown' });
+                await bot.sendMessage(chatId, `🔐 *LOGIN DEBUGGER*\nFormat: \`/login email password\``, { parse_mode: 'Markdown' });
             }
         }
         else if (text.startsWith('/login')) {
             const parts = text.split(' ');
             if (parts.length !== 3) {
-                await bot.sendMessage(chatId, "❌ Format salah. Gunakan: `/login email password`");
+                await bot.sendMessage(chatId, "❌ Format salah.");
             } else {
                 const email = parts[1];
                 const password = parts[2];
                 try { await bot.deleteMessage(chatId, msgId); } catch(e){}
 
                 if (!ALLOWED_ADMINS.includes(email)) {
-                    await bot.sendMessage(chatId, "⛔ Email tidak terdaftar.");
+                    await bot.sendMessage(chatId, "⛔ Akses Ditolak.");
                     return res.status(200).send('OK');
                 }
-
                 try {
                     await signInWithEmailAndPassword(clientAuth, email, password);
-                    await sessionRef.set({ isLoggedIn: true, email: email, loginAt: new Date().toISOString() });
-                    
-                    // TAMPILKAN KEYBOARD MENU UTAMA SETELAH LOGIN SUKSES
-                    await bot.sendMessage(chatId, `✅ *Login Berhasil!*\nSelamat datang ${email}.`, { 
-                        parse_mode: 'Markdown',
-                        reply_markup: mainMenu 
-                    });
+                    await sessionRef.set({ isLoggedIn: true, email: email });
+                    await bot.sendMessage(chatId, `✅ *Siap Debugging!*`, { parse_mode: 'Markdown', reply_markup: mainMenu });
                 } catch (error) {
                     await bot.sendMessage(chatId, `❌ Password salah.`);
                 }
             }
         }
 
-        // --- PROTEKSI: HARUS LOGIN ---
         else if (!session.isLoggedIn) {
-            await bot.sendMessage(chatId, "🔒 Akses ditolak. Ketik /start lalu login.");
+            await bot.sendMessage(chatId, "🔒 Login dulu bos.");
         }
 
-        // --- MENU: DASHBOARD ---
-        else if (text === '/menu' || text === '/dashboard' || text === '📊 Dashboard') {
-            const usersSnap = await db.collection('users').count().get();
-            const pendingSnap = await db.collectionGroup('history').where('status', 'in', ['Pending', 'Proses']).count().get();
+        // --- MENU 1: RUN AUTO MASSAL ---
+        else if (text === '🚀 RUN AUTO MASSAL') {
+            await bot.sendMessage(chatId, "🔄 Sedang memproses antrian massal (Max 5 per batch)...");
             
-            let totalSaldo = 0;
-            const allUsers = await db.collection('users').get();
-            allUsers.forEach(d => totalSaldo += (d.data().balance || 0));
-
-            const msg = `📊 *DASHBOARD REALTIME*\n` +
-                        `-------------------\n` +
-                        `👥 Total User: ${usersSnap.data().count}\n` +
-                        `💰 Total Saldo: ${formatRp(totalSaldo)}\n` +
-                        `⏳ Pending Trx: ${pendingSnap.data().count}\n` +
-                        `-------------------`;
-            await bot.sendMessage(chatId, msg, { parse_mode: 'Markdown', reply_markup: mainMenu });
-        }
-
-        // --- MENU: PENDING TRX ---
-        else if (text === '/pending' || text === '⏳ Pending Trx') {
-            const snapshot = await db.collectionGroup('history')
-                .where('status', 'in', ['Pending', 'Proses'])
-                .orderBy('date', 'desc')
-                .limit(5)
+            // Ambil Preorder Pending
+            const poSnap = await db.collection('preorders')
+                .orderBy('timestamp', 'desc')
+                .limit(5) // Limit agar Vercel tidak timeout
                 .get();
 
-            if (snapshot.empty) {
-                await bot.sendMessage(chatId, "✅ Tidak ada transaksi pending saat ini.", { reply_markup: mainMenu });
+            if (poSnap.empty) {
+                await bot.sendMessage(chatId, "✅ Antrian Kosong / Bersih.");
             } else {
-                for (const doc of snapshot.docs) {
-                    const d = doc.data();
-                    const trxId = doc.id;
-                    const uid = doc.ref.parent.parent.id;
-                    const isTopup = d.type === 'in';
-                    const icon = isTopup ? '📥 TOPUP' : '🛒 TRX';
+                let successCount = 0;
+                let failCount = 0;
+                let report = "📝 <b>Laporan Run Massal:</b>\n\n";
 
-                    const msg = `<b>${icon}</b>\nUser: <code>${uid}</code>\nItem: ${d.title}\nNominal: <b>${formatRp(d.amount)}</b>\nStatus: ${d.status}`;
+                // Loop Eksekusi
+                for (const doc of poSnap.docs) {
+                    const d = doc.data();
+                    // Skip jika status debugnya sudah terbeli (tapi belum dihapus)
+                    if (d.debugStatus === 'TERBELI') continue;
+
+                    const result = await executeTransaction({ ...d, id: doc.id });
                     
-                    const buttons = [];
-                    if (isTopup) buttons.push([{ text: "✅ ACC Topup", callback_data: `ACC_${uid}_${trxId}_${d.amount}` }]);
-                    buttons.push([{ text: "❌ Tolak / Refund", callback_data: `REJ_${uid}_${trxId}_0` }]);
+                    if (result.success) {
+                        successCount++;
+                        // Update Preorder jadi TERBELI (Mirip logic paneladmin)
+                        // Update History jadi Sukses
+                        await db.runTransaction(async (t) => {
+                            // Update History User
+                            const hRef = db.collection('users').doc(d.uid).collection('history').doc(d.historyId || "PO-"+doc.id);
+                            const hDoc = await t.get(hRef);
+                            if(hDoc.exists) {
+                                t.update(hRef, { 
+                                    status: 'Sukses', 
+                                    api_msg: 'Sukses by Bot Massal: ' + result.sn,
+                                    date_updated: new Date().toISOString()
+                                });
+                            }
+                            // Hapus Preorder karena sudah sukses
+                            t.delete(doc.ref);
+                        });
+                        report += `✅ ${d.targetNumber} : Sukses\n`;
+                    } else {
+                        failCount++;
+                        // Update Status Preorder jadi Gagal (Biar admin tau) tapi jangan hapus dulu (biar bisa manual)
+                        await doc.ref.update({ 
+                            debugStatus: 'GAGAL',
+                            debugLogs: `Bot Try: ${result.sn}\nRaw: ${JSON.stringify(result.raw)}`
+                        });
+                        report += `❌ ${d.targetNumber} : Gagal (${result.sn})\n`;
+                    }
+                }
+
+                await bot.sendMessage(chatId, report + `\nTotal Sukses: ${successCount}\nGagal/Skip: ${failCount}`, { parse_mode: 'HTML', reply_markup: mainMenu });
+            }
+        }
+
+        // --- MENU 2: CEK ANTRIAN & KONTROL MANUAL ---
+        else if (text === '📋 Cek Antrian Preorder') {
+            const poSnap = await db.collection('preorders')
+                .orderBy('timestamp', 'desc')
+                .limit(10)
+                .get();
+
+            if (poSnap.empty) {
+                await bot.sendMessage(chatId, "✅ Tidak ada antrian preorder.", { reply_markup: mainMenu });
+            } else {
+                for (const doc of poSnap.docs) {
+                    const d = doc.data();
+                    const status = d.debugStatus === 'GAGAL' ? '🔴 GAGAL' : '🟡 PENDING';
+                    
+                    const msg = `<b>${status}</b>\n` +
+                                `User: <code>${d.username}</code>\n` +
+                                `Target: <code>${d.targetNumber}</code>\n` +
+                                `Produk: ${d.provider} (${d.serverType || 'KHFY'})\n` +
+                                `Logs: ${d.debugLogs ? 'Ada Log Error' : '-'}`;
+
+                    // Tombol Kontrol Manual
+                    const buttons = [
+                        [
+                            { text: "✅ Terima (Manual Sukses)", callback_data: `MANUAL_ACC__${doc.id}` },
+                            { text: "❌ Tolak (Refund)", callback_data: `MANUAL_REJ__${doc.id}` }
+                        ]
+                    ];
 
                     await bot.sendMessage(chatId, msg, {
                         parse_mode: 'HTML',
                         reply_markup: { inline_keyboard: buttons }
                     });
                 }
-                // Kirim pesan penutup agar keyboard tidak hilang
-                await bot.sendMessage(chatId, "👆 Silakan proses transaksi di atas.", { reply_markup: mainMenu });
+                await bot.sendMessage(chatId, "👆 Klik tombol di atas untuk eksekusi manual.", { reply_markup: mainMenu });
             }
-        }
-        
-        // --- MENU: CARI USER ---
-        else if (text === '🔍 Cari User') {
-            await bot.sendMessage(chatId, "Untuk mencari user, ketik:\n\n`/cari [nama_atau_email]`\n\nContoh: `/cari doni`", { parse_mode: 'Markdown' });
-        }
-        else if (text.startsWith('/cari')) {
-            const keyword = text.split(' ')[1];
-            if (!keyword) {
-                await bot.sendMessage(chatId, "Masukkan kata kunci. Contoh: `/cari doni`", { parse_mode: 'Markdown' });
-            } else {
-                const users = await db.collection('users').get();
-                let found = "❌ User tidak ditemukan.";
-                
-                users.forEach(doc => {
-                    const d = doc.data();
-                    if ((d.email && d.email.includes(keyword)) || (d.username && d.username.includes(keyword))) {
-                        found = `👤 <b>USER DITEMUKAN</b>\n\nNama: ${d.username}\nEmail: ${d.email}\nSaldo: ${formatRp(d.balance)}\nUID: <code>${doc.id}</code>`;
-                    }
-                });
-                await bot.sendMessage(chatId, found, { parse_mode: 'HTML', reply_markup: mainMenu });
-            }
-        }
-
-        // --- MENU: STATUS ---
-        else if (text === 'ℹ️ Status Bot') {
-            await bot.sendMessage(chatId, `🤖 Bot Aktif\nLogin sebagai: ${session.email}\nWaktu Server: ${new Date().toLocaleTimeString('id-ID')}`, { reply_markup: mainMenu });
         }
 
     } catch (error) {
         console.error("Bot Error:", error);
-        await bot.sendMessage(chatId, "⚠️ Error System: " + error.message);
+        await bot.sendMessage(chatId, "⚠️ Error: " + error.message);
     }
 
     return res.status(200).send('OK');

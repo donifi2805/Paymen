@@ -20,7 +20,7 @@ const KHFY_BASE_URL = "https://panel.khfy-store.com/api_v2";
 const KHFY_AKRAB_URL = "https://panel.khfy-store.com/api_v3/cek_stock_akrab";
 const ICS_BASE_URL = "https://api.ics-store.my.id/api/reseller";
 
-// ⚠️ API KEYS (HARDCODED UNTUK TEST LOKAL)
+// ⚠️ API KEYS (PASTIKAN BENAR)
 const KHFY_KEY = "8F1199C1-483A-4C96-825E-F5EBD33AC60A"; 
 const ICS_KEY = "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77"; 
 
@@ -64,7 +64,7 @@ async function sendTelegramLog(message, isUrgent = false) {
 }
 
 // ============================================================
-// 🛠️ FUNGSI FETCH DATA STOK (ADAPTASI DARI RELAY.JS)
+// 🛠️ FUNGSI FETCH DATA STOK (FIX AUTH ICS)
 // ============================================================
 
 // 1. KHFY Regular
@@ -98,33 +98,31 @@ async function getKHFYFullStock() {
     } catch (error) { return { error: error.message }; }
 }
 
-// 2. ICS Full Stock (DIPERBAIKI SESUAI RELAY.JS)
+// 2. ICS Full Stock (FIXED: AUTH HEADERS)
 async function getICSFullStock() {
-    // URL + Params Hybrid
-    const targetUrl = new URL(`${ICS_BASE_URL}/products`);
-    targetUrl.searchParams.append('apikey', ICS_KEY); // Hybrid Auth (URL)
-
-    // Header Lengkap (Sesuai relay.js)
-    const headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json',
-        'Connection': 'keep-alive',
-        'Authorization': `Bearer ${ICS_KEY}` // Header Auth
-    };
-
+    const params = new URLSearchParams();
+    params.append('apikey', ICS_KEY); // Cara 1: URL Param
+    const targetUrl = `${ICS_BASE_URL}/products?${params.toString()}`;
+    
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 25000); 
         
-        const response = await fetch(targetUrl.toString(), { 
+        const response = await fetch(targetUrl, { 
             method: 'GET', 
-            headers: headers, 
+            headers: { 
+                'User-Agent': 'Pandawa-Worker/Direct',
+                'Authorization': `Bearer ${ICS_KEY}`, // Cara 2: Bearer Token (Utama)
+                'token': ICS_KEY,                     // Cara 3: Header Token
+                'Accept': 'application/json'
+            }, 
             signal: controller.signal 
         });
         clearTimeout(timeoutId);
         
+        // Cek Status HTTP
         if (response.status === 401 || response.status === 403) {
-            return { list: [], map: {}, error: "Unauthorized: API Key Salah / Ditolak Server" };
+            return { list: [], map: {}, error: "Unauthorized: API Key Salah / Tidak Dikenali" };
         }
 
         const json = await response.json();
@@ -133,6 +131,9 @@ async function getICSFullStock() {
         if (json && json.ready && Array.isArray(json.ready)) dataList = json.ready;
         else if (json && json.data && Array.isArray(json.data)) dataList = json.data;
         else if (Array.isArray(json)) dataList = json;
+        else {
+            return { list: [], map: {}, error: json.message || "Format Data Tidak Dikenali" };
+        }
 
         const stockMap = {};
         dataList.forEach(item => {
@@ -172,89 +173,50 @@ async function getKHFYAkrabSlots() {
     } catch (error) { return null; }
 }
 
-// 🔥 FUNGSI HIT PROVIDER (DIPERBAIKI SESUAI RELAY.JS)
+// 🔥 FUNGSI HIT PROVIDER (FIXED: AUTH HEADERS)
 async function hitProviderDirect(serverType, data, isRecheck = false) {
-    let targetUrl;
+    let targetUrl = '';
     let method = 'GET';
     let body = null;
     
-    // Header Default (Akan ditimpa khusus ICS)
+    // Header Default dengan Auth ICS
     let headers = { 
         'User-Agent': 'Pandawa-Worker/Direct', 
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${ICS_KEY}` // Tambahan Auth Header
     };
 
     if (serverType === 'ICS') {
-        // --- LOGIKA ICS DARI RELAY.JS ---
-        // Header Khusus ICS
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'application/json',
-            'Connection': 'keep-alive',
-            'Authorization': `Bearer ${ICS_KEY}`
-        };
-
         if (isRecheck) {
-            // GET /trx/{TRX_ID}
-            targetUrl = new URL(`${ICS_BASE_URL}/trx/${data.reffId}`);
-            method = 'GET';
+            targetUrl = `${ICS_BASE_URL}/trx/${data.reffId}?apikey=${ICS_KEY}`;
         } else {
-            // POST /trx
-            targetUrl = new URL(`${ICS_BASE_URL}/trx`);
+            targetUrl = `${ICS_BASE_URL}/trx?apikey=${ICS_KEY}`;
             method = 'POST';
             headers['Content-Type'] = 'application/json';
-            
-            // Body Sesuai relay.js
-            body = JSON.stringify({
-                product_code: data.sku,
-                dest_number: data.tujuan,
-                ref_id_custom: data.reffId
-            });
+            body = JSON.stringify({ product_code: data.sku, dest_number: data.tujuan, ref_id_custom: data.reffId });
         }
-        // Tambah API Key di URL (Hybrid Auth)
-        targetUrl.searchParams.append('apikey', ICS_KEY);
-
     } else {
-        // --- LOGIKA KHFY (TETAP) ---
-        targetUrl = new URL(`${KHFY_BASE_URL}/trx`); // Base URL sementara
         const params = new URLSearchParams();
         params.append('api_key', KHFY_KEY);
-        
         if (isRecheck) {
-            targetUrl = new URL(`${KHFY_BASE_URL}/history`);
-            targetUrl.searchParams.append('api_key', KHFY_KEY);
-            targetUrl.searchParams.append('refid', data.reffId);
+            targetUrl = `${KHFY_BASE_URL}/history?api_key=${KHFY_KEY}&refid=${data.reffId}`;
         } else {
-            targetUrl.searchParams.append('api_key', KHFY_KEY);
-            targetUrl.searchParams.append('produk', data.sku);
-            targetUrl.searchParams.append('tujuan', data.tujuan);
-            targetUrl.searchParams.append('reff_id', data.reffId);
+            params.append('produk', data.sku); params.append('tujuan', data.tujuan); params.append('reff_id', data.reffId);
+            targetUrl = `${KHFY_BASE_URL}/trx?${params.toString()}`;
         }
     }
 
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 60000); 
-        
-        const fetchOptions = { 
-            method: method, 
-            headers: headers, 
-            signal: controller.signal 
-        };
-        
+        const fetchOptions = { method: method, headers: headers, signal: controller.signal };
         if (body) fetchOptions.body = body;
 
-        const response = await fetch(targetUrl.toString(), fetchOptions);
+        const response = await fetch(targetUrl, fetchOptions);
         clearTimeout(timeoutId);
-        
         const text = await response.text();
-        if (text.trim().startsWith('<')) {
-            return { status: false, message: "HTML Error (Mungkin Maintenance)", raw: text.substring(0, 100) };
-        }
-        
-        try { return JSON.parse(text); } 
-        catch (e) { return { status: false, message: "Invalid JSON", raw: text }; }
-
+        if (text.trim().startsWith('<')) return { status: false, message: "HTML Error", raw: text.substring(0, 100) };
+        try { return JSON.parse(text); } catch (e) { return { status: false, message: "Invalid JSON", raw: text }; }
     } catch (error) { return { status: false, message: "Timeout: " + error.message }; }
 }
 
@@ -271,7 +233,7 @@ async function sendUserLog(uid, title, message, trxId) {
 // 🏁 LOGIKA UTAMA (WORKER)
 // ============================================================
 async function runPreorderQueue() {
-    console.log(`[${new Date().toISOString()}] MEMULAI WORKER (RELAY-FIXED MODE)...`);
+    console.log(`[${new Date().toISOString()}] MEMULAI WORKER (FIXED AUTH MODE)...`);
 
     try {
         const snapshot = await db.collection('preorders').orderBy('timestamp', 'asc').limit(100).get();
@@ -357,7 +319,7 @@ async function runPreorderQueue() {
 
         await sendTelegramLog(reportMsg);
 
-        // --- 3. PROSES TRANSAKSI ---
+        // --- 3. PROSES TRANSAKSI (Sama) ---
         let skippedTransactions = [];
         let successCount = 0;
 

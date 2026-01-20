@@ -17,7 +17,7 @@ const db = admin.firestore();
 
 // --- 2. KONFIGURASI PROVIDER ---
 const KHFY_BASE_URL = "https://panel.khfy-store.com/api_v2";
-const KHFY_AKRAB_URL = "https://panel.khfy-store.com/api_v3/cek_stock_akrab"; // 🔥 URL V3 KHUSUS
+const KHFY_AKRAB_URL = "https://panel.khfy-store.com/api_v3/cek_stock_akrab";
 const ICS_BASE_URL = "https://api.ics-store.my.id/api/reseller";
 
 // ⚠️ API KEYS (HARDCODED UNTUK DEVELOPMENT LOKAL)
@@ -28,8 +28,16 @@ const ICS_KEY = "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff7
 const TG_TOKEN = "7850521841:AAH84wtuxnDWg5u04lMkL5zqVcY1hIpzGJg";
 const TG_CHAT_ID = "7348139166";
 
-// DAFTAR PRODUK SPESIAL KHFY (WAJIB CEK SLOT V3)
+// DAFTAR PRODUK SPESIAL KHFY & NAMA TAMPILAN (UTK NOTIF)
 const KHFY_SPECIAL_CODES = ['XLA14', 'XLA32', 'XLA39', 'XLA51', 'XLA65', 'XLA89'];
+const PRODUCT_NAMES = {
+    'XLA14': 'Super Mini',
+    'XLA32': 'Mini',
+    'XLA39': 'Big',
+    'XLA51': 'Jumbo V2',
+    'XLA65': 'Jumbo',
+    'XLA89': 'Mega Big'
+};
 
 // Helper: Get Jam WIB
 function getWIBTime() {
@@ -66,7 +74,6 @@ async function sendTelegramLog(message, isUrgent = false) {
 
 // 1. Cek Stok Biasa (KHFY API V2)
 async function getKHFYStockList() {
-    // console.log("      📋 [PHASE 1] Cek Stok KHFY Regular...");
     const params = new URLSearchParams();
     params.append('api_key', KHFY_KEY);
     const targetUrl = `${KHFY_BASE_URL}/list_product?${params.toString()}`;
@@ -95,7 +102,7 @@ async function getKHFYStockList() {
     } catch (error) { return null; }
 }
 
-// 2. 🔥 BARU: Cek Slot Akrab (KHFY API V3) 🔥
+// 2. 🔥 Cek Slot Akrab (KHFY API V3) 🔥
 async function getKHFYAkrabSlots() {
     console.log("      📋 [PHASE 0] Cek Slot Akrab KHFY (V3)...");
     try {
@@ -107,14 +114,12 @@ async function getKHFYAkrabSlots() {
         clearTimeout(timeoutId);
         
         const json = await response.json();
-        const slotMap = {}; // Format: { 'XLA14': 1, 'XLA32': 0 }
+        const slotMap = {}; 
 
         if (json && json.ok === true && Array.isArray(json.data)) {
             json.data.forEach(item => {
-                // Mapping item.type (XLA14) ke item.sisa_slot
                 slotMap[item.type] = parseInt(item.sisa_slot || 0);
             });
-            // console.log("      ✅ Slot Map:", JSON.stringify(slotMap));
             return slotMap;
         }
         return null;
@@ -126,7 +131,6 @@ async function getKHFYAkrabSlots() {
 
 // 3. Cek Stok ICS
 async function getICSStockList() {
-    // console.log("      📋 [PHASE 1] Cek Stok ICS...");
     const params = new URLSearchParams();
     params.append('apikey', ICS_KEY);
     const targetUrl = `${ICS_BASE_URL}/products?${params.toString()}`;
@@ -211,7 +215,7 @@ async function sendUserLog(uid, title, message, trxId) {
 // 🏁 LOGIKA UTAMA (WORKER)
 // ============================================================
 async function runPreorderQueue() {
-    console.log(`[${new Date().toISOString()}] MEMULAI WORKER (KHFY SPECIAL MODE)...`);
+    console.log(`[${new Date().toISOString()}] MEMULAI WORKER...`);
 
     try {
         const snapshot = await db.collection('preorders').orderBy('timestamp', 'asc').limit(100).get();
@@ -221,15 +225,28 @@ async function runPreorderQueue() {
             return;
         }
         
-        await sendTelegramLog("================================");
-
-        // 🔥 AMBIL DATA STOK DARI SEMUA SUMBER (TERMASUK V3 KHUSUS) 🔥
+        // 🔥 1. AMBIL DATA STOK TERLEBIH DAHULU 🔥
         const [stockMapKHFY, stockMapICS, akrabSlotMap] = await Promise.all([
             getKHFYStockList(), 
             getICSStockList(),
             getKHFYAkrabSlots()
         ]);
-        
+
+        // 🔥 2. KIRIM NOTIFIKASI INFO SLOT KE TELEGRAM (PERTAMA) 🔥
+        let slotReportMsg = "📊 <b>INFO SLOT AKRAB (KHFY)</b>\n";
+        if (akrabSlotMap) {
+            KHFY_SPECIAL_CODES.forEach(code => {
+                const name = PRODUCT_NAMES[code] || code; // Ubah kode jadi Nama (Super Mini, dll)
+                const slot = akrabSlotMap[code] !== undefined ? akrabSlotMap[code] : '?';
+                const icon = slot > 3 ? '🟢' : '🔴';
+                slotReportMsg += `${icon} ${name}: <b>${slot}</b>\n`;
+            });
+        } else {
+            slotReportMsg += "⚠️ Gagal mengambil data slot V3\n";
+        }
+        await sendTelegramLog(slotReportMsg);
+        // ===========================================================
+
         let skippedTransactions = [];
         let successCount = 0;
 
@@ -262,7 +279,7 @@ async function runPreorderQueue() {
             if (!skuProduk || !tujuan) { await db.collection('preorders').doc(poID).delete(); continue; }
 
             // ===============================================
-            // 🛑 LOGIKA CEK STOK & SLOT (MODIFIKASI) 🛑
+            // 🛑 LOGIKA CEK STOK & SLOT
             // ===============================================
             let isSkip = false;
             let skipReason = '';
@@ -271,24 +288,18 @@ async function runPreorderQueue() {
             if (serverType === 'KHFY' && KHFY_SPECIAL_CODES.includes(skuProduk)) {
                 if (akrabSlotMap) {
                     const sisaSlot = akrabSlotMap[skuProduk];
-                    // Jika tidak ada di map, anggap 0
                     const currentSlot = (sisaSlot !== undefined) ? sisaSlot : 0;
                     
-                    // SYARAT: HARUS LEBIH DARI 3 (Berarti 4, 5, dst jalan. 3, 2, 1, 0 skip)
-                    if (currentSlot <= 3) {
+                    if (currentSlot <= 3) { // Hanya jalan jika slot > 3
                         isSkip = true;
-                        skipReason = `SLOT TERBATAS (${currentSlot} <= 3)`;
-                    } else {
-                        console.log(`      ✅ Slot Aman: ${skuProduk} (Sisa: ${currentSlot})`);
+                        skipReason = `Stok Kosong (Slot ${currentSlot})`;
                     }
                 } else {
-                    // Jika gagal ambil data V3, safety first: SKIP
-                    isSkip = true;
-                    skipReason = `GAGAL CEK SLOT V3`;
+                    isSkip = true; skipReason = `Gagal Cek Slot V3`;
                 }
             } 
             
-            // 2. CEK STOK REGULAR (JIKA BELUM DI-SKIP OLEH LOGIKA SLOT)
+            // 2. CEK STOK REGULAR
             if (!isSkip) {
                 if (serverType === 'KHFY' && stockMapKHFY) {
                     const info = stockMapKHFY[skuProduk];
@@ -307,15 +318,21 @@ async function runPreorderQueue() {
                 }
             }
 
-            // EKSEKUSI SKIP
+            // 🔥 EKSEKUSI SKIP & KIRIM NOTIF LANGSUNG 🔥
             if (isSkip) {
                 console.log(`   ⛔ SKIP: ${skipReason}`);
+                
+                // Format: Nama-Produk-NoHP-Alasan
+                // Contoh: doni fiandika-XDA39-085256776974-Skip stok kosong
+                const skipNotifMsg = `${buyerName}-${skuProduk}-${tujuan}-Skip ${skipReason}`;
+                await sendTelegramLog(skipNotifMsg);
+
                 skippedTransactions.push({ buyer: buyerName, sku: skuProduk, dest: tujuan, reason: skipReason, server: serverType });
                 continue; 
             }
 
             // ===============================================
-            // 🚀 EKSEKUSI TRANSAKSI (SAMA SEPERTI BIASA)
+            // 🚀 EKSEKUSI TRANSAKSI
             // ===============================================
             let reffId = po.active_reff_id;
             if (!reffId) {
@@ -434,22 +451,9 @@ async function runPreorderQueue() {
             await new Promise(r => setTimeout(r, 6000));
         }
 
-        if (skippedTransactions.length > 0 || successCount > 0) {
-            let rekapMsg = `<b>LOG (${getWIBTime()})</b>\n`;
-            if (skippedTransactions.length > 0) {
-                rekapMsg += `⏳ <b>DAFTAR ANTREAN DITUNDA</b>\n`;
-                skippedTransactions.forEach((item) => {
-                    rekapMsg += `➖➖➖➖➖➖➖➖➖➖\n<b>${item.buyer}</b>\n${item.dest} | ${item.sku}\n⚠️ ${item.reason}\n`; 
-                });
-            } else {
-                rekapMsg += `✅ <b>REKAP SESI</b>\n---------------------------\n`;
-            }
-            rekapMsg += `<i>Total: ${skippedTransactions.length} Tunda | ${successCount} Sukses.</i>`;
-            await sendTelegramLog(rekapMsg);
-        }
-        await sendTelegramLog("================================");
+        console.log("\n--- SELESAI ---");
+
     } catch (error) { console.error("CRITICAL ERROR:", error); process.exit(1); }
-    console.log("\n--- SELESAI ---");
 }
 
 runPreorderQueue();

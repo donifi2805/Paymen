@@ -20,7 +20,7 @@ const KHFY_BASE_URL = "https://panel.khfy-store.com/api_v2";
 const KHFY_AKRAB_URL = "https://panel.khfy-store.com/api_v3/cek_stock_akrab";
 const ICS_BASE_URL = "https://api.ics-store.my.id/api/reseller";
 
-// ⚠️ API KEYS (WAJIB DIAMANKAN DI GITHUB SECRETS JIKA SUDAH LIVE)
+// ⚠️ API KEYS (Pastikan Key ini Benar & Aktif)
 const KHFY_KEY = "8F1199C1-483A-4C96-825E-F5EBD33AC60A"; 
 const ICS_KEY = "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77"; 
 
@@ -28,7 +28,7 @@ const ICS_KEY = "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff7
 const TG_TOKEN = "7850521841:AAH84wtuxnDWg5u04lMkL5zqVcY1hIpzGJg";
 const TG_CHAT_ID = "7348139166";
 
-// KONFIGURASI SLOT V3
+// DAFTAR SLOT V3 (KHUSUS KHFY)
 const KHFY_SPECIAL_CODES = ['XLA14', 'XLA32', 'XLA39', 'XLA51', 'XLA65', 'XLA89'];
 const PRODUCT_NAMES = {
     'XLA14': 'Super Mini', 'XLA32': 'Mini', 'XLA39': 'Big',
@@ -64,10 +64,10 @@ async function sendTelegramLog(message, isUrgent = false) {
 }
 
 // ============================================================
-// 🛠️ FUNGSI FETCH DATA STOK
+// 🛠️ FUNGSI FETCH DATA STOK (FULL DATA)
 // ============================================================
 
-// 1. KHFY Regular (Fetch All)
+// 1. KHFY Regular (Ambil Semua)
 async function getKHFYFullStock() {
     const params = new URLSearchParams();
     params.append('api_key', KHFY_KEY);
@@ -91,19 +91,21 @@ async function getKHFYFullStock() {
                 gangguan: item.gangguan == 1, 
                 kosong: item.kosong == 1, 
                 status: item.status,
-                name: item.nama_produk,
-                price: parseInt(item.harga_produk || 0)
+                name: item.nama_produk
             };
         });
-        return { list: dataList, map: stockMap };
-    } catch (error) { return null; }
+        return { list: dataList, map: stockMap, raw: json };
+    } catch (error) { return { error: error.message }; }
 }
 
-// 2. ICS Full Stock
+// 2. ICS Full Stock (DEBUG MODE)
 async function getICSFullStock() {
     const params = new URLSearchParams();
     params.append('apikey', ICS_KEY);
     const targetUrl = `${ICS_BASE_URL}/products?${params.toString()}`;
+    
+    console.log(`[ICS] Fetching stock from: ${targetUrl}`); // Log URL untuk debug
+
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 25000); 
@@ -113,9 +115,19 @@ async function getICSFullStock() {
         clearTimeout(timeoutId);
         const json = await response.json();
         
+        // Cek Struktur Respon
         let dataList = [];
-        if (json && json.ready && Array.isArray(json.ready)) dataList = json.ready; 
-        else if (json && json.data && Array.isArray(json.data)) dataList = json.data; 
+        if (json && json.ready && Array.isArray(json.ready)) {
+            dataList = json.ready;
+        } else if (json && json.data && Array.isArray(json.data)) {
+            dataList = json.data;
+        } else if (Array.isArray(json)) {
+            dataList = json;
+        } else {
+            // Jika format tidak dikenali atau error message
+            console.log("[ICS] Format respon tidak standar:", JSON.stringify(json).substring(0, 100));
+            return { list: [], map: {}, error: json.message || "Format Error" };
+        }
 
         const stockMap = {};
         dataList.forEach(item => {
@@ -125,11 +137,14 @@ async function getICSFullStock() {
                 nonaktif: item.status === 'nonactive',
                 real_stock: item.stock || 0,
                 name: item.name,
-                price: parseInt(item.price || 0)
+                type: item.type // Simpan type untuk filter cerdas
             };
         });
         return { list: dataList, map: stockMap };
-    } catch (error) { return null; }
+    } catch (error) { 
+        console.error("[ICS] Fetch Error:", error.message);
+        return { list: [], map: {}, error: error.message }; 
+    }
 }
 
 // 3. KHFY V3 (Slot Akrab)
@@ -207,7 +222,7 @@ async function sendUserLog(uid, title, message, trxId) {
 // 🏁 LOGIKA UTAMA (WORKER)
 // ============================================================
 async function runPreorderQueue() {
-    console.log(`[${new Date().toISOString()}] MEMULAI WORKER (FULL DYNAMIC REPORT)...`);
+    console.log(`[${new Date().toISOString()}] MEMULAI WORKER (ALL PRODUCTS MODE)...`);
 
     try {
         const snapshot = await db.collection('preorders').orderBy('timestamp', 'asc').limit(100).get();
@@ -229,10 +244,10 @@ async function runPreorderQueue() {
         const stockMapKHFY = khfyData ? khfyData.map : null;
         const stockMapICS = icsData ? icsData.map : null;
 
-        // --- 2. BUILD LAPORAN OTOMATIS (DINAMIS SESUAI INDEX.HTML) ---
+        // --- 2. BUILD LAPORAN (DINAMIS - TAMPILKAN SEMUA) ---
         let reportMsg = "";
 
-        // A. SLOT V3 (Special)
+        // A. SLOT V3 (KHFY)
         reportMsg += "📊 <b>SLOT AKRAB V3</b>\n";
         if (akrabSlotMap) {
             KHFY_SPECIAL_CODES.forEach(code => {
@@ -245,8 +260,7 @@ async function runPreorderQueue() {
             reportMsg += "⚠️ Gagal mengambil data slot V3\n";
         }
 
-        // B. DAFTAR LENGKAP PRODUK (FILTER DINAMIS)
-        // Fungsi helper untuk cetak status item
+        // Helper Status
         const printStatus = (item, source) => {
             let status = "Unknown";
             let icon = "⚪";
@@ -262,40 +276,48 @@ async function runPreorderQueue() {
             return `${icon} <b>${item.code || item.kode_produk}</b>: ${status}\n`;
         };
 
-        // --- FILTER ICS (XDA, XCL, XLA) ---
-        if (icsData && icsData.list) {
-            reportMsg += "\n📡 <b>SERVER ICS</b>\n";
-            const icsItems = icsData.list.filter(i => {
-                const c = (i.code || "").toUpperCase();
-                // Ambil semua yang berawalan XDA, XCL, XLA, atau tipe circle/xda
-                return c.startsWith('XDA') || c.startsWith('XCL') || c.startsWith('XLA');
-            });
-            // Urutkan kode agar rapi
-            icsItems.sort((a,b) => a.code.localeCompare(b.code));
+        // B. DAFTAR PRODUK ICS (SEMUA YANG DITEMUKAN)
+        reportMsg += "\n📡 <b>SERVER ICS (LENGKAP)</b>\n";
+        if (icsData && icsData.list && icsData.list.length > 0) {
+            // Sortir kode agar rapi
+            const sortedIcs = icsData.list.sort((a,b) => (a.code||'').localeCompare(b.code||''));
             
-            if (icsItems.length > 0) {
-                icsItems.forEach(i => reportMsg += printStatus(i, 'ICS'));
-            } else {
-                reportMsg += "<i>Tidak ada produk ICS terdeteksi</i>\n";
-            }
+            // Loop semua produk tanpa filter ketat
+            sortedIcs.forEach(i => {
+                // Opsional: Sembunyikan produk 'testing' atau yang aneh jika perlu
+                if (i.code && !i.code.toLowerCase().includes('tes')) {
+                    reportMsg += printStatus(i, 'ICS');
+                }
+            });
+        } else {
+            // Tampilkan pesan error jika list kosong
+            const errMsg = icsData && icsData.error ? icsData.error : "Unknown Error";
+            reportMsg += `⚠️ Gagal memuat produk ICS: ${errMsg}\n(Cek API Key / Saldo / Maintenance)\n`;
         }
 
-        // --- FILTER KHFY (FMX, PLN, XLC) ---
+        // C. DAFTAR PRODUK KHFY (FILTER KHUSUS)
+        // Kita tidak menampilkan SEMUA KHFY karena terlalu banyak (ribuan),
+        // jadi kita filter produk-produk utama yang biasa Anda jual saja.
+        reportMsg += "\n📡 <b>SERVER KHFY</b>\n";
         if (khfyData && khfyData.list) {
-            reportMsg += "\n📡 <b>SERVER KHFY</b>\n";
             const khfyItems = khfyData.list.filter(i => {
                 const c = (i.kode_produk || "").toUpperCase();
-                // Ambil semua FMX, CFMX, PLN, XLC (kecuali yang sudah ada di slot v3)
+                // Tampilkan FMX, PLN, XLC, XLA (Selain yang khusus)
                 const isSpecial = KHFY_SPECIAL_CODES.includes(c);
-                return !isSpecial && (c.startsWith('FMX') || c.startsWith('CFMX') || c.startsWith('PLN') || c.startsWith('XLC') || c.startsWith('XLA'));
+                return !isSpecial && (
+                    c.startsWith('FMX') || 
+                    c.startsWith('CFMX') || 
+                    c.startsWith('PLN') || 
+                    c.startsWith('XLC') || 
+                    c.startsWith('XLA')
+                );
             });
-            // Urutkan kode
             khfyItems.sort((a,b) => a.kode_produk.localeCompare(b.kode_produk));
 
             if (khfyItems.length > 0) {
                 khfyItems.forEach(i => reportMsg += printStatus(i, 'KHFY'));
             } else {
-                reportMsg += "<i>Tidak ada produk KHFY terdeteksi</i>\n";
+                reportMsg += "<i>Tidak ada produk KHFY (FMX/PLN) terdeteksi</i>\n";
             }
         }
 

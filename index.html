@@ -5155,15 +5155,19 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
         });
     };
 
-                window.sendChatMessage = async () => {
+                                window.sendChatMessage = async () => {
         const input = document.getElementById('chatInput');
         const text = input.value.trim();
+        
+        // Validasi awal
         if (!text || !currentUser) return;
 
+        // Ambil data sebelum input dikosongkan
         const senderUid = currentUser.uid;
         const senderName = currentUsername || 'Pelanggan Web';
 
-        input.value = ''; // Clear input langsung
+        // Kosongkan input untuk kenyamanan user
+        input.value = ''; 
 
         try {
             // 1. Simpan ke Firebase
@@ -5174,7 +5178,7 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                 isRead: false
             });
 
-            // 2. Update Metadata Header
+            // 2. Update Metadata Header Chat
             await setDoc(doc(db, "chats", senderUid), {
                 username: senderName,
                 lastMessage: text,
@@ -5183,19 +5187,23 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                 isRead: false
             }, { merge: true });
 
-            // 3. Kirim ke Telegram (Fix UserID & No Double)
-            fetch('/api/notif', {
+            // 3. KIRIM NOTIFIKASI KE TELEGRAM (API VERCEL)
+            // Menggunakan header lengkap untuk stabilitas
+            await fetch('/api/notif', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    message: text, 
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    message: text,
                     sender: senderName,
-                    userId: senderUid 
+                    userId: senderUid
                 })
-            }).catch(e => console.log('Telegram Error'));
+            });
 
         } catch(e) {
-            console.error("Chat Error", e);
+            console.error("Fatal Chat Error:", e);
         }
     };
 

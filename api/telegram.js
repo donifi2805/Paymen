@@ -8,7 +8,7 @@ import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 const token = '8576099469:AAHxURiNMnVhWdLqHLlAoX7ayAVX6HsCSiY';
 const BASE_URL = 'https://www.pandawa-digital.store'; 
 
-// URL File Tampilan Login (Pastikan nama file sama dengan yang Anda buat)
+// URL File Tampilan Login (Pastikan file ini ada di hosting/github anda)
 const WEB_APP_URL = `${BASE_URL}/bot-login.html`;
 
 const firebaseConfig = {
@@ -23,7 +23,7 @@ const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT
 
 const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
 
-// Menu Utama (Muncul setelah Login Sukses)
+// Menu Utama
 const mainMenu = {
     resize_keyboard: true,
     one_time_keyboard: false,
@@ -46,10 +46,7 @@ const db = admin.firestore();
 const clientApp = initializeApp(firebaseConfig, 'clientBotApp');
 const clientAuth = getAuth(clientApp);
 
-// Format Rupiah
-const formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
-
-// Fungsi Eksekusi Transaksi
+// --- FUNGSI EKSEKUSI TRANSAKSI ---
 async function executeTransaction(poData) {
     const { targetNumber, provider, serverType, id } = poData;
     const reffId = `BOT-${Date.now()}-${id.substring(0,4)}`;
@@ -66,6 +63,7 @@ async function executeTransaction(poData) {
         const res = await fetch(url);
         const json = await res.json();
         
+        // Logika penangkapan pesan error yang lebih detail
         let sn = json.message || json.msg || 'Gagal'; 
         if (json.data) {
             if (json.data.message) sn = json.data.message;
@@ -94,47 +92,27 @@ export default async function handler(req, res) {
     const bot = new TelegramBot(token);
     const body = req.body;
 
-    // =========================================================
-    // 1. HANDLE DATA LOGIN DARI WEB APP (GUI)
-    // =========================================================
-    // Saat user klik "Masuk Dashboard" di bot-login.html, data dikirim ke sini.
+    // 1. HANDLE LOGIN DATA (WEB APP)
     if (body.message && body.message.web_app_data) {
         const chatId = body.message.chat.id;
         const sessionRef = db.collection('bot_sessions').doc(String(chatId));
-        
         try {
             const data = JSON.parse(body.message.web_app_data.data);
-            
             if (data.action === 'login_request') {
                 const { email, password } = data;
-
-                // Cek Whitelist Admin
                 if (!ALLOWED_ADMINS.includes(email)) {
-                    await bot.sendMessage(chatId, "⛔ <b>AKSES DITOLAK</b>\nEmail Anda tidak terdaftar sebagai Admin.", { parse_mode: 'HTML' });
+                    await bot.sendMessage(chatId, "⛔ Email tidak terdaftar sebagai Admin.");
                     return res.status(200).send('OK');
                 }
-
-                // Cek Password ke Firebase
                 await signInWithEmailAndPassword(clientAuth, email, password);
-                
-                // Simpan Sesi
                 await sessionRef.set({ isLoggedIn: true, email: email, loginAt: new Date().toISOString() });
-                
-                // Beri Respon Sukses & Tampilkan Menu
-                await bot.sendMessage(chatId, `✅ <b>LOGIN BERHASIL!</b>\nSelamat datang, ${email}.\nSistem siap digunakan.`, { 
-                    parse_mode: 'HTML', 
-                    reply_markup: mainMenu 
-                });
+                await bot.sendMessage(chatId, `✅ <b>Login Berhasil!</b>\nUser: ${email}`, { parse_mode: 'HTML', reply_markup: mainMenu });
             }
-        } catch (error) {
-            await bot.sendMessage(chatId, `❌ <b>LOGIN GAGAL</b>\nPassword salah atau user tidak ditemukan.`, { parse_mode: 'HTML' });
-        }
+        } catch (e) { await bot.sendMessage(chatId, "❌ Login Gagal: Password salah."); }
         return res.status(200).send('OK');
     }
 
-    // =========================================================
-    // 2. HANDLE CALLBACK QUERY (TOMBOL ACC/REFUND)
-    // =========================================================
+    // 2. HANDLE TOMBOL CALLBACK
     if (body.callback_query) {
         const query = body.callback_query;
         const chatId = query.message.chat.id;
@@ -144,8 +122,7 @@ export default async function handler(req, res) {
         const sessionRef = db.collection('bot_sessions').doc(String(chatId));
         const sessionSnap = await sessionRef.get();
         if (!sessionSnap.exists || !sessionSnap.data().isLoggedIn) {
-            await bot.answerCallbackQuery(query.id, { text: "Sesi habis." }); 
-            return res.status(200).send('OK');
+            await bot.answerCallbackQuery(query.id, { text: "Sesi habis." }); return res.status(200).send('OK');
         }
 
         try {
@@ -154,9 +131,9 @@ export default async function handler(req, res) {
             if (!poSnap.exists) { 
                 await bot.answerCallbackQuery(query.id, { text: "Data hilang." });
                 await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: query.message.message_id });
-                return res.status(200).send('OK'); 
+                return res.status(200).send('OK');
             }
-            
+
             const d = poSnap.data();
             const uid = d.uid;
             const historyId = d.historyId || "PO-"+poId;
@@ -204,9 +181,7 @@ export default async function handler(req, res) {
         return res.status(200).send('OK');
     }
 
-    // =========================================================
     // 3. HANDLE PESAN TEXT
-    // =========================================================
     if (body.message && body.message.text) {
         const chatId = body.message.chat.id;
         const text = body.message.text;
@@ -215,45 +190,30 @@ export default async function handler(req, res) {
         const sessionSnap = await sessionRef.get();
         const isLoggedIn = sessionSnap.exists && sessionSnap.data().isLoggedIn;
 
-        // LOGOUT
         if (text === '🚪 Logout' || text === '/logout') {
             await sessionRef.delete();
-            await bot.sendMessage(chatId, "👋 Anda telah logout.", { reply_markup: { remove_keyboard: true } });
-            
-            // Tampilkan Tombol Login Lagi
+            await bot.sendMessage(chatId, "👋 Logout berhasil.", { reply_markup: { remove_keyboard: true } });
             setTimeout(() => {
                 bot.sendMessage(chatId, "Silakan login kembali.", {
-                    reply_markup: {
-                        keyboard: [[{ text: "🔐 LOGIN DASHBOARD", web_app: { url: WEB_APP_URL } }]],
-                        resize_keyboard: true
-                    }
+                    reply_markup: { keyboard: [[{ text: "🔐 LOGIN DASHBOARD", web_app: { url: WEB_APP_URL } }]], resize_keyboard: true }
                 });
             }, 500);
             return res.status(200).send('OK');
         }
 
-        // START
         if (text === '/start') {
             if (isLoggedIn) {
-                await bot.sendMessage(chatId, "✅ <b>Bot Siap!</b>\nAnda sudah login.", { parse_mode: 'HTML', reply_markup: mainMenu });
+                await bot.sendMessage(chatId, "✅ <b>Bot Siap!</b>", { parse_mode: 'HTML', reply_markup: mainMenu });
             } else {
-                // TAMPILKAN TOMBOL WEB APP
                 await bot.sendMessage(chatId, "👋 Halo Admin!\nSilakan klik tombol di bawah untuk login.", {
-                    reply_markup: {
-                        keyboard: [
-                            [{ text: "🔐 LOGIN DASHBOARD", web_app: { url: WEB_APP_URL } }]
-                        ],
-                        resize_keyboard: true,
-                        one_time_keyboard: false
-                    }
+                    reply_markup: { keyboard: [[{ text: "🔐 LOGIN DASHBOARD", web_app: { url: WEB_APP_URL } }]], resize_keyboard: true }
                 });
             }
         }
         
-        // FITUR MENU (HANYA JIKA LOGIN)
         else if (isLoggedIn) {
             if (text === '🚀 RUN AUTO MASSAL') {
-                await bot.sendMessage(chatId, "🔄 Checking queue...");
+                await bot.sendMessage(chatId, "🔄 Mass Run (Limit 5)...");
                 const q = await db.collection('preorders').orderBy('timestamp','desc').limit(5).get();
                 if(q.empty) return bot.sendMessage(chatId, "✅ Antrian bersih.");
                 
@@ -276,13 +236,23 @@ export default async function handler(req, res) {
                 }
                 await bot.sendMessage(chatId, report, {parse_mode:'HTML'});
             }
+            // --- UPDATE BAGIAN INI ---
             else if (text === '📋 Cek Antrian Preorder') {
                 const q = await db.collection('preorders').orderBy('timestamp','desc').limit(5).get();
                 if(q.empty) return bot.sendMessage(chatId, "✅ Antrian bersih.");
+                
                 for(const d of q.docs) {
                     const dat = d.data();
-                    const st = dat.debugStatus==='GAGAL'?'🔴 GAGAL':'🟡 PENDING';
-                    const msg = `<b>${st}</b>\nTarget: ${dat.targetNumber}\nProd: ${dat.provider}\nLogs: ${dat.debugLogs||'-'}`;
+                    const st = dat.debugStatus === 'GAGAL' ? '🔴 GAGAL' : '🟡 PENDING';
+                    
+                    // --- FORMAT PESAN BARU ---
+                    const msg = `<b>${st}</b>\n` +
+                                `User: <code>${dat.username || 'Unknown'}</code>\n` +
+                                `Server: <b>${dat.serverType || 'KHFY'}</b>\n` +
+                                `Target: <code>${dat.targetNumber}</code>\n` +
+                                `Prod: ${dat.provider}\n` +
+                                `Logs: <i>${dat.debugLogs || '-'}</i>`;
+
                     const btn = [
                         [{text:"🚀 RUN",callback_data:`RUN_SINGLE__${d.id}`}],
                         [{text:"✅ ACC",callback_data:`MANUAL_ACC__${d.id}`},{text:"❌ REJ",callback_data:`MANUAL_REJ__${d.id}`}]
@@ -291,12 +261,8 @@ export default async function handler(req, res) {
                 }
             }
         } else {
-            // Belum login
-            await bot.sendMessage(chatId, "🔒 Akses ditolak. Silakan login.", {
-                reply_markup: {
-                    keyboard: [[{ text: "🔐 LOGIN DASHBOARD", web_app: { url: WEB_APP_URL } }]],
-                    resize_keyboard: true
-                }
+            await bot.sendMessage(chatId, "🔒 Akses ditolak.", {
+                reply_markup: { keyboard: [[{ text: "🔐 LOGIN DASHBOARD", web_app: { url: WEB_APP_URL } }]], resize_keyboard: true }
             });
         }
     }

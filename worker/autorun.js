@@ -20,7 +20,7 @@ const KHFY_BASE_URL = "https://panel.khfy-store.com/api_v2";
 const KHFY_AKRAB_URL = "https://panel.khfy-store.com/api_v3/cek_stock_akrab";
 const ICS_BASE_URL = "https://api.ics-store.my.id/api/reseller";
 
-// ⚠️ API KEYS (DEV LOCAL)
+// ⚠️ API KEYS (HARDCODED)
 const KHFY_KEY = "8F1199C1-483A-4C96-825E-F5EBD33AC60A"; 
 const ICS_KEY = "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77"; 
 
@@ -98,7 +98,7 @@ async function getKHFYFullStock() {
     } catch (error) { return { error: error.message }; }
 }
 
-// 2. ICS Full Stock
+// 2. ICS Full Stock (FIX AUTH HEADERS)
 async function getICSFullStock() {
     const targetUrl = new URL(`${ICS_BASE_URL}/products`);
     targetUrl.searchParams.append('apikey', ICS_KEY); 
@@ -240,7 +240,7 @@ async function sendUserLog(uid, title, message, trxId) {
 // 🏁 LOGIKA UTAMA (WORKER)
 // ============================================================
 async function runPreorderQueue() {
-    console.log(`[${new Date().toISOString()}] MEMULAI WORKER (COMPACT 2-COLUMN MODE)...`);
+    console.log(`[${new Date().toISOString()}] MEMULAI WORKER (CUSTOM NOTIF FORMAT)...`);
 
     try {
         const snapshot = await db.collection('preorders').orderBy('timestamp', 'asc').limit(100).get();
@@ -265,7 +265,7 @@ async function runPreorderQueue() {
         // --- 2. BUILD LAPORAN ---
         let reportMsg = "";
 
-        // A. SLOT V3 (Tetap 1 kolom agar jelas)
+        // A. SLOT V3
         reportMsg += "📊 <b>SLOT AKRAB V3</b>\n";
         if (akrabSlotMap) {
             KHFY_SPECIAL_CODES.forEach(code => {
@@ -288,65 +288,54 @@ async function runPreorderQueue() {
                 const isGangguan = item.status === 'gangguan' || item.status === 'error';
                 const isKosong = item.status === 'empty' || stock === 0 || item.status === 'kosong';
 
-                if (isGangguan) { icon = "⛔"; statusStr = "0"; } // Gangguan -> 0
-                else if (isKosong) { icon = "🔴"; statusStr = "0"; } // Kosong -> 0
-                else { icon = "✅"; statusStr = `(${stock})`; } // Ready -> (9999)
+                if (isGangguan) { icon = "⛔"; statusStr = "0"; } 
+                else if (isKosong) { icon = "🔴"; statusStr = "0"; } 
+                else { icon = "✅"; statusStr = `(${stock})`; } 
             } else {
                 // KHFY Logic
                 if (item.gangguan == 1) { icon = "⛔"; statusStr = "0"; }
                 else if (item.kosong == 1) { icon = "🔴"; statusStr = "0"; }
-                else { icon = "✅"; statusStr = "99"; } // Ready -> 99
+                else { icon = "✅"; statusStr = "99"; } 
             }
-            // Format: ✅ CODE: (Stock)
             return `${icon} ${item.code || item.kode_produk}: <b>${statusStr}</b>`;
         };
 
-        // --- HELPER UNTUK 2 KOLOM (BERSEBELAHAN) ---
+        // --- HELPER UNTUK 2 KOLOM ---
         const makeTwoColumns = (list, source) => {
             let result = "";
             for (let i = 0; i < list.length; i += 2) {
                 const item1 = list[i];
-                const item2 = list[i + 1]; // Bisa undefined jika ganjil
-
+                const item2 = list[i + 1]; 
                 const str1 = formatCompact(item1, source);
-                
                 if (item2) {
                     const str2 = formatCompact(item2, source);
-                    // Gabungkan dengan spasi/pemisah. Di Telegram mobile, spasi kadang tidak rata
-                    // Kita gunakan '   ' (3 spasi) sebagai pemisah sederhana.
                     result += `${str1}   ${str2}\n`; 
                 } else {
-                    result += `${str1}\n`; // Baris terakhir ganjil
+                    result += `${str1}\n`; 
                 }
             }
             return result;
         };
 
-        // B. DAFTAR PRODUK ICS (2 KOLOM)
+        // B. DAFTAR PRODUK ICS
         reportMsg += "\n📡 <b>SERVER ICS</b>\n";
         if (icsData && icsData.list && icsData.list.length > 0) {
             const sortedIcs = icsData.list.sort((a,b) => (a.code||'').localeCompare(b.code||''));
-            // Filter testing codes
             const cleanIcs = sortedIcs.filter(i => i.code && !i.code.toLowerCase().includes('tes'));
-            
             reportMsg += makeTwoColumns(cleanIcs, 'ICS');
-            
         } else {
             const errMsg = icsData && icsData.error ? icsData.error : "Unknown Error";
             reportMsg += `⚠️ Gagal ICS: ${errMsg}\n`;
         }
 
-        // C. DAFTAR PRODUK KHFY (2 KOLOM)
+        // C. DAFTAR PRODUK KHFY
         reportMsg += "\n📡 <b>SERVER KHFY</b>\n";
         if (khfyData && khfyData.list) {
-            // Urutkan
             const sortedKhfy = khfyData.list.sort((a,b) => (a.kode_produk||'').localeCompare(b.kode_produk||''));
-            // Filter slot v3
             const khfyItems = sortedKhfy.filter(i => {
                 const c = (i.kode_produk || "").toUpperCase();
                 return !KHFY_SPECIAL_CODES.includes(c); 
             });
-
             if (khfyItems.length > 0) {
                 reportMsg += makeTwoColumns(khfyItems, 'KHFY');
             } else {
@@ -356,7 +345,7 @@ async function runPreorderQueue() {
 
         await sendTelegramLog(reportMsg);
 
-        // --- 3. PROSES TRANSAKSI (Sama) ---
+        // --- 3. PROSES TRANSAKSI ---
         let skippedTransactions = [];
         let successCount = 0;
 
@@ -425,10 +414,25 @@ async function runPreorderQueue() {
                 }
             }
 
-            // === SKIP & NOTIF ===
+            // === SKIP & NOTIF MODIFIKASI ===
             if (isSkip) {
                 console.log(`   ⛔ SKIP: ${skipReason}`);
-                const skipNotifMsg = `${buyerName}-${skuProduk}-${tujuan}-Skip ${skipReason}`;
+                
+                // -- LOGIKA FORMAT BARU --
+                let shortReason = skipReason;
+                // Jika errornya Slot (XLA), ambil angkanya saja: "Slot 0" -> "0"
+                if (skipReason.includes('Slot')) {
+                    const matches = skipReason.match(/\d+/);
+                    if (matches) shortReason = matches[0];
+                } 
+                // Jika error biasa, hapus nama providernya
+                else {
+                    shortReason = skipReason.replace('KHFY ', '').replace('ICS ', '').replace('STOK ', '');
+                }
+
+                // Format: SERVER-NAMA-SKU-Stok'ALASAN'-TUJUAN
+                const skipNotifMsg = `${serverType}-${buyerName}-${skuProduk}-Stok'${shortReason}'-${tujuan}`;
+                
                 await sendTelegramLog(skipNotifMsg);
                 skippedTransactions.push({ buyer: buyerName, sku: skuProduk, dest: tujuan, reason: skipReason, server: serverType });
                 continue; 

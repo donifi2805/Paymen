@@ -24,54 +24,55 @@ export default async function handler(req, res) {
 
             if (chatId !== ADMIN_GROUP_ID) return res.status(200).send('Unauthorized');
 
+            // --- PERBAIKAN 1: HAPUS TOMBOL SEGERA (INSTAN) ---
+            await editMessageReplyMarkup(chatId, messageId);
+
             if (action === 'approve') {
-                // --- PERBAIKAN PENGAMBILAN NOMINAL ---
                 const msgText = cb.message.text || "";
-                // Mencari angka setelah kata 'Nominal:'
                 const nominalMatch = msgText.match(/Nominal:\s*(?:Rp\s*)?([0-9.]+)/i);
                 
                 if (!nominalMatch) {
-                    await sendTelegram(ADMIN_GROUP_ID, "❌ Gagal: Angka nominal tidak ditemukan di pesan!");
+                    await sendTelegram(ADMIN_GROUP_ID, "❌ Gagal: Angka nominal tidak ditemukan!");
                     return res.status(200).send('OK');
                 }
 
-                // Bersihkan titik (Rp 10.500 -> 10500)
                 const amount = parseInt(nominalMatch[1].replace(/\./g, ''));
 
-                if (isNaN(amount) || amount <= 0) {
-                    await sendTelegram(ADMIN_GROUP_ID, "❌ Gagal: Format nominal salah!");
-                    return res.status(200).send('OK');
-                }
-
                 try {
-                    await db.runTransaction(async (t) => {
+                    const statusResult = await db.runTransaction(async (t) => {
                         const userRef = db.collection('users').doc(targetUid);
                         const userSnap = await t.get(userRef);
                         
-                        if (!userSnap.exists) throw "User tidak ditemukan di database";
+                        if (!userSnap.exists) throw "User tidak ditemukan";
+
+                        // --- PERBAIKAN 2: CEK STATUS TRANSAKSI (ANTI-DOUBLE) ---
+                        const historyRef = userRef.collection('history');
+                        const q = await historyRef.where('status', '==', 'Pending').limit(1).get();
+                        
+                        if (q.empty) {
+                            return "ALREADY_PROCESSED"; // Transaksi sudah diproses Admin lain
+                        }
 
                         const currentBal = userSnap.data().balance || 0;
                         const newBal = currentBal + amount;
 
-                        // 1. Update Saldo Utama
+                        // Eksekusi Update
                         t.update(userRef, { balance: newBal });
+                        t.update(q.docs[0].ref, { 
+                            status: 'Sukses', 
+                            api_msg: 'Diterima via Bot Telegram',
+                            balance_after: newBal 
+                        });
                         
-                        // 2. Cari transaksi Pending untuk di-Update
-                        const historyRef = userRef.collection('history');
-                        const q = await historyRef.where('status', '==', 'Pending').limit(5).get();
-                        
-                        if (!q.empty) {
-                            // Cari yang nominalnya mirip (opsional) atau update yang paling baru
-                            const docToUpdate = q.docs[0].ref;
-                            t.update(docToUpdate, { 
-                                status: 'Sukses', 
-                                api_msg: 'Diterima via Bot Telegram',
-                                balance_after: newBal 
-                            });
-                        }
+                        return "SUCCESS";
                     });
 
-                    await sendTelegram(ADMIN_GROUP_ID, `✅ <b>BERHASIL!</b>\nSaldo Rp ${amount.toLocaleString()} telah ditambahkan ke UID <code>${targetUid}</code>.`);
+                    if (statusResult === "SUCCESS") {
+                        await sendTelegram(ADMIN_GROUP_ID, `✅ <b>BERHASIL!</b>\nSaldo Rp ${amount.toLocaleString()} telah ditambahkan ke UID <code>${targetUid}</code>.`);
+                    } else {
+                        await sendTelegram(ADMIN_GROUP_ID, `⚠️ <b>PERINGATAN!</b>\nTransaksi untuk UID <code>${targetUid}</code> sudah diproses sebelumnya. Saldo tidak ditambahkan dua kali.`);
+                    }
+
                 } catch (err) {
                     await sendTelegram(ADMIN_GROUP_ID, `❌ <b>DATABASE ERROR:</b> ${err}`);
                 }
@@ -82,12 +83,10 @@ export default async function handler(req, res) {
                 const q = await historyRef.where('status', '==', 'Pending').limit(1).get();
                 if (!q.empty) {
                     await q.docs[0].ref.update({ status: 'Gagal', api_msg: 'Ditolak via Telegram' });
+                    await sendTelegram(ADMIN_GROUP_ID, `❌ Top Up UID <code>${targetUid}</code> telah DITOLAK.`);
                 }
-                await sendTelegram(ADMIN_GROUP_ID, `❌ Top Up UID <code>${targetUid}</code> telah DITOLAK.`);
             }
 
-            // Hapus tombol agar tidak diklik 2x
-            await editMessageReplyMarkup(chatId, messageId);
             return res.status(200).send('OK');
         }
 
@@ -119,9 +118,15 @@ async function sendTelegram(chatId, text) {
 }
 
 async function editMessageReplyMarkup(chatId, messageId) {
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/editMessageReplyMarkup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: chatId, message_id: message_id, reply_markup: { inline_keyboard: [] } })
-    });
+    try {
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/editMessageReplyMarkup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                chat_id: chatId, 
+                message_id: messageId, 
+                reply_markup: { inline_keyboard: [] } 
+            })
+        });
+    } catch (e) { console.error("Gagal hapus tombol:", e); }
 }

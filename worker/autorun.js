@@ -150,14 +150,14 @@ async function hitVercelRelay(serverType, data, isRecheck = false) {
     // --- LOGIKA KHUSUS ICS (POST untuk Transaksi) ---
     if (serverType === 'ICS') {
         if (isRecheck) {
-            // Cek Status tetap GET (Action: checkTransaction/checkStatus)
+            // Cek Status tetap GET (Action: checkTransaction)
             const params = new URLSearchParams();
             params.append('action', 'checkTransaction'); 
             params.append('apikey', ICS_KEY);
             params.append('refid', data.reffId);
             targetUrl = `${VERCEL_DOMAIN}/api/relay?${params.toString()}`;
         } else {
-            // Transaksi Baru WAJIB POST (Agar tidak dianggap list produk)
+            // Transaksi Baru WAJIB POST
             method = 'POST';
             headers['Content-Type'] = 'application/json';
             
@@ -321,7 +321,9 @@ async function runPreorderQueue() {
             const isExplicitPending = result.success === true && result.data && result.data.status === 'pending';
             if (isExplicitPending) {
                 console.log(`      ⏳ Respon Pending Spesifik. Menunggu 6 detik...`);
+                // --- 🛑 MODIFIKASI: Jeda Recheck 6 Detik ---
                 await new Promise(r => setTimeout(r, 6000));
+                
                 console.log(`      🔄 Recheck Status...`);
                 const checkResult = await hitVercelRelay(serverType, requestData, true);
                 if (checkResult) { result = checkResult; }
@@ -470,7 +472,9 @@ async function runPreorderQueue() {
                     await sendTelegramLog(logMsg);
                 }
             }
-            await new Promise(r => setTimeout(r, 2000));
+            
+            // --- 🛑 MODIFIKASI: Jeda Antar Transaksi 6 Detik ---
+            await new Promise(r => setTimeout(r, 6000));
         }
 
         // --- 🔥 KIRIM REKAP (JIKA ADA AKTIVITAS) 🔥 ---

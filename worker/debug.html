@@ -9,18 +9,24 @@
     <style>
         body { background-color: #0f172a; color: #e2e8f0; font-family: 'Segoe UI', sans-serif; -webkit-tap-highlight-color: transparent; }
         .app-container { max-width: 480px; margin: 0 auto; min-height: 100vh; background-color: #1e293b; box-shadow: 0 0 20px rgba(0,0,0,0.5); position: relative; padding-bottom: 50px; }
+        
+        /* KOMPONEN UI */
         .debug-card { background-color: #0f172a; border: 1px solid #334155; border-radius: 16px; padding: 16px; margin-bottom: 16px; }
         .input-dark { width: 100%; background-color: #1e293b; border: 1px solid #475569; border-radius: 12px; padding: 12px; color: white; outline: none; transition: 0.3s; font-size: 13px; }
         .input-dark:focus { border-color: #3b82f6; }
         .btn-action { width: 100%; padding: 12px; border-radius: 12px; font-weight: bold; font-size: 13px; transition: 0.2s; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2); }
         .btn-action:active { transform: scale(0.98); }
+
+        /* GRID PRODUK */
         .provider-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
         .provider-scroll::-webkit-scrollbar { display: none; }
         .provider-badge { flex-shrink: 0; padding: 8px 16px; border-radius: 12px; background: #1e293b; border: 1px solid #334155; color: #94a3b8; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.3s; }
         .provider-badge.active { background: #2563eb; color: white; border-color: #2563eb; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3); }
+        
         .product-card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 12px; cursor: pointer; transition: 0.2s; position: relative; overflow: hidden; }
         .product-card:active { transform: scale(0.98); }
         .product-card.selected { border-color: #3b82f6; background: #1e3a8a; }
+
         .loader { width: 18px; height: 18px; border: 2px solid #FFF; border-bottom-color: transparent; border-radius: 50%; display: inline-block; animation: rotation 1s linear infinite; }
         @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
@@ -119,7 +125,7 @@
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // --- SETUP FIREBASE ---
+    // --- CONFIG FIREBASE ---
     const firebaseConfig = {
         apiKey: "AIzaSyBnVxgxkS8InH1PQCMGe3cY8IvPqSN6dLo",
         authDomain: "ppob-3ea96.firebaseapp.com",
@@ -135,17 +141,18 @@
     const db = getFirestore(app);
 
     // --- CONFIG API ---
+    // URL Relay Internal
     const KHFY_RELAY_URL = "/api/relaykhfy"; 
-    const CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
-    const ICS_CONFIG = { apiKey: "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77", baseUrl: "https://www.pandawa-digital.store/api/relay" };
-    
-    // DAFTAR PROXY LEBIH LENGKAP
+    // Config Proxy Cadangan
     const PROXY_LIST = [
-        { name: 'RelayLocal', url: '' }, // Direct/Relay
+        { name: 'RelayLocal', url: '' }, // Prioritas 1: Relay Sendiri
         { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
-        { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
         { name: 'CorsProxy', url: 'https://corsproxy.io/?' }
     ];
+    
+    // Config Server Pusat (Untuk fallback proxy)
+    const CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
+    const ICS_CONFIG = { apiKey: "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77", baseUrl: "https://www.pandawa-digital.store/api/relay" };
     
     const TELEGRAM_CONFIG = {
         token: "7507761189:AAGUCYltzj_IMuDRgjUzUPiZDz4nbVXvOME",
@@ -168,62 +175,48 @@
         }
     });
 
-    // --- FUNGSI FETCH SUPER ROBUST (ANTI GAGAL) ---
+    // --- FUNGSI FETCH UTAMA (KHUSUS UNTUK RELAY ANDA) ---
     async function fetchKhfyData(endpoint, params = {}) {
         let lastError = "";
-        
-        // 1. COBA RELAY UTAMA (/api/relaykhfy)
+
+        // 1. Prioritas Utama: RELAY (Sesuai file relaykhfy.js Anda)
         try {
-            const queryParams = new URLSearchParams({ endpoint, ...params }).toString();
-            console.log(`[DEBUG] Trying Relay: ${KHFY_RELAY_URL}?${queryParams}`);
+            // Relay Anda butuh 'endpoint' sebagai parameter.
+            const relayParams = new URLSearchParams({ 
+                endpoint: endpoint, 
+                ...params 
+            }).toString();
+
+            console.log(`[DEBUG] Calling Relay: ${KHFY_RELAY_URL}?${relayParams}`);
+            const res = await fetch(`${KHFY_RELAY_URL}?${relayParams}`);
             
-            const resRelay = await fetch(`${KHFY_RELAY_URL}?${queryParams}`);
-            
-            if (resRelay.ok) {
-                const data = await resRelay.json();
-                console.log("[DEBUG] Relay Success");
-                return data;
+            if (res.ok) {
+                const json = await res.json();
+                console.log("[DEBUG] Relay Success:", json);
+                return json;
             } else {
-                console.warn(`[DEBUG] Relay Failed: ${resRelay.status} ${resRelay.statusText}`);
-                lastError += `Relay: ${resRelay.status}; `;
+                console.warn("[DEBUG] Relay Failed:", res.status);
+                lastError += `Relay ${res.status}; `;
             }
         } catch (e) {
             console.warn("[DEBUG] Relay Error:", e);
-            lastError += `RelayErr: ${e.message}; `;
+            lastError += `Relay Err; `;
         }
 
-        // 2. COBA PROXY CADANGAN (JIKA RELAY MATI)
+        // 2. Fallback: PROXY (Jika file relay belum dideploy/gagal)
+        console.log("[DEBUG] Switching to Proxy Fallback...");
         const targetUrl = `${CONFIG.baseUrl}${endpoint}?${new URLSearchParams(params).toString()}`;
-        console.log(`[DEBUG] Switching to Proxies for: ${targetUrl}`);
-
-        for (const proxy of PROXY_LIST) {
-            if(proxy.name === 'RelayLocal') continue; // Skip yg kosong
-
-            try {
-                console.log(`[DEBUG] Trying Proxy: ${proxy.name}`);
-                const fullUrl = proxy.url + encodeURIComponent(targetUrl);
-                
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 detik timeout
-
-                const res = await fetch(fullUrl, { signal: controller.signal });
-                clearTimeout(timeoutId);
-
-                if (res.ok) {
-                    const data = await res.json();
-                    if(data) {
-                        console.log(`[DEBUG] Success via ${proxy.name}`);
-                        return data;
-                    }
-                }
-            } catch (e) {
-                console.warn(`[DEBUG] Proxy ${proxy.name} Fail:`, e);
-                lastError += `${proxy.name}: Fail; `;
-            }
-        }
         
-        // JIKA SEMUA GAGAL, LEMPAR ERROR AGAR MUNCUL ALERT
-        throw new Error("Gagal mengambil data. Detail: " + lastError);
+        for (const proxy of PROXY_LIST) {
+            if(proxy.name === 'RelayLocal') continue; 
+            try {
+                const fullUrl = proxy.url + encodeURIComponent(targetUrl);
+                const res = await fetch(fullUrl);
+                if (res.ok) return await res.json();
+            } catch (e) {}
+        }
+
+        throw new Error("Gagal ambil data (Relay & Proxy mati). " + lastError);
     }
 
     async function loadPricingRules() {
@@ -266,14 +259,13 @@
         btnGhost.classList.add('opacity-50', 'cursor-not-allowed');
 
         const grid = document.getElementById('productGrid');
-        grid.innerHTML = '<div class="col-span-2 text-center py-8"><span class="loader"></span><p class="text-[10px] mt-2 text-slate-400">Menarik data server...</p></div>';
+        grid.innerHTML = '<div class="col-span-2 text-center py-8"><span class="loader"></span><p class="text-[10px] mt-2 text-slate-400">Loading Data...</p></div>';
 
         let products = [];
 
         try {
-            // --- LOGIKA FETCH ---
+            // A. FETCH ICS (Aman)
             if(code.startsWith('ICS_')) {
-                // ... (Logic ICS Tetap Sama)
                 let icsType = 'xda';
                 if(code === 'ICS_CIRCLE') icsType = 'circle';
                 if(code === 'ICS_XLA') icsType = 'xla';
@@ -291,40 +283,41 @@
                 }
 
             } else {
-                // --- FETCH KHFY DENGAN DIAGNOSTIK ---
+                // B. FETCH KHFY (Gunakan Fungsi Baru)
                 if(globalProducts.length === 0) {
-                    try {
-                        const res = await fetchKhfyData('/list_product', { api_key: CONFIG.apiKey });
-                        if (res && res.data && Array.isArray(res.data.data)) {
-                            globalProducts = res.data.data;
-                            console.log("[DEBUG] KHFY Data Loaded:", globalProducts.length, "items");
-                        } else {
-                            throw new Error("Format JSON API KHFY Berubah/Salah");
-                        }
-                    } catch (err) {
-                        alert("GAGAL LOAD KHFY:\n" + err.message);
-                        grid.innerHTML = `<div class="col-span-2 text-center text-xs text-red-400 py-4">Error: ${err.message}</div>`;
-                        return;
+                    // Panggil fetchKhfyData dengan endpoint /list_product
+                    const res = await fetchKhfyData('/list_product', { api_key: CONFIG.apiKey });
+                    
+                    // PARSER FLEKSIBEL (Menangani berbagai kemungkinan bentuk JSON)
+                    if (res) {
+                        if (Array.isArray(res.data)) globalProducts = res.data; // Format standard
+                        else if (res.data && Array.isArray(res.data.data)) globalProducts = res.data.data; // Nested data
+                        else if (Array.isArray(res)) globalProducts = res; // Direct array
+                        
+                        console.log("[DEBUG] KHFY Loaded:", globalProducts.length, "items");
                     }
                 }
 
-                // Filter KHFY
-                products = globalProducts.filter(p => {
-                    const c = (p.code || p.kode_produk || '').toUpperCase();
-                    const b = (p.brand || p.operator || '').toUpperCase();
-                    if (code === 'XLA') return (c.startsWith('XLA') || c.startsWith('XLC')) && !c.startsWith('XDA');
-                    if (code === 'FMX') return c.startsWith('FMX') || c === 'CFMX' || b === 'FMAX';
-                    if (code === 'XLR') return ['FMX50','FMX65','FMX80','FMX150'].includes(c);
-                    if (code === 'PLN') return b.includes('PLN') || c.includes('PLN');
-                    return false;
-                });
+                // Filtering Logic
+                if (globalProducts.length > 0) {
+                    products = globalProducts.filter(p => {
+                        const c = (p.code || p.kode_produk || '').toUpperCase();
+                        const b = (p.brand || p.operator || '').toUpperCase();
+                        if (code === 'XLA') return (c.startsWith('XLA') || c.startsWith('XLC')) && !c.startsWith('XDA');
+                        if (code === 'FMX') return c.startsWith('FMX') || c === 'CFMX' || b === 'FMAX';
+                        if (code === 'XLR') return ['FMX50','FMX65','FMX80','FMX150'].includes(c);
+                        if (code === 'PLN') return b.includes('PLN') || c.includes('PLN');
+                        return false;
+                    });
+                }
             }
 
             renderGrid(products);
 
         } catch (e) {
             console.error(e);
-            grid.innerHTML = `<div class="col-span-2 text-center text-xs text-red-400 py-4">System Error: ${e.message}</div>`;
+            grid.innerHTML = `<div class="col-span-2 text-center text-xs text-red-400 py-4">Error: ${e.message}</div>`;
+            alert("Gagal Fetch: " + e.message + "\n(Pastikan file /api/relaykhfy.js sudah dideploy!)");
         }
     }
 
@@ -333,7 +326,7 @@
         grid.innerHTML = '';
         
         if(!products || products.length === 0) {
-            grid.innerHTML = '<div class="col-span-2 text-center text-xs text-red-400 py-4">Produk Kosong (Cek Filter/API)</div>';
+            grid.innerHTML = '<div class="col-span-2 text-center text-xs text-red-400 py-4">Produk Kosong</div>';
             return;
         }
 
@@ -382,6 +375,7 @@
         btn.classList.remove('opacity-50', 'cursor-not-allowed');
     }
 
+    // --- GHOST TRANSACTION (DIPERBAIKI UNTUK RELAY) ---
     window.executeGhostTrx = async () => {
         const num = document.getElementById('ghostNumber').value;
         const code = document.getElementById('selectedProductCode').value;
@@ -402,11 +396,12 @@
             let result = null;
 
             if(provider.startsWith('ICS')) {
-                // ICS Logic
                 const url = `${ICS_CONFIG.baseUrl}?action=createTransaction&apikey=${ICS_CONFIG.apiKey}&kode_produk=${code}&nomor_tujuan=${num}&refid=${trxId}`;
                 result = await (await fetch(url)).json();
             } else {
-                // KHFY Logic (Ghost Mode via Relay/Proxy)
+                // KHFY GHOST
+                // Gunakan fetchKhfyData agar lewat Relay dengan benar.
+                // Relay Anda mengubah semua param menjadi URL Query, jadi ini aman.
                 result = await fetchKhfyData('/trx', {
                     api_key: CONFIG.apiKey,
                     produk: code,
@@ -416,11 +411,13 @@
             }
 
             console.log("Ghost Response:", result);
-            let msg = result ? (result.message || result.sn || (result.data ? result.data.message : '') || "Sukses") : "No Response";
-            let fullMsg = `STATUS API: ${msg}\n`;
-            if(result && result.data && result.data.sn) fullMsg += `SN: ${result.data.sn}`;
+            let msg = "No Response";
+            if(result) {
+                // Cek berbagai kemungkinan format pesan sukses/gagal
+                msg = result.message || result.sn || (result.data ? result.data.message : '') || JSON.stringify(result);
+            }
             
-            alert(fullMsg);
+            alert(`HASIL TEMBAK:\n${msg}`);
             
         } catch(e) {
             alert("ERROR SYSTEM: " + e.message);
@@ -430,10 +427,9 @@
         }
     };
 
-    // --- OTHER FUNCTIONS ---
+    // --- FUNGSI INJEKSI & UTILS ---
     window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
     window.sendTelegramNotif = async (type, data) => {
-        // ... (Kode Telegram sama seperti sebelumnya)
         let message = "";
         let topicId = null;
         const now = new Date();
@@ -490,7 +486,7 @@
         try { await deleteDoc(doc(db, "users", uid, "history", tid)); alert("Terhapus."); } catch(e) { alert(e.message); }
     }
 
-    // Expose functions globally
+    // Expose Global
     window.selectProvider = selectProvider;
     window.executeGhostTrx = executeGhostTrx;
     window.injectTopup = injectTopup;

@@ -1,19 +1,10 @@
 // api/notif.js
 export default async function handler(req, res) {
-    if (req.method !== 'POST') {
-        return res.status(200).send('Notif API is Active. Use POST to send notifications.');
-    }
+    if (req.method !== 'POST') return res.status(200).send('API Aktif');
 
     try {
-        // Logika pembacaan body yang lebih aman
-        let data;
-        if (typeof req.body === 'string') {
-            data = JSON.parse(req.body);
-        } else {
-            data = req.body;
-        }
-
-        const { message, sender, userId, type } = data;
+        const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+        const { message, sender, userId, type } = body;
 
         const BOT_TOKEN = "8242866746:AAHdexZf8hZgM80AHY4tICn6gzevCgEquPw";
         const ADMIN_ID = "7348139166";
@@ -22,11 +13,11 @@ export default async function handler(req, res) {
         let replyMarkup = null;
 
         if (type === 'TOPUP_MANUAL') {
-            text = `💰 <b>TOP UP MANUAL BARU</b>\n\n` +
-                   `👤 User: <b>${sender || 'User'}</b>\n` +
-                   `🆔 UID: <code>${userId}</code>\n` +
-                   `💵 Nominal: <b>${message}</b>\n\n` +
-                   `Konfirmasi transaksi ini?`;
+            text = `TOP UP MANUAL BARU\n\n` +
+                   `User: ${sender || 'User'}\n` +
+                   `UID: ${userId}\n` +
+                   `Nominal: ${message}\n\n` +
+                   `Konfirmasi di Panel Admin.`;
             
             replyMarkup = {
                 inline_keyboard: [[
@@ -35,37 +26,34 @@ export default async function handler(req, res) {
                 ]]
             };
         } else {
-            // FORMAT PESAN CHAT BIASA
-            text = `📩 <b>PESAN BARU DARI WEB</b>\n\n` +
-                   `👤 Nama: ${sender || 'Pelanggan'}\n` +
-                   `🆔 ID: <code>${userId}</code>\n` +
-                   `💬 Pesan: "${message}"\n\n` +
-                   `👉 <i>Swipe untuk balas...</i>`;
+            // Format teks polos agar tidak error parsing HTML
+            text = `PESAN BARU DARI WEB\n\n` +
+                   `Nama: ${sender || 'Pelanggan'}\n` +
+                   `ID: ${userId}\n` +
+                   `Pesan: ${message}\n\n` +
+                   `Swipe untuk balas.`;
         }
 
-        // Kirim ke Telegram menggunakan fetch bawaan node
-        const telegramRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 chat_id: ADMIN_ID,
                 text: text,
-                parse_mode: 'HTML',
                 reply_markup: replyMarkup
             })
         });
 
-        const telegramData = await telegramRes.json();
-
-        if (!telegramData.ok) {
-            console.error("Telegram API Error:", telegramData);
-            return res.status(500).json({ error: telegramData.description });
+        const resData = await response.json();
+        
+        if (!resData.ok) {
+            console.error("Telegram API Rejection:", resData.description);
+            return res.status(400).json({ error: resData.description });
         }
 
         return res.status(200).json({ ok: true });
-
     } catch (e) {
-        console.error("Internal Server Error (api/notif):", e.message);
+        console.error("Internal Server Error:", e.message);
         return res.status(500).json({ error: e.message });
     }
 }

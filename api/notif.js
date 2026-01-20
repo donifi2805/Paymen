@@ -3,41 +3,29 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(200).send('Notif API Active');
 
     try {
-        const { message, sender, userId, type } = JSON.parse(req.body);
+        const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+        const { message, sender, userId, type } = body;
+
         const BOT_TOKEN = "8242866746:AAHdexZf8hZgM80AHY4tICn6gzevCgEquPw";
         const ADMIN_ID = "7348139166";
 
         let text = "";
         let replyMarkup = null;
 
-        // SKENARIO A: Notifikasi Top Up Manual
         if (type === 'TOPUP_MANUAL') {
-            text = `💰 <b>TOP UP MANUAL BARU</b>\n\n` +
-                   `👤 <b>User:</b> ${sender}\n` +
-                   `🆔 <b>UID:</b> <code>${userId}</code>\n` +
-                   `💵 <b>Nominal:</b> ${message}\n\n` +
-                   `Silakan cek mutasi Seabank Anda.\nKonfirmasi transaksi ini?`;
-            
+            text = `💰 <b>TOP UP MANUAL BARU</b>\n\n👤 User: ${sender}\n🆔 UID: <code>${userId}</code>\n💵 Nominal: ${message}\n\nKonfirmasi sekarang?`;
             replyMarkup = {
-                inline_keyboard: [
-                    [
-                        { text: "✅ Terima (Proses)", callback_data: `approve_${userId}` },
-                        { text: "❌ Tolak", callback_data: `reject_${userId}` }
-                    ],
-                    [{ text: "🖥️ Buka Panel Admin", url: "https://www.pandawa-digital.store/paneladmin" }]
-                ]
+                inline_keyboard: [[
+                    { text: "✅ Terima", callback_data: `approve_${userId}` },
+                    { text: "❌ Tolak", callback_data: `reject_${userId}` }
+                ]]
             };
-        } 
-        // SKENARIO B: Notifikasi Chat CS Biasa
-        else {
-            text = `📩 <b>PESAN DARI WEBSITE</b>\n\n` +
-                   `👤 <b>Nama:</b> ${sender}\n` +
-                   `🆔 <b>ID:</b> <code>${userId}</code>\n\n` +
-                   `💬 <b>Pesan:</b> "${message}"\n\n` +
-                   `👉 <i>Swipe ke kiri untuk membalas...</i>`;
+        } else {
+            // FORMAT PENTING: Jangan ubah baris "🆔 ID:" karena cs.js membacanya untuk membalas
+            text = `📩 <b>PESAN BARU DARI WEB</b>\n\n👤 Nama: ${sender}\n🆔 ID: <code>${userId}</code>\n💬 Pesan: "${message}"\n\n👉 Swipe untuk balas`;
         }
 
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -48,9 +36,12 @@ export default async function handler(req, res) {
             })
         });
 
+        const resData = await response.json();
+        if (!resData.ok) throw new Error(resData.description);
+
         return res.status(200).json({ ok: true });
     } catch (e) {
-        console.error("Notif Error:", e);
+        console.error("Error sending to Telegram:", e.message);
         return res.status(500).json({ error: e.message });
     }
 }

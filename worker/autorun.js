@@ -225,18 +225,21 @@ async function runPreorderQueue() {
             return;
         }
         
-        // 🔥 1. AMBIL DATA STOK TERLEBIH DAHULU 🔥
+        // --- 1. PEMBATAS AWAL ---
+        await sendTelegramLog("================================");
+
+        // --- 2. AMBIL DATA STOK ---
         const [stockMapKHFY, stockMapICS, akrabSlotMap] = await Promise.all([
             getKHFYStockList(), 
             getICSStockList(),
             getKHFYAkrabSlots()
         ]);
 
-        // 🔥 2. KIRIM NOTIFIKASI INFO SLOT KE TELEGRAM (PERTAMA) 🔥
+        // --- 3. NOTIF SLOT (URUTAN PERTAMA) ---
         let slotReportMsg = "📊 <b>INFO SLOT AKRAB (KHFY)</b>\n";
         if (akrabSlotMap) {
             KHFY_SPECIAL_CODES.forEach(code => {
-                const name = PRODUCT_NAMES[code] || code; // Ubah kode jadi Nama (Super Mini, dll)
+                const name = PRODUCT_NAMES[code] || code;
                 const slot = akrabSlotMap[code] !== undefined ? akrabSlotMap[code] : '?';
                 const icon = slot > 3 ? '🟢' : '🔴';
                 slotReportMsg += `${icon} ${name}: <b>${slot}</b>\n`;
@@ -245,8 +248,8 @@ async function runPreorderQueue() {
             slotReportMsg += "⚠️ Gagal mengambil data slot V3\n";
         }
         await sendTelegramLog(slotReportMsg);
-        // ===========================================================
-
+        
+        // --- 4. PROSES LOOP ---
         let skippedTransactions = [];
         let successCount = 0;
 
@@ -278,19 +281,16 @@ async function runPreorderQueue() {
 
             if (!skuProduk || !tujuan) { await db.collection('preorders').doc(poID).delete(); continue; }
 
-            // ===============================================
-            // 🛑 LOGIKA CEK STOK & SLOT
-            // ===============================================
+            // === LOGIKA CEK STOK & SLOT ===
             let isSkip = false;
             let skipReason = '';
 
-            // 1. CEK KHUSUS KHFY PRODUK SPESIAL (XLA14, dll)
+            // 1. CEK KHUSUS KHFY PRODUK SPESIAL
             if (serverType === 'KHFY' && KHFY_SPECIAL_CODES.includes(skuProduk)) {
                 if (akrabSlotMap) {
                     const sisaSlot = akrabSlotMap[skuProduk];
                     const currentSlot = (sisaSlot !== undefined) ? sisaSlot : 0;
-                    
-                    if (currentSlot <= 3) { // Hanya jalan jika slot > 3
+                    if (currentSlot <= 3) { 
                         isSkip = true;
                         skipReason = `Stok Kosong (Slot ${currentSlot})`;
                     }
@@ -318,22 +318,16 @@ async function runPreorderQueue() {
                 }
             }
 
-            // 🔥 EKSEKUSI SKIP & KIRIM NOTIF LANGSUNG 🔥
+            // === SKIP & NOTIF SKIP LANGSUNG ===
             if (isSkip) {
                 console.log(`   ⛔ SKIP: ${skipReason}`);
-                
-                // Format: Nama-Produk-NoHP-Alasan
-                // Contoh: doni fiandika-XDA39-085256776974-Skip stok kosong
                 const skipNotifMsg = `${buyerName}-${skuProduk}-${tujuan}-Skip ${skipReason}`;
                 await sendTelegramLog(skipNotifMsg);
-
                 skippedTransactions.push({ buyer: buyerName, sku: skuProduk, dest: tujuan, reason: skipReason, server: serverType });
                 continue; 
             }
 
-            // ===============================================
-            // 🚀 EKSEKUSI TRANSAKSI
-            // ===============================================
+            // === EKSEKUSI TRANSAKSI ===
             let reffId = po.active_reff_id;
             if (!reffId) {
                 reffId = `${serverType}-AUTO-${Date.now()}`; 
@@ -451,6 +445,9 @@ async function runPreorderQueue() {
             await new Promise(r => setTimeout(r, 6000));
         }
 
+        // --- 5. PEMBATAS AKHIR (YANG TADI HILANG) ---
+        await sendTelegramLog("================================");
+        
         console.log("\n--- SELESAI ---");
 
     } catch (error) { console.error("CRITICAL ERROR:", error); process.exit(1); }

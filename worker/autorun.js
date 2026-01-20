@@ -15,12 +15,12 @@ try {
 
 const db = admin.firestore();
 
-// --- 2. KONFIGURASI PROVIDER (DIRECT CONNECTION) ---
+// --- 2. KONFIGURASI PROVIDER ---
 const KHFY_BASE_URL = "https://panel.khfy-store.com/api_v2";
 const KHFY_AKRAB_URL = "https://panel.khfy-store.com/api_v3/cek_stock_akrab";
 const ICS_BASE_URL = "https://api.ics-store.my.id/api/reseller";
 
-// ⚠️ API KEYS (Gunakan Environment Variables di Production)
+// ⚠️ API KEYS (WAJIB DIAMANKAN DI GITHUB SECRETS JIKA SUDAH LIVE)
 const KHFY_KEY = "8F1199C1-483A-4C96-825E-F5EBD33AC60A"; 
 const ICS_KEY = "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77"; 
 
@@ -28,7 +28,7 @@ const ICS_KEY = "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff7
 const TG_TOKEN = "7850521841:AAH84wtuxnDWg5u04lMkL5zqVcY1hIpzGJg";
 const TG_CHAT_ID = "7348139166";
 
-// --- KONFIGURASI PRODUK SESUAI INDEX.HTML ---
+// KONFIGURASI SLOT V3
 const KHFY_SPECIAL_CODES = ['XLA14', 'XLA32', 'XLA39', 'XLA51', 'XLA65', 'XLA89'];
 const PRODUCT_NAMES = {
     'XLA14': 'Super Mini', 'XLA32': 'Mini', 'XLA39': 'Big',
@@ -64,17 +64,17 @@ async function sendTelegramLog(message, isUrgent = false) {
 }
 
 // ============================================================
-// 🛠️ FUNGSI FETCH DATA STOK (LENGKAP)
+// 🛠️ FUNGSI FETCH DATA STOK
 // ============================================================
 
-// 1. KHFY Regular (Fetch All & Filter later)
+// 1. KHFY Regular (Fetch All)
 async function getKHFYFullStock() {
     const params = new URLSearchParams();
     params.append('api_key', KHFY_KEY);
     const targetUrl = `${KHFY_BASE_URL}/list_product?${params.toString()}`;
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 20000); 
+        const timeoutId = setTimeout(() => controller.abort(), 25000); 
         const response = await fetch(targetUrl, { 
             method: 'GET', headers: { 'User-Agent': 'Pandawa-Worker/Direct' }, signal: controller.signal 
         });
@@ -85,14 +85,14 @@ async function getKHFYFullStock() {
         if (json && json.data && Array.isArray(json.data)) dataList = json.data;
         else if (json && Array.isArray(json)) dataList = json;
 
-        // Map Data agar mudah diakses
         const stockMap = {};
         dataList.forEach(item => {
             stockMap[item.kode_produk] = {
                 gangguan: item.gangguan == 1, 
                 kosong: item.kosong == 1, 
                 status: item.status,
-                name: item.nama_produk
+                name: item.nama_produk,
+                price: parseInt(item.harga_produk || 0)
             };
         });
         return { list: dataList, map: stockMap };
@@ -106,7 +106,7 @@ async function getICSFullStock() {
     const targetUrl = `${ICS_BASE_URL}/products?${params.toString()}`;
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 20000); 
+        const timeoutId = setTimeout(() => controller.abort(), 25000); 
         const response = await fetch(targetUrl, { 
             method: 'GET', headers: { 'User-Agent': 'Pandawa-Worker/Direct' }, signal: controller.signal 
         });
@@ -124,7 +124,8 @@ async function getICSFullStock() {
                 kosong: item.status === 'empty' || item.stock === 0 || item.status === 'kosong', 
                 nonaktif: item.status === 'nonactive',
                 real_stock: item.stock || 0,
-                name: item.name
+                name: item.name,
+                price: parseInt(item.price || 0)
             };
         });
         return { list: dataList, map: stockMap };
@@ -206,7 +207,7 @@ async function sendUserLog(uid, title, message, trxId) {
 // 🏁 LOGIKA UTAMA (WORKER)
 // ============================================================
 async function runPreorderQueue() {
-    console.log(`[${new Date().toISOString()}] MEMULAI WORKER (FULL REPORT MODE)...`);
+    console.log(`[${new Date().toISOString()}] MEMULAI WORKER (FULL DYNAMIC REPORT)...`);
 
     try {
         const snapshot = await db.collection('preorders').orderBy('timestamp', 'asc').limit(100).get();
@@ -218,7 +219,7 @@ async function runPreorderQueue() {
         
         await sendTelegramLog("================================");
 
-        // --- 1. AMBIL DATA STOK LENGKAP ---
+        // --- 1. AMBIL DATA LENGKAP ---
         const [khfyData, icsData, akrabSlotMap] = await Promise.all([
             getKHFYFullStock(), 
             getICSFullStock(),
@@ -228,11 +229,11 @@ async function runPreorderQueue() {
         const stockMapKHFY = khfyData ? khfyData.map : null;
         const stockMapICS = icsData ? icsData.map : null;
 
-        // --- 2. GENERATE LAPORAN LENGKAP (BERDASARKAN INDEX.HTML) ---
+        // --- 2. BUILD LAPORAN OTOMATIS (DINAMIS SESUAI INDEX.HTML) ---
         let reportMsg = "";
 
-        // Bagian A: Info Slot Akrab (KHFY V3)
-        reportMsg += "📊 <b>SLOT AKRAB V3 (KHFY)</b>\n";
+        // A. SLOT V3 (Special)
+        reportMsg += "📊 <b>SLOT AKRAB V3</b>\n";
         if (akrabSlotMap) {
             KHFY_SPECIAL_CODES.forEach(code => {
                 const name = PRODUCT_NAMES[code] || code;
@@ -244,55 +245,63 @@ async function runPreorderQueue() {
             reportMsg += "⚠️ Gagal mengambil data slot V3\n";
         }
 
-        // Bagian B: Produk Jualan (Sesuai PPOB_PROVIDERS di Index)
-        reportMsg += "\n📦 <b>STOK PRODUK JUALAN</b>\n";
-
-        // Fungsi Helper Print Item
-        const printItem = (code, name, source) => {
-            let status = "❓ Unknown";
+        // B. DAFTAR LENGKAP PRODUK (FILTER DINAMIS)
+        // Fungsi helper untuk cetak status item
+        const printStatus = (item, source) => {
+            let status = "Unknown";
             let icon = "⚪";
-            
-            if (source === 'ICS' && stockMapICS && stockMapICS[code]) {
-                const i = stockMapICS[code];
-                if (i.gangguan) { icon = "⛔"; status = "Gangguan"; }
-                else if (i.kosong) { icon = "🔴"; status = "Kosong"; }
-                else { icon = "✅"; status = `Ready (${i.real_stock})`; }
-            } 
-            else if (source === 'KHFY' && stockMapKHFY && stockMapKHFY[code]) {
-                const k = stockMapKHFY[code];
-                if (k.gangguan) { icon = "⛔"; status = "Gangguan"; }
-                else if (k.kosong) { icon = "🔴"; status = "Kosong"; }
+            if (source === 'ICS') {
+                if (item.gangguan) { icon = "⛔"; status = "Gangguan"; }
+                else if (item.kosong) { icon = "🔴"; status = "Kosong"; }
+                else { icon = "✅"; status = `Ready (${item.real_stock})`; }
+            } else {
+                if (item.gangguan) { icon = "⛔"; status = "Gangguan"; }
+                else if (item.kosong) { icon = "🔴"; status = "Kosong"; }
                 else { icon = "✅"; status = "Ready"; }
             }
-            return `${icon} <b>${code}</b>: ${status}\n`;
+            return `${icon} <b>${item.code || item.kode_produk}</b>: ${status}\n`;
         };
 
-        // 1. ICS XDA (Akrab Fresh) & Circle
-        if(icsData && icsData.list) {
-            const xdaItems = icsData.list.filter(i => i.code.startsWith('XDA') || i.code.startsWith('XCL'));
-            if(xdaItems.length > 0) {
-                // Tampilkan hanya yang populer/sering dipakai
-                ['XDA13', 'XDA35', 'XDA58', 'XCL'].forEach(prefix => {
-                    const found = xdaItems.find(i => i.code.startsWith(prefix));
-                    if(found) reportMsg += printItem(found.code, found.name, 'ICS');
-                });
+        // --- FILTER ICS (XDA, XCL, XLA) ---
+        if (icsData && icsData.list) {
+            reportMsg += "\n📡 <b>SERVER ICS</b>\n";
+            const icsItems = icsData.list.filter(i => {
+                const c = (i.code || "").toUpperCase();
+                // Ambil semua yang berawalan XDA, XCL, XLA, atau tipe circle/xda
+                return c.startsWith('XDA') || c.startsWith('XCL') || c.startsWith('XLA');
+            });
+            // Urutkan kode agar rapi
+            icsItems.sort((a,b) => a.code.localeCompare(b.code));
+            
+            if (icsItems.length > 0) {
+                icsItems.forEach(i => reportMsg += printStatus(i, 'ICS'));
+            } else {
+                reportMsg += "<i>Tidak ada produk ICS terdeteksi</i>\n";
             }
         }
 
-        // 2. KHFY FMX (FlexMax)
-        if(khfyData && khfyData.list) {
-            const fmxItems = khfyData.list.filter(i => i.kode_produk.startsWith('FMX'));
-            if(fmxItems.length > 0) {
-                ['FMX50', 'FMX65', 'FMX80'].forEach(c => reportMsg += printItem(c, c, 'KHFY'));
+        // --- FILTER KHFY (FMX, PLN, XLC) ---
+        if (khfyData && khfyData.list) {
+            reportMsg += "\n📡 <b>SERVER KHFY</b>\n";
+            const khfyItems = khfyData.list.filter(i => {
+                const c = (i.kode_produk || "").toUpperCase();
+                // Ambil semua FMX, CFMX, PLN, XLC (kecuali yang sudah ada di slot v3)
+                const isSpecial = KHFY_SPECIAL_CODES.includes(c);
+                return !isSpecial && (c.startsWith('FMX') || c.startsWith('CFMX') || c.startsWith('PLN') || c.startsWith('XLC') || c.startsWith('XLA'));
+            });
+            // Urutkan kode
+            khfyItems.sort((a,b) => a.kode_produk.localeCompare(b.kode_produk));
+
+            if (khfyItems.length > 0) {
+                khfyItems.forEach(i => reportMsg += printStatus(i, 'KHFY'));
+            } else {
+                reportMsg += "<i>Tidak ada produk KHFY terdeteksi</i>\n";
             }
         }
-
-        // 3. KHFY PLN (Token)
-        reportMsg += printItem('PLN20', 'Token PLN', 'KHFY');
 
         await sendTelegramLog(reportMsg);
 
-        // --- 3. PROSES TRANSAKSI (SAMA SEPERTI BIASA) ---
+        // --- 3. PROSES TRANSAKSI (Logic Tidak Berubah) ---
         let skippedTransactions = [];
         let successCount = 0;
 

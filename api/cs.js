@@ -1,69 +1,75 @@
 // File: api/cs.js
-// KHUSUS UNTUK BOT CUSTOMER SERVICE (Chat ke User)
 import admin from 'firebase-admin';
 
-// Token Bot CS (Bot Baru)
 const BOT_TOKEN = "8242866746:AAHdexZf8hZgM80AHY4tICn6gzevCgEquPw"; 
-const ADMIN_ID = "7348139166"; // ID Telegram Anda untuk menerima laporan chat
+const ADMIN_ID = "7348139166"; // ID Telegram Anda
 
-// Init Firebase (Cek agar tidak bentrok dengan telegram.js)
-// Kita gunakan try-catch agar aman
+// Init Firebase (Opsional, untuk jaga-jaga)
 try {
-    if (!admin.apps.length) {
-        if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-            admin.initializeApp({
-                credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT))
-            });
-        }
+    if (!admin.apps.length && process.env.FIREBASE_SERVICE_ACCOUNT) {
+        admin.initializeApp({
+            credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT))
+        });
     }
-} catch (e) {
-    console.log("Firebase init skipped/handled in cs.js");
-}
+} catch (e) { console.log("Firebase handled"); }
 
 export default async function handler(req, res) {
-    // Hanya terima POST dari Telegram
-    if (req.method !== 'POST') {
-        return res.status(200).send('Bot CS Active');
-    }
+    if (req.method !== 'POST') return res.status(200).send('CS Bot Active');
 
     try {
         const body = req.body;
-        
         if (body.message) {
             const chatId = body.message.chat.id;
             const text = body.message.text || '';
             const name = body.message.chat.first_name || 'Kak';
             const username = body.message.chat.username || 'No Username';
 
-            // --- LOGIKA BALASAN CS ---
-            
-            if (text === '/start') {
-                // Balasan saat user pertama kali klik Start
-                await sendMessage(chatId, `Halo <b>${name}</b>! 👋\n\nSelamat datang di Layanan Pelanggan Pandawa Store.\nSilakan tulis pesan Anda, Admin kami akan segera membalas.`);
-            } else {
-                // Balasan Otomatis untuk pesan biasa
-                await sendMessage(chatId, "✅ Pesan diterima. Mohon tunggu respon dari Admin.");
+            // --- 1. FITUR BALAS PESAN (KHUSUS ADMIN) ---
+            // Cara pakai: /balas [ID_USER] [PESAN ANDA]
+            // Contoh: /balas 12345678 Halo kak, sudah diproses ya
+            if (chatId.toString() === ADMIN_ID && text.startsWith('/balas ')) {
+                const args = text.split(' ');
+                const targetId = args[1]; // ID User tujuan
+                const replyMsg = args.slice(2).join(' '); // Pesan balasan
 
-                // TERUSKAN PESAN KE ANDA (ADMIN)
-                // Agar Anda tahu ada user yang chat ke bot CS
-                if (chatId.toString() !== ADMIN_ID) {
-                    const laporMsg = `📩 <b>Pesan Baru (CS Bot)</b>\n\nDari: ${name} (@${username})\nID: <code>${chatId}</code>\n\nPesan:\n"${text}"`;
+                if (targetId && replyMsg) {
+                    // Kirim ke User
+                    await sendMessage(targetId, `👨‍💻 <b>Admin:</b>\n${replyMsg}`);
+                    // Konfirmasi ke Admin
+                    await sendMessage(ADMIN_ID, `✅ Terkirim ke ${targetId}:\n"${replyMsg}"`);
+                } else {
+                    await sendMessage(ADMIN_ID, "⚠️ Format salah.\nGunakan: <code>/balas [ID_USER] [PESAN]</code>");
+                }
+                return res.status(200).send('OK');
+            }
+
+            // --- 2. FITUR USER KIRIM PESAN ---
+            if (chatId.toString() !== ADMIN_ID) {
+                if (text === '/start') {
+                    await sendMessage(chatId, `Halo <b>${name}</b>! 👋\n\nSelamat datang di Layanan Pelanggan Pandawa Store.\nSilakan tulis pesan Anda, Admin kami akan segera membalas.`);
+                } else {
+                    // Beritahu user pesan sudah masuk
+                    await sendMessage(chatId, "✅ Pesan diterima. Mohon tunggu respon Admin.");
+
+                    // Lapor ke Admin
+                    const laporMsg = `📩 <b>Pesan Baru User</b>\n` +
+                                     `Nama: ${name} (@${username})\n` +
+                                     `ID: <code>${chatId}</code>\n\n` +
+                                     `Pesan:\n"${text}"\n\n` +
+                                     `👉 <b>Cara Balas:</b>\nCopy ID diatas, lalu ketik:\n` +
+                                     `/balas ${chatId} Isi pesan anda`;
+                    
                     await sendMessage(ADMIN_ID, laporMsg);
                 }
             }
         }
-    } catch (e) {
-        console.error("Error CS Bot:", e);
-    }
+    } catch (e) { console.error(e); }
     
-    // Wajib return 200 OK
     return res.status(200).send('OK');
 }
 
-// Fungsi Kirim Pesan
 async function sendMessage(chatId, text) {
-    const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
-    await fetch(url, {
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'HTML' })

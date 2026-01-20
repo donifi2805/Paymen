@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "Backend Bot Telegram untuk Panel PPOB",
   "engines": {
-    "node": "18.x"
+    "node": "20.x"
   },
   "scripts": {
-    "start": "node api/telegram.js"
+    "start": "node api/cs.js"
   },
   "dependencies": {
     "axios": "^1.6.2",

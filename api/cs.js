@@ -1,8 +1,14 @@
 import admin from 'firebase-admin';
 
+// ==========================================
+// 1. KONFIGURASI BOT & ADMIN
+// ==========================================
 const BOT_TOKEN = "8242866746:AAHdexZf8hZgM80AHY4tICn6gzevCgEquPw"; 
-const ADMIN_ID = "7348139166";
+const ADMIN_ID = "7348139166"; // ID Telegram Anda
 
+// ==========================================
+// 2. INISIALISASI FIREBASE (SAFE MODE)
+// ==========================================
 if (!admin.apps.length) {
     try {
         if (process.env.FIREBASE_SERVICE_ACCOUNT) {
@@ -10,12 +16,19 @@ if (!admin.apps.length) {
                 credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT))
             });
         }
-    } catch (e) { console.error("Firebase Error:", e); }
+    } catch (e) {
+        console.error("Firebase Init Error:", e);
+    }
 }
 const db = admin.firestore();
 
+// ==========================================
+// 3. LOGIC UTAMA (WEBHOOK HANDLER)
+// ==========================================
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(200).send('Bot CS Active');
+    if (req.method !== 'POST') {
+        return res.status(200).send('Bot CS Swipe Reply Ready');
+    }
 
     try {
         const body = req.body;
@@ -24,88 +37,118 @@ export default async function handler(req, res) {
             const chatId = msg.chat.id.toString();
             const text = msg.text || '';
             const name = msg.chat.first_name || 'User';
+            const username = msg.chat.username ? `@${msg.chat.username}` : '-';
 
-            // --- LOGIKA 1: ADMIN MEMBALAS (VIA REPLY/SWIPE) ---
+            // -----------------------------------------------------------
+            // SKENARIO A: ADMIN MEMBALAS (VIA SWIPE/REPLY)
+            // -----------------------------------------------------------
             if (chatId === ADMIN_ID && msg.reply_to_message) {
-                // Ambil ID User dari pesan yang direply
-                // Kita akan mencari ID di dalam teks laporan (menggunakan Regex)
-                const replyText = msg.reply_to_message.text || '';
-                const match = replyText.match(/🆔 ID: (\d+)/) || replyText.match(/🆔 ID: <code>(\d+)<\/code>/);
+                const replyToText = msg.reply_to_message.text || '';
+                
+                // Cari ID User di dalam pesan laporan menggunakan Regex
+                // Mendukung format: 🆔 ID: 12345 atau 🆔 ID: <code>12345</code>
+                const match = replyToText.match(/🆔 ID: (\d+)/) || replyToText.match(/🆔 ID: <code>(\d+)<\/code>/);
                 
                 if (match && match[1]) {
-                    const targetId = match[1];
-                    const replyMsg = text; // Isi chat admin
+                    const targetUserId = match[1];
+                    const replyMsg = text;
 
-                    // 1. Kirim ke User
-                    await sendMessage(targetId, `👨‍💻 <b>Admin CS:</b>\n${replyMsg}`);
+                    // 1. Kirim pesan ke User via Telegram
+                    await sendTelegram(targetUserId, `👨‍💻 <b>Admin CS:</b>\n${replyMsg}`);
                     
-                    // 2. Simpan ke Firebase
-                    await db.collection('chats').add({
-                        userId: targetId,
-                        sender: 'admin',
-                        message: replyMsg,
-                        name: 'Admin Support',
-                        timestamp: new Date().toISOString(),
-                        read: true,
-                        source: 'telegram_reply'
-                    });
+                    // 2. Simpan balasan ke Firebase (Agar muncul di history website)
+                    if (db) {
+                        await db.collection('chats').add({
+                            userId: targetUserId,
+                            sender: 'admin',
+                            message: replyMsg,
+                            name: 'Admin Support',
+                            timestamp: new Date().toISOString(),
+                            read: true,
+                            source: 'telegram_swipe'
+                        });
+                    }
 
-                    await sendMessage(ADMIN_ID, `✅ Terbalas ke ID <code>${targetId}</code>`);
+                    // 3. Notifikasi Sukses ke Admin
+                    await sendTelegram(ADMIN_ID, `✅ Terkirim ke <code>${targetUserId}</code>`);
                     return res.status(200).send('OK');
                 }
             }
 
-            // --- LOGIKA 2: PERINTAH MANUAL /BALAS (TETAP DIADAKAN) ---
-            if (chatId === ADMIN_ID && text.startsWith('/balas ')) {
-                const args = text.split(' ');
-                const targetId = args[1];
-                const replyMsg = args.slice(2).join(' ');
-                if (targetId && replyMsg) {
-                    await sendMessage(targetId, `👨‍💻 <b>Admin CS:</b>\n${replyMsg}`);
-                    await db.collection('chats').add({
-                        userId: targetId, sender: 'admin', message: replyMsg,
-                        timestamp: new Date().toISOString(), source: 'telegram_manual'
-                    });
-                    await sendMessage(ADMIN_ID, `✅ Terkirim.`);
+            // -----------------------------------------------------------
+            // SKENARIO B: ADMIN MENGETIK /START ATAU MANUAL BALAS
+            // -----------------------------------------------------------
+            if (chatId === ADMIN_ID) {
+                if (text === '/start') {
+                    await sendTelegram(ADMIN_ID, `👮‍♂️ <b>Halo Bos!</b>\n\nBot CS Aktif.\n\n<b>Cara Balas:</b>\nCukup <b>Swipe ke Kiri</b> (Reply) pada pesan laporan user yang masuk, lalu ketik balasan Anda.`);
+                } else if (text.startsWith('/balas ')) {
+                    const args = text.split(' ');
+                    const targetId = args[1];
+                    const replyMsg = args.slice(2).join(' ');
+                    if (targetId && replyMsg) {
+                        await sendTelegram(targetId, `👨‍💻 <b>Admin CS:</b>\n${replyMsg}`);
+                        await sendTelegram(ADMIN_ID, `✅ Terkirim manual.`);
+                    }
                 }
                 return res.status(200).send('OK');
             }
 
-            // --- LOGIKA 3: USER CHAT ---
+            // -----------------------------------------------------------
+            // SKENARIO C: USER TELEGRAM CHAT KE BOT
+            // -----------------------------------------------------------
             if (chatId !== ADMIN_ID) {
-                // Simpan ke DB
-                await db.collection('chats').add({
-                    userId: chatId,
-                    sender: 'user',
-                    message: text,
-                    name: `${name} (TG)`,
-                    timestamp: new Date().toISOString(),
-                    read: false,
-                    source: 'telegram'
-                });
+                // 1. Simpan ke Database Firebase
+                if (db) {
+                    await db.collection('chats').add({
+                        userId: chatId,
+                        sender: 'user',
+                        message: text,
+                        name: `${name} (Telegram)`,
+                        username: username,
+                        timestamp: new Date().toISOString(),
+                        read: false,
+                        source: 'telegram'
+                    });
+                }
 
-                // Notif ke Admin (Penting: Format 🆔 ID: harus tepat agar regex swipe reply jalan)
-                const report = `📩 <b>CHAT BARU</b>\n` +
-                               `👤 Nama: ${name}\n` +
-                               `🆔 ID: <code>${chatId}</code>\n\n` +
-                               `💬 Pesan:\n"${text}"\n\n` +
-                               `👉 <i>Swipe ke kiri untuk membalas...</i>`;
+                // 2. Kirim Laporan ke Admin (PENTING: Format ID jangan diubah agar Swipe Reply jalan)
+                const reportMsg = `📩 <b>PESAN BARU (CS)</b>\n\n` +
+                                  `👤 <b>User:</b> ${name} (${username})\n` +
+                                  `🆔 <b>ID:</b> <code>${chatId}</code>\n\n` +
+                                  `💬 <b>Pesan:</b>\n"${text}"\n\n` +
+                                  `👉 <i>Swipe ke kiri pesan ini untuk membalas...</i>`;
                 
-                await sendMessage(ADMIN_ID, report);
-                
+                await sendTelegram(ADMIN_ID, reportMsg);
+
+                // 3. Respon ke User jika klik /start
                 if (text === '/start') {
-                    await sendMessage(chatId, `Halo ${name}, ada yang bisa dibantu?`);
+                    await sendTelegram(chatId, `Halo <b>${name}</b>! 👋\nAda yang bisa kami bantu? Silakan tulis pesan Anda di sini.`);
                 }
             }
         }
-    } catch (e) { console.error(e); }
+    } catch (error) {
+        console.error("Critical Error:", error);
+    }
+
     return res.status(200).send('OK');
 }
 
-async function sendMessage(chatId, text) {
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'HTML' })
-    });
+// ==========================================
+// HELPER: SEND TELEGRAM MESSAGE
+// ==========================================
+async function sendTelegram(chatId, text) {
+    const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+    try {
+        await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: chatId,
+                text: text,
+                parse_mode: 'HTML'
+            })
+        });
+    } catch (e) {
+        console.error("Fetch Error:", e);
+    }
 }

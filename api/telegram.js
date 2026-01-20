@@ -6,7 +6,7 @@ import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 
 // --- KONFIGURASI ---
 const token = '8576099469:AAHxURiNMnVhWdLqHLlAoX7ayAVX6HsCSiY';
-// Ganti dengan URL domain Anda sendiri agar bot bisa menembak API Relay internal
+// Ganti dengan URL domain Anda sendiri
 const BASE_URL = 'https://www.pandawa-digital.store'; 
 
 const firebaseConfig = {
@@ -21,7 +21,6 @@ const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT
 
 const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
 
-// --- MENU BARU KHUSUS PREORDER ---
 const mainMenu = {
     resize_keyboard: true,
     one_time_keyboard: false,
@@ -67,7 +66,6 @@ async function executeTransaction(poData) {
         const res = await fetch(url);
         const json = await res.json();
         
-        // Cek Keberhasilan berdasarkan Server
         let isSuccess = false;
         let sn = 'Proses Bot';
         
@@ -94,7 +92,7 @@ export default async function handler(req, res) {
     const bot = new TelegramBot(token);
     const body = req.body;
 
-    // A. HANDLE CALLBACK QUERY (TOMBOL MANUAL)
+    // A. HANDLE CALLBACK QUERY (TOMBOL)
     if (body.callback_query) {
         const query = body.callback_query;
         const chatId = query.message.chat.id;
@@ -107,7 +105,7 @@ export default async function handler(req, res) {
             return res.status(200).send('OK');
         }
 
-        const [action, poId] = data.split('__'); // Menggunakan separator double underscore
+        const [action, poId] = data.split('__');
 
         try {
             const poRef = db.collection('preorders').doc(poId);
@@ -122,54 +120,72 @@ export default async function handler(req, res) {
             const uid = poData.uid;
             const historyId = poData.historyId || ("PO-" + poId);
 
-            if (action === 'MANUAL_ACC') {
-                // FORCE SUKSES
+            // --- 1. RUN SINGLE (NEW FEATURE) ---
+            if (action === 'RUN_SINGLE') {
+                await bot.sendMessage(chatId, `🔄 Menembak Server untuk ${poData.targetNumber}...`);
+                
+                const result = await executeTransaction({ ...poData, id: poId });
+
+                if (result.success) {
+                    // JIKA SUKSES: Update History & Hapus Antrian
+                    await db.runTransaction(async (t) => {
+                        const hRef = db.collection('users').doc(uid).collection('history').doc(historyId);
+                        const hDoc = await t.get(hRef);
+                        if(hDoc.exists) {
+                            t.update(hRef, { 
+                                status: 'Sukses', 
+                                api_msg: 'Sukses via Bot Run: ' + result.sn,
+                                date_updated: new Date().toISOString()
+                            });
+                        }
+                        t.delete(poRef);
+                    });
+                    await bot.sendMessage(chatId, `✅ <b>SUKSES!</b>\nTarget: ${poData.targetNumber}\nSN: ${result.sn}`, { parse_mode: 'HTML' });
+                    // Hapus tombol
+                    await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: query.message.message_id });
+                } else {
+                    // JIKA GAGAL: Update Log Preorder (Jangan dihapus, biar bisa manual)
+                    await poRef.update({ 
+                        debugStatus: 'GAGAL',
+                        debugLogs: `Bot Single Run: ${result.sn}`
+                    });
+                    await bot.sendMessage(chatId, `❌ <b>GAGAL KE SERVER</b>\nPesan: ${result.sn}\nSilakan coba lagi atau gunakan tombol Force/Refund di bawah.`, { parse_mode: 'HTML' });
+                }
+            }
+            
+            // --- 2. FORCE SUKSES (MANUAL ACC) ---
+            else if (action === 'MANUAL_ACC') {
                 await db.runTransaction(async (t) => {
                     const hRef = db.collection('users').doc(uid).collection('history').doc(historyId);
-                    const hDoc = await t.get(hRef);
-                    if(hDoc.exists && hDoc.data().status !== 'Pending') throw "Status bukan Pending!";
-                    
-                    t.update(hRef, {
-                        status: 'Sukses',
-                        api_msg: 'Diterima Manual (Bot)',
-                        date_updated: new Date().toISOString()
-                    });
-                    t.delete(poRef); // Hapus dari antrian preorder
+                    t.update(hRef, { status: 'Sukses', api_msg: 'Diterima Manual (Bot)', date_updated: new Date().toISOString() });
+                    t.delete(poRef);
                 });
-                await bot.sendMessage(chatId, `✅ Antrian ${poData.targetNumber} di-SET SUKSES.`);
+                await bot.sendMessage(chatId, `✅ Antrian ${poData.targetNumber} di-SET SUKSES Manual.`);
+                await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: query.message.message_id });
             } 
+            
+            // --- 3. REFUND (MANUAL TOLAK) ---
             else if (action === 'MANUAL_REJ') {
-                // MANUAL TOLAK (REFUND)
                 await db.runTransaction(async (t) => {
                     const uRef = db.collection('users').doc(uid);
                     const hRef = uRef.collection('history').doc(historyId);
-                    
                     const uDoc = await t.get(uRef);
-                    const hDoc = await t.get(hRef);
                     
-                    if(hDoc.exists && hDoc.data().status !== 'Pending') throw "Status bukan Pending!";
-
                     const refundAmount = poData.price || 0;
                     const newBal = (uDoc.data().balance || 0) + refundAmount;
 
                     t.update(uRef, { balance: newBal });
-                    t.update(hRef, {
-                        status: 'Gagal',
-                        api_msg: 'Ditolak Manual (Bot) - Refund',
-                        balance_final: newBal,
-                        date_updated: new Date().toISOString()
-                    });
-                    t.delete(poRef); // Hapus dari antrian
+                    t.update(hRef, { status: 'Gagal', api_msg: 'Refund Manual (Bot)', balance_final: newBal, date_updated: new Date().toISOString() });
+                    t.delete(poRef);
                 });
-                await bot.sendMessage(chatId, `❌ Antrian ${poData.targetNumber} DITOLAK (Refund Rp ${refundAmount}).`);
+                await bot.sendMessage(chatId, `❌ Antrian ${poData.targetNumber} di-REFUND.`);
+                await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: query.message.message_id });
             }
             
-            // Hapus tombol setelah diklik
-            await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: query.message.message_id });
             await bot.answerCallbackQuery(query.id);
 
         } catch (e) {
-            await bot.sendMessage(chatId, `⚠️ Gagal: ${e.message || e}`);
+            await bot.sendMessage(chatId, `⚠️ Error: ${e.message || e}`);
         }
         return res.status(200).send('OK');
     }
@@ -186,7 +202,6 @@ export default async function handler(req, res) {
     const session = sessionSnap.exists ? sessionSnap.data() : { isLoggedIn: false };
 
     try {
-        // LOGIN & LOGOUT (Sama seperti sebelumnya)
         if (text === '/logout' || text === '🚪 Logout') {
             await sessionRef.delete();
             await bot.sendMessage(chatId, "👋 Logout berhasil.", { reply_markup: { remove_keyboard: true } });
@@ -195,9 +210,9 @@ export default async function handler(req, res) {
         
         if (text === '/start') {
             if (session.isLoggedIn) {
-                await bot.sendMessage(chatId, `⚙️ *PANEL DEBUG PREORDER*\nMode: Auto Run & Manual Control`, { parse_mode: 'Markdown', reply_markup: mainMenu });
+                await bot.sendMessage(chatId, `⚙️ *DEBUGGER MODE*\nSilakan pilih menu di bawah.`, { parse_mode: 'Markdown', reply_markup: mainMenu });
             } else {
-                await bot.sendMessage(chatId, `🔐 *LOGIN DEBUGGER*\nFormat: \`/login email password\``, { parse_mode: 'Markdown' });
+                await bot.sendMessage(chatId, `🔐 *LOGIN*\nFormat: \`/login email password\``, { parse_mode: 'Markdown' });
             }
         }
         else if (text.startsWith('/login')) {
@@ -209,93 +224,63 @@ export default async function handler(req, res) {
                 const password = parts[2];
                 try { await bot.deleteMessage(chatId, msgId); } catch(e){}
 
-                if (!ALLOWED_ADMINS.includes(email)) {
-                    await bot.sendMessage(chatId, "⛔ Akses Ditolak.");
-                    return res.status(200).send('OK');
-                }
+                if (!ALLOWED_ADMINS.includes(email)) return res.status(200).send('OK');
                 try {
                     await signInWithEmailAndPassword(clientAuth, email, password);
                     await sessionRef.set({ isLoggedIn: true, email: email });
-                    await bot.sendMessage(chatId, `✅ *Siap Debugging!*`, { parse_mode: 'Markdown', reply_markup: mainMenu });
+                    await bot.sendMessage(chatId, `✅ *Login Sukses!*`, { parse_mode: 'Markdown', reply_markup: mainMenu });
                 } catch (error) {
-                    await bot.sendMessage(chatId, `❌ Password salah.`);
+                    await bot.sendMessage(chatId, `❌ Gagal Login.`);
                 }
             }
         }
 
         else if (!session.isLoggedIn) {
-            await bot.sendMessage(chatId, "🔒 Login dulu bos.");
+            await bot.sendMessage(chatId, "🔒 Login dulu.");
         }
 
-        // --- MENU 1: RUN AUTO MASSAL ---
+        // --- MENU 1: RUN MASSAL (MAX 5) ---
         else if (text === '🚀 RUN AUTO MASSAL') {
-            await bot.sendMessage(chatId, "🔄 Sedang memproses antrian massal (Max 5 per batch)...");
+            await bot.sendMessage(chatId, "🔄 Menjalankan Batch (Max 5)...");
             
-            // Ambil Preorder Pending
-            const poSnap = await db.collection('preorders')
-                .orderBy('timestamp', 'desc')
-                .limit(5) // Limit agar Vercel tidak timeout
-                .get();
+            const poSnap = await db.collection('preorders').orderBy('timestamp', 'desc').limit(5).get();
 
             if (poSnap.empty) {
-                await bot.sendMessage(chatId, "✅ Antrian Kosong / Bersih.");
+                await bot.sendMessage(chatId, "✅ Antrian Kosong.");
             } else {
-                let successCount = 0;
-                let failCount = 0;
-                let report = "📝 <b>Laporan Run Massal:</b>\n\n";
-
-                // Loop Eksekusi
+                let report = "📝 <b>Hasil Massal:</b>\n";
                 for (const doc of poSnap.docs) {
                     const d = doc.data();
-                    // Skip jika status debugnya sudah terbeli (tapi belum dihapus)
                     if (d.debugStatus === 'TERBELI') continue;
 
                     const result = await executeTransaction({ ...d, id: doc.id });
                     
                     if (result.success) {
-                        successCount++;
-                        // Update Preorder jadi TERBELI (Mirip logic paneladmin)
-                        // Update History jadi Sukses
                         await db.runTransaction(async (t) => {
-                            // Update History User
                             const hRef = db.collection('users').doc(d.uid).collection('history').doc(d.historyId || "PO-"+doc.id);
                             const hDoc = await t.get(hRef);
-                            if(hDoc.exists) {
-                                t.update(hRef, { 
-                                    status: 'Sukses', 
-                                    api_msg: 'Sukses by Bot Massal: ' + result.sn,
-                                    date_updated: new Date().toISOString()
-                                });
-                            }
-                            // Hapus Preorder karena sudah sukses
+                            if(hDoc.exists) t.update(hRef, { status: 'Sukses', api_msg: 'Bot Massal: ' + result.sn, date_updated: new Date().toISOString() });
                             t.delete(doc.ref);
                         });
                         report += `✅ ${d.targetNumber} : Sukses\n`;
                     } else {
-                        failCount++;
-                        // Update Status Preorder jadi Gagal (Biar admin tau) tapi jangan hapus dulu (biar bisa manual)
-                        await doc.ref.update({ 
-                            debugStatus: 'GAGAL',
-                            debugLogs: `Bot Try: ${result.sn}\nRaw: ${JSON.stringify(result.raw)}`
-                        });
+                        await doc.ref.update({ debugStatus: 'GAGAL', debugLogs: `Bot Try: ${result.sn}` });
                         report += `❌ ${d.targetNumber} : Gagal (${result.sn})\n`;
                     }
                 }
-
-                await bot.sendMessage(chatId, report + `\nTotal Sukses: ${successCount}\nGagal/Skip: ${failCount}`, { parse_mode: 'HTML', reply_markup: mainMenu });
+                await bot.sendMessage(chatId, report, { parse_mode: 'HTML', reply_markup: mainMenu });
             }
         }
 
-        // --- MENU 2: CEK ANTRIAN & KONTROL MANUAL ---
+        // --- MENU 2: CEK ANTRIAN (DENGAN RUN PER ITEM) ---
         else if (text === '📋 Cek Antrian Preorder') {
-            const poSnap = await db.collection('preorders')
-                .orderBy('timestamp', 'desc')
-                .limit(10)
-                .get();
+            const poSnap = await db.collection('preorders').orderBy('timestamp', 'desc').limit(5).get();
 
             if (poSnap.empty) {
-                await bot.sendMessage(chatId, "✅ Tidak ada antrian preorder.", { reply_markup: mainMenu });
+                await bot.sendMessage(chatId, "✅ Tidak ada antrian.", { reply_markup: mainMenu });
             } else {
+                await bot.sendMessage(chatId, "👇 <b>Daftar Antrian (5 Teratas):</b>", { parse_mode: 'HTML', reply_markup: mainMenu });
+                
                 for (const doc of poSnap.docs) {
                     const d = doc.data();
                     const status = d.debugStatus === 'GAGAL' ? '🔴 GAGAL' : '🟡 PENDING';
@@ -303,14 +288,15 @@ export default async function handler(req, res) {
                     const msg = `<b>${status}</b>\n` +
                                 `User: <code>${d.username}</code>\n` +
                                 `Target: <code>${d.targetNumber}</code>\n` +
-                                `Produk: ${d.provider} (${d.serverType || 'KHFY'})\n` +
-                                `Logs: ${d.debugLogs ? 'Ada Log Error' : '-'}`;
+                                `Produk: ${d.provider}\n` +
+                                `Err: ${d.debugLogs ? d.debugLogs.substring(0,30)+'...' : '-'}`;
 
-                    // Tombol Kontrol Manual
+                    // TIGA TOMBOL: RUN, ACC, REJ
                     const buttons = [
+                        [{ text: "🚀 RUN SEKARANG", callback_data: `RUN_SINGLE__${doc.id}` }],
                         [
-                            { text: "✅ Terima (Manual Sukses)", callback_data: `MANUAL_ACC__${doc.id}` },
-                            { text: "❌ Tolak (Refund)", callback_data: `MANUAL_REJ__${doc.id}` }
+                            { text: "✅ Force Sukses", callback_data: `MANUAL_ACC__${doc.id}` },
+                            { text: "❌ Refund", callback_data: `MANUAL_REJ__${doc.id}` }
                         ]
                     ];
 
@@ -319,12 +305,11 @@ export default async function handler(req, res) {
                         reply_markup: { inline_keyboard: buttons }
                     });
                 }
-                await bot.sendMessage(chatId, "👆 Klik tombol di atas untuk eksekusi manual.", { reply_markup: mainMenu });
             }
         }
 
     } catch (error) {
-        console.error("Bot Error:", error);
+        console.error(error);
         await bot.sendMessage(chatId, "⚠️ Error: " + error.message);
     }
 

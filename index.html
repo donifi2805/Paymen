@@ -4573,8 +4573,23 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
         statusEl.innerText = trx.status;
         statusEl.className = 'text-xs font-bold ' + (trx.status === 'Sukses' ? 'text-green-600' : (trx.status === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
         
-        const infoEl = document.getElementById('dtSn');
-        infoEl.innerText = trx.api_msg || '-';
+                const infoEl = document.getElementById('dtSn');
+        // FIX: Prioritaskan SN Asli daripada pesan Webhook generic
+        let finalMsg = trx.sn || trx.api_msg || '-';
+        
+        // Jika pesan terdeteksi sebagai Webhook/Sukses, cari pesan asli di raw_json
+        if (finalMsg.toLowerCase().includes('webhook') || finalMsg.toLowerCase() === 'sukses') {
+            if (trx.raw_json) {
+                try {
+                    const parsed = JSON.parse(trx.raw_json);
+                    const d = parsed.data || parsed;
+                    // Ambil SN, Token, atau Message asli dari respon server pusat
+                    if (d.sn && d.sn.trim() !== '') finalMsg = d.sn;
+                    else if (d.message && !d.message.toLowerCase().includes('webhook')) finalMsg = d.message;
+                } catch(e) {}
+            }
+        }
+        infoEl.innerText = finalMsg;
 
         // Tampilkan Tombol Refresh Manual (Kecuali Dibatalkan)
         const btnRefresh = document.getElementById('btnRefreshStatus');

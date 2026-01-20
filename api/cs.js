@@ -16,70 +16,97 @@ export default async function handler(req, res) {
     const body = req.body;
 
     try {
-        // --- LOGIKA TOMBOL ---
         if (body.callback_query) {
             const cb = body.callback_query;
             const [action, targetUid] = cb.data.split('_');
             const chatId = cb.message.chat.id.toString();
+            const messageId = cb.message.message_id;
 
             if (chatId !== ADMIN_GROUP_ID) return res.status(200).send('Unauthorized');
 
             if (action === 'approve') {
-                // Logika Approve (Saldo)
+                // --- PERBAIKAN PENGAMBILAN NOMINAL ---
                 const msgText = cb.message.text || "";
-                const nominalMatch = msgText.match(/Nominal:\s*([0-9.]+)/i);
-                const amount = nominalMatch ? parseInt(nominalMatch[1].replace(/\./g, '')) : 0;
+                // Mencari angka setelah kata 'Nominal:'
+                const nominalMatch = msgText.match(/Nominal:\s*(?:Rp\s*)?([0-9.]+)/i);
+                
+                if (!nominalMatch) {
+                    await sendTelegram(ADMIN_GROUP_ID, "❌ Gagal: Angka nominal tidak ditemukan di pesan!");
+                    return res.status(200).send('OK');
+                }
 
-                await db.runTransaction(async (t) => {
-                    const userRef = db.collection('users').doc(targetUid);
-                    const userSnap = await t.get(userRef);
-                    const newBal = (userSnap.data().balance || 0) + amount;
-                    t.update(userRef, { balance: newBal });
-                    
-                    const historyRef = userRef.collection('history');
-                    const q = await historyRef.where('status', '==', 'Pending').limit(1).get();
-                    if (!q.empty) t.update(q.docs[0].ref, { status: 'Sukses', balance_after: newBal });
-                });
-                await sendTelegram(ADMIN_GROUP_ID, `✅ Berhasil Disetujui untuk UID: <code>${targetUid}</code>`);
+                // Bersihkan titik (Rp 10.500 -> 10500)
+                const amount = parseInt(nominalMatch[1].replace(/\./g, ''));
+
+                if (isNaN(amount) || amount <= 0) {
+                    await sendTelegram(ADMIN_GROUP_ID, "❌ Gagal: Format nominal salah!");
+                    return res.status(200).send('OK');
+                }
+
+                try {
+                    await db.runTransaction(async (t) => {
+                        const userRef = db.collection('users').doc(targetUid);
+                        const userSnap = await t.get(userRef);
+                        
+                        if (!userSnap.exists) throw "User tidak ditemukan di database";
+
+                        const currentBal = userSnap.data().balance || 0;
+                        const newBal = currentBal + amount;
+
+                        // 1. Update Saldo Utama
+                        t.update(userRef, { balance: newBal });
+                        
+                        // 2. Cari transaksi Pending untuk di-Update
+                        const historyRef = userRef.collection('history');
+                        const q = await historyRef.where('status', '==', 'Pending').limit(5).get();
+                        
+                        if (!q.empty) {
+                            // Cari yang nominalnya mirip (opsional) atau update yang paling baru
+                            const docToUpdate = q.docs[0].ref;
+                            t.update(docToUpdate, { 
+                                status: 'Sukses', 
+                                api_msg: 'Diterima via Bot Telegram',
+                                balance_after: newBal 
+                            });
+                        }
+                    });
+
+                    await sendTelegram(ADMIN_GROUP_ID, `✅ <b>BERHASIL!</b>\nSaldo Rp ${amount.toLocaleString()} telah ditambahkan ke UID <code>${targetUid}</code>.`);
+                } catch (err) {
+                    await sendTelegram(ADMIN_GROUP_ID, `❌ <b>DATABASE ERROR:</b> ${err}`);
+                }
             } 
             
             else if (action === 'reject') {
-                // FIX: LOGIKA TOLAK
                 const historyRef = db.collection('users').doc(targetUid).collection('history');
                 const q = await historyRef.where('status', '==', 'Pending').limit(1).get();
-                
                 if (!q.empty) {
-                    await q.docs[0].ref.update({ 
-                        status: 'Gagal', 
-                        api_msg: 'Ditolak oleh Admin via Telegram' 
-                    });
-                    await sendTelegram(ADMIN_GROUP_ID, `❌ Top Up UID <code>${targetUid}</code> telah <b>DITOLAK</b>.`);
-                } else {
-                    await sendTelegram(ADMIN_GROUP_ID, `⚠️ Gagal menolak: Tidak ditemukan transaksi Pending untuk UID <code>${targetUid}</code>.`);
+                    await q.docs[0].ref.update({ status: 'Gagal', api_msg: 'Ditolak via Telegram' });
                 }
+                await sendTelegram(ADMIN_GROUP_ID, `❌ Top Up UID <code>${targetUid}</code> telah DITOLAK.`);
             }
 
-            // Hapus tombol setelah diklik
-            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/editMessageReplyMarkup`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: ADMIN_GROUP_ID, message_id: cb.message.message_id, reply_markup: { inline_keyboard: [] } })
-            });
+            // Hapus tombol agar tidak diklik 2x
+            await editMessageReplyMarkup(chatId, messageId);
             return res.status(200).send('OK');
         }
 
-        // --- LOGIKA PESAN (REPLY) ---
+        // --- LOGIKA BALAS CHAT (REPLY) ---
         if (body.message && body.message.reply_to_message && body.message.chat.id.toString() === ADMIN_GROUP_ID) {
             const match = body.message.reply_to_message.text.match(/ID:\s*([A-Za-z0-9_-]+)/);
             if (match) {
                 const uid = match[1];
+                const replyText = body.message.text;
                 await db.collection('chats').doc(uid).collection('messages').add({
-                    text: body.message.text, sender: 'admin', timestamp: admin.firestore.FieldValue.serverTimestamp()
+                    text: replyText, sender: 'admin', timestamp: admin.firestore.FieldValue.serverTimestamp()
                 });
+                await db.collection('chats').doc(uid).set({
+                    lastMessage: replyText, lastTimestamp: admin.firestore.FieldValue.serverTimestamp(), lastSender: 'admin'
+                }, { merge: true });
                 await sendTelegram(ADMIN_GROUP_ID, `✅ Balasan terkirim.`);
             }
         }
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("Global Error:", e); }
     return res.status(200).send('OK');
 }
 
@@ -88,5 +115,13 @@ async function sendTelegram(chatId, text) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'HTML' })
+    });
+}
+
+async function editMessageReplyMarkup(chatId, messageId) {
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/editMessageReplyMarkup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, message_id: message_id, reply_markup: { inline_keyboard: [] } })
     });
 }

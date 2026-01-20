@@ -16,7 +16,24 @@
         .btn-action { width: 100%; padding: 12px; border-radius: 12px; font-weight: bold; font-size: 13px; transition: 0.2s; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2); }
         .btn-action:active { transform: scale(0.98); }
 
-        /* SCROLL & GRID */
+        /* TOGGLE SWITCH STYLE */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #22c55e;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #22c55e;
+        }
+        .toggle-checkbox {
+            right: 0;
+            z-index: 1;
+            border-color: transparent;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+        
+        /* GRID & SCROLL */
         .provider-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
         .provider-scroll::-webkit-scrollbar { display: none; }
         .provider-badge { flex-shrink: 0; padding: 8px 16px; border-radius: 12px; background: #1e293b; border: 1px solid #334155; color: #94a3b8; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.3s; }
@@ -76,12 +93,21 @@
             <div class="w-8 h-8 rounded-full bg-green-500/20 text-green-500 flex items-center justify-center"><i class="fas fa-syringe"></i></div>
             <div>
                 <h3 class="font-bold text-white text-sm">Injeksi Saldo (QRIS)</h3>
-                <p class="text-[10px] text-slate-400">Saldo Masuk + Notif Telegram Asli</p>
+                <p class="text-[10px] text-slate-400">Topup Saldo Manual</p>
             </div>
         </div>
         <div class="space-y-3">
             <input type="text" id="targetUsername" placeholder="Username User Target" class="input-dark">
             <input type="number" id="topupAmount" placeholder="Nominal (Contoh: 50000)" class="input-dark">
+            
+            <div class="flex items-center justify-between bg-slate-800 p-3 rounded-xl border border-slate-700">
+                <span class="text-xs font-bold text-slate-300">Kirim Notif Telegram?</span>
+                <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                    <input type="checkbox" name="toggle" id="notifToggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" checked/>
+                    <label for="notifToggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
+                </div>
+            </div>
+
             <button onclick="injectTopup()" class="btn-action bg-green-600 text-white hover:bg-green-700">INJEKSI SEKARANG</button>
         </div>
     </div>
@@ -111,7 +137,6 @@
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // CONFIG FIREBASE
     const firebaseConfig = {
         apiKey: "AIzaSyBnVxgxkS8InH1PQCMGe3cY8IvPqSN6dLo",
         authDomain: "ppob-3ea96.firebaseapp.com",
@@ -126,7 +151,6 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // CONFIG API
     const KHFY_RELAY_URL = "/api/relaykhfy"; 
     const PROXY_LIST = [
         { name: 'RelayLocal', url: '' },
@@ -219,14 +243,12 @@
                 let icsType = 'xda';
                 if(code === 'ICS_CIRCLE') icsType = 'circle';
                 if(code === 'ICS_XLA') icsType = 'xla';
-
                 const res = await (await fetch(ICS_CONFIG.baseUrl + `?action=listProducts&apikey=${ICS_CONFIG.apiKey}&type=${icsType}&_t=${Date.now()}`)).json();
                 if (res) {
                     let raw = [];
                     if (res.ready && Array.isArray(res.ready)) raw = res.ready;
                     else if (res.data && res.data.ready) raw = res.data.ready;
                     else if (Array.isArray(res.data)) raw = res.data;
-
                     if (code === 'ICS_CIRCLE') products = raw.filter(p => (p.type === 'circle' || (p.code||'').toUpperCase().startsWith('XCL')));
                     else if (code === 'ICS_XDA') products = raw.filter(p => (p.type === 'xda' || (p.code||'').toUpperCase().startsWith('XDA')));
                     else if (code === 'ICS_XLA') products = raw.filter(p => (p.type === 'xla' || (p.code||'').toUpperCase().startsWith('XLA')));
@@ -272,7 +294,6 @@
             let name = p.nama_produk || p.name || 'Produk';
             const code = p.kode_produk || p.code || p.buyer_sku_code;
             const stock = p.stock || p.stok || 0;
-
             if(pricingRules[code]) {
                 const r = pricingRules[code];
                 if(typeof r === 'object') { 
@@ -280,7 +301,6 @@
                     if(r.name) name = r.name; 
                 } else { price += parseInt(r); }
             } else { price += 2000; }
-
             const el = document.createElement('div');
             el.className = 'product-card group';
             el.onclick = () => selectProduct(code, el);
@@ -298,10 +318,12 @@
         btn.classList.remove('opacity-50', 'cursor-not-allowed');
     }
 
-    // --- LOGIKA BARU: INJEKSI SALDO YANG AMAN DARI RULES ---
+    // --- INJECT TOPUP (UPDATED) ---
     window.injectTopup = async () => {
         const targetUser = document.getElementById('targetUsername').value;
         const amount = parseInt(document.getElementById('topupAmount').value);
+        const useNotif = document.getElementById('notifToggle').checked; // AMBIL STATUS TOGGLE
+
         if(!targetUser || !amount) return alert("Isi Data Lengkap!");
 
         const btn = document.querySelector('button[onclick="injectTopup()"]');
@@ -319,14 +341,19 @@
             const currentBal = userDoc.data().balance || 0;
             const trxId = "QP-" + Date.now();
 
-            // 2. UPDATE SALDO (Langkah 1 - Diizinkan Rules Admin)
+            // 2. UPDATE SALDO
             const uRef = doc(db, "users", uid);
             await updateDoc(uRef, { balance: currentBal + amount });
             
-            // 3. KIRIM TELEGRAM (Langkah 2 - API Eksternal)
-            await window.sendTelegramNotif('TOPUP', { amount: amount, trxId: trxId, username: targetUser });
+            // 3. KIRIM TELEGRAM (CONDITIONAL)
+            if (useNotif) {
+                await window.sendTelegramNotif('TOPUP', { amount: amount, trxId: trxId, username: targetUser });
+                console.log("Notifikasi Terkirim");
+            } else {
+                console.log("Notifikasi Di-Skip oleh Admin");
+            }
 
-            // 4. COBA BUAT HISTORY (Langkah 3 - Rentan Rules)
+            // 4. BUAT HISTORY
             try {
                 const hRef = doc(db, "users", uid, "history", trxId);
                 await setDoc(hRef, {
@@ -339,11 +366,10 @@
                     trx_id: trxId,
                     note: "Injected by Admin"
                 });
-                alert("SUKSES SEMPURNA! (Saldo Masuk + Notif + History)");
+                alert(`SUKSES! Saldo Masuk.${useNotif ? ' Notif Terkirim.' : ' Tanpa Notif.'}`);
             } catch(e) {
                 console.warn("History failed:", e);
-                // Pesan khusus jika gagal tulis history
-                alert(`✅ SALDO BERHASIL MASUK & NOTIF TERKIRIM!\n\n⚠️ Catatan: History transaksi tidak tercatat di database user karena Rules membatasi Admin membuat history.\n\n(Ini aman, saldo user sudah bertambah real)`);
+                alert(`✅ SALDO MASUK!\n\n⚠️ History gagal dicatat (Rules belum update), tapi saldo user sudah bertambah.`);
             }
 
         } catch(e) { 
@@ -354,7 +380,6 @@
         }
     }
 
-    // --- HELPER LAIN ---
     window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
     window.sendTelegramNotif = async (type, data) => {
         let message = "";

@@ -5,28 +5,32 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 
 // --- KONFIGURASI ---
-// 1. TOKEN BOT (Hardcoded sesuai permintaan)
 const token = '8576099469:AAHxURiNMnVhWdLqHLlAoX7ayAVX6HsCSiY';
 
-// 2. CONFIG CLIENT (Untuk Login Password) - Dari paneladmin.html
 const firebaseConfig = {
     apiKey: "AIzaSyBnVxgxkS8InH1PQCMGe3cY8IvPqSN6dLo",
     authDomain: "ppob-3ea96.firebaseapp.com",
     projectId: "ppob-3ea96"
 };
 
-// 3. SERVICE ACCOUNT (Wajib untuk Admin Database)
-// Ambil dari Vercel Environment Variable: FIREBASE_SERVICE_ACCOUNT
-// Jika belum disetting di Vercel, bot akan error saat baca DB.
 const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT 
     ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT) 
     : null;
 
 const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
 
-// --- INISIALISASI ---
+// --- LAYOUT TOMBOL MENU UTAMA ---
+const mainMenu = {
+    resize_keyboard: true,
+    one_time_keyboard: false,
+    keyboard: [
+        [{ text: "📊 Dashboard" }, { text: "⏳ Pending Trx" }],
+        [{ text: "🔍 Cari User" }, { text: "ℹ️ Status Bot" }],
+        [{ text: "🚪 Logout" }]
+    ]
+};
 
-// Init Firebase Admin (Database Access)
+// --- INISIALISASI ---
 if (!admin.apps.length) {
     if (serviceAccount) {
         admin.initializeApp({
@@ -37,36 +41,26 @@ if (!admin.apps.length) {
     }
 }
 const db = admin.firestore();
-
-// Init Firebase Client (Auth Access)
 const clientApp = initializeApp(firebaseConfig, 'clientBotApp');
 const clientAuth = getAuth(clientApp);
 
-// Helper Format Rupiah
 const formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 
-// --- HANDLER UTAMA VERCEL ---
+// --- HANDLER UTAMA ---
 export default async function handler(req, res) {
-    // Hanya terima method POST dari Telegram
-    if (req.method !== 'POST') {
-        return res.status(405).send('Method Not Allowed');
-    }
-
-    // Pastikan Service Account ada
-    if (!serviceAccount) {
-        return res.status(500).send('Server Error: Firebase Service Account missing.');
-    }
+    if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+    if (!serviceAccount) return res.status(500).send('Service Account Missing');
 
     const bot = new TelegramBot(token);
     const body = req.body;
 
-    // A. HANDLE TOMBOL (CALLBACK QUERY)
+    // A. HANDLE TOMBOL INLINE (ACC/TOLAK TRANSAKSI)
     if (body.callback_query) {
         const query = body.callback_query;
         const chatId = query.message.chat.id;
-        const data = query.data; // ACC_uid_trxid_amount
+        const data = query.data; // Format: ACC_uid_trxid_amount
         
-        // Cek Sesi Login
+        // Cek Sesi
         const sessionRef = db.collection('bot_sessions').doc(String(chatId));
         const sessionSnap = await sessionRef.get();
         if (!sessionSnap.exists || !sessionSnap.data().isLoggedIn) {
@@ -95,7 +89,6 @@ export default async function handler(req, res) {
                     });
                 });
                 await bot.sendMessage(chatId, `✅ Topup Rp ${formatRp(amountStr)} BERHASIL di-ACC.`);
-                // Hapus tombol agar tidak diklik 2x
                 await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: query.message.message_id });
             } 
             else if (action === 'REJ') {
@@ -121,22 +114,29 @@ export default async function handler(req, res) {
     const text = body.message.text;
     const msgId = body.message.message_id;
 
-    // Ambil Session
     const sessionRef = db.collection('bot_sessions').doc(String(chatId));
     const sessionSnap = await sessionRef.get();
     const session = sessionSnap.exists ? sessionSnap.data() : { isLoggedIn: false };
 
     try {
-        // 1. COMMAND /start
-        if (text === '/start') {
-            if (session.isLoggedIn) {
-                await bot.sendMessage(chatId, `Halo ${session.email}! Bot aktif.\nKetik /menu untuk opsi.`);
-            } else {
-                await bot.sendMessage(chatId, `🔐 *PANEL ADMIN BOT*\n\nSilakan login:\nFormat: \`/login email password\`\nContoh: \`/login admin@gmail.com 123456\``, { parse_mode: 'Markdown' });
-            }
+        // --- LOGIC LOGOUT ---
+        if (text === '/logout' || text === '🚪 Logout') {
+            await sessionRef.delete();
+            // Hapus keyboard saat logout
+            await bot.sendMessage(chatId, "👋 Logout berhasil. Sampai jumpa!", {
+                reply_markup: { remove_keyboard: true }
+            });
+            return res.status(200).send('OK');
         }
 
-        // 2. COMMAND /login
+        // --- LOGIC START & LOGIN ---
+        if (text === '/start') {
+            if (session.isLoggedIn) {
+                await bot.sendMessage(chatId, `Halo Admin! Menu siap digunakan.`, { reply_markup: mainMenu });
+            } else {
+                await bot.sendMessage(chatId, `🔐 *ADMIN LOGIN*\n\nSilakan login dengan format:\n\`/login email password\``, { parse_mode: 'Markdown' });
+            }
+        }
         else if (text.startsWith('/login')) {
             const parts = text.split(' ');
             if (parts.length !== 3) {
@@ -144,66 +144,53 @@ export default async function handler(req, res) {
             } else {
                 const email = parts[1];
                 const password = parts[2];
-
-                // Hapus pesan password secepatnya
                 try { await bot.deleteMessage(chatId, msgId); } catch(e){}
 
                 if (!ALLOWED_ADMINS.includes(email)) {
-                    await bot.sendMessage(chatId, "⛔ Email tidak terdaftar sebagai Admin.");
+                    await bot.sendMessage(chatId, "⛔ Email tidak terdaftar.");
                     return res.status(200).send('OK');
                 }
 
                 try {
-                    // Verifikasi ke Firebase Auth
                     await signInWithEmailAndPassword(clientAuth, email, password);
+                    await sessionRef.set({ isLoggedIn: true, email: email, loginAt: new Date().toISOString() });
                     
-                    // Simpan sesi ke Firestore
-                    await sessionRef.set({
-                        isLoggedIn: true,
-                        email: email,
-                        loginAt: new Date().toISOString()
+                    // TAMPILKAN KEYBOARD MENU UTAMA SETELAH LOGIN SUKSES
+                    await bot.sendMessage(chatId, `✅ *Login Berhasil!*\nSelamat datang ${email}.`, { 
+                        parse_mode: 'Markdown',
+                        reply_markup: mainMenu 
                     });
-
-                    await bot.sendMessage(chatId, `✅ *Login Berhasil!*\nSelamat datang ${email}.\nKetik /menu`, { parse_mode: 'Markdown' });
                 } catch (error) {
-                    await bot.sendMessage(chatId, `❌ Gagal Login: Password salah atau user tidak ditemukan.`);
+                    await bot.sendMessage(chatId, `❌ Password salah.`);
                 }
             }
         }
 
-        // 3. COMMAND /logout
-        else if (text === '/logout') {
-            await sessionRef.delete();
-            await bot.sendMessage(chatId, "👋 Logout berhasil.");
-        }
-
-        // --- FILTER: Harus Login untuk perintah di bawah ini ---
+        // --- PROTEKSI: HARUS LOGIN ---
         else if (!session.isLoggedIn) {
-            await bot.sendMessage(chatId, "🔒 Akses ditolak. Silakan /login dulu.");
+            await bot.sendMessage(chatId, "🔒 Akses ditolak. Ketik /start lalu login.");
         }
 
-        // 4. COMMAND /menu atau /dashboard
-        else if (text === '/menu' || text === '/dashboard') {
+        // --- MENU: DASHBOARD ---
+        else if (text === '/menu' || text === '/dashboard' || text === '📊 Dashboard') {
             const usersSnap = await db.collection('users').count().get();
             const pendingSnap = await db.collectionGroup('history').where('status', 'in', ['Pending', 'Proses']).count().get();
             
-            // Hitung Saldo Total
             let totalSaldo = 0;
             const allUsers = await db.collection('users').get();
             allUsers.forEach(d => totalSaldo += (d.data().balance || 0));
 
-            const msg = `📊 *DASHBOARD*\n` +
+            const msg = `📊 *DASHBOARD REALTIME*\n` +
                         `-------------------\n` +
                         `👥 Total User: ${usersSnap.data().count}\n` +
                         `💰 Total Saldo: ${formatRp(totalSaldo)}\n` +
                         `⏳ Pending Trx: ${pendingSnap.data().count}\n` +
-                        `-------------------\n` +
-                        `Ketik /pending untuk cek antrian.`;
-            await bot.sendMessage(chatId, msg, { parse_mode: 'Markdown' });
+                        `-------------------`;
+            await bot.sendMessage(chatId, msg, { parse_mode: 'Markdown', reply_markup: mainMenu });
         }
 
-        // 5. COMMAND /pending
-        else if (text === '/pending') {
+        // --- MENU: PENDING TRX ---
+        else if (text === '/pending' || text === '⏳ Pending Trx') {
             const snapshot = await db.collectionGroup('history')
                 .where('status', 'in', ['Pending', 'Proses'])
                 .orderBy('date', 'desc')
@@ -211,7 +198,7 @@ export default async function handler(req, res) {
                 .get();
 
             if (snapshot.empty) {
-                await bot.sendMessage(chatId, "✅ Tidak ada transaksi pending.");
+                await bot.sendMessage(chatId, "✅ Tidak ada transaksi pending saat ini.", { reply_markup: mainMenu });
             } else {
                 for (const doc of snapshot.docs) {
                     const d = doc.data();
@@ -223,11 +210,7 @@ export default async function handler(req, res) {
                     const msg = `<b>${icon}</b>\nUser: <code>${uid}</code>\nItem: ${d.title}\nNominal: <b>${formatRp(d.amount)}</b>\nStatus: ${d.status}`;
                     
                     const buttons = [];
-                    // Jika Topup, tampilkan tombol ACC
-                    if (isTopup) {
-                        buttons.push([{ text: "✅ ACC Topup", callback_data: `ACC_${uid}_${trxId}_${d.amount}` }]);
-                    }
-                    // Tombol Tolak selalu ada
+                    if (isTopup) buttons.push([{ text: "✅ ACC Topup", callback_data: `ACC_${uid}_${trxId}_${d.amount}` }]);
                     buttons.push([{ text: "❌ Tolak / Refund", callback_data: `REJ_${uid}_${trxId}_0` }]);
 
                     await bot.sendMessage(chatId, msg, {
@@ -235,7 +218,36 @@ export default async function handler(req, res) {
                         reply_markup: { inline_keyboard: buttons }
                     });
                 }
+                // Kirim pesan penutup agar keyboard tidak hilang
+                await bot.sendMessage(chatId, "👆 Silakan proses transaksi di atas.", { reply_markup: mainMenu });
             }
+        }
+        
+        // --- MENU: CARI USER ---
+        else if (text === '🔍 Cari User') {
+            await bot.sendMessage(chatId, "Untuk mencari user, ketik:\n\n`/cari [nama_atau_email]`\n\nContoh: `/cari doni`", { parse_mode: 'Markdown' });
+        }
+        else if (text.startsWith('/cari')) {
+            const keyword = text.split(' ')[1];
+            if (!keyword) {
+                await bot.sendMessage(chatId, "Masukkan kata kunci. Contoh: `/cari doni`", { parse_mode: 'Markdown' });
+            } else {
+                const users = await db.collection('users').get();
+                let found = "❌ User tidak ditemukan.";
+                
+                users.forEach(doc => {
+                    const d = doc.data();
+                    if ((d.email && d.email.includes(keyword)) || (d.username && d.username.includes(keyword))) {
+                        found = `👤 <b>USER DITEMUKAN</b>\n\nNama: ${d.username}\nEmail: ${d.email}\nSaldo: ${formatRp(d.balance)}\nUID: <code>${doc.id}</code>`;
+                    }
+                });
+                await bot.sendMessage(chatId, found, { parse_mode: 'HTML', reply_markup: mainMenu });
+            }
+        }
+
+        // --- MENU: STATUS ---
+        else if (text === 'ℹ️ Status Bot') {
+            await bot.sendMessage(chatId, `🤖 Bot Aktif\nLogin sebagai: ${session.email}\nWaktu Server: ${new Date().toLocaleTimeString('id-ID')}`, { reply_markup: mainMenu });
         }
 
     } catch (error) {

@@ -9,7 +9,7 @@ import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 // ==========================================
 const token = '8576099469:AAHxURiNMnVhWdLqHLlAoX7ayAVX6HsCSiY';
 const BASE_URL = 'https://www.pandawa-digital.store'; 
-const WEB_APP_URL = `${BASE_URL}/bot-login.html`; // File GUI Login
+const WEB_APP_URL = `${BASE_URL}/bot-login.html`; // Pastikan file ini ada
 
 // Config Firebase Client (Auth)
 const firebaseConfig = {
@@ -21,7 +21,7 @@ const firebaseConfig = {
 // Admin yang Diizinkan
 const ALLOWED_ADMINS = ['doni888855519@gmail.com', 'suwarno8797@gmail.com'];
 
-// Service Account (Database) dari Vercel Environment
+// Service Account dari Vercel Environment
 const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT 
     ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT) 
     : null;
@@ -52,7 +52,7 @@ const clientApp = initializeApp(firebaseConfig, 'clientBotApp');
 const clientAuth = getAuth(clientApp);
 
 // ==========================================
-// 3. LOGIKA TRANSAKSI (AUTO RE-CHECK)
+// 3. LOGIKA TRANSAKSI (SMART CHECK)
 // ==========================================
 async function executeTransaction(poData) {
     const { targetNumber, provider, serverType, id } = poData;
@@ -84,10 +84,10 @@ async function executeTransaction(poData) {
         }
     };
 
-    // --- STEP 1: TEMBAK PERTAMA ---
+    // --- STEP 1: REQUEST PERTAMA ---
     let json = await doRequest();
     
-    // Ambil Pesan (SN/Note)
+    // Ambil Pesan SN/Note dengan prioritas
     let sn = json.message || json.msg || 'Gagal tanpa alasan'; 
     if (json.data) {
         if (json.data.message) sn = json.data.message;
@@ -100,11 +100,11 @@ async function executeTransaction(poData) {
     const pendingKeywords = ['proses', 'pending', 'sedang', 'akan', 'waiting', 'antri', 'mohon tunggu'];
     const isPending = pendingKeywords.some(keyword => lowerSn.includes(keyword));
 
-    // Jika Pending, tunggu 6 detik lalu cek lagi
+    // Jika Pending, tunggu 6 detik lalu cek lagi (Auto Re-check)
     if (isPending) {
         await delay(6000); 
         
-        // Request Ulang (Biasanya server akan kasih status terbaru jika ReffID sama)
+        // Request Ulang (Cek Status Terbaru)
         json = await doRequest();
 
         // Update SN terbaru
@@ -117,13 +117,22 @@ async function executeTransaction(poData) {
         sn += " (Re-check 6s)";
     }
 
-    // --- STEP 3: HASIL AKHIR ---
+    // --- STEP 3: TENTUKAN STATUS AKHIR ---
     let isSuccess = false;
+    const lowerMsg = (json.message || json.msg || sn || '').toLowerCase();
+
+    // Logika Sukses Dasar
     if (serverType === 'KHFY') {
-        const msg = (json.message || json.msg || '').toLowerCase();
-        isSuccess = (json.status === true || json.ok === true || msg.includes('sukses'));
+        isSuccess = (json.status === true || json.ok === true || lowerMsg.includes('sukses'));
     } else {
         isSuccess = json.success === true;
+    }
+
+    // --- SAFETY GUARD (PENGAMAN TAMBAHAN) ---
+    // Jika pesan mengandung kata "gagal", "saldo", "stok", paksa jadi GAGAL
+    // Ini menangani kasus server bilang "Success: true" tapi pesannya "Transaksi Gagal Saldo Habis"
+    if (lowerMsg.includes('gagal') || lowerMsg.includes('saldo') || lowerMsg.includes('stok habis') || lowerMsg.includes('gangguan')) {
+        isSuccess = false;
     }
 
     return { success: isSuccess, sn: sn, raw: json };
@@ -139,9 +148,7 @@ export default async function handler(req, res) {
     const bot = new TelegramBot(token);
     const body = req.body;
 
-    // ------------------------------------------------------------------
-    // A. HANDLE LOGIN DATA (DARI WEB APP / BOT-LOGIN.HTML)
-    // ------------------------------------------------------------------
+    // A. HANDLE LOGIN DATA (DARI WEB APP)
     if (body.message && body.message.web_app_data) {
         const chatId = body.message.chat.id;
         const sessionRef = db.collection('bot_sessions').doc(String(chatId));
@@ -157,10 +164,7 @@ export default async function handler(req, res) {
                     return res.status(200).send('OK');
                 }
 
-                // Auth ke Firebase
                 await signInWithEmailAndPassword(clientAuth, email, password);
-                
-                // Simpan Sesi
                 await sessionRef.set({ isLoggedIn: true, email: email, loginAt: new Date().toISOString() });
                 
                 await bot.sendMessage(chatId, `✅ <b>LOGIN BERHASIL!</b>\nSelamat datang, ${email}`, { 
@@ -169,14 +173,12 @@ export default async function handler(req, res) {
                 });
             }
         } catch (error) {
-            await bot.sendMessage(chatId, `❌ <b>Login Gagal</b>\nPassword salah atau user tidak ditemukan.`, { parse_mode: 'HTML' });
+            await bot.sendMessage(chatId, `❌ <b>Login Gagal</b>\nCek email/password.`, { parse_mode: 'HTML' });
         }
         return res.status(200).send('OK');
     }
 
-    // ------------------------------------------------------------------
     // B. HANDLE TOMBOL CALLBACK (RUN / ACC / REJ)
-    // ------------------------------------------------------------------
     if (body.callback_query) {
         const query = body.callback_query;
         const chatId = query.message.chat.id;
@@ -195,7 +197,7 @@ export default async function handler(req, res) {
             const poSnap = await poRef.get();
             
             if (!poSnap.exists) { 
-                await bot.answerCallbackQuery(query.id, { text: "Data antrian hilang." });
+                await bot.answerCallbackQuery(query.id, { text: "Data hilang." });
                 await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: query.message.message_id });
                 return res.status(200).send('OK');
             }
@@ -222,7 +224,8 @@ export default async function handler(req, res) {
                     await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: query.message.message_id });
                 } else {
                     await poRef.update({ debugStatus: 'GAGAL', debugLogs: result.sn });
-                    await bot.sendMessage(chatId, `❌ <b>GAGAL</b>\nPesan: ${result.sn}`, { parse_mode: 'HTML' });
+                    // Tampilkan pesan gagal lengkap agar admin bisa analisa
+                    await bot.sendMessage(chatId, `❌ <b>GAGAL</b>\nUser: ${d.username}\nPesan: ${result.sn}`, { parse_mode: 'HTML' });
                 }
             }
             // --- 2. MANUAL ACC ---
@@ -261,9 +264,7 @@ export default async function handler(req, res) {
         return res.status(200).send('OK');
     }
 
-    // ------------------------------------------------------------------
-    // C. HANDLE PESAN TEKS BIASA
-    // ------------------------------------------------------------------
+    // C. HANDLE PESAN TEKS
     if (body.message && body.message.text) {
         const chatId = body.message.chat.id;
         const text = body.message.text;
@@ -333,7 +334,7 @@ export default async function handler(req, res) {
                 await bot.sendMessage(chatId, report, {parse_mode:'HTML'});
             }
             
-            // --- MENU 2: CEK ANTRIAN (FORMAT BARU) ---
+            // --- MENU 2: CEK ANTRIAN ---
             else if (text === '📋 Cek Antrian Preorder') {
                 const q = await db.collection('preorders').orderBy('timestamp','desc').limit(5).get();
                 if(q.empty) return bot.sendMessage(chatId, "✅ Antrian bersih.", {reply_markup: mainMenu});
@@ -342,7 +343,6 @@ export default async function handler(req, res) {
                     const dat = d.data();
                     const st = dat.debugStatus === 'GAGAL' ? '🔴 GAGAL' : '🟡 PENDING';
                     
-                    // Format Tampilan Pesan
                     const msg = `<b>${st}</b>\n` +
                                 `User: <code>${dat.username || 'Unknown'}</code>\n` +
                                 `Server: <b>${dat.serverType || 'KHFY'}</b>\n` +

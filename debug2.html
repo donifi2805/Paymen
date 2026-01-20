@@ -5155,7 +5155,7 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
         });
     };
 
-                        window.sendChatMessage = async () => {
+                            window.sendChatMessage = async () => {
         const input = document.getElementById('chatInput');
         const text = input.value.trim();
         if (!text || !currentUser) return;
@@ -5174,7 +5174,7 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                 isRead: false
             });
 
-            // 2. Update Metadata Header
+            // 2. Update Header Metadata
             await setDoc(doc(db, "chats", senderUid), {
                 username: senderName,
                 lastMessage: text,
@@ -5183,7 +5183,7 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                 isRead: false
             }, { merge: true });
 
-            // 3. KIRIM NOTIFIKASI (FIXED JSON FORMAT)
+            // 3. KIRIM NOTIFIKASI KE TELEGRAM (DENGAN HEADER JSON KETAT)
             fetch('/api/notif', {
                 method: 'POST',
                 headers: {
@@ -5194,12 +5194,10 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                     sender: senderName,
                     userId: senderUid
                 })
-            }).then(r => r.json()).then(res => {
-                if(!res.ok) console.error("Telegram failed:", res.error);
-            }).catch(e => console.error("Fetch error:", e));
+            }).catch(e => console.log('Silent error sending to Telegram'));
 
         } catch(e) {
-            console.error("Database Error:", e);
+            console.error("Chat Error:", e);
         }
     };
 

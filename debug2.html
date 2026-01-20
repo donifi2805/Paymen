@@ -5155,14 +5155,18 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
         });
     };
 
-                            window.sendChatMessage = async () => {
+                                window.sendChatMessage = async () => {
         const input = document.getElementById('chatInput');
         const text = input.value.trim();
+        
+        // Validasi awal
         if (!text || !currentUser) return;
 
+        // Ambil data sebelum input dikosongkan
         const senderUid = currentUser.uid;
         const senderName = currentUsername || 'Pelanggan Web';
 
+        // Kosongkan input untuk kenyamanan user
         input.value = ''; 
 
         try {
@@ -5174,7 +5178,7 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                 isRead: false
             });
 
-            // 2. Update Header Metadata
+            // 2. Update Metadata Header Chat
             await setDoc(doc(db, "chats", senderUid), {
                 username: senderName,
                 lastMessage: text,
@@ -5183,10 +5187,12 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                 isRead: false
             }, { merge: true });
 
-            // 3. KIRIM NOTIFIKASI KE TELEGRAM (DENGAN HEADER JSON KETAT)
-            fetch('/api/notif', {
+            // 3. KIRIM NOTIFIKASI KE TELEGRAM (API VERCEL)
+            // Menggunakan header lengkap untuk stabilitas
+            await fetch('/api/notif', {
                 method: 'POST',
                 headers: {
+                    'Accept': 'application/json',
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
@@ -5194,10 +5200,10 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                     sender: senderName,
                     userId: senderUid
                 })
-            }).catch(e => console.log('Silent error sending to Telegram'));
+            });
 
         } catch(e) {
-            console.error("Chat Error:", e);
+            console.error("Fatal Chat Error:", e);
         }
     };
 

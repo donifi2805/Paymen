@@ -5155,7 +5155,7 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
         });
     };
 
-                    window.sendChatMessage = async () => {
+                        window.sendChatMessage = async () => {
         const input = document.getElementById('chatInput');
         const text = input.value.trim();
         if (!text || !currentUser) return;
@@ -5163,10 +5163,10 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
         const senderUid = currentUser.uid;
         const senderName = currentUsername || 'Pelanggan Web';
 
-        input.value = ''; // Reset input agar terasa cepat bagi user
+        input.value = ''; 
 
         try {
-            // 1. Simpan ke Firebase (Agar muncul di layar chat website)
+            // 1. Simpan ke Firebase
             await addDoc(collection(db, "chats", senderUid, "messages"), {
                 text: text,
                 sender: 'user',
@@ -5174,7 +5174,7 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                 isRead: false
             });
 
-            // 2. Update Header Metadata (Untuk list di Panel Admin)
+            // 2. Update Metadata Header
             await setDoc(doc(db, "chats", senderUid), {
                 username: senderName,
                 lastMessage: text,
@@ -5183,12 +5183,10 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                 isRead: false
             }, { merge: true });
 
-            // 3. KIRIM NOTIFIKASI KE TELEGRAM (JALUR KRUSIAL)
-            // Pastikan menggunakan POST dan Header Application/Json
-            await fetch('/api/notif', {
+            // 3. KIRIM NOTIFIKASI (FIXED JSON FORMAT)
+            fetch('/api/notif', {
                 method: 'POST',
                 headers: {
-                    'Accept': 'application/json',
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
@@ -5196,10 +5194,12 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                     sender: senderName,
                     userId: senderUid
                 })
-            });
+            }).then(r => r.json()).then(res => {
+                if(!res.ok) console.error("Telegram failed:", res.error);
+            }).catch(e => console.error("Fetch error:", e));
 
         } catch(e) {
-            console.error("Chat Dispatch Error:", e);
+            console.error("Database Error:", e);
         }
     };
 

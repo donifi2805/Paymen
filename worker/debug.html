@@ -10,14 +10,14 @@
         body { background-color: #0f172a; color: #e2e8f0; font-family: 'Segoe UI', sans-serif; -webkit-tap-highlight-color: transparent; }
         .app-container { max-width: 480px; margin: 0 auto; min-height: 100vh; background-color: #1e293b; box-shadow: 0 0 20px rgba(0,0,0,0.5); position: relative; padding-bottom: 50px; }
         
-        /* KOMPONEN UI */
+        /* UI COMPONENTS */
         .debug-card { background-color: #0f172a; border: 1px solid #334155; border-radius: 16px; padding: 16px; margin-bottom: 16px; }
         .input-dark { width: 100%; background-color: #1e293b; border: 1px solid #475569; border-radius: 12px; padding: 12px; color: white; outline: none; transition: 0.3s; font-size: 13px; }
         .input-dark:focus { border-color: #3b82f6; }
         .btn-action { width: 100%; padding: 12px; border-radius: 12px; font-weight: bold; font-size: 13px; transition: 0.2s; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2); }
         .btn-action:active { transform: scale(0.98); }
 
-        /* GRID PRODUK */
+        /* GRID */
         .provider-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
         .provider-scroll::-webkit-scrollbar { display: none; }
         .provider-badge { flex-shrink: 0; padding: 8px 16px; border-radius: 12px; background: #1e293b; border: 1px solid #334155; color: #94a3b8; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.3s; }
@@ -107,7 +107,7 @@
             </div>
         </div>
         <div class="space-y-3">
-            <input type="text" id="delUid" placeholder="UID User" class="input-dark">
+            <input type="text" id="delUsername" placeholder="Username Target" class="input-dark font-bold text-yellow-400">
             <input type="text" id="delTrxId" placeholder="ID Transaksi (TRX-...)" class="input-dark">
             <button onclick="forceDelete()" class="btn-action bg-red-600 text-white hover:bg-red-700">
                 HAPUS DATA
@@ -141,16 +141,13 @@
     const db = getFirestore(app);
 
     // --- CONFIG API ---
-    // URL Relay Internal
     const KHFY_RELAY_URL = "/api/relaykhfy"; 
-    // Config Proxy Cadangan
     const PROXY_LIST = [
-        { name: 'RelayLocal', url: '' }, // Prioritas 1: Relay Sendiri
+        { name: 'RelayLocal', url: '' },
         { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
         { name: 'CorsProxy', url: 'https://corsproxy.io/?' }
     ];
     
-    // Config Server Pusat (Untuk fallback proxy)
     const CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
     const ICS_CONFIG = { apiKey: "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77", baseUrl: "https://www.pandawa-digital.store/api/relay" };
     
@@ -175,38 +172,16 @@
         }
     });
 
-    // --- FUNGSI FETCH UTAMA (KHUSUS UNTUK RELAY ANDA) ---
     async function fetchKhfyData(endpoint, params = {}) {
         let lastError = "";
-
-        // 1. Prioritas Utama: RELAY (Sesuai file relaykhfy.js Anda)
         try {
-            // Relay Anda butuh 'endpoint' sebagai parameter.
-            const relayParams = new URLSearchParams({ 
-                endpoint: endpoint, 
-                ...params 
-            }).toString();
-
-            console.log(`[DEBUG] Calling Relay: ${KHFY_RELAY_URL}?${relayParams}`);
+            const relayParams = new URLSearchParams({ endpoint: endpoint, ...params }).toString();
             const res = await fetch(`${KHFY_RELAY_URL}?${relayParams}`);
-            
-            if (res.ok) {
-                const json = await res.json();
-                console.log("[DEBUG] Relay Success:", json);
-                return json;
-            } else {
-                console.warn("[DEBUG] Relay Failed:", res.status);
-                lastError += `Relay ${res.status}; `;
-            }
-        } catch (e) {
-            console.warn("[DEBUG] Relay Error:", e);
-            lastError += `Relay Err; `;
-        }
+            if (res.ok) return await res.json();
+            else lastError += `Relay ${res.status}; `;
+        } catch (e) { lastError += `RelayErr; `; }
 
-        // 2. Fallback: PROXY (Jika file relay belum dideploy/gagal)
-        console.log("[DEBUG] Switching to Proxy Fallback...");
         const targetUrl = `${CONFIG.baseUrl}${endpoint}?${new URLSearchParams(params).toString()}`;
-        
         for (const proxy of PROXY_LIST) {
             if(proxy.name === 'RelayLocal') continue; 
             try {
@@ -215,7 +190,6 @@
                 if (res.ok) return await res.json();
             } catch (e) {}
         }
-
         throw new Error("Gagal ambil data (Relay & Proxy mati). " + lastError);
     }
 
@@ -264,7 +238,6 @@
         let products = [];
 
         try {
-            // A. FETCH ICS (Aman)
             if(code.startsWith('ICS_')) {
                 let icsType = 'xda';
                 if(code === 'ICS_CIRCLE') icsType = 'circle';
@@ -283,22 +256,15 @@
                 }
 
             } else {
-                // B. FETCH KHFY (Gunakan Fungsi Baru)
                 if(globalProducts.length === 0) {
-                    // Panggil fetchKhfyData dengan endpoint /list_product
                     const res = await fetchKhfyData('/list_product', { api_key: CONFIG.apiKey });
-                    
-                    // PARSER FLEKSIBEL (Menangani berbagai kemungkinan bentuk JSON)
                     if (res) {
-                        if (Array.isArray(res.data)) globalProducts = res.data; // Format standard
-                        else if (res.data && Array.isArray(res.data.data)) globalProducts = res.data.data; // Nested data
-                        else if (Array.isArray(res)) globalProducts = res; // Direct array
-                        
-                        console.log("[DEBUG] KHFY Loaded:", globalProducts.length, "items");
+                        if (Array.isArray(res.data)) globalProducts = res.data;
+                        else if (res.data && Array.isArray(res.data.data)) globalProducts = res.data.data;
+                        else if (Array.isArray(res)) globalProducts = res;
                     }
                 }
 
-                // Filtering Logic
                 if (globalProducts.length > 0) {
                     products = globalProducts.filter(p => {
                         const c = (p.code || p.kode_produk || '').toUpperCase();
@@ -311,13 +277,10 @@
                     });
                 }
             }
-
             renderGrid(products);
-
         } catch (e) {
             console.error(e);
             grid.innerHTML = `<div class="col-span-2 text-center text-xs text-red-400 py-4">Error: ${e.message}</div>`;
-            alert("Gagal Fetch: " + e.message + "\n(Pastikan file /api/relaykhfy.js sudah dideploy!)");
         }
     }
 
@@ -330,22 +293,27 @@
             return;
         }
 
+        // Urutkan Harga
         products.sort((a, b) => (parseInt(a.harga || a.price || 0) - parseInt(b.harga || b.price || 0)));
 
         products.forEach(p => {
-            let rawPrice = parseInt(p.harga || p.price || 0);
+            // FIX HARGA: Cek semua kemungkinan nama field harga dari API
+            let rawPrice = parseInt(p.harga || p.price || p.harga_jual || p.h || 0);
             let price = rawPrice;
             let name = p.nama_produk || p.name || 'Produk';
             const code = p.kode_produk || p.code || p.buyer_sku_code;
             const stock = p.stock || p.stok || 0;
 
+            // Logic Markup (HARGA ASLI + MARKUP)
             if(pricingRules[code]) {
                 const r = pricingRules[code];
                 if(typeof r === 'object') { 
                     if(r.price) price += parseInt(r.price); 
                     if(r.name) name = r.name; 
                 } else { price += parseInt(r); }
-            } else { price += 2000; }
+            } else { 
+                price += 2000; // Default Markup
+            }
 
             const el = document.createElement('div');
             el.className = 'product-card group';
@@ -375,7 +343,7 @@
         btn.classList.remove('opacity-50', 'cursor-not-allowed');
     }
 
-    // --- GHOST TRANSACTION (DIPERBAIKI UNTUK RELAY) ---
+    // --- GHOST TRANSACTION ---
     window.executeGhostTrx = async () => {
         const num = document.getElementById('ghostNumber').value;
         const code = document.getElementById('selectedProductCode').value;
@@ -399,9 +367,6 @@
                 const url = `${ICS_CONFIG.baseUrl}?action=createTransaction&apikey=${ICS_CONFIG.apiKey}&kode_produk=${code}&nomor_tujuan=${num}&refid=${trxId}`;
                 result = await (await fetch(url)).json();
             } else {
-                // KHFY GHOST
-                // Gunakan fetchKhfyData agar lewat Relay dengan benar.
-                // Relay Anda mengubah semua param menjadi URL Query, jadi ini aman.
                 result = await fetchKhfyData('/trx', {
                     api_key: CONFIG.apiKey,
                     produk: code,
@@ -413,12 +378,9 @@
             console.log("Ghost Response:", result);
             let msg = "No Response";
             if(result) {
-                // Cek berbagai kemungkinan format pesan sukses/gagal
                 msg = result.message || result.sn || (result.data ? result.data.message : '') || JSON.stringify(result);
             }
-            
             alert(`HASIL TEMBAK:\n${msg}`);
-            
         } catch(e) {
             alert("ERROR SYSTEM: " + e.message);
         } finally {
@@ -427,7 +389,6 @@
         }
     };
 
-    // --- FUNGSI INJEKSI & UTILS ---
     window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
     window.sendTelegramNotif = async (type, data) => {
         let message = "";
@@ -478,12 +439,30 @@
         } catch(e) { alert("Error: " + e.message); }
     }
 
+    // --- FORCE DELETE (UPDATED: BY USERNAME) ---
     window.forceDelete = async () => {
-        const uid = document.getElementById('delUid').value;
+        const targetUsername = document.getElementById('delUsername').value;
         const tid = document.getElementById('delTrxId').value;
-        if(!uid || !tid) return alert("Data kurang!");
-        if(!confirm("Hapus permanen?")) return;
-        try { await deleteDoc(doc(db, "users", uid, "history", tid)); alert("Terhapus."); } catch(e) { alert(e.message); }
+        
+        if(!targetUsername || !tid) return alert("Data kurang! Isi Username dan TRX ID.");
+        if(!confirm(`Hapus permanen transaksi ${tid} milik ${targetUsername}?`)) return;
+
+        try {
+            // 1. Cari UID berdasarkan Username
+            const q = query(collection(db, "users"), where("username", "==", targetUsername));
+            const snap = await getDocs(q);
+            
+            if(snap.empty) return alert("Username tidak ditemukan!");
+            
+            const uid = snap.docs[0].id; // Ambil UID
+
+            // 2. Hapus Dokumen
+            await deleteDoc(doc(db, "users", uid, "history", tid));
+            alert("Data Transaksi Terhapus Permanen.");
+            
+        } catch(e) { 
+            alert("Gagal Hapus: " + e.message); 
+        }
     }
 
     // Expose Global

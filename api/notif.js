@@ -13,11 +13,12 @@ export default async function handler(req, res) {
         let replyMarkup = null;
 
         if (type === 'TOPUP_MANUAL') {
-            text = `TOP UP MANUAL BARU\n\n` +
-                   `User: ${sender || 'User'}\n` +
-                   `UID: ${userId}\n` +
-                   `Nominal: ${message}\n\n` +
-                   `Konfirmasi di Panel Admin.`;
+            // Menggunakan teks polos tanpa tag HTML yang berisiko
+            text = "💰 TOP UP MANUAL BARU\n\n" +
+                   "User: " + (sender || 'User') + "\n" +
+                   "UID: " + userId + "\n" +
+                   "Nominal: " + message + "\n\n" +
+                   "Konfirmasi di Panel Admin.";
             
             replyMarkup = {
                 inline_keyboard: [[
@@ -26,12 +27,12 @@ export default async function handler(req, res) {
                 ]]
             };
         } else {
-            // Format teks polos agar tidak error parsing HTML
-            text = `PESAN BARU DARI WEB\n\n` +
-                   `Nama: ${sender || 'Pelanggan'}\n` +
-                   `ID: ${userId}\n` +
-                   `Pesan: ${message}\n\n` +
-                   `Swipe untuk balas.`;
+            // Format teks polos agar tidak error parsing
+            text = "📩 PESAN BARU DARI WEB\n\n" +
+                   "Nama: " + (sender || 'Pelanggan') + "\n" +
+                   "ID: " + userId + "\n" +
+                   "Pesan: " + message + "\n\n" +
+                   "Swipe pesan ini untuk membalas.";
         }
 
         const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
@@ -41,19 +42,20 @@ export default async function handler(req, res) {
                 chat_id: ADMIN_ID,
                 text: text,
                 reply_markup: replyMarkup
+                // Parse_mode sengaja dihapus agar Telegram tidak mencoba membaca tag HTML
             })
         });
 
         const resData = await response.json();
         
         if (!resData.ok) {
-            console.error("Telegram API Rejection:", resData.description);
+            console.error("Telegram Error Detail:", resData.description);
             return res.status(400).json({ error: resData.description });
         }
 
         return res.status(200).json({ ok: true });
     } catch (e) {
-        console.error("Internal Server Error:", e.message);
+        console.error("Vercel Internal Error:", e.message);
         return res.status(500).json({ error: e.message });
     }
 }

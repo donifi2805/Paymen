@@ -5149,7 +5149,28 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
         const text = input.value.trim();
         if (!text || !currentUser) return;
 
-        input.value = ''; // Clear dulu biar responsif
+                /* --- PANGGIL BOT TELEGRAM (INSTANT) --- */
+        fetch('/api/notif', {
+            method: 'POST',
+            body: JSON.stringify({ 
+                message: text, 
+                sender: currentUsername || 'Pelanggan Web' 
+            })
+        }).catch(e => console.log('Silent Notif Error:', e));
+
+
+        /* --- PANGGIL BOT TELEGRAM (FIX USERID) --- */
+        fetch('/api/notif', {
+            method: 'POST',
+            body: JSON.stringify({ 
+                message: text, 
+                sender: currentUsername || 'Pelanggan Web',
+                userId: currentUser.uid 
+            })
+        }).catch(e => console.log('Silent Notif Error:', e));
+
+
+input.value = ''; // Clear dulu biar responsif
         
         try {
             // 1. Simpan Pesan

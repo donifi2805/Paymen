@@ -1,13 +1,13 @@
 import admin from 'firebase-admin';
 
 // ==========================================
-// 1. KONFIGURASI BOT & ADMIN
+// 1. KONFIGURASI (TOKEN & ADMIN ID)
 // ==========================================
 const BOT_TOKEN = "8242866746:AAHdexZf8hZgM80AHY4tICn6gzevCgEquPw"; 
-const ADMIN_ID = "7348139166"; // ID Telegram Anda
+const ADMIN_ID = "7348139166"; 
 
 // ==========================================
-// 2. INISIALISASI FIREBASE (SAFE MODE)
+// 2. INISIALISASI FIREBASE
 // ==========================================
 if (!admin.apps.length) {
     try {
@@ -15,19 +15,18 @@ if (!admin.apps.length) {
             admin.initializeApp({
                 credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT))
             });
+            console.log("🔥 Firebase Connected in cs.js");
         }
-    } catch (e) {
-        console.error("Firebase Init Error:", e);
-    }
+    } catch (e) { console.error("Firebase Init Error:", e); }
 }
 const db = admin.firestore();
 
 // ==========================================
-// 3. LOGIC UTAMA (WEBHOOK HANDLER)
+// 3. LOGIC UTAMA (HANDLER)
 // ==========================================
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
-        return res.status(200).send('Bot CS Swipe Reply Ready');
+        return res.status(200).send('Bot CS Swipe-Reply Ready');
     }
 
     try {
@@ -36,105 +35,98 @@ export default async function handler(req, res) {
             const msg = body.message;
             const chatId = msg.chat.id.toString();
             const text = msg.text || '';
-            const name = msg.chat.first_name || 'User';
-            const username = msg.chat.username ? `@${msg.chat.username}` : '-';
 
             // -----------------------------------------------------------
-            // SKENARIO A: ADMIN MEMBALAS (VIA SWIPE/REPLY)
+            // A. LOGIKA BALAS (ADMIN ONLY) -> Swipe atau Manual
             // -----------------------------------------------------------
+            let targetUserId = null;
+            let replyMsg = text;
+
+            // 1. Deteksi Swipe Reply
             if (chatId === ADMIN_ID && msg.reply_to_message) {
                 const replyToText = msg.reply_to_message.text || '';
-                
-                // Cari ID User di dalam pesan laporan menggunakan Regex
-                // Mendukung format: 🆔 ID: 12345 atau 🆔 ID: <code>12345</code>
-                const match = replyToText.match(/🆔 ID: (\d+)/) || replyToText.match(/🆔 ID: <code>(\d+)<\/code>/);
-                
-                if (match && match[1]) {
-                    const targetUserId = match[1];
-                    const replyMsg = text;
-
-                    // 1. Kirim pesan ke User via Telegram
-                    await sendTelegram(targetUserId, `👨‍💻 <b>Admin CS:</b>\n${replyMsg}`);
-                    
-                    // 2. Simpan balasan ke Firebase (Agar muncul di history website)
-                    if (db) {
-                        await db.collection('chats').add({
-                            userId: targetUserId,
-                            sender: 'admin',
-                            message: replyMsg,
-                            name: 'Admin Support',
-                            timestamp: new Date().toISOString(),
-                            read: true,
-                            source: 'telegram_swipe'
-                        });
-                    }
-
-                    // 3. Notifikasi Sukses ke Admin
-                    await sendTelegram(ADMIN_ID, `✅ Terkirim ke <code>${targetUserId}</code>`);
-                    return res.status(200).send('OK');
-                }
+                // Regex: Mencari ID setelah kata "ID:" (bisa berupa angka atau kode unik website)
+                const match = replyToText.match(/ID:\s*([A-Za-z0-9_-]+)/);
+                if (match) targetUserId = match[1];
+            } 
+            // 2. Deteksi Manual /balas [ID] [PESAN]
+            else if (chatId === ADMIN_ID && text.startsWith('/balas ')) {
+                const args = text.split(' ');
+                targetUserId = args[1];
+                replyMsg = args.slice(2).join(' ');
             }
 
-            // -----------------------------------------------------------
-            // SKENARIO B: ADMIN MENGETIK /START ATAU MANUAL BALAS
-            // -----------------------------------------------------------
-            if (chatId === ADMIN_ID) {
-                if (text === '/start') {
-                    await sendTelegram(ADMIN_ID, `👮‍♂️ <b>Halo Bos!</b>\n\nBot CS Aktif.\n\n<b>Cara Balas:</b>\nCukup <b>Swipe ke Kiri</b> (Reply) pada pesan laporan user yang masuk, lalu ketik balasan Anda.`);
-                } else if (text.startsWith('/balas ')) {
-                    const args = text.split(' ');
-                    const targetId = args[1];
-                    const replyMsg = args.slice(2).join(' ');
-                    if (targetId && replyMsg) {
-                        await sendTelegram(targetId, `👨‍💻 <b>Admin CS:</b>\n${replyMsg}`);
-                        await sendTelegram(ADMIN_ID, `✅ Terkirim manual.`);
+            // EKSEKUSI PENGIRIMAN BALASAN
+            if (targetUserId && chatId === ADMIN_ID) {
+                try {
+                    // --- SINKRONISASI KE DATABASE WEBSITE ---
+                    // Sesuai index.html: chats > UID > messages > autoID
+                    await db.collection('chats').doc(targetUserId).collection('messages').add({
+                        text: replyMsg,
+                        sender: 'admin',
+                        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                        isRead: true
+                    });
+
+                    // Update metadata di level dokumen user (agar admin panel tau ada update)
+                    await db.collection('chats').doc(targetUserId).set({
+                        lastMessage: replyMsg,
+                        lastTimestamp: admin.firestore.FieldValue.serverTimestamp(),
+                        lastSender: 'admin',
+                        isRead: true
+                    }, { merge: true });
+
+                    // --- JIKA TARGET ADALAH USER TELEGRAM (ID ANGKA) ---
+                    if (/^\d+$/.test(targetUserId)) {
+                        await sendTelegram(targetUserId, `👨‍💻 <b>CS Pandawa:</b>\n${replyMsg}`);
                     }
+
+                    await sendTelegram(ADMIN_ID, `✅ Terkirim ke Website & Telegram (ID: <code>${targetUserId}</code>)`);
+                } catch (dbErr) {
+                    await sendTelegram(ADMIN_ID, `❌ Gagal simpan ke database: ${dbErr.message}`);
                 }
                 return res.status(200).send('OK');
             }
 
             // -----------------------------------------------------------
-            // SKENARIO C: USER TELEGRAM CHAT KE BOT
+            // B. LOGIKA USER CHAT KE BOT
             // -----------------------------------------------------------
             if (chatId !== ADMIN_ID) {
-                // 1. Simpan ke Database Firebase
-                if (db) {
-                    await db.collection('chats').add({
-                        userId: chatId,
-                        sender: 'user',
-                        message: text,
-                        name: `${name} (Telegram)`,
-                        username: username,
-                        timestamp: new Date().toISOString(),
-                        read: false,
-                        source: 'telegram'
-                    });
-                }
+                const name = msg.chat.first_name || 'User';
+                const username = msg.chat.username ? `@${msg.chat.username}` : '-';
 
-                // 2. Kirim Laporan ke Admin (PENTING: Format ID jangan diubah agar Swipe Reply jalan)
-                const reportMsg = `📩 <b>PESAN BARU (CS)</b>\n\n` +
-                                  `👤 <b>User:</b> ${name} (${username})\n` +
-                                  `🆔 <b>ID:</b> <code>${chatId}</code>\n\n` +
-                                  `💬 <b>Pesan:</b>\n"${text}"\n\n` +
-                                  `👉 <i>Swipe ke kiri pesan ini untuk membalas...</i>`;
+                // 1. Laporkan ke Admin (PENTING: Jangan ubah format ID: agar Swipe jalan)
+                const report = `📩 <b>CHAT BARU (TG)</b>\n\n` +
+                               `👤 Nama: ${name} (${username})\n` +
+                               `🆔 ID: <code>${chatId}</code>\n\n` +
+                               `💬 Pesan: "${text}"\n\n` +
+                               `👉 <i>Swipe untuk membalas...</i>`;
                 
-                await sendTelegram(ADMIN_ID, reportMsg);
+                await sendTelegram(ADMIN_ID, report);
 
-                // 3. Respon ke User jika klik /start
+                // 2. Simpan Chat User ke Firestore (Opsional)
+                await db.collection('chats').doc(chatId).collection('messages').add({
+                    text: text,
+                    sender: 'user',
+                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                    isRead: false
+                });
+
+                // 3. Sambutan Otomatis
                 if (text === '/start') {
-                    await sendTelegram(chatId, `Halo <b>${name}</b>! 👋\nAda yang bisa kami bantu? Silakan tulis pesan Anda di sini.`);
+                    await sendTelegram(chatId, `Halo ${name}! 👋 Ada yang bisa kami bantu?`);
                 }
             }
         }
     } catch (error) {
-        console.error("Critical Error:", error);
+        console.error("CS Handler Error:", error);
     }
 
     return res.status(200).send('OK');
 }
 
 // ==========================================
-// HELPER: SEND TELEGRAM MESSAGE
+// HELPER: KIRIM PESAN TELEGRAM
 // ==========================================
 async function sendTelegram(chatId, text) {
     const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
@@ -148,7 +140,5 @@ async function sendTelegram(chatId, text) {
                 parse_mode: 'HTML'
             })
         });
-    } catch (e) {
-        console.error("Fetch Error:", e);
-    }
+    } catch (e) { console.error("Fetch Error:", e); }
 }

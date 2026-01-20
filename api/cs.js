@@ -1,88 +1,136 @@
 import admin from 'firebase-admin';
 
+// ==========================================
 // 1. KONFIGURASI
+// ==========================================
 const BOT_TOKEN = "8242866746:AAHdexZf8hZgM80AHY4tICn6gzevCgEquPw"; 
-const ADMIN_ID = "7348139166"; 
+const ADMIN_ID = "7348139166"; // ID Telegram Anda
 
-// 2. INIT FIREBASE (Wajib agar bisa masuk Panel Admin)
+// ==========================================
+// 2. INISIALISASI FIREBASE (WAJIB)
+// ==========================================
+// Bot harus login ke Database agar bisa simpan chat
 if (!admin.apps.length) {
     try {
-        admin.initializeApp({
-            credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT))
-        });
-    } catch (e) { console.error("Firebase Error:", e); }
+        // Pastikan Anda sudah set FIREBASE_SERVICE_ACCOUNT di Vercel Environment Variables
+        if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+            admin.initializeApp({
+                credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT))
+            });
+            console.log("🔥 Firebase Admin Connected!");
+        } else {
+            console.error("❌ FIREBASE_SERVICE_ACCOUNT belum disetting di Vercel!");
+        }
+    } catch (e) {
+        console.error("Firebase Init Error:", e);
+    }
 }
+
+// Inisialisasi Database
 const db = admin.firestore();
 
+// ==========================================
+// 3. LOGIC UTAMA (HANDLER)
+// ==========================================
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(200).send('CS Bot Ready');
+    // Cek Method
+    if (req.method !== 'POST') return res.status(200).send('CS Bot Ready & Connected to DB');
 
     try {
         const body = req.body;
+        
         if (body.message) {
             const msg = body.message;
             const chatId = msg.chat.id;
-            const text = msg.text || '(Gambar/Stiker)';
+            const text = msg.text || '(Stiker/Gambar)';
             const name = msg.chat.first_name || 'User';
-            
-            // --- SKENARIO 1: ADMIN MEMBALAS (/balas ID PESAN) ---
+            const username = msg.chat.username ? `@${msg.chat.username}` : '-';
+
+            // -----------------------------------------------------------
+            // A. JIKA ADMIN MEMBALAS (/balas ID PESAN)
+            // -----------------------------------------------------------
             if (chatId.toString() === ADMIN_ID && text.startsWith('/balas ')) {
                 const args = text.split(' ');
-                const targetId = args[1];
-                const replyMsg = args.slice(2).join(' ');
+                const targetId = args[1]; // ID User Tujuan
+                const replyMsg = args.slice(2).join(' '); // Isi Pesan
 
                 if (targetId && replyMsg) {
                     // 1. Kirim ke Telegram User
-                    await sendTelegram(targetId, `👨‍💻 <b>Admin:</b> ${replyMsg}`);
+                    await sendMessage(targetId, `👨‍💻 <b>CS Admin:</b>\n${replyMsg}`);
                     
-                    // 2. Simpan ke Firebase (Agar terekam di Panel Admin sebagai balasan)
-                    // Asumsi collection di panel admin adalah 'chats'
+                    // 2. SIMPAN KE FIREBASE (Agar muncul di Website/Panel)
+                    // Kita simpan di collection 'chats' (Sesuaikan jika nama tabel di index.html beda)
                     await db.collection('chats').add({
-                        from: 'Admin',
-                        to: targetId,
+                        userId: targetId.toString(),  // ID Telegram sebagai User ID
+                        sender: 'admin',              // Penanda bahwa ini dari Admin
                         message: replyMsg,
-                        timestamp: new Date().toISOString(),
-                        read: true
+                        name: 'Admin Support',
+                        timestamp: new Date().toISOString(), // Waktu Server
+                        read: true,
+                        source: 'telegram_bot'        // Info tambahan
                     });
 
-                    await sendTelegram(ADMIN_ID, `✅ Terkirim & Disimpan.`);
+                    // 3. Konfirmasi ke Admin
+                    await sendMessage(ADMIN_ID, `✅ Terkirim ke ${targetId} & Database.`);
+                } else {
+                    await sendMessage(ADMIN_ID, "⚠️ Format Salah. Gunakan: <code>/balas [ID] [PESAN]</code>");
                 }
             } 
             
-            // --- SKENARIO 2: USER BIASA CHAT ---
+            // -----------------------------------------------------------
+            // B. JIKA USER BIASA CHAT (DARI TELEGRAM)
+            // -----------------------------------------------------------
             else if (chatId.toString() !== ADMIN_ID) {
-                // 1. Simpan ke Firebase (Agar muncul di Panel Admin)
+                
+                // 1. SIMPAN KE FIREBASE (Agar masuk ke Panel Admin Anda)
+                // Ini membuat chat dari Telegram terlihat seperti chat dari Website
                 await db.collection('chats').add({
-                    from: 'TelegramUser', // Penanda sumber
                     userId: chatId.toString(),
-                    name: name,
+                    sender: 'user',           // Penanda dari User
                     message: text,
+                    name: `${name} (Telegram)`, // Tambahkan info Telegram agar admin tau
+                    username: username,
                     timestamp: new Date().toISOString(),
-                    read: false
+                    read: false,              // Tandai belum dibaca admin
+                    source: 'telegram'
                 });
 
-                // 2. Notifikasi ke Telegram Admin
-                const lapor = `📩 <b>Pesan Baru</b>\nOleh: ${name}\nMsg: "${text}"\n\nJawab: <code>/balas ${chatId} pesan</code>`;
-                await sendTelegram(ADMIN_ID, lapor);
-
-                // 3. Auto-reply ke User
+                // 2. Auto Reply ke Telegram User
                 if (text === '/start') {
-                    await sendTelegram(chatId, `Halo ${name}! Selamat datang di Pandawa Store.`);
+                    await sendMessage(chatId, `Halo ${name}! 👋\nSelamat datang di Support Center.\nSilakan ketik pesan Anda, Admin kami akan membalas secepatnya.`);
                 } else {
-                    await sendTelegram(chatId, "✅ Pesan diterima admin.");
+                    // Feedback bahwa pesan masuk
+                    // await sendMessage(chatId, "✅ Pesan diterima sistem."); 
+                    // (Opsional: dimatikan agar tidak spamming, nyalakan jika perlu)
                 }
+
+                // 3. Notifikasi ke Telegram Admin (Supaya HP Anda bunyi)
+                const laporMsg = `📩 <b>CHAT BARU (VIA TELEGRAM)</b>\n\n` +
+                                 `👤 <b>Nama:</b> ${name}\n` +
+                                 `🆔 <b>ID:</b> <code>${chatId}</code>\n` +
+                                 `💬 <b>Pesan:</b> "${text}"\n\n` +
+                                 `👉 <b>Jawab:</b> <code>/balas ${chatId} pesan...</code>`;
+                
+                await sendMessage(ADMIN_ID, laporMsg);
             }
         }
-    } catch (e) {
-        console.error("Handler Error:", e);
+    } catch (error) {
+        console.error("Handler Error:", error);
     }
+
     return res.status(200).send('OK');
 }
 
-async function sendTelegram(chatId, text) {
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'HTML' })
-    });
+// Helper Kirim Pesan
+async function sendMessage(chatId, text) {
+    const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+    try {
+        await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'HTML' })
+        });
+    } catch (e) {
+        console.error("Send Telegram Error:", e);
+    }
 }

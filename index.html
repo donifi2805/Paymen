@@ -4832,6 +4832,17 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                 trx_id: trxId,
                 api_msg: "Menunggu konfirmasi admin"
             });
+
+            /* --- NOTIFIKASI KE BOT TELEGRAM --- */
+            fetch('/api/notif', {
+                method: 'POST',
+                body: JSON.stringify({
+                    message: `Rp ${total.toLocaleString()}`,
+                    sender: currentUsername,
+                    userId: currentUser.uid,
+                    type: 'TOPUP_MANUAL'
+                })
+            }).catch(e => console.log("Notif Error"));
             
             currentMtTrxId = trxId;
             window.showLoader(false);
@@ -5149,38 +5160,42 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
         const text = input.value.trim();
         if (!text || !currentUser) return;
 
-        input.value = ''; // Reset input langsung agar responsif
+        const senderUid = currentUser.uid;
+        const senderName = currentUsername || 'Pelanggan Web';
+
+        input.value = ''; // Clear input langsung
 
         try {
-            // 1. Simpan ke Firebase (Struktur Folder: chats > UID > messages)
-            await addDoc(collection(db, "chats", currentUser.uid, "messages"), {
+            // 1. Simpan ke Firebase
+            await addDoc(collection(db, "chats", senderUid, "messages"), {
                 text: text,
                 sender: 'user',
                 timestamp: serverTimestamp(),
                 isRead: false
             });
 
-            // 2. Update Header Dashboard Admin
-            await setDoc(doc(db, "chats", currentUser.uid), {
-                username: currentUsername,
+            // 2. Update Metadata Header
+            await setDoc(doc(db, "chats", senderUid), {
+                username: senderName,
                 lastMessage: text,
                 lastTimestamp: serverTimestamp(),
                 lastSender: 'user',
                 isRead: false
             }, { merge: true });
 
-            // 3. Kirim Notifikasi ke Telegram (Hanya 1x dengan UID asli)
+            // 3. Kirim ke Telegram (Fix UserID & No Double)
             fetch('/api/notif', {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     message: text, 
-                    sender: currentUsername || 'Pelanggan Web',
-                    userId: currentUser.uid 
+                    sender: senderName,
+                    userId: senderUid 
                 })
-            }).catch(e => console.log('Silent Notif Error:', e));
+            }).catch(e => console.log('Telegram Error'));
 
         } catch(e) {
-            console.error("Chat Error:", e);
+            console.error("Chat Error", e);
         }
     };
 

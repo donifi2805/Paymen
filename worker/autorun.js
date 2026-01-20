@@ -20,7 +20,7 @@ const KHFY_BASE_URL = "https://panel.khfy-store.com/api_v2";
 const KHFY_AKRAB_URL = "https://panel.khfy-store.com/api_v3/cek_stock_akrab";
 const ICS_BASE_URL = "https://api.ics-store.my.id/api/reseller";
 
-// ⚠️ API KEYS (Pastikan Key ini Benar & Aktif)
+// ⚠️ API KEYS (HARDCODED UNTUK TEST LOKAL)
 const KHFY_KEY = "8F1199C1-483A-4C96-825E-F5EBD33AC60A"; 
 const ICS_KEY = "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77"; 
 
@@ -28,7 +28,7 @@ const ICS_KEY = "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff7
 const TG_TOKEN = "7850521841:AAH84wtuxnDWg5u04lMkL5zqVcY1hIpzGJg";
 const TG_CHAT_ID = "7348139166";
 
-// DAFTAR SLOT V3 (KHUSUS KHFY)
+// DAFTAR SLOT V3
 const KHFY_SPECIAL_CODES = ['XLA14', 'XLA32', 'XLA39', 'XLA51', 'XLA65', 'XLA89'];
 const PRODUCT_NAMES = {
     'XLA14': 'Super Mini', 'XLA32': 'Mini', 'XLA39': 'Big',
@@ -64,10 +64,10 @@ async function sendTelegramLog(message, isUrgent = false) {
 }
 
 // ============================================================
-// 🛠️ FUNGSI FETCH DATA STOK (FULL DATA)
+// 🛠️ FUNGSI FETCH DATA STOK (ADAPTASI DARI RELAY.JS)
 // ============================================================
 
-// 1. KHFY Regular (Ambil Semua)
+// 1. KHFY Regular
 async function getKHFYFullStock() {
     const params = new URLSearchParams();
     params.append('api_key', KHFY_KEY);
@@ -94,40 +94,45 @@ async function getKHFYFullStock() {
                 name: item.nama_produk
             };
         });
-        return { list: dataList, map: stockMap, raw: json };
+        return { list: dataList, map: stockMap };
     } catch (error) { return { error: error.message }; }
 }
 
-// 2. ICS Full Stock (DEBUG MODE)
+// 2. ICS Full Stock (DIPERBAIKI SESUAI RELAY.JS)
 async function getICSFullStock() {
-    const params = new URLSearchParams();
-    params.append('apikey', ICS_KEY);
-    const targetUrl = `${ICS_BASE_URL}/products?${params.toString()}`;
-    
-    console.log(`[ICS] Fetching stock from: ${targetUrl}`); // Log URL untuk debug
+    // URL + Params Hybrid
+    const targetUrl = new URL(`${ICS_BASE_URL}/products`);
+    targetUrl.searchParams.append('apikey', ICS_KEY); // Hybrid Auth (URL)
+
+    // Header Lengkap (Sesuai relay.js)
+    const headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json',
+        'Connection': 'keep-alive',
+        'Authorization': `Bearer ${ICS_KEY}` // Header Auth
+    };
 
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 25000); 
-        const response = await fetch(targetUrl, { 
-            method: 'GET', headers: { 'User-Agent': 'Pandawa-Worker/Direct' }, signal: controller.signal 
+        
+        const response = await fetch(targetUrl.toString(), { 
+            method: 'GET', 
+            headers: headers, 
+            signal: controller.signal 
         });
         clearTimeout(timeoutId);
+        
+        if (response.status === 401 || response.status === 403) {
+            return { list: [], map: {}, error: "Unauthorized: API Key Salah / Ditolak Server" };
+        }
+
         const json = await response.json();
         
-        // Cek Struktur Respon
         let dataList = [];
-        if (json && json.ready && Array.isArray(json.ready)) {
-            dataList = json.ready;
-        } else if (json && json.data && Array.isArray(json.data)) {
-            dataList = json.data;
-        } else if (Array.isArray(json)) {
-            dataList = json;
-        } else {
-            // Jika format tidak dikenali atau error message
-            console.log("[ICS] Format respon tidak standar:", JSON.stringify(json).substring(0, 100));
-            return { list: [], map: {}, error: json.message || "Format Error" };
-        }
+        if (json && json.ready && Array.isArray(json.ready)) dataList = json.ready;
+        else if (json && json.data && Array.isArray(json.data)) dataList = json.data;
+        else if (Array.isArray(json)) dataList = json;
 
         const stockMap = {};
         dataList.forEach(item => {
@@ -137,12 +142,11 @@ async function getICSFullStock() {
                 nonaktif: item.status === 'nonactive',
                 real_stock: item.stock || 0,
                 name: item.name,
-                type: item.type // Simpan type untuk filter cerdas
+                type: item.type
             };
         });
         return { list: dataList, map: stockMap };
     } catch (error) { 
-        console.error("[ICS] Fetch Error:", error.message);
         return { list: [], map: {}, error: error.message }; 
     }
 }
@@ -168,44 +172,89 @@ async function getKHFYAkrabSlots() {
     } catch (error) { return null; }
 }
 
-// 🔥 FUNGSI HIT PROVIDER (DIRECT)
+// 🔥 FUNGSI HIT PROVIDER (DIPERBAIKI SESUAI RELAY.JS)
 async function hitProviderDirect(serverType, data, isRecheck = false) {
-    let targetUrl = '';
+    let targetUrl;
     let method = 'GET';
     let body = null;
-    let headers = { 'User-Agent': 'Pandawa-Worker/Direct', 'Accept': 'application/json' };
+    
+    // Header Default (Akan ditimpa khusus ICS)
+    let headers = { 
+        'User-Agent': 'Pandawa-Worker/Direct', 
+        'Accept': 'application/json'
+    };
 
     if (serverType === 'ICS') {
+        // --- LOGIKA ICS DARI RELAY.JS ---
+        // Header Khusus ICS
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json',
+            'Connection': 'keep-alive',
+            'Authorization': `Bearer ${ICS_KEY}`
+        };
+
         if (isRecheck) {
-            targetUrl = `${ICS_BASE_URL}/trx/${data.reffId}?apikey=${ICS_KEY}`;
+            // GET /trx/{TRX_ID}
+            targetUrl = new URL(`${ICS_BASE_URL}/trx/${data.reffId}`);
+            method = 'GET';
         } else {
-            targetUrl = `${ICS_BASE_URL}/trx?apikey=${ICS_KEY}`;
+            // POST /trx
+            targetUrl = new URL(`${ICS_BASE_URL}/trx`);
             method = 'POST';
             headers['Content-Type'] = 'application/json';
-            body = JSON.stringify({ product_code: data.sku, dest_number: data.tujuan, ref_id_custom: data.reffId });
+            
+            // Body Sesuai relay.js
+            body = JSON.stringify({
+                product_code: data.sku,
+                dest_number: data.tujuan,
+                ref_id_custom: data.reffId
+            });
         }
+        // Tambah API Key di URL (Hybrid Auth)
+        targetUrl.searchParams.append('apikey', ICS_KEY);
+
     } else {
+        // --- LOGIKA KHFY (TETAP) ---
+        targetUrl = new URL(`${KHFY_BASE_URL}/trx`); // Base URL sementara
         const params = new URLSearchParams();
         params.append('api_key', KHFY_KEY);
+        
         if (isRecheck) {
-            targetUrl = `${KHFY_BASE_URL}/history?api_key=${KHFY_KEY}&refid=${data.reffId}`;
+            targetUrl = new URL(`${KHFY_BASE_URL}/history`);
+            targetUrl.searchParams.append('api_key', KHFY_KEY);
+            targetUrl.searchParams.append('refid', data.reffId);
         } else {
-            params.append('produk', data.sku); params.append('tujuan', data.tujuan); params.append('reff_id', data.reffId);
-            targetUrl = `${KHFY_BASE_URL}/trx?${params.toString()}`;
+            targetUrl.searchParams.append('api_key', KHFY_KEY);
+            targetUrl.searchParams.append('produk', data.sku);
+            targetUrl.searchParams.append('tujuan', data.tujuan);
+            targetUrl.searchParams.append('reff_id', data.reffId);
         }
     }
 
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 60000); 
-        const fetchOptions = { method: method, headers: headers, signal: controller.signal };
+        
+        const fetchOptions = { 
+            method: method, 
+            headers: headers, 
+            signal: controller.signal 
+        };
+        
         if (body) fetchOptions.body = body;
 
-        const response = await fetch(targetUrl, fetchOptions);
+        const response = await fetch(targetUrl.toString(), fetchOptions);
         clearTimeout(timeoutId);
+        
         const text = await response.text();
-        if (text.trim().startsWith('<')) return { status: false, message: "HTML Error", raw: text.substring(0, 100) };
-        try { return JSON.parse(text); } catch (e) { return { status: false, message: "Invalid JSON", raw: text }; }
+        if (text.trim().startsWith('<')) {
+            return { status: false, message: "HTML Error (Mungkin Maintenance)", raw: text.substring(0, 100) };
+        }
+        
+        try { return JSON.parse(text); } 
+        catch (e) { return { status: false, message: "Invalid JSON", raw: text }; }
+
     } catch (error) { return { status: false, message: "Timeout: " + error.message }; }
 }
 
@@ -222,7 +271,7 @@ async function sendUserLog(uid, title, message, trxId) {
 // 🏁 LOGIKA UTAMA (WORKER)
 // ============================================================
 async function runPreorderQueue() {
-    console.log(`[${new Date().toISOString()}] MEMULAI WORKER (ALL PRODUCTS MODE)...`);
+    console.log(`[${new Date().toISOString()}] MEMULAI WORKER (RELAY-FIXED MODE)...`);
 
     try {
         const snapshot = await db.collection('preorders').orderBy('timestamp', 'asc').limit(100).get();
@@ -244,10 +293,10 @@ async function runPreorderQueue() {
         const stockMapKHFY = khfyData ? khfyData.map : null;
         const stockMapICS = icsData ? icsData.map : null;
 
-        // --- 2. BUILD LAPORAN (DINAMIS - TAMPILKAN SEMUA) ---
+        // --- 2. BUILD LAPORAN ---
         let reportMsg = "";
 
-        // A. SLOT V3 (KHFY)
+        // A. SLOT V3
         reportMsg += "📊 <b>SLOT AKRAB V3</b>\n";
         if (akrabSlotMap) {
             KHFY_SPECIAL_CODES.forEach(code => {
@@ -276,54 +325,39 @@ async function runPreorderQueue() {
             return `${icon} <b>${item.code || item.kode_produk}</b>: ${status}\n`;
         };
 
-        // B. DAFTAR PRODUK ICS (SEMUA YANG DITEMUKAN)
-        reportMsg += "\n📡 <b>SERVER ICS (LENGKAP)</b>\n";
+        // B. DAFTAR PRODUK ICS
+        reportMsg += "\n📡 <b>SERVER ICS</b>\n";
         if (icsData && icsData.list && icsData.list.length > 0) {
-            // Sortir kode agar rapi
             const sortedIcs = icsData.list.sort((a,b) => (a.code||'').localeCompare(b.code||''));
-            
-            // Loop semua produk tanpa filter ketat
             sortedIcs.forEach(i => {
-                // Opsional: Sembunyikan produk 'testing' atau yang aneh jika perlu
                 if (i.code && !i.code.toLowerCase().includes('tes')) {
                     reportMsg += printStatus(i, 'ICS');
                 }
             });
         } else {
-            // Tampilkan pesan error jika list kosong
             const errMsg = icsData && icsData.error ? icsData.error : "Unknown Error";
-            reportMsg += `⚠️ Gagal memuat produk ICS: ${errMsg}\n(Cek API Key / Saldo / Maintenance)\n`;
+            reportMsg += `⚠️ Gagal ICS: ${errMsg}\n`;
         }
 
-        // C. DAFTAR PRODUK KHFY (FILTER KHUSUS)
-        // Kita tidak menampilkan SEMUA KHFY karena terlalu banyak (ribuan),
-        // jadi kita filter produk-produk utama yang biasa Anda jual saja.
+        // C. DAFTAR PRODUK KHFY
         reportMsg += "\n📡 <b>SERVER KHFY</b>\n";
         if (khfyData && khfyData.list) {
             const khfyItems = khfyData.list.filter(i => {
                 const c = (i.kode_produk || "").toUpperCase();
-                // Tampilkan FMX, PLN, XLC, XLA (Selain yang khusus)
                 const isSpecial = KHFY_SPECIAL_CODES.includes(c);
-                return !isSpecial && (
-                    c.startsWith('FMX') || 
-                    c.startsWith('CFMX') || 
-                    c.startsWith('PLN') || 
-                    c.startsWith('XLC') || 
-                    c.startsWith('XLA')
-                );
+                return !isSpecial && (c.startsWith('FMX') || c.startsWith('CFMX') || c.startsWith('PLN') || c.startsWith('XLC') || c.startsWith('XLA'));
             });
             khfyItems.sort((a,b) => a.kode_produk.localeCompare(b.kode_produk));
-
             if (khfyItems.length > 0) {
                 khfyItems.forEach(i => reportMsg += printStatus(i, 'KHFY'));
             } else {
-                reportMsg += "<i>Tidak ada produk KHFY (FMX/PLN) terdeteksi</i>\n";
+                reportMsg += "<i>Tidak ada produk KHFY relevan</i>\n";
             }
         }
 
         await sendTelegramLog(reportMsg);
 
-        // --- 3. PROSES TRANSAKSI (Logic Tidak Berubah) ---
+        // --- 3. PROSES TRANSAKSI ---
         let skippedTransactions = [];
         let successCount = 0;
 

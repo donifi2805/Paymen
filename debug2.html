@@ -5155,7 +5155,7 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
         });
     };
 
-                window.sendChatMessage = async () => {
+                    window.sendChatMessage = async () => {
         const input = document.getElementById('chatInput');
         const text = input.value.trim();
         if (!text || !currentUser) return;
@@ -5163,10 +5163,10 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
         const senderUid = currentUser.uid;
         const senderName = currentUsername || 'Pelanggan Web';
 
-        input.value = ''; // Clear input langsung
+        input.value = ''; // Reset input agar terasa cepat bagi user
 
         try {
-            // 1. Simpan ke Firebase
+            // 1. Simpan ke Firebase (Agar muncul di layar chat website)
             await addDoc(collection(db, "chats", senderUid, "messages"), {
                 text: text,
                 sender: 'user',
@@ -5174,7 +5174,7 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                 isRead: false
             });
 
-            // 2. Update Metadata Header
+            // 2. Update Header Metadata (Untuk list di Panel Admin)
             await setDoc(doc(db, "chats", senderUid), {
                 username: senderName,
                 lastMessage: text,
@@ -5183,19 +5183,23 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                 isRead: false
             }, { merge: true });
 
-            // 3. Kirim ke Telegram (Fix UserID & No Double)
-            fetch('/api/notif', {
+            // 3. KIRIM NOTIFIKASI KE TELEGRAM (JALUR KRUSIAL)
+            // Pastikan menggunakan POST dan Header Application/Json
+            await fetch('/api/notif', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    message: text, 
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    message: text,
                     sender: senderName,
-                    userId: senderUid 
+                    userId: senderUid
                 })
-            }).catch(e => console.log('Telegram Error'));
+            });
 
         } catch(e) {
-            console.error("Chat Error", e);
+            console.error("Chat Dispatch Error:", e);
         }
     };
 

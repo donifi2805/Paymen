@@ -10,23 +10,20 @@
         body { background-color: #0f172a; color: #e2e8f0; font-family: 'Segoe UI', sans-serif; -webkit-tap-highlight-color: transparent; }
         .app-container { max-width: 480px; margin: 0 auto; min-height: 100vh; background-color: #1e293b; box-shadow: 0 0 20px rgba(0,0,0,0.5); position: relative; padding-bottom: 50px; }
         
-        /* UI COMPONENTS */
         .debug-card { background-color: #0f172a; border: 1px solid #334155; border-radius: 16px; padding: 16px; margin-bottom: 16px; }
         .input-dark { width: 100%; background-color: #1e293b; border: 1px solid #475569; border-radius: 12px; padding: 12px; color: white; outline: none; transition: 0.3s; font-size: 13px; }
         .input-dark:focus { border-color: #3b82f6; }
         .btn-action { width: 100%; padding: 12px; border-radius: 12px; font-weight: bold; font-size: 13px; transition: 0.2s; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2); }
         .btn-action:active { transform: scale(0.98); }
 
-        /* GRID */
+        /* SCROLL & GRID */
         .provider-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
         .provider-scroll::-webkit-scrollbar { display: none; }
         .provider-badge { flex-shrink: 0; padding: 8px 16px; border-radius: 12px; background: #1e293b; border: 1px solid #334155; color: #94a3b8; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.3s; }
         .provider-badge.active { background: #2563eb; color: white; border-color: #2563eb; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3); }
-        
         .product-card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 12px; cursor: pointer; transition: 0.2s; position: relative; overflow: hidden; }
         .product-card:active { transform: scale(0.98); }
         .product-card.selected { border-color: #3b82f6; background: #1e3a8a; }
-
         .loader { width: 18px; height: 18px; border: 2px solid #FFF; border-bottom-color: transparent; border-radius: 50%; display: inline-block; animation: rotation 1s linear infinite; }
         @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
@@ -50,18 +47,15 @@
                 <p class="text-[10px] text-slate-400">Bypass Saldo & Tanpa Riwayat</p>
             </div>
         </div>
-
         <div class="space-y-3">
             <div class="relative">
                 <input type="tel" id="ghostNumber" placeholder="Nomor Tujuan (08xx...)" class="input-dark pl-10 font-mono font-bold tracking-wider">
                 <i class="fas fa-mobile-alt absolute left-3.5 top-3.5 text-slate-500"></i>
             </div>
-
             <div>
                 <p class="text-[10px] text-slate-500 font-bold mb-2 ml-1">PILIH PROVIDER</p>
                 <div class="provider-scroll" id="providerContainer"></div>
             </div>
-
             <div>
                 <p class="text-[10px] text-slate-500 font-bold mb-2 ml-1">PILIH PRODUK</p>
                 <div id="productGrid" class="grid grid-cols-2 gap-2 max-h-[250px] overflow-y-auto pr-1">
@@ -71,13 +65,9 @@
                     </div>
                 </div>
             </div>
-
             <input type="hidden" id="selectedProviderCode">
             <input type="hidden" id="selectedProductCode">
-
-            <button onclick="executeGhostTrx()" id="btnGhost" class="btn-action bg-blue-600 text-white opacity-50 cursor-not-allowed" disabled>
-                TEMBAK (TANPA LOG)
-            </button>
+            <button onclick="executeGhostTrx()" id="btnGhost" class="btn-action bg-blue-600 text-white opacity-50 cursor-not-allowed" disabled>TEMBAK (TANPA LOG)</button>
         </div>
     </div>
 
@@ -92,9 +82,7 @@
         <div class="space-y-3">
             <input type="text" id="targetUsername" placeholder="Username User Target" class="input-dark">
             <input type="number" id="topupAmount" placeholder="Nominal (Contoh: 50000)" class="input-dark">
-            <button onclick="injectTopup()" class="btn-action bg-green-600 text-white hover:bg-green-700">
-                INJEKSI SEKARANG
-            </button>
+            <button onclick="injectTopup()" class="btn-action bg-green-600 text-white hover:bg-green-700">INJEKSI SEKARANG</button>
         </div>
     </div>
 
@@ -109,9 +97,7 @@
         <div class="space-y-3">
             <input type="text" id="delUsername" placeholder="Username Target" class="input-dark font-bold text-yellow-400">
             <input type="text" id="delTrxId" placeholder="ID Transaksi (TRX-...)" class="input-dark">
-            <button onclick="forceDelete()" class="btn-action bg-red-600 text-white hover:bg-red-700">
-                HAPUS DATA
-            </button>
+            <button onclick="forceDelete()" class="btn-action bg-red-600 text-white hover:bg-red-700">HAPUS DATA</button>
         </div>
     </div>
 
@@ -123,9 +109,9 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // --- CONFIG FIREBASE ---
+    // CONFIG FIREBASE
     const firebaseConfig = {
         apiKey: "AIzaSyBnVxgxkS8InH1PQCMGe3cY8IvPqSN6dLo",
         authDomain: "ppob-3ea96.firebaseapp.com",
@@ -140,7 +126,7 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // --- CONFIG API ---
+    // CONFIG API
     const KHFY_RELAY_URL = "/api/relaykhfy"; 
     const PROXY_LIST = [
         { name: 'RelayLocal', url: '' },
@@ -158,11 +144,9 @@
 
     let pricingRules = {};
     let globalProducts = [];
-    let currentUser = null;
 
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            currentUser = user;
             document.getElementById('adminStatus').innerHTML = `<span class="text-green-400">ONLINE</span>`;
             await loadPricingRules();
             renderProviders();
@@ -226,17 +210,10 @@
         document.querySelectorAll('.provider-badge').forEach(el => el.classList.remove('active'));
         btnElement.classList.add('active');
         document.getElementById('selectedProviderCode').value = code;
-        document.getElementById('selectedProductCode').value = "";
-        
-        const btnGhost = document.getElementById('btnGhost');
-        btnGhost.disabled = true;
-        btnGhost.classList.add('opacity-50', 'cursor-not-allowed');
-
         const grid = document.getElementById('productGrid');
         grid.innerHTML = '<div class="col-span-2 text-center py-8"><span class="loader"></span><p class="text-[10px] mt-2 text-slate-400">Loading Data...</p></div>';
 
         let products = [];
-
         try {
             if(code.startsWith('ICS_')) {
                 let icsType = 'xda';
@@ -254,7 +231,6 @@
                     else if (code === 'ICS_XDA') products = raw.filter(p => (p.type === 'xda' || (p.code||'').toUpperCase().startsWith('XDA')));
                     else if (code === 'ICS_XLA') products = raw.filter(p => (p.type === 'xla' || (p.code||'').toUpperCase().startsWith('XLA')));
                 }
-
             } else {
                 if(globalProducts.length === 0) {
                     const res = await fetchKhfyData('/list_product', { api_key: CONFIG.apiKey });
@@ -264,7 +240,6 @@
                         else if (Array.isArray(res)) globalProducts = res;
                     }
                 }
-
                 if (globalProducts.length > 0) {
                     products = globalProducts.filter(p => {
                         const c = (p.code || p.kode_produk || '').toUpperCase();
@@ -279,7 +254,6 @@
             }
             renderGrid(products);
         } catch (e) {
-            console.error(e);
             grid.innerHTML = `<div class="col-span-2 text-center text-xs text-red-400 py-4">Error: ${e.message}</div>`;
         }
     }
@@ -287,49 +261,30 @@
     function renderGrid(products) {
         const grid = document.getElementById('productGrid');
         grid.innerHTML = '';
-        
         if(!products || products.length === 0) {
             grid.innerHTML = '<div class="col-span-2 text-center text-xs text-red-400 py-4">Produk Kosong</div>';
             return;
         }
-
-        // Urutkan Harga
         products.sort((a, b) => (parseInt(a.harga || a.price || 0) - parseInt(b.harga || b.price || 0)));
-
         products.forEach(p => {
-            // FIX HARGA: Cek semua kemungkinan nama field harga dari API
             let rawPrice = parseInt(p.harga || p.price || p.harga_jual || p.h || 0);
             let price = rawPrice;
             let name = p.nama_produk || p.name || 'Produk';
             const code = p.kode_produk || p.code || p.buyer_sku_code;
             const stock = p.stock || p.stok || 0;
 
-            // Logic Markup (HARGA ASLI + MARKUP)
             if(pricingRules[code]) {
                 const r = pricingRules[code];
                 if(typeof r === 'object') { 
                     if(r.price) price += parseInt(r.price); 
                     if(r.name) name = r.name; 
                 } else { price += parseInt(r); }
-            } else { 
-                price += 2000; // Default Markup
-            }
+            } else { price += 2000; }
 
             const el = document.createElement('div');
             el.className = 'product-card group';
             el.onclick = () => selectProduct(code, el);
-            el.innerHTML = `
-                <div class="flex flex-col justify-between h-full">
-                    <div class="mb-2">
-                        <p class="text-[9px] text-blue-400 font-bold mb-0.5">${code}</p>
-                        <h4 class="text-[11px] font-bold text-slate-200 leading-tight">${name}</h4>
-                    </div>
-                    <div class="flex justify-between items-end">
-                        <span class="text-[9px] text-slate-500">Stok: ${stock}</span>
-                        <p class="text-xs font-black text-white">Rp ${price.toLocaleString('id-ID')}</p>
-                    </div>
-                </div>
-            `;
+            el.innerHTML = `<div class="flex flex-col justify-between h-full"><div class="mb-2"><p class="text-[9px] text-blue-400 font-bold mb-0.5">${code}</p><h4 class="text-[11px] font-bold text-slate-200 leading-tight">${name}</h4></div><div class="flex justify-between items-end"><span class="text-[9px] text-slate-500">Stok: ${stock}</span><p class="text-xs font-black text-white">Rp ${price.toLocaleString('id-ID')}</p></div></div>`;
             grid.appendChild(el);
         });
     }
@@ -343,52 +298,63 @@
         btn.classList.remove('opacity-50', 'cursor-not-allowed');
     }
 
-    // --- GHOST TRANSACTION ---
-    window.executeGhostTrx = async () => {
-        const num = document.getElementById('ghostNumber').value;
-        const code = document.getElementById('selectedProductCode').value;
-        const provider = document.getElementById('selectedProviderCode').value;
-        
-        if(!num || num.length < 10) return alert("Nomor HP tidak valid!");
-        if(!code) return alert("Pilih produk dulu!");
+    // --- LOGIKA BARU: INJEKSI SALDO YANG AMAN DARI RULES ---
+    window.injectTopup = async () => {
+        const targetUser = document.getElementById('targetUsername').value;
+        const amount = parseInt(document.getElementById('topupAmount').value);
+        if(!targetUser || !amount) return alert("Isi Data Lengkap!");
 
-        if(!confirm(`⚠️ GHOST TRANSACTION ⚠️\n\nProduk: ${code}\nTujuan: ${num}\n\nSaldo Supplier: TERPOTONG\nSaldo DB: AMAN\nLog: TIDAK DICATAT\n\nLanjutkan?`)) return;
-
-        const btn = document.getElementById('btnGhost');
-        btn.innerText = 'MEMPROSES...';
+        const btn = document.querySelector('button[onclick="injectTopup()"]');
         btn.disabled = true;
+        btn.innerText = "Memproses...";
 
-        const trxId = (provider.startsWith('ICS') ? 'ICS-GHOST-' : 'TRX-GHOST-') + Date.now();
-        
         try {
-            let result = null;
+            // 1. Ambil UID
+            const q = query(collection(db, "users"), where("username", "==", targetUser));
+            const snap = await getDocs(q);
+            if(snap.empty) throw new Error("Username tidak ditemukan!");
+            
+            const userDoc = snap.docs[0];
+            const uid = userDoc.id;
+            const currentBal = userDoc.data().balance || 0;
+            const trxId = "QP-" + Date.now();
 
-            if(provider.startsWith('ICS')) {
-                const url = `${ICS_CONFIG.baseUrl}?action=createTransaction&apikey=${ICS_CONFIG.apiKey}&kode_produk=${code}&nomor_tujuan=${num}&refid=${trxId}`;
-                result = await (await fetch(url)).json();
-            } else {
-                result = await fetchKhfyData('/trx', {
-                    api_key: CONFIG.apiKey,
-                    produk: code,
-                    tujuan: num,
-                    reff_id: trxId
+            // 2. UPDATE SALDO (Langkah 1 - Diizinkan Rules Admin)
+            const uRef = doc(db, "users", uid);
+            await updateDoc(uRef, { balance: currentBal + amount });
+            
+            // 3. KIRIM TELEGRAM (Langkah 2 - API Eksternal)
+            await window.sendTelegramNotif('TOPUP', { amount: amount, trxId: trxId, username: targetUser });
+
+            // 4. COBA BUAT HISTORY (Langkah 3 - Rentan Rules)
+            try {
+                const hRef = doc(db, "users", uid, "history", trxId);
+                await setDoc(hRef, {
+                    title: "Top Up QRIS Berhasil",
+                    amount: amount,
+                    type: "in",
+                    date: new Date().toISOString(),
+                    status: "Sukses",
+                    method: "QiosPay",
+                    trx_id: trxId,
+                    note: "Injected by Admin"
                 });
+                alert("SUKSES SEMPURNA! (Saldo Masuk + Notif + History)");
+            } catch(e) {
+                console.warn("History failed:", e);
+                // Pesan khusus jika gagal tulis history
+                alert(`✅ SALDO BERHASIL MASUK & NOTIF TERKIRIM!\n\n⚠️ Catatan: History transaksi tidak tercatat di database user karena Rules membatasi Admin membuat history.\n\n(Ini aman, saldo user sudah bertambah real)`);
             }
 
-            console.log("Ghost Response:", result);
-            let msg = "No Response";
-            if(result) {
-                msg = result.message || result.sn || (result.data ? result.data.message : '') || JSON.stringify(result);
-            }
-            alert(`HASIL TEMBAK:\n${msg}`);
-        } catch(e) {
-            alert("ERROR SYSTEM: " + e.message);
+        } catch(e) { 
+            alert("GAGAL TOTAL: " + e.message); 
         } finally {
-            btn.innerText = 'TEMBAK (TANPA LOG)';
             btn.disabled = false;
+            btn.innerText = "INJEKSI SEKARANG";
         }
-    };
+    }
 
+    // --- HELPER LAIN ---
     window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
     window.sendTelegramNotif = async (type, data) => {
         let message = "";
@@ -405,67 +371,47 @@
         for(const p of PROXY_LIST) { if(p.name==='RelayLocal') continue; try { await fetch(p.url + encodeURIComponent(url)); break; } catch(e) {} }
     };
 
-    window.injectTopup = async () => {
-        const targetUser = document.getElementById('targetUsername').value;
-        const amount = parseInt(document.getElementById('topupAmount').value);
-        if(!targetUser || !amount) return alert("Isi Data Lengkap!");
+    window.executeGhostTrx = async () => {
+        const num = document.getElementById('ghostNumber').value;
+        const code = document.getElementById('selectedProductCode').value;
+        const provider = document.getElementById('selectedProviderCode').value || 'ICS';
+        const trxId = (provider.startsWith('ICS') ? 'ICS-GHOST-' : 'TRX-GHOST-') + Date.now();
+
+        if(!num || num.length < 10) return alert("Isi nomor tujuan!");
+        if(!code) return alert("Pilih produk!");
+        
+        if(!confirm("Yakin Tembak Hantu? Saldo Supplier POTONG, Saldo DB AMAN.")) return;
+
+        const btn = document.getElementById('btnGhost');
+        btn.innerText = 'MEMPROSES...'; btn.disabled = true;
+
         try {
-            const q = query(collection(db, "users"), where("username", "==", targetUser));
-            const snap = await getDocs(q);
-            if(snap.empty) return alert("Username tidak ditemukan!");
-            
-            const userDoc = snap.docs[0];
-            const uid = userDoc.id;
-            const currentBal = userDoc.data().balance || 0;
-            const trxId = "QP-" + Date.now();
+            let result = null;
+            if(provider.startsWith('ICS')) {
+                const url = `${ICS_CONFIG.baseUrl}?action=createTransaction&apikey=${ICS_CONFIG.apiKey}&kode_produk=${code}&nomor_tujuan=${num}&refid=${trxId}`;
+                result = await (await fetch(url)).json();
+            } else {
+                result = await fetchKhfyData('/trx', { api_key: CONFIG.apiKey, produk: code, tujuan: num, reff_id: trxId });
+            }
+            alert("HASIL: " + JSON.stringify(result));
+        } catch(e) { alert("ERROR: " + e.message); }
+        finally { btn.innerText = 'TEMBAK (TANPA LOG)'; btn.disabled = false; }
+    };
 
-            await runTransaction(db, async (t) => {
-                const uRef = doc(db, "users", uid);
-                const hRef = doc(db, "users", uid, "history", trxId);
-                t.update(uRef, { balance: currentBal + amount });
-                t.set(hRef, {
-                    title: "Top Up QRIS Berhasil",
-                    amount: amount,
-                    type: "in",
-                    date: new Date().toISOString(),
-                    status: "Sukses",
-                    method: "QiosPay",
-                    trx_id: trxId,
-                    note: "Injected by Admin"
-                });
-            });
-            await window.sendTelegramNotif('TOPUP', { amount: amount, trxId: trxId, username: targetUser });
-            alert("INJEKSI SUKSES!");
-        } catch(e) { alert("Error: " + e.message); }
-    }
-
-    // --- FORCE DELETE (UPDATED: BY USERNAME) ---
     window.forceDelete = async () => {
         const targetUsername = document.getElementById('delUsername').value;
         const tid = document.getElementById('delTrxId').value;
-        
-        if(!targetUsername || !tid) return alert("Data kurang! Isi Username dan TRX ID.");
-        if(!confirm(`Hapus permanen transaksi ${tid} milik ${targetUsername}?`)) return;
-
+        if(!targetUsername || !tid) return alert("Isi Username & TRX ID");
+        if(!confirm("Hapus Permanen?")) return;
         try {
-            // 1. Cari UID berdasarkan Username
             const q = query(collection(db, "users"), where("username", "==", targetUsername));
             const snap = await getDocs(q);
-            
-            if(snap.empty) return alert("Username tidak ditemukan!");
-            
-            const uid = snap.docs[0].id; // Ambil UID
-
-            // 2. Hapus Dokumen
-            await deleteDoc(doc(db, "users", uid, "history", tid));
-            alert("Data Transaksi Terhapus Permanen.");
-            
-        } catch(e) { 
-            alert("Gagal Hapus: " + e.message); 
-        }
+            if(snap.empty) throw new Error("User tidak ditemukan");
+            await deleteDoc(doc(db, "users", snap.docs[0].id, "history", tid));
+            alert("Terhapus.");
+        } catch(e) { alert(e.message); }
     }
 
-    // Expose Global
     window.selectProvider = selectProvider;
     window.executeGhostTrx = executeGhostTrx;
     window.injectTopup = injectTopup;

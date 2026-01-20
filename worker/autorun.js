@@ -140,7 +140,7 @@ async function getICSStockList() {
     } catch (error) { return null; }
 }
 
-// 🔥 FUNGSI HIT RELAY (FIXED: SUPPORT POST UNTUK ICS) 🔥
+// 🔥 FUNGSI HIT RELAY (FIXED: SUPPORT POST ICS & GET KHFY) 🔥
 async function hitVercelRelay(serverType, data, isRecheck = false) {
     let targetUrl = '';
     let method = 'GET';
@@ -331,7 +331,8 @@ async function runPreorderQueue() {
                 result.msg || result.message || (result.data && result.data.message) || ''
             ).toLowerCase();
             
-            let isDuplicate = msgRaw.includes('sudah ada') || msgRaw.includes('sudah pernah') || msgRaw.includes('duplicate');
+            // --- FIX: TAMBAHKAN 'sdh pernah' KE DETEKSI DUPLICATE ---
+            let isDuplicate = msgRaw.includes('sudah ada') || msgRaw.includes('sudah pernah') || msgRaw.includes('duplicate') || msgRaw.includes('sdh pernah');
 
             if (serverType !== 'ICS' && !isDuplicate) {
                 const isQueued = msgRaw.includes('proses') || msgRaw.includes('berhasil') || msgRaw.includes('pending');

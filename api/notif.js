@@ -3,22 +3,20 @@ const BOT_TOKEN = "8242866746:AAHdexZf8hZgM80AHY4tICn6gzevCgEquPw";
 const ADMIN_ID = "7348139166"; 
 
 export default async function handler(req, res) {
-    // Ijinkan akses dari website manapun (CORS)
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST');
-    
     if (req.method === 'OPTIONS') return res.status(200).end();
 
     try {
-        const { message, sender } = JSON.parse(req.body);
+        const { message, sender, userId } = JSON.parse(req.body);
 
-        // Format pesan laporan ke Admin
+        // Format pesan agar mendukung Swipe Reply (Ada ID User)
         const text = `📩 <b>PESAN DARI WEBSITE</b>\n\n` +
-                     `👤 <b>Nama:</b> ${sender || 'Tamu'}\n` +
-                     `💬 <b>Pesan:</b> ${message}\n\n` +
-                     `<i>(Balas lewat Panel Admin Website)</i>`;
+                     `👤 <b>Nama:</b> ${sender || 'Pelanggan'}\n` +
+                     `🆔 <b>ID:</b> <code>${userId || 'WEB_USER'}</code>\n\n` +
+                     `💬 <b>Pesan:</b> "${message}"\n\n` +
+                     `👉 <i>Swipe ke kiri untuk membalas ke website...</i>`;
 
-        // Kirim ke Telegram Admin
         await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -30,7 +28,6 @@ export default async function handler(req, res) {
         });
 
         return res.status(200).json({ status: 'Sent' });
-
     } catch (e) {
         return res.status(500).json({ error: e.message });
     }

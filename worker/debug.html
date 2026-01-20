@@ -3,78 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DEBUG MODE - SUPER ADMIN</title>
+    <title>DEBUG & GHOST TRANSACTION</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
-        body { background-color: #0f172a; color: #e2e8f0; font-family: 'Courier New', Courier, monospace; }
-        .debug-card { background-color: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
-        .btn-action { @apply w-full py-2 rounded font-bold transition transform active:scale-95; }
-        .input-dark { @apply w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:border-red-500 focus:outline-none mb-3; }
+        body { background-color: #0f172a; color: #e2e8f0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .debug-card { background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .btn-action { @apply w-full py-3 rounded-lg font-bold transition transform active:scale-95 shadow-lg; }
+        .input-dark { @apply w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none mb-3 text-sm; }
+        .provider-badge { @apply cursor-pointer px-4 py-2 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs font-bold transition flex items-center gap-2; }
+        .provider-badge.active { @apply bg-blue-600 border-blue-500 text-white; }
+        .product-card { @apply bg-slate-900 border border-slate-700 p-3 rounded-xl cursor-pointer hover:border-blue-500 transition relative overflow-hidden; }
+        .product-card:active { @apply scale-95; }
+        .loader { border: 3px solid #f3f3f3; border-radius: 50%; border-top: 3px solid #3498db; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block;}
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="p-6">
+<body class="p-4 md:p-8">
 
-    <div class="max-w-2xl mx-auto">
-        <div class="flex justify-between items-center mb-8 border-b border-red-900 pb-4">
+    <div class="max-w-3xl mx-auto">
+        <div class="flex justify-between items-center mb-8 pb-4 border-b border-slate-700">
             <div>
-                <h1 class="text-2xl font-bold text-red-500"><i class="fas fa-bug"></i> DEBUG TOOLS</h1>
-                <p class="text-xs text-slate-500">ROOT ACCESS // OWNER ONLY</p>
+                <h1 class="text-2xl font-black text-white tracking-tighter"><span class="text-blue-500">GHOST</span> PANEL</h1>
+                <p class="text-[10px] text-slate-400 font-mono">BYPASS MODE // NO LOGS // DIRECT API</p>
             </div>
-            <div id="adminStatus" class="text-xs font-bold text-slate-400">Checking Auth...</div>
+            <div id="adminStatus" class="text-xs font-bold bg-slate-800 px-3 py-1 rounded-full">Checking Auth...</div>
         </div>
 
-        <div class="debug-card border-l-4 border-l-green-500">
-            <h3 class="font-bold text-green-400 mb-4"><i class="fas fa-money-bill-wave"></i> Injeksi Topup (QRIS Fake)</h3>
-            <p class="text-[10px] text-slate-400 mb-3">Saldo bertambah, History tercatat "Top Up QRIS Berhasil", Notif Telegram terkirim.</p>
-            
-            <input type="text" id="targetUsername" placeholder="Username Target" class="input-dark">
-            <input type="number" id="topupAmount" placeholder="Nominal (Rp)" class="input-dark">
-            
-            <button onclick="injectTopup()" class="btn-action bg-green-600 hover:bg-green-700 text-white">
-                <i class="fas fa-syringe"></i> INJECT SALDO & NOTIF
+        <div class="debug-card border-l-4 border-l-blue-500">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h3 class="font-bold text-white text-lg"><i class="fas fa-ghost mr-2 text-blue-500"></i>Ghost Transaction</h3>
+                    <p class="text-xs text-slate-400">Transaksi langsung ke Supplier. Tanpa potong saldo lokal. Tanpa riwayat.</p>
+                </div>
+                <div class="text-right">
+                     <span class="text-[10px] bg-red-500/20 text-red-400 px-2 py-1 rounded border border-red-500/30">RISK: HIGH</span>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="text-xs text-slate-500 font-bold ml-1 mb-1 block">Nomor Tujuan</label>
+                <div class="relative">
+                    <input type="tel" id="ghostNumber" placeholder="08xx..." class="input-dark pl-10 text-lg font-bold tracking-widest">
+                    <i class="fas fa-mobile-alt absolute left-3 top-4 text-slate-500"></i>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="text-xs text-slate-500 font-bold ml-1 mb-2 block">Pilih Provider</label>
+                <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar" id="providerContainer">
+                    <div class="text-xs text-slate-500">Memuat Provider...</div>
+                </div>
+                <input type="hidden" id="selectedProviderCode">
+            </div>
+
+            <div class="mb-6">
+                <label class="text-xs text-slate-500 font-bold ml-1 mb-2 block">Pilih Produk</label>
+                <div id="productGrid" class="grid grid-cols-2 gap-3 max-h-80 overflow-y-auto pr-1">
+                    <div class="col-span-2 text-center py-8 border-2 border-dashed border-slate-700 rounded-xl">
+                        <p class="text-xs text-slate-500">Pilih provider terlebih dahulu</p>
+                    </div>
+                </div>
+                <input type="hidden" id="selectedProductCode">
+            </div>
+
+            <button onclick="executeGhostTrx()" id="btnGhost" class="btn-action bg-gradient-to-r from-blue-600 to-blue-800 text-white opacity-50 cursor-not-allowed" disabled>
+                <i class="fas fa-paper-plane mr-2"></i> TEMBAK (TANPA LOG)
             </button>
         </div>
 
-        <div class="debug-card border-l-4 border-l-purple-500">
-            <h3 class="font-bold text-purple-400 mb-4"><i class="fas fa-bolt"></i> Transaksi PPOB (Bypass Saldo)</h3>
-            <p class="text-[10px] text-slate-400 mb-3">Tembak ke Server (ICS/KHFY) tapi saldo user TIDAK dipotong (Harga Database = 0).</p>
-            
-            <input type="text" id="trxProduct" placeholder="Kode Produk (Cth: XLA10, PLN20)" class="input-dark">
-            <input type="text" id="trxDest" placeholder="Nomor Tujuan" class="input-dark">
-            <select id="trxProvider" class="input-dark">
-                <option value="ICS">ICS (Relay)</option>
-                <option value="KHFY">KHFY (Direct/Proxy)</option>
-            </select>
-            
-            <button onclick="processFreeTrx()" class="btn-action bg-purple-600 hover:bg-purple-700 text-white">
-                <i class="fas fa-magic"></i> PROSES GRATIS (0 RUPIAH)
+        <div class="grid grid-cols-2 gap-4">
+            <button onclick="document.getElementById('manualTools').classList.toggle('hidden')" class="py-3 rounded-xl bg-slate-800 text-slate-400 text-xs font-bold hover:bg-slate-700 transition">
+                <i class="fas fa-tools mr-1"></i> Toggle Manual Tools
+            </button>
+            <button onclick="window.location.href='index.html'" class="py-3 rounded-xl bg-slate-800 text-slate-400 text-xs font-bold hover:bg-slate-700 transition">
+                <i class="fas fa-home mr-1"></i> Kembali ke App
             </button>
         </div>
 
-        <div class="debug-card border-l-4 border-l-red-500">
-            <h3 class="font-bold text-red-500 mb-4"><i class="fas fa-trash-alt"></i> Force Delete History</h3>
-            <p class="text-[10px] text-slate-400 mb-3">Menghapus dokumen history secara permanen dari database.</p>
+        <div id="manualTools" class="hidden mt-6 space-y-4 animate-fade-in">
+            <div class="debug-card border-l-4 border-l-green-500">
+                <h3 class="font-bold text-green-400 mb-2">Injeksi Topup</h3>
+                <input type="text" id="targetUsername" placeholder="Username" class="input-dark">
+                <input type="number" id="topupAmount" placeholder="Nominal" class="input-dark">
+                <button onclick="injectTopup()" class="btn-action bg-green-600 text-white text-xs">Inject</button>
+            </div>
             
-            <input type="text" id="delUid" placeholder="UID User" class="input-dark">
-            <input type="text" id="delTrxId" placeholder="ID Transaksi (Cth: TRX-08xx...)" class="input-dark">
-            
-            <button onclick="forceDelete()" class="btn-action bg-red-600 hover:bg-red-700 text-white">
-                <i class="fas fa-bomb"></i> HAPUS PERMANEN
-            </button>
+            <div class="debug-card border-l-4 border-l-red-500">
+                <h3 class="font-bold text-red-500 mb-2">Hapus Riwayat</h3>
+                <input type="text" id="delUid" placeholder="UID" class="input-dark">
+                <input type="text" id="delTrxId" placeholder="TRX ID" class="input-dark">
+                <button onclick="forceDelete()" class="btn-action bg-red-600 text-white text-xs">Hapus</button>
+            </div>
         </div>
-        
-        <div class="text-center mt-8">
-            <button onclick="window.location.href='index.html'" class="text-xs text-slate-500 hover:text-white underline">Kembali ke App Utama</button>
-        </div>
+
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // KONFIGURASI SESUAI INDEX.HTML ANDA
         const firebaseConfig = {
             apiKey: "AIzaSyBnVxgxkS8InH1PQCMGe3cY8IvPqSN6dLo",
             authDomain: "ppob-3ea96.firebaseapp.com",
@@ -89,232 +118,258 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         
-        // GLOBAL VARIABLES
-        let currentUser = null;
-        let currentUsername = "Admin"; // Default
+        // CONFIG
+        const CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
+        const ICS_CONFIG = { apiKey: "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77", baseUrl: "https://www.pandawa-digital.store/api/relay" };
+        const PROXY_LIST = [{ url: 'https://corsproxy.io/?' }, { url: 'https://api.codetabs.com/v1/proxy?quest=' }, { url: '' }];
 
-        // 1. AUTH CHECK
+        let pricingRules = {};
+        let globalProducts = [];
+
+        // AUTH
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                currentUser = user;
-                // Ambil Username Admin untuk keperluan notifikasi
-                const uDoc = await getDoc(doc(db, "users", user.uid));
-                if(uDoc.exists()) currentUsername = uDoc.data().username;
-                
-                document.getElementById('adminStatus').innerHTML = `<span class="text-green-500">GRANTED: ${user.email}</span>`;
+                document.getElementById('adminStatus').innerHTML = `<span class="text-green-400">ADMIN: ${user.email}</span>`;
+                // Load Data Awal
+                await loadPricingRules();
+                renderProviders();
             } else {
-                document.getElementById('adminStatus').innerHTML = `<span class="text-red-500">ACCESS DENIED</span>`;
-                alert("Silakan Login di Panel Admin atau Index terlebih dahulu!");
+                alert("Akses Ditolak. Login dulu.");
                 window.location.href = 'index.html';
             }
         });
 
-        // ==========================================
-        // FITUR 1: INJEKSI TOPUP & NOTIF TELEGRAM
-        // ==========================================
-        
-        // KONFIGURASI TELEGRAM (Sama seperti index.html)
-        const TELEGRAM_CONFIG = {
-            token: "7507761189:AAGUCYltzj_IMuDRgjUzUPiZDz4nbVXvOME",
-            chatId: "-1002997407612"
-        };
-        
-        const PROXY_LIST = [
-            { name: 'CorsProxyIO', url: 'https://corsproxy.io/?' },
-            { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
-            { name: 'Direct', url: '' }
+        // 1. LOAD PRICING RULES (Agar harga SAMA PERSIS dengan Index)
+        async function loadPricingRules() {
+            try {
+                const snap = await getDoc(doc(db, "settings", "pricing"));
+                if (snap.exists()) pricingRules = snap.data().rules || {};
+                console.log("Pricing rules loaded");
+            } catch(e) { console.log("Pricing load error", e); }
+        }
+
+        // 2. DEFINE PROVIDERS (Sama dengan Index)
+        const PPOB_PROVIDERS = [
+            { code: 'ICS_XDA', name: 'Akrab Fresh', type: 'ics', icon: 'fa-bolt' },
+            { code: 'ICS_CIRCLE', name: 'XL Circle', type: 'ics', icon: 'fa-circle-nodes' },
+            { code: 'ICS_XLA', name: 'Akrab v2 (XLA)', type: 'ics', icon: 'fa-star' },
+            { code: 'XLA', name: 'Akrab v1 (XLA)', type: 'khfy', icon: 'fa-mobile-screen' },
+            { code: 'XLR', name: 'XL Reguler', type: 'khfy', icon: 'fa-mobile-screen' },
+            { code: 'FMX', name: 'FlexMax', type: 'khfy', icon: 'fa-fire' },
+            { code: 'PLN', name: 'Token PLN', type: 'khfy', icon: 'fa-lightbulb' }
         ];
 
-        window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
-
-        // Fungsi Notifikasi Telegram (Disalin dari Index agar Format Sama)
-        window.sendTelegramNotif = async (type, data) => {
-            let message = "";
-            let topicId = null;
-            const now = new Date();
-            const options = { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
-            const formattedDate = now.toLocaleDateString('id-ID', options).replace(/ pukul /g, ' | ');
+        // 3. RENDER PROVIDER TABS
+        function renderProviders() {
+            const container = document.getElementById('providerContainer');
+            container.innerHTML = '';
             
-            // Masking ID Transaksi agar terlihat seperti asli
-            let safeTrxId = data.trxId || "QP-FAKE-" + Date.now(); 
-
-            // LOGIKA TOPUP (Topic 7)
-            if (type === 'TOPUP') {
-                topicId = 7;
-                message = `✅ DEPOSIT BERHASIL \n` +
-                          `━━━━━━━━━━━━━━━━━━\n` +
-                          `💳 Jumlah : Rp ${window.formatRp(data.amount).replace('Rp', '').trim()}\n` +
-                          `🕒 Waktu : ${formattedDate}\n` +
-                          `👤 User ID : ${data.username || currentUsername}\n` +
-                          `📌 Status : BERHASIL\n` +
-                          `🆔 ID Transaksi :\n` +
-                          `${safeTrxId}\n` +
-                          `━━━━━━━━━━━━━━━━━━\n` +
-                          `🏢 PANDAWA SYSTEM\n` +
-                          `https://www.pandawa-digital.store`;
-            }
-
-            const baseUrl = `https://api.telegram.org/bot${TELEGRAM_CONFIG.token}/sendMessage`;
-            const params = new URLSearchParams({
-                chat_id: TELEGRAM_CONFIG.chatId,
-                text: message,
-                message_thread_id: topicId
+            PPOB_PROVIDERS.forEach(p => {
+                const btn = document.createElement('div');
+                btn.className = `provider-badge`;
+                btn.innerHTML = `<i class="fa-solid ${p.icon}"></i> ${p.name}`;
+                btn.onclick = () => selectProvider(p.code, btn);
+                container.appendChild(btn);
             });
-            const targetUrl = `${baseUrl}?${params.toString()}`;
-
-            for (const proxy of PROXY_LIST) {
-                try {
-                    const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
-                    await fetch(fullUrl);
-                    console.log("Notif Sent via " + proxy.name);
-                    break;
-                } catch (e) {}
-            }
-        };
-
-        window.injectTopup = async () => {
-            const targetUser = document.getElementById('targetUsername').value;
-            const amount = parseInt(document.getElementById('topupAmount').value);
-
-            if(!targetUser || !amount) return alert("Data kurang lengkap!");
-
-            try {
-                // Cari User
-                const q = query(collection(db, "users"), where("username", "==", targetUser));
-                const snap = await getDocs(q);
-                
-                if(snap.empty) return alert("Username tidak ditemukan!");
-                
-                const userDoc = snap.docs[0];
-                const uid = userDoc.id;
-                const currentBal = userDoc.data().balance || 0;
-                
-                // Buat ID Transaksi seolah-olah dari QiosPay
-                // Format: QP-[Timestamp]
-                const fakeTime = Date.now();
-                const trxId = "QP-" + fakeTime;
-
-                await runTransaction(db, async (t) => {
-                    const uRef = doc(db, "users", uid);
-                    const hRef = doc(db, "users", uid, "history", trxId);
-
-                    // Update Saldo
-                    t.update(uRef, { balance: currentBal + amount });
-
-                    // Tulis History mirip Asli (Method: QiosPay)
-                    t.set(hRef, {
-                        title: "Top Up QRIS Berhasil",
-                        amount: amount,
-                        type: "in",
-                        date: new Date().toISOString(),
-                        status: "Sukses",
-                        method: "QiosPay", // Menyamarkan metode
-                        trx_id: trxId,
-                        note: "Injected by Admin" // Penanda internal admin
-                    });
-                });
-
-                // Kirim Notif Telegram
-                await window.sendTelegramNotif('TOPUP', {
-                    amount: amount,
-                    trxId: trxId,
-                    username: targetUser
-                });
-
-                alert("INJEKSI SUKSES! Saldo masuk & Notif Telegram terkirim.");
-
-            } catch(e) {
-                alert("Error: " + e.message);
-            }
         }
 
-        // ==========================================
-        // FITUR 2: TRANSAKSI BIAYA 0
-        // ==========================================
-        
-        // API Config
-        const CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
-        const ICS_CONFIG = { apiKey: "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77", baseUrl: "https://www.pandawa-digital.store/api/relay" };
-
-        window.processFreeTrx = async () => {
-            if(!currentUser) return alert("Login dulu!");
+        // 4. LOGIKA LOAD PRODUK (REPLIKASI LOGIKA INDEX.HTML)
+        async function selectProvider(code, btnElement) {
+            // UI Toggle
+            document.querySelectorAll('.provider-badge').forEach(el => el.classList.remove('active'));
+            btnElement.classList.add('active');
             
-            const code = document.getElementById('trxProduct').value;
-            const dest = document.getElementById('trxDest').value;
-            const provider = document.getElementById('trxProvider').value;
+            document.getElementById('selectedProviderCode').value = code;
+            document.getElementById('selectedProductCode').value = "";
+            toggleBtn(false);
 
-            if(!code || !dest) return alert("Isi Kode Produk & Nomor Tujuan!");
+            const grid = document.getElementById('productGrid');
+            grid.innerHTML = '<div class="col-span-2 text-center py-8"><div class="loader"></div><p class="text-xs mt-2 text-slate-500">Menarik Data...</p></div>';
 
-            if(!confirm(`Yakin tembak ${code} ke ${dest} dengan BIAYA 0 RUPIAH di Database? \n(Saldo Supplier Tetap Terpotong)`)) return;
+            let products = [];
 
-            const trxId = (provider === 'ICS' ? 'ICS-' : 'TRX-') + Date.now();
-            const trxRef = doc(db, "users", currentUser.uid, "history", trxId);
+            // A. LOGIKA ICS
+            if(code.startsWith('ICS_')) {
+                let icsType = 'xda';
+                if(code === 'ICS_CIRCLE') icsType = 'circle';
+                if(code === 'ICS_XLA') icsType = 'xla';
 
-            // 1. Catat ke Database (TANPA POTONG SALDO)
-            // Kita lewati logika pengurangan saldo (balance - price)
-            try {
-                await setDoc(trxRef, {
-                    title: `Free Trx (${code})`,
-                    amount: 0, // DISINI KUNCINYA: BIAYA 0
-                    type: 'out',
-                    date: new Date().toISOString(),
-                    status: 'Proses',
-                    api_msg: 'Sending to server (Free Mode)...',
-                    trx_id: trxId,
-                    dest_num: dest,
-                    raw_code: code,
-                    provider: provider
-                });
-            } catch(e) { return alert("Gagal tulis DB: " + e.message); }
+                const res = await callApi(ICS_CONFIG.baseUrl + `?action=listProducts&apikey=${ICS_CONFIG.apiKey}&type=${icsType}&_t=${Date.now()}`);
+                
+                if (res) {
+                    let raw = [];
+                    if (res.ready && Array.isArray(res.ready)) raw = res.ready;
+                    else if (res.data && res.data.ready) raw = res.data.ready;
+                    else if (Array.isArray(res.data)) raw = res.data;
 
-            // 2. Tembak API Asli
-            let result = null;
-            try {
-                if (provider === 'ICS') {
-                    // Call ICS API
-                    const url = `${ICS_CONFIG.baseUrl}?action=createTransaction&apikey=${ICS_CONFIG.apiKey}&kode_produk=${code}&nomor_tujuan=${dest}&refid=${trxId}`;
-                    const res = await fetch(url); // Direct fetch (tambahkan proxy jika perlu)
-                    result = await res.json();
-                } else {
-                    // Call KHFY API
-                    const url = `${CONFIG.baseUrl}/trx?api_key=${CONFIG.apiKey}&produk=${code}&tujuan=${dest}&reff_id=${trxId}`;
-                    // Gunakan Proxy CodeTabs agar tidak CORS
-                    const res = await fetch('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url));
-                    result = await res.json();
+                    // Filter ICS
+                    if (code === 'ICS_CIRCLE') products = raw.filter(p => (p.type === 'circle' || (p.code||'').toUpperCase().startsWith('XCL')));
+                    else if (code === 'ICS_XDA') products = products = raw.filter(p => (p.type === 'xda' || (p.code||'').toUpperCase().startsWith('XDA')));
+                    else if (code === 'ICS_XLA') products = products = raw.filter(p => (p.type === 'xla' || (p.code||'').toUpperCase().startsWith('XLA')));
+                }
+            } 
+            // B. LOGIKA KHFY
+            else {
+                if(globalProducts.length === 0) {
+                    const res = await callApi(`${CONFIG.baseUrl}/list_product?api_key=${CONFIG.apiKey}`, true);
+                    if (res && res.data && res.data.data) globalProducts = res.data.data;
                 }
 
-                // 3. Update Status Hasil
-                await updateDoc(trxRef, {
-                    status: 'Pending', // Biarkan sistem auto-check di index yang update jadi Sukses/Gagal
-                    api_msg: 'Request Sent. Check App History.',
-                    raw_json: JSON.stringify(result)
+                products = globalProducts.filter(p => {
+                    const c = (p.code || p.kode_produk || '').toUpperCase();
+                    const b = (p.brand || p.operator || '').toUpperCase();
+                    if (code === 'XLA') return (c.startsWith('XLA') || c.startsWith('XLC')) && !c.startsWith('XDA');
+                    if (code === 'FMX') return c.startsWith('FMX') || c === 'CFMX' || b === 'FMAX';
+                    if (code === 'XLR') return ['FMX50','FMX65','FMX80','FMX150'].includes(c);
+                    if (code === 'PLN') return b.includes('PLN') || c.includes('PLN');
+                    return false;
                 });
+            }
 
-                alert("Request Terkirim! Cek status di aplikasi utama/Index.");
+            renderGrid(products);
+        }
 
+        // 5. RENDER GRID PRODUK
+        function renderGrid(products) {
+            const grid = document.getElementById('productGrid');
+            grid.innerHTML = '';
+
+            if(products.length === 0) {
+                grid.innerHTML = '<div class="col-span-2 text-center text-xs text-red-400">Produk Kosong</div>';
+                return;
+            }
+
+            // Sort Harga
+            products.sort((a, b) => (parseInt(a.harga || a.price || 0) - parseInt(b.harga || b.price || 0)));
+
+            products.forEach(p => {
+                let rawPrice = parseInt(p.harga || p.price || 0);
+                let price = rawPrice;
+                let name = p.nama_produk || p.name || 'Produk';
+                const code = p.kode_produk || p.code || p.buyer_sku_code;
+                const stock = p.stock || p.stok || 0;
+
+                // IMPLEMENTASI PRICING RULES (Agar harga TAMPIL sama dengan Index)
+                if(pricingRules[code]) {
+                    const r = pricingRules[code];
+                    if(typeof r === 'object') { 
+                        if(r.price) price += parseInt(r.price); 
+                        if(r.name) name = r.name; 
+                    } else { price += parseInt(r); }
+                } else { price += 2000; } // Default Margin
+
+                const el = document.createElement('div');
+                el.className = 'product-card group';
+                el.onclick = () => selectProduct(code, name, el);
+                el.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-[10px] text-blue-400 font-bold mb-1">${code}</p>
+                            <h4 class="text-xs font-bold text-slate-200 group-hover:text-white leading-tight">${name}</h4>
+                            <p class="text-[9px] text-slate-500 mt-1">Stok: ${stock}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm font-black text-white">Rp ${price.toLocaleString('id-ID')}</p>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(el);
+            });
+        }
+
+        function selectProduct(code, name, el) {
+            document.querySelectorAll('.product-card').forEach(c => c.classList.remove('border-blue-500', 'bg-slate-800'));
+            el.classList.add('border-blue-500', 'bg-slate-800');
+            document.getElementById('selectedProductCode').value = code;
+            toggleBtn(true);
+        }
+
+        function toggleBtn(active) {
+            const btn = document.getElementById('btnGhost');
+            if(active) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        // ===========================================
+        // CORE: GHOST TRANSACTION (BYPASS & NO LOGS)
+        // ===========================================
+        window.executeGhostTrx = async () => {
+            const num = document.getElementById('ghostNumber').value;
+            const code = document.getElementById('selectedProductCode').value;
+            const provider = document.getElementById('selectedProviderCode').value;
+            
+            if(!num || num.length < 10) return alert("Nomor HP tidak valid!");
+            if(!code) return alert("Pilih produk!");
+
+            if(!confirm(`⚠️ PERINGATAN ADMIN ⚠️\n\nAnda akan melakukan transaksi:\nProduk: ${code}\nTujuan: ${num}\n\n1. Saldo Supplier (KHFY/ICS) AKAN TERPOTONG.\n2. Saldo Database Lokal TIDAK TERPOTONG.\n3. Transaksi ini TIDAK AKAN MASUK RIWAYAT.\n\nLanjutkan?`)) return;
+
+            const btn = document.getElementById('btnGhost');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> MEMPROSES...';
+            btn.disabled = true;
+
+            const trxId = (provider.startsWith('ICS') ? 'ICS-GHOST-' : 'TRX-GHOST-') + Date.now();
+            
+            try {
+                let url = '';
+                let result = null;
+
+                // 1. Eksekusi API Langsung (Bypass Backend/Firebase Logic)
+                if(provider.startsWith('ICS')) {
+                    url = `${ICS_CONFIG.baseUrl}?action=createTransaction&apikey=${ICS_CONFIG.apiKey}&kode_produk=${code}&nomor_tujuan=${num}&refid=${trxId}`;
+                    result = await callApi(url);
+                } else {
+                    url = `${CONFIG.baseUrl}/trx?api_key=${CONFIG.apiKey}&produk=${code}&tujuan=${num}&reff_id=${trxId}`;
+                    result = await callApi(url, true);
+                }
+
+                console.log("Ghost Response:", result);
+
+                // 2. Tampilkan Hasil (Tanpa simpan DB)
+                let status = "GAGAL";
+                let msg = "No Response";
+
+                if (result) {
+                    if (result.success || result.status === true || (result.data && result.data.status)) status = "SUKSES / PENDING";
+                    msg = result.message || result.sn || (result.data ? result.data.message : '') || JSON.stringify(result);
+                }
+
+                alert(`STATUS: ${status}\nRESPON: ${msg}\n\nIngat: Transaksi ini tidak ada di database history.`);
+                
             } catch(e) {
-                await updateDoc(trxRef, { status: 'Gagal', api_msg: 'Error: ' + e.message });
-                alert("Gagal Tembak API: " + e.message);
+                alert("ERROR KONEKSI: " + e.message);
+            } finally {
+                btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i> TEMBAK (TANPA LOG)';
+                btn.disabled = false;
             }
         };
 
-        // ==========================================
-        // FITUR 3: HAPUS RIWAYAT
-        // ==========================================
-        window.forceDelete = async () => {
-            const uid = document.getElementById('delUid').value;
-            const tid = document.getElementById('delTrxId').value;
-
-            if(!uid || !tid) return alert("Isi UID dan TRX ID!");
-            if(!confirm("PERINGATAN: Data akan hilang permanen! Lanjut?")) return;
-
-            try {
-                await deleteDoc(doc(db, "users", uid, "history", tid));
-                alert("Dokumen berhasil dimusnahkan.");
-            } catch(e) {
-                alert("Gagal hapus: " + e.message);
+        // HELPER API CALLER
+        async function callApi(url, useProxy = false) {
+            if(!useProxy) {
+                try {
+                    const res = await fetch(url);
+                    return await res.json();
+                } catch(e) { console.warn("Direct fail", e); }
             }
+            
+            for(const p of PROXY_LIST) {
+                try {
+                    const target = p.url + encodeURIComponent(url);
+                    const res = await fetch(useProxy ? target : url);
+                    return await res.json();
+                } catch(e) {}
+            }
+            return null;
         }
+
+        // GLOBAL EXPOSE
+        window.injectTopup = () => alert("Gunakan fitur di panel atas"); // Placeholder
+        window.forceDelete = () => alert("Gunakan fitur di panel atas"); // Placeholder
 
     </script>
 </body>

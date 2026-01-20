@@ -9,26 +9,18 @@
     <style>
         body { background-color: #0f172a; color: #e2e8f0; font-family: 'Segoe UI', sans-serif; -webkit-tap-highlight-color: transparent; }
         .app-container { max-width: 480px; margin: 0 auto; min-height: 100vh; background-color: #1e293b; box-shadow: 0 0 20px rgba(0,0,0,0.5); position: relative; padding-bottom: 50px; }
-        
-        /* CARD STYLES */
         .debug-card { background-color: #0f172a; border: 1px solid #334155; border-radius: 16px; padding: 16px; margin-bottom: 16px; }
         .input-dark { width: 100%; background-color: #1e293b; border: 1px solid #475569; border-radius: 12px; padding: 12px; color: white; outline: none; transition: 0.3s; font-size: 13px; }
         .input-dark:focus { border-color: #3b82f6; }
-        
-        /* BUTTON STYLES */
         .btn-action { width: 100%; padding: 12px; border-radius: 12px; font-weight: bold; font-size: 13px; transition: 0.2s; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2); }
         .btn-action:active { transform: scale(0.98); }
-
-        /* PRODUCT GRID (MIRROR INDEX.HTML) */
         .provider-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
         .provider-scroll::-webkit-scrollbar { display: none; }
         .provider-badge { flex-shrink: 0; padding: 8px 16px; border-radius: 12px; background: #1e293b; border: 1px solid #334155; color: #94a3b8; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.3s; }
         .provider-badge.active { background: #2563eb; color: white; border-color: #2563eb; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3); }
-        
         .product-card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 12px; cursor: pointer; transition: 0.2s; position: relative; overflow: hidden; }
         .product-card:active { transform: scale(0.98); }
         .product-card.selected { border-color: #3b82f6; background: #1e3a8a; }
-
         .loader { width: 18px; height: 18px; border: 2px solid #FFF; border-bottom-color: transparent; border-radius: 50%; display: inline-block; animation: rotation 1s linear infinite; }
         @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
@@ -127,7 +119,7 @@
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // KONFIGURASI FIREBASE
+    // --- SETUP FIREBASE ---
     const firebaseConfig = {
         apiKey: "AIzaSyBnVxgxkS8InH1PQCMGe3cY8IvPqSN6dLo",
         authDomain: "ppob-3ea96.firebaseapp.com",
@@ -142,14 +134,19 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // CONFIG API
-    // Penting: KHFY_RELAY_URL disamakan dengan index.html
+    // --- CONFIG API ---
     const KHFY_RELAY_URL = "/api/relaykhfy"; 
     const CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
     const ICS_CONFIG = { apiKey: "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77", baseUrl: "https://www.pandawa-digital.store/api/relay" };
-    const PROXY_LIST = [{ url: 'https://corsproxy.io/?' }, { url: 'https://api.codetabs.com/v1/proxy?quest=' }, { url: '' }];
     
-    // CONFIG TELEGRAM
+    // DAFTAR PROXY LEBIH LENGKAP
+    const PROXY_LIST = [
+        { name: 'RelayLocal', url: '' }, // Direct/Relay
+        { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
+        { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
+        { name: 'CorsProxy', url: 'https://corsproxy.io/?' }
+    ];
+    
     const TELEGRAM_CONFIG = {
         token: "7507761189:AAGUCYltzj_IMuDRgjUzUPiZDz4nbVXvOME",
         chatId: "-1002997407612"
@@ -159,7 +156,6 @@
     let globalProducts = [];
     let currentUser = null;
 
-    // AUTH CHECK
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             currentUser = user;
@@ -172,39 +168,62 @@
         }
     });
 
-    // --- LOGIKA FETCHING "100% SAMA" DENGAN INDEX ---
-
-    // Fungsi fetch canggih: Coba Relay dulu -> kalau gagal baru Proxy
+    // --- FUNGSI FETCH SUPER ROBUST (ANTI GAGAL) ---
     async function fetchKhfyData(endpoint, params = {}) {
-        // 1. Opsi Utama: Gunakan Relay (/api/relaykhfy)
+        let lastError = "";
+        
+        // 1. COBA RELAY UTAMA (/api/relaykhfy)
         try {
             const queryParams = new URLSearchParams({ endpoint, ...params }).toString();
-            console.log("Mencoba fetch via Relay:", `${KHFY_RELAY_URL}?${queryParams}`);
+            console.log(`[DEBUG] Trying Relay: ${KHFY_RELAY_URL}?${queryParams}`);
             
             const resRelay = await fetch(`${KHFY_RELAY_URL}?${queryParams}`);
+            
             if (resRelay.ok) {
                 const data = await resRelay.json();
-                console.log("Sukses via Relay");
+                console.log("[DEBUG] Relay Success");
                 return data;
             } else {
-                console.warn("Relay gagal, status:", resRelay.status);
+                console.warn(`[DEBUG] Relay Failed: ${resRelay.status} ${resRelay.statusText}`);
+                lastError += `Relay: ${resRelay.status}; `;
             }
         } catch (e) {
-            console.warn("Relay error:", e);
+            console.warn("[DEBUG] Relay Error:", e);
+            lastError += `RelayErr: ${e.message}; `;
         }
 
-        // 2. Opsi Cadangan: Gunakan Proxy Loop (Jika Relay belum dibuat/error)
-        console.log("Beralih ke Proxy cadangan...");
+        // 2. COBA PROXY CADANGAN (JIKA RELAY MATI)
         const targetUrl = `${CONFIG.baseUrl}${endpoint}?${new URLSearchParams(params).toString()}`;
-        
+        console.log(`[DEBUG] Switching to Proxies for: ${targetUrl}`);
+
         for (const proxy of PROXY_LIST) {
+            if(proxy.name === 'RelayLocal') continue; // Skip yg kosong
+
             try {
-                const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
-                const res = await fetch(fullUrl);
-                if (res.ok) return await res.json();
-            } catch (e) {}
+                console.log(`[DEBUG] Trying Proxy: ${proxy.name}`);
+                const fullUrl = proxy.url + encodeURIComponent(targetUrl);
+                
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 detik timeout
+
+                const res = await fetch(fullUrl, { signal: controller.signal });
+                clearTimeout(timeoutId);
+
+                if (res.ok) {
+                    const data = await res.json();
+                    if(data) {
+                        console.log(`[DEBUG] Success via ${proxy.name}`);
+                        return data;
+                    }
+                }
+            } catch (e) {
+                console.warn(`[DEBUG] Proxy ${proxy.name} Fail:`, e);
+                lastError += `${proxy.name}: Fail; `;
+            }
         }
-        return null;
+        
+        // JIKA SEMUA GAGAL, LEMPAR ERROR AGAR MUNCUL ALERT
+        throw new Error("Gagal mengambil data. Detail: " + lastError);
     }
 
     async function loadPricingRules() {
@@ -247,18 +266,18 @@
         btnGhost.classList.add('opacity-50', 'cursor-not-allowed');
 
         const grid = document.getElementById('productGrid');
-        grid.innerHTML = '<div class="col-span-2 text-center py-8"><span class="loader"></span><p class="text-[10px] mt-2 text-slate-400">Menarik data...</p></div>';
+        grid.innerHTML = '<div class="col-span-2 text-center py-8"><span class="loader"></span><p class="text-[10px] mt-2 text-slate-400">Menarik data server...</p></div>';
 
         let products = [];
 
-        // Logic Fetch Produk (Sama persis Index)
-        if(code.startsWith('ICS_')) {
-            let icsType = 'xda';
-            if(code === 'ICS_CIRCLE') icsType = 'circle';
-            if(code === 'ICS_XLA') icsType = 'xla';
+        try {
+            // --- LOGIKA FETCH ---
+            if(code.startsWith('ICS_')) {
+                // ... (Logic ICS Tetap Sama)
+                let icsType = 'xda';
+                if(code === 'ICS_CIRCLE') icsType = 'circle';
+                if(code === 'ICS_XLA') icsType = 'xla';
 
-            // Fetch ICS (Langsung ke Relay ICS yang sudah ada)
-            try {
                 const res = await (await fetch(ICS_CONFIG.baseUrl + `?action=listProducts&apikey=${ICS_CONFIG.apiKey}&type=${icsType}&_t=${Date.now()}`)).json();
                 if (res) {
                     let raw = [];
@@ -270,33 +289,51 @@
                     else if (code === 'ICS_XDA') products = raw.filter(p => (p.type === 'xda' || (p.code||'').toUpperCase().startsWith('XDA')));
                     else if (code === 'ICS_XLA') products = raw.filter(p => (p.type === 'xla' || (p.code||'').toUpperCase().startsWith('XLA')));
                 }
-            } catch(e) { console.log("ICS Error", e); }
 
-        } else {
-            // Fetch KHFY (Pake logika baru: Relay -> Proxy)
-            if(globalProducts.length === 0) {
-                const res = await fetchKhfyData('/list_product', { api_key: CONFIG.apiKey });
-                if (res && res.data && res.data.data) globalProducts = res.data.data;
+            } else {
+                // --- FETCH KHFY DENGAN DIAGNOSTIK ---
+                if(globalProducts.length === 0) {
+                    try {
+                        const res = await fetchKhfyData('/list_product', { api_key: CONFIG.apiKey });
+                        if (res && res.data && Array.isArray(res.data.data)) {
+                            globalProducts = res.data.data;
+                            console.log("[DEBUG] KHFY Data Loaded:", globalProducts.length, "items");
+                        } else {
+                            throw new Error("Format JSON API KHFY Berubah/Salah");
+                        }
+                    } catch (err) {
+                        alert("GAGAL LOAD KHFY:\n" + err.message);
+                        grid.innerHTML = `<div class="col-span-2 text-center text-xs text-red-400 py-4">Error: ${err.message}</div>`;
+                        return;
+                    }
+                }
+
+                // Filter KHFY
+                products = globalProducts.filter(p => {
+                    const c = (p.code || p.kode_produk || '').toUpperCase();
+                    const b = (p.brand || p.operator || '').toUpperCase();
+                    if (code === 'XLA') return (c.startsWith('XLA') || c.startsWith('XLC')) && !c.startsWith('XDA');
+                    if (code === 'FMX') return c.startsWith('FMX') || c === 'CFMX' || b === 'FMAX';
+                    if (code === 'XLR') return ['FMX50','FMX65','FMX80','FMX150'].includes(c);
+                    if (code === 'PLN') return b.includes('PLN') || c.includes('PLN');
+                    return false;
+                });
             }
-            // Filter KHFY
-            products = globalProducts.filter(p => {
-                const c = (p.code || p.kode_produk || '').toUpperCase();
-                const b = (p.brand || p.operator || '').toUpperCase();
-                if (code === 'XLA') return (c.startsWith('XLA') || c.startsWith('XLC')) && !c.startsWith('XDA');
-                if (code === 'FMX') return c.startsWith('FMX') || c === 'CFMX' || b === 'FMAX';
-                if (code === 'XLR') return ['FMX50','FMX65','FMX80','FMX150'].includes(c);
-                if (code === 'PLN') return b.includes('PLN') || c.includes('PLN');
-                return false;
-            });
+
+            renderGrid(products);
+
+        } catch (e) {
+            console.error(e);
+            grid.innerHTML = `<div class="col-span-2 text-center text-xs text-red-400 py-4">System Error: ${e.message}</div>`;
         }
-        renderGrid(products);
     }
 
     function renderGrid(products) {
         const grid = document.getElementById('productGrid');
         grid.innerHTML = '';
-        if(products.length === 0) {
-            grid.innerHTML = '<div class="col-span-2 text-center text-xs text-red-400 py-4">Produk Kosong / Gagal Fetch</div>';
+        
+        if(!products || products.length === 0) {
+            grid.innerHTML = '<div class="col-span-2 text-center text-xs text-red-400 py-4">Produk Kosong (Cek Filter/API)</div>';
             return;
         }
 
@@ -345,7 +382,6 @@
         btn.classList.remove('opacity-50', 'cursor-not-allowed');
     }
 
-    // --- EXECUTE GHOST TRANSACTION ---
     window.executeGhostTrx = async () => {
         const num = document.getElementById('ghostNumber').value;
         const code = document.getElementById('selectedProductCode').value;
@@ -354,7 +390,7 @@
         if(!num || num.length < 10) return alert("Nomor HP tidak valid!");
         if(!code) return alert("Pilih produk dulu!");
 
-        if(!confirm(`⚠️ GHOST TRANSACTION ⚠️\n\nProduk: ${code}\nTujuan: ${num}\n\nSaldo Supplier: TERPOTONG\nSaldo DB: AMAN (TIDAK DIPOTONG)\nLog: TIDAK DICATAT\n\nLanjutkan?`)) return;
+        if(!confirm(`⚠️ GHOST TRANSACTION ⚠️\n\nProduk: ${code}\nTujuan: ${num}\n\nSaldo Supplier: TERPOTONG\nSaldo DB: AMAN\nLog: TIDAK DICATAT\n\nLanjutkan?`)) return;
 
         const btn = document.getElementById('btnGhost');
         btn.innerText = 'MEMPROSES...';
@@ -366,12 +402,11 @@
             let result = null;
 
             if(provider.startsWith('ICS')) {
-                // ICS Direct via Relay
+                // ICS Logic
                 const url = `${ICS_CONFIG.baseUrl}?action=createTransaction&apikey=${ICS_CONFIG.apiKey}&kode_produk=${code}&nomor_tujuan=${num}&refid=${trxId}`;
                 result = await (await fetch(url)).json();
             } else {
-                // KHFY via Relay (Prioritas)
-                // Menggunakan fetchKhfyData agar logika sama dengan selectProvider
+                // KHFY Logic (Ghost Mode via Relay/Proxy)
                 result = await fetchKhfyData('/trx', {
                     api_key: CONFIG.apiKey,
                     produk: code,
@@ -382,8 +417,6 @@
 
             console.log("Ghost Response:", result);
             let msg = result ? (result.message || result.sn || (result.data ? result.data.message : '') || "Sukses") : "No Response";
-            
-            // Format pesan agar jelas
             let fullMsg = `STATUS API: ${msg}\n`;
             if(result && result.data && result.data.sn) fullMsg += `SN: ${result.data.sn}`;
             
@@ -397,10 +430,10 @@
         }
     };
 
-    // --- FITUR 2: INJEKSI TOPUP ---
+    // --- OTHER FUNCTIONS ---
     window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
-
     window.sendTelegramNotif = async (type, data) => {
+        // ... (Kode Telegram sama seperti sebelumnya)
         let message = "";
         let topicId = null;
         const now = new Date();
@@ -411,29 +444,17 @@
             topicId = 7;
             message = `✅ DEPOSIT BERHASIL \n━━━━━━━━━━━━━━━━━━\n💳 Jumlah : Rp ${window.formatRp(data.amount).replace('Rp', '').trim()}\n🕒 Waktu : ${formattedDate}\n👤 User ID : ${data.username}\n📌 Status : BERHASIL\n🆔 ID Transaksi :\n${safeTrxId}\n━━━━━━━━━━━━━━━━━━\n🏢 PANDAWA SYSTEM\nhttps://www.pandawa-digital.store`;
         }
-
         const url = `https://api.telegram.org/bot${TELEGRAM_CONFIG.token}/sendMessage?chat_id=${TELEGRAM_CONFIG.chatId}&text=${encodeURIComponent(message)}&message_thread_id=${topicId}`;
-        
-        // Coba kirim via Proxy Loop jika langsung gagal
-        for(const p of PROXY_LIST) {
-            try {
-                const target = p.url + encodeURIComponent(url);
-                await fetch(target);
-                break; 
-            } catch(e) {}
-        }
+        for(const p of PROXY_LIST) { if(p.name==='RelayLocal') continue; try { await fetch(p.url + encodeURIComponent(url)); break; } catch(e) {} }
     };
 
     window.injectTopup = async () => {
         const targetUser = document.getElementById('targetUsername').value;
         const amount = parseInt(document.getElementById('topupAmount').value);
-
         if(!targetUser || !amount) return alert("Isi Data Lengkap!");
-
         try {
             const q = query(collection(db, "users"), where("username", "==", targetUser));
             const snap = await getDocs(q);
-            
             if(snap.empty) return alert("Username tidak ditemukan!");
             
             const userDoc = snap.docs[0];
@@ -456,23 +477,17 @@
                     note: "Injected by Admin"
                 });
             });
-
             await window.sendTelegramNotif('TOPUP', { amount: amount, trxId: trxId, username: targetUser });
-            alert("INJEKSI SUKSES! Saldo masuk & Notif terkirim.");
-
+            alert("INJEKSI SUKSES!");
         } catch(e) { alert("Error: " + e.message); }
     }
 
-    // --- FITUR 3: FORCE DELETE ---
     window.forceDelete = async () => {
         const uid = document.getElementById('delUid').value;
         const tid = document.getElementById('delTrxId').value;
         if(!uid || !tid) return alert("Data kurang!");
         if(!confirm("Hapus permanen?")) return;
-        try {
-            await deleteDoc(doc(db, "users", uid, "history", tid));
-            alert("Terhapus.");
-        } catch(e) { alert(e.message); }
+        try { await deleteDoc(doc(db, "users", uid, "history", tid)); alert("Terhapus."); } catch(e) { alert(e.message); }
     }
 
     // Expose functions globally

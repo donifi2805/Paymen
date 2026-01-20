@@ -2,6 +2,7 @@ const admin = require('firebase-admin');
 
 // --- 1. SETUP FIREBASE ---
 try {
+    // Pastikan variabel lingkungan ini tetap ada di sistem Anda atau GitHub Secrets
     const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
     if (!admin.apps.length) {
       admin.initializeApp({
@@ -15,10 +16,13 @@ try {
 
 const db = admin.firestore();
 
-// --- 2. KONFIGURASI RELAY & TELEGRAM ---
-const VERCEL_DOMAIN = "https://www.pandawa-digital.store"; 
-const KHFY_KEY = process.env.KHFY_API_KEY; 
-const ICS_KEY = process.env.ICS_API_KEY; 
+// --- 2. KONFIGURASI PROVIDER LANGSUNG (BYPASS VERCEL) ---
+const KHFY_BASE_URL = "https://panel.khfy-store.com/api_v2";
+const ICS_BASE_URL = "https://api.ics-store.my.id/api/reseller";
+
+// ⚠️ HARDCODED API KEYS (HANYA UNTUK DEV LOKAL - JANGAN PUSH KE GITHUB PUBLIC) ⚠️
+const KHFY_KEY = "8F1199C1-483A-4C96-825E-F5EBD33AC60A"; 
+const ICS_KEY = "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77"; 
 
 // 🔥 KONFIGURASI TELEGRAM 🔥
 const TG_TOKEN = "7850521841:AAH84wtuxnDWg5u04lMkL5zqVcY1hIpzGJg";
@@ -33,7 +37,7 @@ function getWIBTime() {
     }).replace(/\./g, ':');
 }
 
-// Helper: Sanitasi HTML (Agar JSON tidak merusak tampilan Telegram)
+// Helper: Sanitasi HTML
 function escapeHtml(text) {
     if (!text) return text;
     return text
@@ -63,31 +67,33 @@ async function sendTelegramLog(message, isUrgent = false) {
 }
 
 // ============================================================
-// 🛠️ FUNGSI CEK STOK (PHASE 1)
+// 🛠️ FUNGSI CEK STOK LANGSUNG (PHASE 1)
 // ============================================================
 
 async function getKHFYStockList() {
-    console.log("      📋 [PHASE 1] Mengunduh Database Stok KHFY (Akrab v1)...");
+    console.log("      📋 [PHASE 1] Direct Check Stok KHFY...");
     const params = new URLSearchParams();
     params.append('api_key', KHFY_KEY);
-    params.append('endpoint', '/list_product'); 
-    params.append('produk', 'LIST'); 
-    params.append('tujuan', 'LIST');
-    params.append('reff_id', 'CHECK-STOCK');
-    const targetUrl = `${VERCEL_DOMAIN}/api/relaykhfy?${params.toString()}`;
+    // KHFY endpoint
+    const targetUrl = `${KHFY_BASE_URL}/list_product?${params.toString()}`;
 
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000); 
         const response = await fetch(targetUrl, { 
-            method: 'GET', headers: { 'User-Agent': 'Pandawa-Worker/1.0' }, signal: controller.signal 
+            method: 'GET', headers: { 'User-Agent': 'Pandawa-Worker/Direct' }, signal: controller.signal 
         });
         clearTimeout(timeoutId);
 
         const json = await response.json();
         const stockMap = {};
-        if (json && json.data && Array.isArray(json.data)) {
-            json.data.forEach(item => {
+        
+        let dataList = [];
+        if (json && json.data && Array.isArray(json.data)) dataList = json.data;
+        else if (json && Array.isArray(json)) dataList = json;
+
+        if (dataList.length > 0) {
+            dataList.forEach(item => {
                 stockMap[item.kode_produk] = {
                     gangguan: item.gangguan == 1, 
                     kosong: item.kosong == 1, 
@@ -98,20 +104,24 @@ async function getKHFYStockList() {
             return stockMap;
         }
         return null; 
-    } catch (error) { return null; }
+    } catch (error) { 
+        console.error("KHFY Stock Err:", error.message);
+        return null; 
+    }
 }
 
 async function getICSStockList() {
-    console.log("      📋 [PHASE 1] Mengunduh Database Stok ICS (Akrab v2)...");
+    console.log("      📋 [PHASE 1] Direct Check Stok ICS...");
     const params = new URLSearchParams();
-    params.append('action', 'pricelist'); params.append('apikey', ICS_KEY);
-    const targetUrl = `${VERCEL_DOMAIN}/api/relay?${params.toString()}`;
+    params.append('apikey', ICS_KEY);
+    // ICS endpoint
+    const targetUrl = `${ICS_BASE_URL}/products?${params.toString()}`;
 
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000); 
         const response = await fetch(targetUrl, { 
-            method: 'GET', headers: { 'User-Agent': 'Pandawa-Worker/1.0' }, signal: controller.signal 
+            method: 'GET', headers: { 'User-Agent': 'Pandawa-Worker/Direct' }, signal: controller.signal 
         });
         clearTimeout(timeoutId);
         const json = await response.json();
@@ -137,51 +147,54 @@ async function getICSStockList() {
             return stockMap;
         }
         return null;
-    } catch (error) { return null; }
+    } catch (error) { 
+        console.error("ICS Stock Err:", error.message);
+        return null; 
+    }
 }
 
-// 🔥 FUNGSI HIT RELAY (FIXED: SUPPORT POST ICS & GET KHFY) 🔥
-async function hitVercelRelay(serverType, data, isRecheck = false) {
+// 🔥 FUNGSI HIT PROVIDER LANGSUNG (BYPASS VERCEL) 🔥
+async function hitProviderDirect(serverType, data, isRecheck = false) {
     let targetUrl = '';
     let method = 'GET';
     let body = null;
-    let headers = { 'User-Agent': 'Pandawa-Worker/1.0' };
+    let headers = { 'User-Agent': 'Pandawa-Worker/Direct', 'Accept': 'application/json' };
 
-    // --- LOGIKA KHUSUS ICS (POST untuk Transaksi) ---
+    // --- LOGIKA ICS (DIRECT) ---
     if (serverType === 'ICS') {
         if (isRecheck) {
-            // Cek Status tetap GET (Action: checkTransaction)
-            const params = new URLSearchParams();
-            params.append('action', 'checkTransaction'); 
-            params.append('apikey', ICS_KEY);
-            params.append('refid', data.reffId);
-            targetUrl = `${VERCEL_DOMAIN}/api/relay?${params.toString()}`;
+            // Cek Status: GET /trx/{REFID}
+            targetUrl = `${ICS_BASE_URL}/trx/${data.reffId}?apikey=${ICS_KEY}`;
+            method = 'GET';
         } else {
-            // Transaksi Baru WAJIB POST
+            // Transaksi Baru: POST /trx
+            targetUrl = `${ICS_BASE_URL}/trx?apikey=${ICS_KEY}`;
             method = 'POST';
             headers['Content-Type'] = 'application/json';
             
-            // API Key di URL, Data Transaksi di Body
-            targetUrl = `${VERCEL_DOMAIN}/api/relay?action=createTransaction&apikey=${ICS_KEY}`;
-            
             body = JSON.stringify({
-                kode_produk: data.sku,
-                nomor_tujuan: data.tujuan,
-                refid: data.reffId
+                product_code: data.sku,
+                dest_number: data.tujuan,
+                ref_id_custom: data.reffId
             });
         }
     } 
-    // --- LOGIKA KHFY (Tetap GET) ---
+    // --- LOGIKA KHFY (DIRECT) ---
     else {
         const params = new URLSearchParams();
         params.append('api_key', KHFY_KEY);
-        if (isRecheck) params.append('endpoint', '/history');
-        else params.append('endpoint', '/trx');
         
-        params.append('produk', data.sku); 
-        params.append('tujuan', data.tujuan); 
-        params.append('reff_id', data.reffId);
-        targetUrl = `${VERCEL_DOMAIN}/api/relaykhfy?${params.toString()}`;
+        if (isRecheck) {
+            // Cek Status: /history
+            targetUrl = `${KHFY_BASE_URL}/history?api_key=${KHFY_KEY}&refid=${data.reffId}`;
+        } else {
+            // Transaksi Baru: /trx
+            params.append('produk', data.sku); 
+            params.append('tujuan', data.tujuan); 
+            params.append('reff_id', data.reffId);
+            targetUrl = `${KHFY_BASE_URL}/trx?${params.toString()}`;
+        }
+        method = 'GET'; 
     }
 
     try {
@@ -202,9 +215,16 @@ async function hitVercelRelay(serverType, data, isRecheck = false) {
         clearTimeout(timeoutId);
         
         const text = await response.text();
+        
+        // Handle HTML Error
+        if (text.trim().startsWith('<')) {
+             return { status: false, message: "HTML Error (Mungkin Maintenance)", raw: text.substring(0, 100) };
+        }
+
         try { return JSON.parse(text); } 
-        catch (e) { return { status: false, message: "HTML Error", raw: text }; }
-    } catch (error) { return { status: false, message: "Relay Timeout" }; }
+        catch (e) { return { status: false, message: "Invalid JSON", raw: text }; }
+
+    } catch (error) { return { status: false, message: "Connection Timeout: " + error.message }; }
 }
 
 async function sendUserLog(uid, title, message, trxId) {
@@ -221,7 +241,7 @@ async function sendUserLog(uid, title, message, trxId) {
 // 🏁 LOGIKA UTAMA (WORKER)
 // ============================================================
 async function runPreorderQueue() {
-    console.log(`[${new Date().toISOString()}] MEMULAI WORKER...`);
+    console.log(`[${new Date().toISOString()}] MEMULAI WORKER (DIRECT MODE - LOCAL DEV)...`);
 
     try {
         const snapshot = await db.collection('preorders').orderBy('timestamp', 'asc').limit(100).get();
@@ -245,18 +265,13 @@ async function runPreorderQueue() {
             const skuProduk = po.productCode || po.provider || po.code;
             const tujuan = po.targetNumber || po.target || po.tujuan;
             
-            // --- SMART SERVER DETECTION ---
             let serverType = po.serverType;
             if (!serverType) {
                 const provCode = (po.provider || "").toUpperCase();
-                if (provCode.startsWith('ICS')) {
-                    serverType = 'ICS';
-                } else {
-                    serverType = 'KHFY';
-                }
+                if (provCode.startsWith('ICS')) { serverType = 'ICS'; } 
+                else { serverType = 'KHFY'; }
             }
 
-            // AMBIL USERNAME
             let buyerName = po.username || 'User'; 
             if (uidUser) {
                 try {
@@ -275,7 +290,6 @@ async function runPreorderQueue() {
                 continue; 
             }
 
-            // CEK STOK (SESUAI SERVER TYPE)
             let isSkip = false;
             let skipReason = '';
 
@@ -298,16 +312,11 @@ async function runPreorderQueue() {
             if (isSkip) {
                 console.log(`   ⛔ SKIP: ${skipReason}`);
                 skippedTransactions.push({
-                    buyer: buyerName, 
-                    sku: skuProduk, 
-                    dest: tujuan, 
-                    reason: skipReason,
-                    server: serverType 
+                    buyer: buyerName, sku: skuProduk, dest: tujuan, reason: skipReason, server: serverType 
                 });
                 continue; 
             }
 
-            // PROSES TRANSAKSI
             let reffId = po.active_reff_id;
             if (!reffId) {
                 reffId = `${serverType}-AUTO-${Date.now()}`; 
@@ -315,17 +324,17 @@ async function runPreorderQueue() {
             }
 
             const requestData = { sku: skuProduk, tujuan: tujuan, reffId: reffId };
-            // Hit Relay (POST untuk ICS, GET untuk KHFY)
-            let result = await hitVercelRelay(serverType, requestData, false);
+            
+            // 🔥 HIT PROVIDER LANGSUNG 🔥
+            let result = await hitProviderDirect(serverType, requestData, false);
 
             const isExplicitPending = result.success === true && result.data && result.data.status === 'pending';
             if (isExplicitPending) {
                 console.log(`      ⏳ Respon Pending Spesifik. Menunggu 6 detik...`);
-                // --- 🛑 MODIFIKASI: Jeda Recheck 6 Detik ---
                 await new Promise(r => setTimeout(r, 6000));
                 
                 console.log(`      🔄 Recheck Status...`);
-                const checkResult = await hitVercelRelay(serverType, requestData, true);
+                const checkResult = await hitProviderDirect(serverType, requestData, true);
                 if (checkResult) { result = checkResult; }
             }
 
@@ -333,7 +342,6 @@ async function runPreorderQueue() {
                 result.msg || result.message || (result.data && result.data.message) || ''
             ).toLowerCase();
             
-            // --- FIX: TAMBAHKAN 'sdh pernah' KE DETEKSI DUPLICATE ---
             let isDuplicate = msgRaw.includes('sudah ada') || msgRaw.includes('sudah pernah') || msgRaw.includes('duplicate') || msgRaw.includes('sdh pernah');
 
             if (serverType !== 'ICS' && !isDuplicate) {
@@ -345,7 +353,7 @@ async function runPreorderQueue() {
             }
 
             if (isDuplicate) {
-                const checkResult = await hitVercelRelay(serverType, requestData, true);
+                const checkResult = await hitProviderDirect(serverType, requestData, true);
                 if (checkResult && (checkResult.ok === true || checkResult.data)) { result = checkResult; }
             }
             
@@ -392,7 +400,7 @@ async function runPreorderQueue() {
                 }
             }
 
-            // FILTER JSON CERDAS
+            // FILTER JSON
             let dataLog = result;
             if (result.data && Array.isArray(result.data) && result.data.length > 0) {
                 const firstItem = result.data[0];
@@ -408,7 +416,6 @@ async function runPreorderQueue() {
                 dataLog = { ...result, data: filteredData, note: `Filter: Terbaru + Sukses Tgl ${refDate}` };
             }
 
-            // BUILD MESSAGE
             const rawJsonStr = JSON.stringify(dataLog, null, 2); 
             const safeJsonStr = escapeHtml(rawJsonStr.substring(0, 3500));
             const jsonBlock = `\n<b>🔽 JSON RESPONSE (${serverType}):</b>\n<blockquote expandable><pre><code class="json">${safeJsonStr}</code></pre></blockquote>`;
@@ -472,15 +479,11 @@ async function runPreorderQueue() {
                     await sendTelegramLog(logMsg);
                 }
             }
-            
-            // --- 🛑 MODIFIKASI: Jeda Antar Transaksi 6 Detik ---
             await new Promise(r => setTimeout(r, 6000));
         }
 
-        // --- 🔥 KIRIM REKAP (JIKA ADA AKTIVITAS) 🔥 ---
         if (skippedTransactions.length > 0 || successCount > 0) {
             let rekapMsg = `<b>LOG (${getWIBTime()})</b>\n`;
-            
             if (skippedTransactions.length > 0) {
                 rekapMsg += `⏳ <b>DAFTAR ANTREAN STOK KOSONG</b>\n`;
                 skippedTransactions.forEach((item) => {
@@ -495,15 +498,11 @@ async function runPreorderQueue() {
                 rekapMsg += `✅ <b>REKAP SESI</b>\n`;
                 rekapMsg += `---------------------------\n`;
             }
-
             rekapMsg += `<i>Total: ${skippedTransactions.length} Antrean ditunda.</i>\n`;
             rekapMsg += `<i>Total: ${successCount} Antrean berhasil.</i>`;
-            
             await sendTelegramLog(rekapMsg);
         }
-
         await sendTelegramLog("================================");
-
     } catch (error) { console.error("CRITICAL ERROR:", error); process.exit(1); }
     console.log("\n--- SELESAI ---");
 }

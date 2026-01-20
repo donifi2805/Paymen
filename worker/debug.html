@@ -61,8 +61,7 @@
 
             <div>
                 <p class="text-[10px] text-slate-500 font-bold mb-2 ml-1">PILIH PROVIDER</p>
-                <div class="provider-scroll" id="providerContainer">
-                    </div>
+                <div class="provider-scroll" id="providerContainer"></div>
             </div>
 
             <div>
@@ -128,7 +127,7 @@
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // KONFIGURASI SESUAI PANEL ANDA
+    // KONFIGURASI FIREBASE
     const firebaseConfig = {
         apiKey: "AIzaSyBnVxgxkS8InH1PQCMGe3cY8IvPqSN6dLo",
         authDomain: "ppob-3ea96.firebaseapp.com",
@@ -144,6 +143,8 @@
     const db = getFirestore(app);
 
     // CONFIG API
+    // Penting: KHFY_RELAY_URL disamakan dengan index.html
+    const KHFY_RELAY_URL = "/api/relaykhfy"; 
     const CONFIG = { apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A", baseUrl: "https://panel.khfy-store.com/api_v2" };
     const ICS_CONFIG = { apiKey: "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77", baseUrl: "https://www.pandawa-digital.store/api/relay" };
     const PROXY_LIST = [{ url: 'https://corsproxy.io/?' }, { url: 'https://api.codetabs.com/v1/proxy?quest=' }, { url: '' }];
@@ -171,7 +172,40 @@
         }
     });
 
-    // --- FITUR 1: GHOST TRANSACTION ---
+    // --- LOGIKA FETCHING "100% SAMA" DENGAN INDEX ---
+
+    // Fungsi fetch canggih: Coba Relay dulu -> kalau gagal baru Proxy
+    async function fetchKhfyData(endpoint, params = {}) {
+        // 1. Opsi Utama: Gunakan Relay (/api/relaykhfy)
+        try {
+            const queryParams = new URLSearchParams({ endpoint, ...params }).toString();
+            console.log("Mencoba fetch via Relay:", `${KHFY_RELAY_URL}?${queryParams}`);
+            
+            const resRelay = await fetch(`${KHFY_RELAY_URL}?${queryParams}`);
+            if (resRelay.ok) {
+                const data = await resRelay.json();
+                console.log("Sukses via Relay");
+                return data;
+            } else {
+                console.warn("Relay gagal, status:", resRelay.status);
+            }
+        } catch (e) {
+            console.warn("Relay error:", e);
+        }
+
+        // 2. Opsi Cadangan: Gunakan Proxy Loop (Jika Relay belum dibuat/error)
+        console.log("Beralih ke Proxy cadangan...");
+        const targetUrl = `${CONFIG.baseUrl}${endpoint}?${new URLSearchParams(params).toString()}`;
+        
+        for (const proxy of PROXY_LIST) {
+            try {
+                const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
+                const res = await fetch(fullUrl);
+                if (res.ok) return await res.json();
+            } catch (e) {}
+        }
+        return null;
+    }
 
     async function loadPricingRules() {
         try {
@@ -213,7 +247,7 @@
         btnGhost.classList.add('opacity-50', 'cursor-not-allowed');
 
         const grid = document.getElementById('productGrid');
-        grid.innerHTML = '<div class="col-span-2 text-center py-8"><span class="loader"></span></div>';
+        grid.innerHTML = '<div class="col-span-2 text-center py-8"><span class="loader"></span><p class="text-[10px] mt-2 text-slate-400">Menarik data...</p></div>';
 
         let products = [];
 
@@ -223,22 +257,28 @@
             if(code === 'ICS_CIRCLE') icsType = 'circle';
             if(code === 'ICS_XLA') icsType = 'xla';
 
-            const res = await callApi(ICS_CONFIG.baseUrl + `?action=listProducts&apikey=${ICS_CONFIG.apiKey}&type=${icsType}&_t=${Date.now()}`);
-            if (res) {
-                let raw = [];
-                if (res.ready && Array.isArray(res.ready)) raw = res.ready;
-                else if (res.data && res.data.ready) raw = res.data.ready;
-                else if (Array.isArray(res.data)) raw = res.data;
+            // Fetch ICS (Langsung ke Relay ICS yang sudah ada)
+            try {
+                const res = await (await fetch(ICS_CONFIG.baseUrl + `?action=listProducts&apikey=${ICS_CONFIG.apiKey}&type=${icsType}&_t=${Date.now()}`)).json();
+                if (res) {
+                    let raw = [];
+                    if (res.ready && Array.isArray(res.ready)) raw = res.ready;
+                    else if (res.data && res.data.ready) raw = res.data.ready;
+                    else if (Array.isArray(res.data)) raw = res.data;
 
-                if (code === 'ICS_CIRCLE') products = raw.filter(p => (p.type === 'circle' || (p.code||'').toUpperCase().startsWith('XCL')));
-                else if (code === 'ICS_XDA') products = raw.filter(p => (p.type === 'xda' || (p.code||'').toUpperCase().startsWith('XDA')));
-                else if (code === 'ICS_XLA') products = raw.filter(p => (p.type === 'xla' || (p.code||'').toUpperCase().startsWith('XLA')));
-            }
+                    if (code === 'ICS_CIRCLE') products = raw.filter(p => (p.type === 'circle' || (p.code||'').toUpperCase().startsWith('XCL')));
+                    else if (code === 'ICS_XDA') products = raw.filter(p => (p.type === 'xda' || (p.code||'').toUpperCase().startsWith('XDA')));
+                    else if (code === 'ICS_XLA') products = raw.filter(p => (p.type === 'xla' || (p.code||'').toUpperCase().startsWith('XLA')));
+                }
+            } catch(e) { console.log("ICS Error", e); }
+
         } else {
+            // Fetch KHFY (Pake logika baru: Relay -> Proxy)
             if(globalProducts.length === 0) {
-                const res = await callApi(`${CONFIG.baseUrl}/list_product?api_key=${CONFIG.apiKey}`, true);
+                const res = await fetchKhfyData('/list_product', { api_key: CONFIG.apiKey });
                 if (res && res.data && res.data.data) globalProducts = res.data.data;
             }
+            // Filter KHFY
             products = globalProducts.filter(p => {
                 const c = (p.code || p.kode_produk || '').toUpperCase();
                 const b = (p.brand || p.operator || '').toUpperCase();
@@ -256,7 +296,7 @@
         const grid = document.getElementById('productGrid');
         grid.innerHTML = '';
         if(products.length === 0) {
-            grid.innerHTML = '<div class="col-span-2 text-center text-xs text-red-400 py-4">Produk Kosong</div>';
+            grid.innerHTML = '<div class="col-span-2 text-center text-xs text-red-400 py-4">Produk Kosong / Gagal Fetch</div>';
             return;
         }
 
@@ -305,6 +345,7 @@
         btn.classList.remove('opacity-50', 'cursor-not-allowed');
     }
 
+    // --- EXECUTE GHOST TRANSACTION ---
     window.executeGhostTrx = async () => {
         const num = document.getElementById('ghostNumber').value;
         const code = document.getElementById('selectedProductCode').value;
@@ -322,30 +363,41 @@
         const trxId = (provider.startsWith('ICS') ? 'ICS-GHOST-' : 'TRX-GHOST-') + Date.now();
         
         try {
-            let url = '';
             let result = null;
 
             if(provider.startsWith('ICS')) {
-                url = `${ICS_CONFIG.baseUrl}?action=createTransaction&apikey=${ICS_CONFIG.apiKey}&kode_produk=${code}&nomor_tujuan=${num}&refid=${trxId}`;
-                result = await callApi(url);
+                // ICS Direct via Relay
+                const url = `${ICS_CONFIG.baseUrl}?action=createTransaction&apikey=${ICS_CONFIG.apiKey}&kode_produk=${code}&nomor_tujuan=${num}&refid=${trxId}`;
+                result = await (await fetch(url)).json();
             } else {
-                url = `${CONFIG.baseUrl}/trx?api_key=${CONFIG.apiKey}&produk=${code}&tujuan=${num}&reff_id=${trxId}`;
-                result = await callApi(url, true);
+                // KHFY via Relay (Prioritas)
+                // Menggunakan fetchKhfyData agar logika sama dengan selectProvider
+                result = await fetchKhfyData('/trx', {
+                    api_key: CONFIG.apiKey,
+                    produk: code,
+                    tujuan: num,
+                    reff_id: trxId
+                });
             }
 
             console.log("Ghost Response:", result);
             let msg = result ? (result.message || result.sn || (result.data ? result.data.message : '') || "Sukses") : "No Response";
-            alert(`HASIL TEMBAK:\n${msg}\n\n(Cek saldo supplier Anda untuk memastikan)`);
+            
+            // Format pesan agar jelas
+            let fullMsg = `STATUS API: ${msg}\n`;
+            if(result && result.data && result.data.sn) fullMsg += `SN: ${result.data.sn}`;
+            
+            alert(fullMsg);
             
         } catch(e) {
-            alert("ERROR: " + e.message);
+            alert("ERROR SYSTEM: " + e.message);
         } finally {
             btn.innerText = 'TEMBAK (TANPA LOG)';
             btn.disabled = false;
         }
     };
 
-    // --- FITUR 2: INJEKSI TOPUP (RESTORED) ---
+    // --- FITUR 2: INJEKSI TOPUP ---
     window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 
     window.sendTelegramNotif = async (type, data) => {
@@ -362,12 +414,12 @@
 
         const url = `https://api.telegram.org/bot${TELEGRAM_CONFIG.token}/sendMessage?chat_id=${TELEGRAM_CONFIG.chatId}&text=${encodeURIComponent(message)}&message_thread_id=${topicId}`;
         
-        // Try Proxy loop
+        // Coba kirim via Proxy Loop jika langsung gagal
         for(const p of PROXY_LIST) {
             try {
                 const target = p.url + encodeURIComponent(url);
                 await fetch(target);
-                break;
+                break; 
             } catch(e) {}
         }
     };
@@ -421,20 +473,6 @@
             await deleteDoc(doc(db, "users", uid, "history", tid));
             alert("Terhapus.");
         } catch(e) { alert(e.message); }
-    }
-
-    // HELPER API CALLER
-    async function callApi(url, useProxy = false) {
-        if(!useProxy) {
-            try { return await (await fetch(url)).json(); } catch(e) {}
-        }
-        for(const p of PROXY_LIST) {
-            try {
-                const target = p.url + encodeURIComponent(url);
-                return await (await fetch(useProxy ? target : url)).json();
-            } catch(e) {}
-        }
-        return null;
     }
 
     // Expose functions globally

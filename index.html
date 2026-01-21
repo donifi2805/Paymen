@@ -1499,15 +1499,15 @@
         
         // 2. Panggil API ICS
         const apiRes = await callIcsApi('createTransaction', { kode_produk: code, nomor_tujuan: number, refid: reffId }, 'POST');
-        // --- FIX: SANITASI PESAN (SEMBUNYIKAN SALDO) & DETEKSI GAGAL ---
+        
+        // --- FIX: SANITASI PESAN (SEMBUNYIKAN SALDO) ---
         if (apiRes) {
-            const cleanMsg = (msg) => {
-                if (!msg) return '';
-                return msg.replace(/\(?\s*Sisa Saldo:.*?\)?/gi, '').trim();
-            };
-
-            if (apiRes.message) apiRes.message = cleanMsg(apiRes.message);
-            if (apiRes.data && apiRes.data.message) apiRes.data.message = cleanMsg(apiRes.data.message);
+            // Bersihkan level root message
+            if (apiRes.message) apiRes.message = window.sanitizeResponse(apiRes.message);
+            // Bersihkan data.message jika ada
+            if (apiRes.data && apiRes.data.message) {
+                apiRes.data.message = window.sanitizeResponse(apiRes.data.message);
+            }
 
             // Deteksi jika success:true tapi data.status:failed
             if (apiRes.success && apiRes.data && (apiRes.data.status === 'failed' || apiRes.data.status === 'gagal')) {
@@ -1567,15 +1567,17 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
                 
                 alert("Koneksi Terputus! Transaksi dianggap PENDING.\nSistem akan mengecek status otomatis.");
                 window.nav('homePage');
-                        } else {
-                                // Refund Otomatis (Hanya jika error murni dari server) - LEDGER V2
-                // Fungsi ini sudah otomatis mengembalikan saldo & update status ke Gagal
-                
+            } else {
+                // Refund Otomatis (Hanya jika error murni dari server) - LEDGER V2
                 let finalErrStr = errStr;
+                
                 // MODIFIKASI: Masking Pesan Saldo Tidak Cukup
                 if (finalErrStr.toLowerCase().includes("saldo tidak cukup") || finalErrStr.includes("Saldo Anda:")) {
                     finalErrStr = "Admin belum menyetok tolong hubungi admin untuk restok";
                 }
+
+                // Sanitasi Akhir sebelum ditampilkan
+                finalErrStr = window.sanitizeResponse(finalErrStr);
 
                 const refundResult = await window.processSmartRefund(currentUser.uid, reffId, 'Refund: ' + finalErrStr);
                 
@@ -2312,7 +2314,15 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
 
         window.showAlert(title, msg, type);
     };
-  window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+  
+    window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+    // --- FUNGSI SENSOR SALDO (ANTI LEAK) ---
+    window.sanitizeResponse = (msg) => {
+        if (!msg || typeof msg !== 'string') return '-';
+        let clean = msg.replace(/\(?\s*Sisa\s*Saldo\s*[:=].*?(?:\)|$)/gi, '');
+        clean = clean.replace(/(?:current|last)?\s*balance\s*[:=]\s*(?:Rp\.?)?\s*[\d,.]+/gi, '');
+        return clean.trim();
+    };
     window.showLoader = (show) => document.getElementById('globalLoader').classList.toggle('hide', !show);
     window.toggleDarkMode = () => { document.documentElement.classList.toggle('dark'); };
     window.customConfirm = (t, m, c) => { document.getElementById('confirmTitle').innerText = t; document.getElementById('confirmMessage').innerText = m; document.getElementById('customConfirmModal').classList.remove('hide'); window.confirmCallback = c; };
@@ -4573,7 +4583,7 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
         statusEl.innerText = trx.status;
         statusEl.className = 'text-xs font-bold ' + (trx.status === 'Sukses' ? 'text-green-600' : (trx.status === 'Gagal' ? 'text-red-500' : 'text-orange-500'));
         
-                const infoEl = document.getElementById('dtSn');
+        const infoEl = document.getElementById('dtSn');
         // FIX: Prioritaskan SN Asli daripada pesan Webhook generic
         let finalMsg = trx.sn || trx.api_msg || '-';
         
@@ -4589,7 +4599,8 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                 } catch(e) {}
             }
         }
-        infoEl.innerText = finalMsg;
+        // TERAPKAN SENSOR SEBELUM DITAMPILKAN
+        infoEl.innerText = window.sanitizeResponse(finalMsg);
 
         // Tampilkan Tombol Refresh Manual (Kecuali Dibatalkan)
         const btnRefresh = document.getElementById('btnRefreshStatus');
@@ -4614,11 +4625,14 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
             btnCancelPo.classList.add('hide');
         }
 
-                // --- SENSOR RAW JSON ---
+        // --- SENSOR RAW JSON ---
         if(trx.raw_json) {
             let clean = String(trx.raw_json);
-            // Regex untuk sensor saldo/balance dan nama server
-            clean = clean.replace(/("(?:saldo|balance|sisa_saldo|current_balance|buyer_last_saldo)"\s*:\s*)(?:"[^"]+"|\d+)/gi, '$1"SENSOR-AMAN"');
+            // 1. Sensor key JSON spesifik
+            clean = clean.replace(/("(?:saldo|balance|sisa_saldo|current_balance|buyer_last_saldo|price_cut)"\s*:\s*)(?:"[^"]+"|\d+)/gi, '$1"SENSOR-AMAN"');
+            // 2. Sensor teks pesan di dalam JSON yang mengandung Sisa Saldo
+            clean = clean.replace(/Sisa\s*Saldo\s*[:=].*?(?=\)|\"|\\)/gi, '***');
+            // 3. Sensor nama server
             clean = clean.replace(/(khfy|ics|h2h|supplier)/gi, 'SERVER-PUSAT');
             
             try {

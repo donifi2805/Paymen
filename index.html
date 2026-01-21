@@ -3886,6 +3886,12 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
         const grid = document.getElementById('etalaseGridPO');
         grid.innerHTML = '<div class="col-span-2 text-center py-12"><div class="loader mx-auto mb-3"></div><p class="text-xs text-gray-500 font-bold animate-pulse">Memuat Produk Preorder...</p></div>';
 
+        // FIX: Pastikan pricing rules dimuat agar harga promo terbaca (0 rupiah)
+        if (typeof pricingRules === 'undefined' || Object.keys(pricingRules).length === 0) {
+            await window.initProductData(true);
+        }
+
+
         let products = [];
         if(code.startsWith('ICS_')) {
              let icsType = 'xda';

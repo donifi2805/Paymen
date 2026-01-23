@@ -2721,7 +2721,7 @@ async function callApi(endpoint, params = {}) {
                     <span>${code}</span>
                     ${isGangguan ? '<span class="text-red-500 font-bold bg-red-50 px-1 rounded">GANGGUAN</span>' : ''}
                 </div>
-                ${desc ? `<div class="text-[9px] text-blue-500 mt-1 italic border-l-2 border-blue-500 pl-1">"${desc}"</div>` : ''}
+                ${desc ? `<div class="text-[9px] text-blue-500 mt-1 italic border-l-2 border-blue-500 pl-1 whitespace-normal break-words min-w-[200px]">"${desc}"</div>` : ''}
             </td>
             <td class="p-3">
                 <input type="text" data-code="${code}" value="${customName}" placeholder="(Nama Asli)" class="name-input w-full border border-gray-200 rounded-lg p-2 text-xs outline-none focus:border-blue-500 focus:bg-blue-50 transition">
@@ -2755,8 +2755,8 @@ async function callApi(endpoint, params = {}) {
             input: 'textarea',
             inputLabel: `Deskripsi Paket ${code}`,
             inputValue: currentDesc,
-            inputPlaceholder: 'Tulis deskripsi singkat (Max 50 char)...',
-            inputAttributes: { maxlength: "50" },
+            inputPlaceholder: 'Tulis deskripsi singkat (Max 200 char)...',
+            inputAttributes: { maxlength: "200" },
             showCancelButton: true,
             confirmButtonText: 'Simpan'
         });

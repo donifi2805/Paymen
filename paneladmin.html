@@ -2693,11 +2693,17 @@ async function callApi(endpoint, params = {}) {
         const name = p.nama_produk || p.product_name || p.name;
         const rawPrice = parseInt(p.harga || p.price || p.harga_final || p.buyer_price || 0);
         
-        let savedData = pricingRules[code] || 0;
+                let savedData = pricingRules[code] || 0;
         let markup = 0; let customName = '';
+        let desc = '';
 
-        if (typeof savedData === 'object') { markup = parseInt(savedData.price || 0); customName = savedData.name || ''; }
-        else { markup = parseInt(savedData || 0); }
+        if (typeof savedData === 'object') { 
+            markup = parseInt(savedData.price || 0); 
+            customName = savedData.name || ''; 
+            desc = savedData.desc || '';
+        } else { 
+            markup = parseInt(savedData || 0); 
+        }
 
         const sellPrice = rawPrice + markup;
         
@@ -2711,10 +2717,11 @@ async function callApi(endpoint, params = {}) {
         html += `<tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0">
             <td class="p-3">
                 <div class="text-xs font-bold ${isGangguan ? 'text-red-500 line-through' : 'text-gray-800'}">${name}</div>
-                <div class="text-[9px] text-gray-400 font-mono flex gap-2">
+                <div class="text-[9px] text-gray-400 font-mono flex gap-2 items-center">
                     <span>${code}</span>
                     ${isGangguan ? '<span class="text-red-500 font-bold bg-red-50 px-1 rounded">GANGGUAN</span>' : ''}
                 </div>
+                ${desc ? `<div class="text-[9px] text-blue-500 mt-1 italic border-l-2 border-blue-500 pl-1">"${desc}"</div>` : ''}
             </td>
             <td class="p-3">
                 <input type="text" data-code="${code}" value="${customName}" placeholder="(Nama Asli)" class="name-input w-full border border-gray-200 rounded-lg p-2 text-xs outline-none focus:border-blue-500 focus:bg-blue-50 transition">
@@ -2723,13 +2730,60 @@ async function callApi(endpoint, params = {}) {
             <td class="p-3 text-center">
                 <input type="number" oninput="updateCalc('${code}', ${rawPrice}, this)" data-code="${code}" value="${markup}" class="markup-input w-24 border border-gray-200 rounded-lg p-1.5 text-center font-bold outline-none focus:border-blue-500 text-blue-600 bg-gray-50 focus:bg-white transition shadow-sm">
             </td>
-            <td class="p-3 text-right font-black text-blue-600 text-sm" id="final-${code}">${window.formatRp(sellPrice)}</td>
+            <td class="p-3 text-right">
+                <div class="flex items-center justify-end gap-2">
+                    <span class="font-black text-blue-600 text-sm" id="final-${code}">${window.formatRp(sellPrice)}</span>
+                    <button onclick="editDesc('${code}')" class="w-8 h-8 rounded-lg bg-yellow-50 text-yellow-600 hover:bg-yellow-100 border border-yellow-200 shadow-sm transition flex items-center justify-center" title="Edit Deskripsi">
+                        <i class="fas fa-pen-nib text-xs"></i>
+                    </button>
+                </div>
+            </td>
         </tr>`;
     });
     table.innerHTML = html;
 };
 
-        window.updateCalc = (code, base, input) => { document.getElementById(`final-${code}`).innerText = window.formatRp(base + (parseInt(input.value) || 0)); };
+        
+    // --- FUNGSI BARU: EDIT DESKRIPSI (POPUP) ---
+    window.editDesc = async (code) => {
+        const currentRule = pricingRules[code];
+        let currentDesc = '';
+        if (typeof currentRule === 'object' && currentRule.desc) currentDesc = currentRule.desc;
+
+        const { value: text } = await Swal.fire({
+            title: 'Edit Deskripsi',
+            input: 'textarea',
+            inputLabel: `Deskripsi Paket ${code}`,
+            inputValue: currentDesc,
+            inputPlaceholder: 'Tulis deskripsi singkat (Max 50 char)...',
+            inputAttributes: { maxlength: "50" },
+            showCancelButton: true,
+            confirmButtonText: 'Simpan'
+        });
+
+        if (text !== undefined) {
+            try {
+                Swal.showLoading();
+                if (!pricingRules[code]) pricingRules[code] = {};
+                
+                if (typeof pricingRules[code] !== 'object') {
+                    pricingRules[code] = { 
+                        price: parseInt(pricingRules[code] || 0), 
+                        name: '', 
+                        desc: text 
+                    };
+                } else {
+                    pricingRules[code].desc = text;
+                }
+
+                await setDoc(doc(db, "settings", "pricing"), { rules: pricingRules }, { merge: true });
+                Swal.fire('Sukses', 'Deskripsi disimpan', 'success');
+                loadPricingData();
+            } catch (e) { Swal.fire('Error', e.message, 'error'); }
+        }
+    };
+
+    window.updateCalc = (code, base, input) => { document.getElementById(`final-${code}`).innerText = window.formatRp(base + (parseInt(input.value) || 0)); };
         
         window.saveAllPrices = async () => {
             const newRules = { ...pricingRules };

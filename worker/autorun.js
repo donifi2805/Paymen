@@ -1,14 +1,12 @@
 const admin = require('firebase-admin');
 
-// --- 1. KONFIGURASI DAN SETUP ---
+// --- 1. SETUP FIREBASE & CONFIG ---
 
 // Inisialisasi Firebase
 try {
     if (!admin.apps.length) {
-        // Pastikan Environment Variable FIREBASE_SERVICE_ACCOUNT sudah diset di Vercel/System Anda
-        // Jika testing lokal tanpa Env Var, ganti baris ini dengan require('./serviceAccount.json')
+        // Gunakan Env Var atau Service Account File
         const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-        
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccount)
         });
@@ -20,168 +18,174 @@ try {
 
 const db = admin.firestore();
 
-// Konfigurasi API Server
-const KHFY_CONFIG = {
-    baseUrl: "https://panel.khfy-store.com/api_v2",
-    apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A" 
+// --- 2. KONFIGURASI API (DARI FILE PATOKAN) ---
+// Note: Menggunakan native fetch, tidak perlu library tambahan
+
+const API_CONFIG = {
+    KHFY: {
+        url: "https://panel.khfy-store.com/api_v2/trx",
+        key: "8F1199C1-483A-4C96-825E-F5EBD33AC60A" // Sesuaikan jika ada perubahan
+    },
+    ICS: {
+        url: "https://api.ics-store.my.id/api/reseller", // Endpoint ICS
+        key: "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77" // Sesuaikan jika ada perubahan
+    },
+    TELEGRAM: {
+        token: "7850521841:AAH84wtuxnDWg5u...", // Token Bot Anda (Lengkapi jika terpotong)
+        chatId: "6369628859" // ID Admin Anda
+    }
 };
 
-const ICS_CONFIG = {
-    baseUrl: "https://reseller.ics-store.my.id", 
-    apiKey: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3" 
-};
+// --- 3. HELPER FUNCTIONS (NATIVE FETCH) ---
 
-// Konfigurasi Telegram
-const TG_TOKEN = "7850521841:AAH84wtuxnDWg5u..."; // Ganti dengan Token Bot Anda
-const TG_CHAT_ID = "6369628859"; // Ganti dengan ID Admin Anda
-
-// --- 2. FUNGSI BANTUAN (HELPER) - Menggunakan Native Fetch ---
-
-// Fungsi Kirim Log ke Telegram
-async function sendTelegramLog(message) {
+// Kirim Log ke Telegram
+async function sendTelegramLog(msg) {
+    if (!API_CONFIG.TELEGRAM.token || !API_CONFIG.TELEGRAM.chatId) return;
     try {
-        const url = `https://api.telegram.org/bot${TG_TOKEN}/sendMessage`;
-        await fetch(url, {
+        await fetch(`https://api.telegram.org/bot${API_CONFIG.TELEGRAM.token}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                chat_id: TG_CHAT_ID,
-                text: message,
+                chat_id: API_CONFIG.TELEGRAM.chatId,
+                text: msg,
                 parse_mode: 'HTML'
             })
         });
     } catch (e) {
-        console.error("Gagal kirim Telegram:", e.message);
+        console.error("Telegram Error:", e.message);
     }
 }
 
-// Fungsi Panggil API KHFY
-async function callKhfy(endpoint, params) {
-    const url = `${KHFY_CONFIG.baseUrl}${endpoint}`;
-    params.api_key = KHFY_CONFIG.apiKey;
-    
-    // Convert params to URLSearchParams (Format Form Data)
-    const body = new URLSearchParams(params);
-
+// Request ke KHFY
+async function processKHFY(code, target, refId) {
     try {
-        const res = await fetch(url, { method: 'POST', body: body });
-        const text = await res.text();
+        const params = new URLSearchParams();
+        params.append('api_key', API_CONFIG.KHFY.key);
+        params.append('kode_produk', code);
+        params.append('no_hp', target);
+        params.append('ref_id', refId);
+
+        const res = await fetch(API_CONFIG.KHFY.url, {
+            method: 'POST',
+            body: params
+        });
+        
+        const rawText = await res.text();
         try {
-            return JSON.parse(text);
+            const json = JSON.parse(rawText);
+            // KHFY: status 1 = sukses, 0 = pending/proses, else = gagal
+            const isSuccess = json.data && (json.data.status === 1 || json.data.status === 0);
+            return { 
+                success: isSuccess, 
+                msg: isSuccess ? (json.data.message || 'Diproses') : (json.message || 'Gagal'),
+                sn: isSuccess ? (json.data.sn || '') : '',
+                raw: json
+            };
         } catch {
-            return { success: false, message: 'Invalid JSON', raw: text };
+            return { success: false, msg: 'Invalid JSON from KHFY', raw: rawText };
         }
     } catch (e) {
-        return { success: false, message: e.message };
+        return { success: false, msg: e.message, raw: null };
     }
 }
 
-// Fungsi Panggil API ICS
-async function callIcs(action, params) {
-    const url = `${ICS_CONFIG.baseUrl}/api/reseller?action=${action}`;
-    params.apikey = ICS_CONFIG.apiKey;
-
+// Request ke ICS
+async function processICS(code, target, refId) {
     try {
-        const res = await fetch(url, {
+        const payload = {
+            apikey: API_CONFIG.ICS.key,
+            service: code,
+            target: target,
+            custom_ref_id: refId
+        };
+
+        const res = await fetch(`${API_CONFIG.ICS.url}?action=order`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(params)
+            body: JSON.stringify(payload)
         });
-        const text = await res.text();
+
+        const rawText = await res.text();
         try {
-            return JSON.parse(text);
+            const json = JSON.parse(rawText);
+            // ICS: result true/false
+            const isSuccess = json.success === true || json.status === true;
+            return { 
+                success: isSuccess, 
+                msg: json.msg || json.message || 'Diproses ICS',
+                sn: json.data ? json.data.sn : '',
+                raw: json
+            };
         } catch {
-            return { success: false, message: 'Invalid JSON', raw: text };
+            return { success: false, msg: 'Invalid JSON from ICS', raw: rawText };
         }
     } catch (e) {
-        return { success: false, message: e.message };
+        return { success: false, msg: e.message, raw: null };
     }
 }
 
-// --- 3. LOGIKA UTAMA (WORKER) ---
+// --- 4. CORE WORKER LOGIC ---
 
-async function processQueue() {
-    console.log(`[${new Date().toLocaleTimeString()}] Mengecek antrian...`);
+async function runWorker() {
+    console.log(`[${new Date().toLocaleTimeString()}] Checking Queue...`);
 
     try {
-        // QUERY UTAMA: Ambil data 'Pending' ATAU 'Gagal' (Retry Logic)
+        // 1. QUERY: Ambil data PENDING atau GAGAL (Looping Retry)
+        // Order by timestamp ASC agar antrian lama diproses duluan
         const snapshot = await db.collection('preorders')
             .where('status', 'in', ['Pending', 'Gagal']) 
-            .orderBy('timestamp', 'asc') // Proses yang terlama dulu
-            .limit(1)
+            .orderBy('timestamp', 'asc') 
+            .limit(1) // Proses 1 per 1 agar aman
             .get();
 
         if (snapshot.empty) {
-            console.log("Antrian kosong.");
+            console.log("Antrian Kosong / Semua Sukses.");
             return;
         }
 
-        const docSnapshot = snapshot.docs[0];
-        const data = docSnapshot.data();
-        const docId = docSnapshot.id;
+        const doc = snapshot.docs[0];
+        const data = doc.data();
+        const docId = doc.id;
 
-        console.log(`Memproses: ${data.productName} -> ${data.targetNumber} (${data.serverType})`);
-
-        // 1. Update Status jadi 'Proses' (Locking)
-        await db.collection('preorders').doc(docId).update({ status: 'Proses' });
-
-        let result = { success: false, message: 'Unknown Error', sn: '', raw: {} };
-        const serverType = (data.serverType || 'KHFY').toUpperCase();
-        
-        // Buat ReffID Unik untuk Server
-        const serverRefId = `${docId}-${Date.now()}`; 
-
-        // 2. EKSEKUSI KE SERVER
-        if (serverType === 'KHFY') {
-            const apiRes = await callKhfy('/trx', {
-                kode_produk: data.provider,
-                no_hp: data.targetNumber,
-                ref_id: serverRefId
-            });
-            
-            result.raw = apiRes;
-            // Cek sukses KHFY (status 1 = sukses, 0 = pending/proses)
-            if (apiRes.data && (apiRes.data.status === 1 || apiRes.data.status === 0)) {
-                result.success = true;
-                result.message = apiRes.data.message || 'Transaksi Diproses';
-                result.sn = apiRes.data.sn || '';
-            } else {
-                result.success = false;
-                result.message = apiRes.message || 'Gagal KHFY';
-            }
-
-        } else if (serverType === 'ICS') {
-            const apiRes = await callIcs('order', {
-                service: data.provider,
-                target: data.targetNumber,
-                custom_ref_id: serverRefId
-            });
-
-            result.raw = apiRes;
-            if (apiRes.status === true || apiRes.success === true) {
-                result.success = true;
-                result.message = apiRes.msg || 'Transaksi ICS Berhasil';
-                result.sn = apiRes.data ? apiRes.data.sn : '';
-            } else {
-                result.success = false;
-                result.message = apiRes.msg || 'Gagal ICS';
+        // Cek apakah data ini baru saja dicoba (Debounce 10 detik agar tidak spamming jika gagal)
+        if (data.lastTry) {
+            const lastTryTime = data.lastTry.toDate().getTime();
+            if (Date.now() - lastTryTime < 10000) {
+                console.log("Cooldown retry...");
+                return;
             }
         }
 
-        // 3. PENANGANAN HASIL
-        
-        if (result.success) {
-            // === JIKA SUKSES ===
-            console.log(`[SUKSES] ${data.targetNumber}`);
+        console.log(`>>> Memproses: ${data.targetNumber} | ${data.productName}`);
 
-            // Update Dokumen Preorder (TIDAK DELETE) -> Pindah ke tab 'Riwayat Sukses'
+        // 2. LOCK: Ubah status jadi 'Proses'
+        await db.collection('preorders').doc(docId).update({ status: 'Proses' });
+
+        // Generate Reff ID Unik untuk Server
+        const serverRefID = `AUTORUN-${docId}-${Date.now()}`;
+        const serverType = (data.serverType || 'KHFY').toUpperCase();
+
+        // 3. EKSEKUSI
+        let result;
+        if (serverType === 'ICS') {
+            result = await processICS(data.provider, data.targetNumber, serverRefID);
+        } else {
+            result = await processKHFY(data.provider, data.targetNumber, serverRefID);
+        }
+
+        // 4. HANDLING HASIL
+        if (result.success) {
+            // === SUKSES ===
+            console.log("✅ SUKSES:", result.msg);
+
+            // Update Preorder (JANGAN HAPUS -> Simpan JSON)
             await db.collection('preorders').doc(docId).update({
-                status: 'Success', 
-                api_msg: result.message,
-                sn: result.sn || 'Proses Server',
-                raw_json: JSON.stringify(result.raw), 
+                status: 'Success', // Keluar dari loop query
+                api_msg: result.msg,
+                sn: result.sn,
+                raw_json: JSON.stringify(result.raw),
                 processedAt: admin.firestore.FieldValue.serverTimestamp(),
-                trx_id_server: serverRefId
+                trx_id_server: serverRefID
             });
 
             // Update History User
@@ -190,58 +194,50 @@ async function processQueue() {
                     .collection('history').doc(data.historyId)
                     .update({
                         status: 'Sukses',
-                        sn: result.sn || 'Sedang Diproses',
-                        api_msg: result.message,
-                        trx_id: serverRefId
+                        sn: result.sn || 'Proses Operator',
+                        api_msg: `Autorun: ${result.msg}`,
+                        trx_id: serverRefID
                     });
             }
 
-            // Notifikasi Telegram
-            await sendTelegramLog(
-                `✅ <b>TRANSAKSI SUKSES (AUTORUN)</b>\n` +
-                `Product: ${data.productName}\n` +
-                `Tujuan: ${data.targetNumber}\n` +
-                `Server: ${serverType}\n` +
-                `Msg: ${result.message}`
+            // Notif Telegram
+            sendTelegramLog(
+                `✅ <b>SUKSES (AUTORUN)</b>\nTarget: ${data.targetNumber}\nProduk: ${data.productName}\nSN: ${result.sn}\nMsg: ${result.msg}`
             );
 
         } else {
-            // === JIKA GAGAL ===
-            console.log(`[GAGAL] ${data.targetNumber} - ${result.message}`);
+            // === GAGAL (RETRY) ===
+            console.log("❌ GAGAL:", result.msg);
 
-            // Update status 'Gagal' -> Akan diambil lagi oleh query (Retry Loop)
+            // Kembalikan ke status 'Gagal' agar diambil lagi oleh Query di putaran depan
             await db.collection('preorders').doc(docId).update({
                 status: 'Gagal', 
-                api_msg: result.message,
+                api_msg: result.msg,
                 raw_json: JSON.stringify(result.raw),
-                lastTry: admin.firestore.FieldValue.serverTimestamp()
+                lastTry: admin.firestore.FieldValue.serverTimestamp() // Timestamp untuk cooldown
             });
 
-            // Update History User (Opsional: Tetap Pending agar user sabar, atau info Gagal)
+            // Update History User (Info Gagal Sementara)
             if (data.uid && data.historyId) {
                 await db.collection('users').doc(data.uid)
                     .collection('history').doc(data.historyId)
                     .update({
-                        api_msg: `Percobaan Gagal: ${result.message}. Mencoba lagi...`
+                        api_msg: `Gagal (${new Date().toLocaleTimeString()}): ${result.msg}. Mencoba lagi...`
                     });
             }
 
-            await sendTelegramLog(
-                `⚠️ <b>TRANSAKSI GAGAL (AKAN RETRY)</b>\n` +
-                `Product: ${data.productName}\n` +
-                `Tujuan: ${data.targetNumber}\n` +
-                `Server: ${serverType}\n` +
-                `Error: ${result.message}`
+            // Notif Telegram
+            sendTelegramLog(
+                `⚠️ <b>GAGAL - RETRYING...</b>\nTarget: ${data.targetNumber}\nProduk: ${data.productName}\nError: ${result.msg}`
             );
         }
 
-    } catch (error) {
-        console.error("CRITICAL WORKER ERROR:", error);
+    } catch (err) {
+        console.error("CRITICAL ERROR:", err);
     }
 }
 
-// --- 4. EKSEKUSI ---
-
-console.log("Worker Autorun Berjalan (Native Fetch Mode)...");
-// Loop setiap 5 detik
-setInterval(processQueue, 5000);
+// --- 5. START LOOP ---
+console.log("Worker Autorun V3.4 (Native Fetch) Started...");
+// Jalankan setiap 5 detik
+setInterval(runWorker, 5000);

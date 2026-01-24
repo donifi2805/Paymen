@@ -2,14 +2,11 @@ const admin = require('firebase-admin');
 
 // --- 1. SETUP FIREBASE ---
 try {
-    // Pastikan env variable FIREBASE_SERVICE_ACCOUNT ada
-    // Jika run local tanpa env, ganti baris ini dengan require('./serviceAccount.json')
     const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-    
     if (!admin.apps.length) {
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount)
-        });
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+      });
     }
 } catch (error) {
     console.error("GAGAL SETUP FIREBASE:", error.message);
@@ -56,17 +53,14 @@ async function sendTelegramLog(message, isUrgent = false) {
     if (!TG_TOKEN || !TG_CHAT_ID) return;
     try {
         const url = `https://api.telegram.org/bot${TG_TOKEN}/sendMessage`;
-        // Menggunakan native fetch (Node 18+)
-        await fetch(url, {
+        fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 chat_id: TG_CHAT_ID, text: message, parse_mode: 'HTML', disable_notification: !isUrgent 
             })
-        });
-    } catch (e) { 
-        console.error("Telgram Error:", e.message);
-    }
+        }).catch(err => {});
+    } catch (e) { }
 }
 
 // ============================================================
@@ -197,7 +191,7 @@ async function hitProviderDirect(serverType, data, isRecheck = false) {
         }
         targetUrl.searchParams.append('apikey', ICS_KEY);
     } else {
-        // KHFY
+        targetUrl = new URL(`${KHFY_BASE_URL}/trx`); 
         const params = new URLSearchParams();
         params.append('api_key', KHFY_KEY);
         
@@ -206,7 +200,6 @@ async function hitProviderDirect(serverType, data, isRecheck = false) {
             targetUrl.searchParams.append('api_key', KHFY_KEY);
             targetUrl.searchParams.append('refid', data.reffId);
         } else {
-            targetUrl = new URL(`${KHFY_BASE_URL}/trx`);
             targetUrl.searchParams.append('api_key', KHFY_KEY);
             targetUrl.searchParams.append('produk', data.sku);
             targetUrl.searchParams.append('tujuan', data.tujuan);
@@ -257,7 +250,7 @@ async function runPreorderQueue() {
 
         if (snapshot.empty) {
             console.log("ℹ️ Tidak ada antrian.");
-            // Lanjut ke finally untuk log selesai
+            // Jangan return dulu, biar lanjut ke finally untuk kirim pembatas bawah
         } else {
             // --- 1. AMBIL DATA LENGKAP ---
             const [khfyData, icsData, akrabSlotMap] = await Promise.all([
@@ -451,7 +444,7 @@ async function runPreorderQueue() {
 
                 const isExplicitPending = result.success === true && result.data && result.data.status === 'pending';
                 if (isExplicitPending) {
-                    console.log(`       ⏳ Pending Spesifik. Tunggu 6s...`);
+                    console.log(`      ⏳ Pending Spesifik. Tunggu 6s...`);
                     await new Promise(r => setTimeout(r, 6000));
                     result = await hitProviderDirect(serverType, requestData, true) || result;
                 }
@@ -568,11 +561,4 @@ async function runPreorderQueue() {
     }
 }
 
-// EKSEKUSI & CLEAN EXIT
-runPreorderQueue().then(() => {
-    console.log("Proses Selesai. Keluar.");
-    process.exit(0); // PENTING: Force exit agar worker tidak stuck
-}).catch(e => {
-    console.error("Proses Error:", e);
-    process.exit(1);
-});
+runPreorderQueue();

@@ -1,13 +1,14 @@
 const admin = require('firebase-admin');
-const fetch = require('node-fetch'); // Pastikan package ini ada di package.json
 
 // --- 1. KONFIGURASI DAN SETUP ---
 
 // Inisialisasi Firebase
 try {
     if (!admin.apps.length) {
-        // Menggunakan Environment Variable (Disarankan untuk Vercel)
+        // Pastikan Environment Variable FIREBASE_SERVICE_ACCOUNT sudah diset di Vercel/System Anda
+        // Jika testing lokal tanpa Env Var, ganti baris ini dengan require('./serviceAccount.json')
         const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+        
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccount)
         });
@@ -22,19 +23,19 @@ const db = admin.firestore();
 // Konfigurasi API Server
 const KHFY_CONFIG = {
     baseUrl: "https://panel.khfy-store.com/api_v2",
-    apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A" // Ganti jika berubah
+    apiKey: "8F1199C1-483A-4C96-825E-F5EBD33AC60A" 
 };
 
 const ICS_CONFIG = {
-    baseUrl: "https://reseller.ics-store.my.id", // Sesuaikan base URL ICS
-    apiKey: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3" // Ganti jika berubah
+    baseUrl: "https://reseller.ics-store.my.id", 
+    apiKey: "dcc0a69aa74abfde7b1bc5d252d858cb2fc5e32192da06a3" 
 };
 
-// Konfigurasi Telegram (Untuk Laporan Bot)
-const TG_TOKEN = "7850521841:AAH84wtuxnDWg5u..."; // Masukkan Token Bot Anda
-const TG_CHAT_ID = "6369628859"; // Masukkan ID Admin Anda
+// Konfigurasi Telegram
+const TG_TOKEN = "7850521841:AAH84wtuxnDWg5u..."; // Ganti dengan Token Bot Anda
+const TG_CHAT_ID = "6369628859"; // Ganti dengan ID Admin Anda
 
-// --- 2. FUNGSI BANTUAN (HELPER) ---
+// --- 2. FUNGSI BANTUAN (HELPER) - Menggunakan Native Fetch ---
 
 // Fungsi Kirim Log ke Telegram
 async function sendTelegramLog(message) {
@@ -59,13 +60,17 @@ async function callKhfy(endpoint, params) {
     const url = `${KHFY_CONFIG.baseUrl}${endpoint}`;
     params.api_key = KHFY_CONFIG.apiKey;
     
-    // Convert params to Form Data / Query String
+    // Convert params to URLSearchParams (Format Form Data)
     const body = new URLSearchParams(params);
 
     try {
         const res = await fetch(url, { method: 'POST', body: body });
-        const json = await res.json();
-        return json;
+        const text = await res.text();
+        try {
+            return JSON.parse(text);
+        } catch {
+            return { success: false, message: 'Invalid JSON', raw: text };
+        }
     } catch (e) {
         return { success: false, message: e.message };
     }
@@ -73,9 +78,8 @@ async function callKhfy(endpoint, params) {
 
 // Fungsi Panggil API ICS
 async function callIcs(action, params) {
-    // Sesuaikan format request ICS (biasanya JSON body atau GET query)
     const url = `${ICS_CONFIG.baseUrl}/api/reseller?action=${action}`;
-    params.apikey = ICS_CONFIG.apiKey; // Sesuaikan parameter auth ICS
+    params.apikey = ICS_CONFIG.apiKey;
 
     try {
         const res = await fetch(url, {
@@ -83,8 +87,12 @@ async function callIcs(action, params) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(params)
         });
-        const json = await res.json();
-        return json;
+        const text = await res.text();
+        try {
+            return JSON.parse(text);
+        } catch {
+            return { success: false, message: 'Invalid JSON', raw: text };
+        }
     } catch (e) {
         return { success: false, message: e.message };
     }
@@ -96,9 +104,7 @@ async function processQueue() {
     console.log(`[${new Date().toLocaleTimeString()}] Mengecek antrian...`);
 
     try {
-        // QUERY UTAMA:
-        // Ambil data yang statusnya 'Pending' ATAU 'Gagal' (Retry Logic)
-        // Kita limit 1 per putaran agar tidak spamming server jika loop cepat
+        // QUERY UTAMA: Ambil data 'Pending' ATAU 'Gagal' (Retry Logic)
         const snapshot = await db.collection('preorders')
             .where('status', 'in', ['Pending', 'Gagal']) 
             .orderBy('timestamp', 'asc') // Proses yang terlama dulu
@@ -110,31 +116,31 @@ async function processQueue() {
             return;
         }
 
-        const doc = snapshot.docs[0];
-        const data = doc.data();
-        const docId = doc.id;
+        const docSnapshot = snapshot.docs[0];
+        const data = docSnapshot.data();
+        const docId = docSnapshot.id;
 
         console.log(`Memproses: ${data.productName} -> ${data.targetNumber} (${data.serverType})`);
 
-        // 1. Update Status jadi 'Proses' agar tidak diambil worker lain (jika ada multi-worker)
+        // 1. Update Status jadi 'Proses' (Locking)
         await db.collection('preorders').doc(docId).update({ status: 'Proses' });
 
         let result = { success: false, message: 'Unknown Error', sn: '', raw: {} };
         const serverType = (data.serverType || 'KHFY').toUpperCase();
         
-        // Buat ReffID Unik untuk Transaksi Server
+        // Buat ReffID Unik untuk Server
         const serverRefId = `${docId}-${Date.now()}`; 
 
         // 2. EKSEKUSI KE SERVER
         if (serverType === 'KHFY') {
             const apiRes = await callKhfy('/trx', {
-                kode_produk: data.provider, // Kode produk dari DB Preorder
+                kode_produk: data.provider,
                 no_hp: data.targetNumber,
                 ref_id: serverRefId
             });
             
             result.raw = apiRes;
-            // Cek respon KHFY (Sesuaikan dengan format sukses KHFY)
+            // Cek sukses KHFY (status 1 = sukses, 0 = pending/proses)
             if (apiRes.data && (apiRes.data.status === 1 || apiRes.data.status === 0)) {
                 result.success = true;
                 result.message = apiRes.data.message || 'Transaksi Diproses';
@@ -145,7 +151,6 @@ async function processQueue() {
             }
 
         } else if (serverType === 'ICS') {
-            // Logika ICS (Contoh menggunakan endpoint order)
             const apiRes = await callIcs('order', {
                 service: data.provider,
                 target: data.targetNumber,
@@ -163,23 +168,23 @@ async function processQueue() {
             }
         }
 
-        // 3. PENANGANAN HASIL (SUKSES / GAGAL)
+        // 3. PENANGANAN HASIL
         
         if (result.success) {
             // === JIKA SUKSES ===
             console.log(`[SUKSES] ${data.targetNumber}`);
 
-            // A. Update Dokumen Preorder (JANGAN DELETE)
+            // Update Dokumen Preorder (TIDAK DELETE) -> Pindah ke tab 'Riwayat Sukses'
             await db.collection('preorders').doc(docId).update({
-                status: 'Success', // Ubah status jadi Success agar keluar dari antrian 'Pending'
+                status: 'Success', 
                 api_msg: result.message,
                 sn: result.sn || 'Proses Server',
-                raw_json: JSON.stringify(result.raw), // Simpan JSON mentah
+                raw_json: JSON.stringify(result.raw), 
                 processedAt: admin.firestore.FieldValue.serverTimestamp(),
                 trx_id_server: serverRefId
             });
 
-            // B. Update Riwayat User (History)
+            // Update History User
             if (data.uid && data.historyId) {
                 await db.collection('users').doc(data.uid)
                     .collection('history').doc(data.historyId)
@@ -187,11 +192,11 @@ async function processQueue() {
                         status: 'Sukses',
                         sn: result.sn || 'Sedang Diproses',
                         api_msg: result.message,
-                        trx_id: serverRefId // Simpan ref id server buat cek status nanti
+                        trx_id: serverRefId
                     });
             }
 
-            // C. Notifikasi Telegram Sukses
+            // Notifikasi Telegram
             await sendTelegramLog(
                 `✅ <b>TRANSAKSI SUKSES (AUTORUN)</b>\n` +
                 `Product: ${data.productName}\n` +
@@ -204,18 +209,15 @@ async function processQueue() {
             // === JIKA GAGAL ===
             console.log(`[GAGAL] ${data.targetNumber} - ${result.message}`);
 
-            // A. Update Dokumen Preorder (TETAPKAN AGAR BISA DI-RETRY)
-            // Kita ubah status jadi 'Gagal'. Karena query worker mengambil 'Pending' DAN 'Gagal',
-            // maka data ini akan diambil lagi di putaran berikutnya (Retry Loop).
+            // Update status 'Gagal' -> Akan diambil lagi oleh query (Retry Loop)
             await db.collection('preorders').doc(docId).update({
                 status: 'Gagal', 
-                api_msg: result.message, // Alasan gagal
+                api_msg: result.message,
                 raw_json: JSON.stringify(result.raw),
                 lastTry: admin.firestore.FieldValue.serverTimestamp()
             });
 
-            // Opsional: Jangan update history user jadi Gagal dulu, biarkan Pending
-            // agar user tau admin sedang berusaha. Atau update pesan error saja.
+            // Update History User (Opsional: Tetap Pending agar user sabar, atau info Gagal)
             if (data.uid && data.historyId) {
                 await db.collection('users').doc(data.uid)
                     .collection('history').doc(data.historyId)
@@ -224,7 +226,6 @@ async function processQueue() {
                     });
             }
 
-            // B. Notifikasi Telegram Gagal
             await sendTelegramLog(
                 `⚠️ <b>TRANSAKSI GAGAL (AKAN RETRY)</b>\n` +
                 `Product: ${data.productName}\n` +
@@ -241,15 +242,6 @@ async function processQueue() {
 
 // --- 4. EKSEKUSI ---
 
-// Jika ini dijalankan sebagai Script Standalone (bukan API Vercel)
-// Gunakan setInterval untuk mengecek terus menerus
-console.log("Worker Autorun Berjalan...");
-setInterval(processQueue, 5000); // Cek antrian setiap 5 detik
-
-// Jika di-deploy sebagai Vercel Function, gunakan export default handler
-/*
-export default async function handler(req, res) {
-    await processQueue();
-    res.status(200).json({ status: 'Worker Run Completed' });
-}
-*/
+console.log("Worker Autorun Berjalan (Native Fetch Mode)...");
+// Loop setiap 5 detik
+setInterval(processQueue, 5000);

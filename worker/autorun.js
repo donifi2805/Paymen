@@ -1,15 +1,12 @@
 const admin = require('firebase-admin');
 
-// --- 1. SETUP FIREBASE & CONFIG ---
-
-// Inisialisasi Firebase
+// --- 1. SETUP FIREBASE ---
 try {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
     if (!admin.apps.length) {
-        // Gunakan Env Var atau Service Account File
-        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount)
-        });
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+      });
     }
 } catch (error) {
     console.error("GAGAL SETUP FIREBASE:", error.message);
@@ -18,226 +15,550 @@ try {
 
 const db = admin.firestore();
 
-// --- 2. KONFIGURASI API (DARI FILE PATOKAN) ---
-// Note: Menggunakan native fetch, tidak perlu library tambahan
+// --- 2. KONFIGURASI PROVIDER ---
+const KHFY_BASE_URL = "https://panel.khfy-store.com/api_v2";
+const KHFY_AKRAB_URL = "https://panel.khfy-store.com/api_v3/cek_stock_akrab";
+const ICS_BASE_URL = "https://api.ics-store.my.id/api/reseller";
 
-const API_CONFIG = {
-    KHFY: {
-        url: "https://panel.khfy-store.com/api_v2/trx",
-        key: "8F1199C1-483A-4C96-825E-F5EBD33AC60A" // Sesuaikan jika ada perubahan
-    },
-    ICS: {
-        url: "https://api.ics-store.my.id/api/reseller", // Endpoint ICS
-        key: "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77" // Sesuaikan jika ada perubahan
-    },
-    TELEGRAM: {
-        token: "7850521841:AAH84wtuxnDWg5u...", // Token Bot Anda (Lengkapi jika terpotong)
-        chatId: "6369628859" // ID Admin Anda
-    }
+// ⚠️ API KEYS
+const KHFY_KEY = "8F1199C1-483A-4C96-825E-F5EBD33AC60A"; 
+const ICS_KEY = "7274410f84b7e2810795810e879a4e0be8779c451d55e90e29d9bc174547ff77"; 
+
+// 🔥 KONFIGURASI TELEGRAM 🔥
+const TG_TOKEN = "7850521841:AAH84wtuxnDWg5u04lMkL5zqVcY1hIpzGJg";
+const TG_CHAT_ID = "7348139166";
+
+// DAFTAR SLOT V3
+const KHFY_SPECIAL_CODES = ['XLA14', 'XLA32', 'XLA39', 'XLA51', 'XLA65', 'XLA89'];
+const PRODUCT_NAMES = {
+    'XLA14': 'Super Mini', 'XLA32': 'Mini', 'XLA39': 'Big',
+    'XLA51': 'Jumbo V2', 'XLA65': 'Jumbo', 'XLA89': 'Mega Big'
 };
 
-// --- 3. HELPER FUNCTIONS (NATIVE FETCH) ---
+// Helper: Get Jam WIB
+function getWIBTime() {
+    return new Date().toLocaleTimeString('id-ID', { 
+        timeZone: 'Asia/Jakarta', hour12: false,
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+    }).replace(/\./g, ':');
+}
 
-// Kirim Log ke Telegram
-async function sendTelegramLog(msg) {
-    if (!API_CONFIG.TELEGRAM.token || !API_CONFIG.TELEGRAM.chatId) return;
+// Helper: Sanitasi HTML
+function escapeHtml(text) {
+    if (!text) return text;
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+async function sendTelegramLog(message, isUrgent = false) {
+    if (!TG_TOKEN || !TG_CHAT_ID) return;
     try {
-        await fetch(`https://api.telegram.org/bot${API_CONFIG.TELEGRAM.token}/sendMessage`, {
+        const url = `https://api.telegram.org/bot${TG_TOKEN}/sendMessage`;
+        fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                chat_id: API_CONFIG.TELEGRAM.chatId,
-                text: msg,
-                parse_mode: 'HTML'
+                chat_id: TG_CHAT_ID, text: message, parse_mode: 'HTML', disable_notification: !isUrgent 
             })
-        });
-    } catch (e) {
-        console.error("Telegram Error:", e.message);
-    }
+        }).catch(err => {});
+    } catch (e) { }
 }
 
-// Request ke KHFY
-async function processKHFY(code, target, refId) {
-    try {
-        const params = new URLSearchParams();
-        params.append('api_key', API_CONFIG.KHFY.key);
-        params.append('kode_produk', code);
-        params.append('no_hp', target);
-        params.append('ref_id', refId);
+// ============================================================
+// 🛠️ FUNGSI FETCH DATA STOK
+// ============================================================
 
-        const res = await fetch(API_CONFIG.KHFY.url, {
-            method: 'POST',
-            body: params
+// 1. KHFY Regular
+async function getKHFYFullStock() {
+    const params = new URLSearchParams();
+    params.append('api_key', KHFY_KEY);
+    const targetUrl = `${KHFY_BASE_URL}/list_product?${params.toString()}`;
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 25000); 
+        const response = await fetch(targetUrl, { 
+            method: 'GET', headers: { 'User-Agent': 'Pandawa-Worker/Direct' }, signal: controller.signal 
         });
+        clearTimeout(timeoutId);
+        const json = await response.json();
         
-        const rawText = await res.text();
-        try {
-            const json = JSON.parse(rawText);
-            // KHFY: status 1 = sukses, 0 = pending/proses, else = gagal
-            const isSuccess = json.data && (json.data.status === 1 || json.data.status === 0);
-            return { 
-                success: isSuccess, 
-                msg: isSuccess ? (json.data.message || 'Diproses') : (json.message || 'Gagal'),
-                sn: isSuccess ? (json.data.sn || '') : '',
-                raw: json
+        let dataList = [];
+        if (json && json.data && Array.isArray(json.data)) dataList = json.data;
+        else if (json && Array.isArray(json)) dataList = json;
+
+        const stockMap = {};
+        dataList.forEach(item => {
+            stockMap[item.kode_produk] = {
+                gangguan: item.gangguan == 1, 
+                kosong: item.kosong == 1, 
+                status: item.status,
+                name: item.nama_produk
             };
-        } catch {
-            return { success: false, msg: 'Invalid JSON from KHFY', raw: rawText };
-        }
-    } catch (e) {
-        return { success: false, msg: e.message, raw: null };
-    }
-}
-
-// Request ke ICS
-async function processICS(code, target, refId) {
-    try {
-        const payload = {
-            apikey: API_CONFIG.ICS.key,
-            service: code,
-            target: target,
-            custom_ref_id: refId
-        };
-
-        const res = await fetch(`${API_CONFIG.ICS.url}?action=order`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
         });
+        return { list: dataList, map: stockMap };
+    } catch (error) { return { error: error.message }; }
+}
 
-        const rawText = await res.text();
-        try {
-            const json = JSON.parse(rawText);
-            // ICS: result true/false
-            const isSuccess = json.success === true || json.status === true;
-            return { 
-                success: isSuccess, 
-                msg: json.msg || json.message || 'Diproses ICS',
-                sn: json.data ? json.data.sn : '',
-                raw: json
-            };
-        } catch {
-            return { success: false, msg: 'Invalid JSON from ICS', raw: rawText };
+// 2. ICS Full Stock (FIX AUTH HEADERS)
+async function getICSFullStock() {
+    const targetUrl = new URL(`${ICS_BASE_URL}/products`);
+    targetUrl.searchParams.append('apikey', ICS_KEY); 
+
+    const headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${ICS_KEY}`
+    };
+
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 25000); 
+        
+        const response = await fetch(targetUrl.toString(), { 
+            method: 'GET', headers: headers, signal: controller.signal 
+        });
+        clearTimeout(timeoutId);
+        
+        if (response.status === 401 || response.status === 403) {
+            return { list: [], map: {}, error: "Unauthorized: API Key Salah" };
         }
-    } catch (e) {
-        return { success: false, msg: e.message, raw: null };
+
+        const json = await response.json();
+        
+        let dataList = [];
+        if (json && json.ready && Array.isArray(json.ready)) dataList = json.ready;
+        else if (json && json.data && Array.isArray(json.data)) dataList = json.data;
+        else if (Array.isArray(json)) dataList = json;
+
+        const stockMap = {};
+        dataList.forEach(item => {
+            stockMap[item.code] = { 
+                gangguan: item.status === 'gangguan' || item.status === 'error', 
+                kosong: item.status === 'empty' || item.stock === 0 || item.status === 'kosong', 
+                nonaktif: item.status === 'nonactive',
+                real_stock: item.stock || 0,
+                name: item.name,
+                type: item.type
+            };
+        });
+        return { list: dataList, map: stockMap };
+    } catch (error) { 
+        return { list: [], map: {}, error: error.message }; 
     }
 }
 
-// --- 4. CORE WORKER LOGIC ---
+// 3. KHFY V3 (Slot Akrab)
+async function getKHFYAkrabSlots() {
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000); 
+        const response = await fetch(KHFY_AKRAB_URL, { 
+            method: 'GET', headers: { 'User-Agent': 'Pandawa-Worker/Direct' }, signal: controller.signal 
+        });
+        clearTimeout(timeoutId);
+        const json = await response.json();
+        const slotMap = {}; 
+        if (json && json.ok === true && Array.isArray(json.data)) {
+            json.data.forEach(item => {
+                slotMap[item.type] = parseInt(item.sisa_slot || 0);
+            });
+            return slotMap;
+        }
+        return null;
+    } catch (error) { return null; }
+}
 
-async function runWorker() {
-    console.log(`[${new Date().toLocaleTimeString()}] Checking Queue...`);
+// 🔥 FUNGSI HIT PROVIDER (DIRECT)
+async function hitProviderDirect(serverType, data, isRecheck = false) {
+    let targetUrl;
+    let method = 'GET';
+    let body = null;
+    let headers = { 'User-Agent': 'Pandawa-Worker/Direct', 'Accept': 'application/json' };
+
+    if (serverType === 'ICS') {
+        headers['Authorization'] = `Bearer ${ICS_KEY}`;
+        headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'; 
+
+        if (isRecheck) {
+            targetUrl = new URL(`${ICS_BASE_URL}/trx/${data.reffId}`);
+            method = 'GET';
+        } else {
+            targetUrl = new URL(`${ICS_BASE_URL}/trx`);
+            method = 'POST';
+            headers['Content-Type'] = 'application/json';
+            body = JSON.stringify({
+                product_code: data.sku, dest_number: data.tujuan, ref_id_custom: data.reffId
+            });
+        }
+        targetUrl.searchParams.append('apikey', ICS_KEY);
+    } else {
+        targetUrl = new URL(`${KHFY_BASE_URL}/trx`); 
+        const params = new URLSearchParams();
+        params.append('api_key', KHFY_KEY);
+        
+        if (isRecheck) {
+            targetUrl = new URL(`${KHFY_BASE_URL}/history`);
+            targetUrl.searchParams.append('api_key', KHFY_KEY);
+            targetUrl.searchParams.append('refid', data.reffId);
+        } else {
+            targetUrl.searchParams.append('api_key', KHFY_KEY);
+            targetUrl.searchParams.append('produk', data.sku);
+            targetUrl.searchParams.append('tujuan', data.tujuan);
+            targetUrl.searchParams.append('reff_id', data.reffId);
+        }
+    }
 
     try {
-        // 1. QUERY: Ambil data PENDING atau GAGAL (Looping Retry)
-        // Order by timestamp ASC agar antrian lama diproses duluan
-        const snapshot = await db.collection('preorders')
-            .where('status', 'in', ['Pending', 'Gagal']) 
-            .orderBy('timestamp', 'asc') 
-            .limit(1) // Proses 1 per 1 agar aman
-            .get();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000); 
+        
+        const fetchOptions = { method: method, headers: headers, signal: controller.signal };
+        if (body) fetchOptions.body = body;
+
+        const response = await fetch(targetUrl.toString(), fetchOptions);
+        clearTimeout(timeoutId);
+        
+        const text = await response.text();
+        if (text.trim().startsWith('<')) {
+            return { status: false, message: "HTML Error", raw: text.substring(0, 100) };
+        }
+        try { return JSON.parse(text); } 
+        catch (e) { return { status: false, message: "Invalid JSON", raw: text }; }
+
+    } catch (error) { return { status: false, message: "Timeout: " + error.message }; }
+}
+
+async function sendUserLog(uid, title, message, trxId) {
+    if (!uid) return;
+    try {
+        await db.collection('users').doc(uid).collection('notifications').add({
+            title, message, type: 'transaksi', trxId, isRead: false, timestamp: admin.firestore.FieldValue.serverTimestamp()
+        });
+    } catch (e) { }
+}
+
+// ============================================================
+// 🏁 LOGIKA UTAMA (WORKER)
+// ============================================================
+async function runPreorderQueue() {
+    console.log(`[${new Date().toISOString()}] MEMULAI WORKER...`);
+    
+    // PEMBATAS AWAL
+    await sendTelegramLog(`🤖 <b>AUTORUN START</b> [${getWIBTime()}]\n================================`);
+
+    try {
+        const snapshot = await db.collection('preorders').orderBy('timestamp', 'asc').limit(100).get();
 
         if (snapshot.empty) {
-            console.log("Antrian Kosong / Semua Sukses.");
-            return;
-        }
-
-        const doc = snapshot.docs[0];
-        const data = doc.data();
-        const docId = doc.id;
-
-        // Cek apakah data ini baru saja dicoba (Debounce 10 detik agar tidak spamming jika gagal)
-        if (data.lastTry) {
-            const lastTryTime = data.lastTry.toDate().getTime();
-            if (Date.now() - lastTryTime < 10000) {
-                console.log("Cooldown retry...");
-                return;
-            }
-        }
-
-        console.log(`>>> Memproses: ${data.targetNumber} | ${data.productName}`);
-
-        // 2. LOCK: Ubah status jadi 'Proses'
-        await db.collection('preorders').doc(docId).update({ status: 'Proses' });
-
-        // Generate Reff ID Unik untuk Server
-        const serverRefID = `AUTORUN-${docId}-${Date.now()}`;
-        const serverType = (data.serverType || 'KHFY').toUpperCase();
-
-        // 3. EKSEKUSI
-        let result;
-        if (serverType === 'ICS') {
-            result = await processICS(data.provider, data.targetNumber, serverRefID);
+            console.log("ℹ️ Tidak ada antrian.");
+            // Jangan return dulu, biar lanjut ke finally untuk kirim pembatas bawah
         } else {
-            result = await processKHFY(data.provider, data.targetNumber, serverRefID);
-        }
+            // --- 1. AMBIL DATA LENGKAP ---
+            const [khfyData, icsData, akrabSlotMap] = await Promise.all([
+                getKHFYFullStock(), 
+                getICSFullStock(),
+                getKHFYAkrabSlots()
+            ]);
 
-        // 4. HANDLING HASIL
-        if (result.success) {
-            // === SUKSES ===
-            console.log("✅ SUKSES:", result.msg);
+            const stockMapKHFY = khfyData ? khfyData.map : null;
+            const stockMapICS = icsData ? icsData.map : null;
 
-            // Update Preorder (JANGAN HAPUS -> Simpan JSON)
-            await db.collection('preorders').doc(docId).update({
-                status: 'Success', // Keluar dari loop query
-                api_msg: result.msg,
-                sn: result.sn,
-                raw_json: JSON.stringify(result.raw),
-                processedAt: admin.firestore.FieldValue.serverTimestamp(),
-                trx_id_server: serverRefID
-            });
+            // --- 2. BUILD LAPORAN ---
+            let reportMsg = "";
 
-            // Update History User
-            if (data.uid && data.historyId) {
-                await db.collection('users').doc(data.uid)
-                    .collection('history').doc(data.historyId)
-                    .update({
-                        status: 'Sukses',
-                        sn: result.sn || 'Proses Operator',
-                        api_msg: `Autorun: ${result.msg}`,
-                        trx_id: serverRefID
-                    });
+            // A. SLOT V3
+            reportMsg += "📊 <b>SLOT AKRAB V3</b>\n";
+            if (akrabSlotMap) {
+                KHFY_SPECIAL_CODES.forEach(code => {
+                    const name = PRODUCT_NAMES[code] || code;
+                    const slot = akrabSlotMap[code] !== undefined ? akrabSlotMap[code] : '?';
+                    const icon = slot > 3 ? '🟢' : '🔴';
+                    reportMsg += `${icon} ${name}: <b>${slot}</b>\n`;
+                });
+            } else {
+                reportMsg += "⚠️ Gagal mengambil data slot V3\n";
             }
 
-            // Notif Telegram
-            sendTelegramLog(
-                `✅ <b>SUKSES (AUTORUN)</b>\nTarget: ${data.targetNumber}\nProduk: ${data.productName}\nSN: ${result.sn}\nMsg: ${result.msg}`
-            );
+            // --- HELPER UNTUK FORMAT RINGKAS ---
+            const formatCompact = (item, source) => {
+                let statusStr = "";
+                let icon = "⚪";
+                
+                if (source === 'ICS') {
+                    const stock = (item.stock !== undefined) ? item.stock : 0;
+                    const isGangguan = item.status === 'gangguan' || item.status === 'error';
+                    const isKosong = item.status === 'empty' || stock === 0 || item.status === 'kosong';
 
-        } else {
-            // === GAGAL (RETRY) ===
-            console.log("❌ GAGAL:", result.msg);
+                    if (isGangguan) { icon = "⛔"; statusStr = "0"; } 
+                    else if (isKosong) { icon = "🔴"; statusStr = "0"; } 
+                    else { icon = "✅"; statusStr = `(${stock})`; } 
+                } else {
+                    // KHFY Logic
+                    if (item.gangguan == 1) { icon = "⛔"; statusStr = "0"; }
+                    else if (item.kosong == 1) { icon = "🔴"; statusStr = "0"; }
+                    else { icon = "✅"; statusStr = "99"; } 
+                }
+                return `${icon} ${item.code || item.kode_produk}: <b>${statusStr}</b>`;
+            };
 
-            // Kembalikan ke status 'Gagal' agar diambil lagi oleh Query di putaran depan
-            await db.collection('preorders').doc(docId).update({
-                status: 'Gagal', 
-                api_msg: result.msg,
-                raw_json: JSON.stringify(result.raw),
-                lastTry: admin.firestore.FieldValue.serverTimestamp() // Timestamp untuk cooldown
-            });
+            // --- HELPER UNTUK 2 KOLOM ---
+            const makeTwoColumns = (list, source) => {
+                let result = "";
+                for (let i = 0; i < list.length; i += 2) {
+                    const item1 = list[i];
+                    const item2 = list[i + 1]; 
+                    const str1 = formatCompact(item1, source);
+                    if (item2) {
+                        const str2 = formatCompact(item2, source);
+                        result += `${str1}   ${str2}\n`; 
+                    } else {
+                        result += `${str1}\n`; 
+                    }
+                }
+                return result;
+            };
 
-            // Update History User (Info Gagal Sementara)
-            if (data.uid && data.historyId) {
-                await db.collection('users').doc(data.uid)
-                    .collection('history').doc(data.historyId)
-                    .update({
-                        api_msg: `Gagal (${new Date().toLocaleTimeString()}): ${result.msg}. Mencoba lagi...`
-                    });
+            // B. DAFTAR PRODUK ICS
+            reportMsg += "\n📡 <b>SERVER ICS</b>\n";
+            if (icsData && icsData.list && icsData.list.length > 0) {
+                const sortedIcs = icsData.list.sort((a,b) => (a.code||'').localeCompare(b.code||''));
+                const cleanIcs = sortedIcs.filter(i => i.code && !i.code.toLowerCase().includes('tes'));
+                reportMsg += makeTwoColumns(cleanIcs, 'ICS');
+            } else {
+                const errMsg = icsData && icsData.error ? icsData.error : "Unknown Error";
+                reportMsg += `⚠️ Gagal ICS: ${errMsg}\n`;
             }
 
-            // Notif Telegram
-            sendTelegramLog(
-                `⚠️ <b>GAGAL - RETRYING...</b>\nTarget: ${data.targetNumber}\nProduk: ${data.productName}\nError: ${result.msg}`
-            );
+            // C. DAFTAR PRODUK KHFY
+            reportMsg += "\n📡 <b>SERVER KHFY</b>\n";
+            if (khfyData && khfyData.list) {
+                const sortedKhfy = khfyData.list.sort((a,b) => (a.kode_produk||'').localeCompare(b.kode_produk||''));
+                const khfyItems = sortedKhfy.filter(i => {
+                    const c = (i.kode_produk || "").toUpperCase();
+                    return !KHFY_SPECIAL_CODES.includes(c); 
+                });
+                if (khfyItems.length > 0) {
+                    reportMsg += makeTwoColumns(khfyItems, 'KHFY');
+                } else {
+                    reportMsg += "<i>Tidak ada produk KHFY</i>\n";
+                }
+            }
+
+            await sendTelegramLog(reportMsg);
+
+            // --- 3. PROSES TRANSAKSI ---
+            let skippedTransactions = [];
+            let successCount = 0;
+
+            for (const doc of snapshot.docs) {
+                const po = doc.data();
+                const poID = doc.id;
+                const uidUser = po.uid; 
+                const skuProduk = po.productCode || po.provider || po.code;
+                const tujuan = po.targetNumber || po.target || po.tujuan;
+                
+                let serverType = po.serverType;
+                if (!serverType) {
+                    const provCode = (po.provider || "").toUpperCase();
+                    if (provCode.startsWith('ICS')) { serverType = 'ICS'; } else { serverType = 'KHFY'; }
+                }
+
+                let buyerName = po.username || 'User'; 
+                if (uidUser) {
+                    try {
+                        const userSnap = await db.collection('users').doc(uidUser).get();
+                        if (userSnap.exists) {
+                            const userData = userSnap.data();
+                            buyerName = userData.username || userData.name || userData.email || 'Tanpa Nama';
+                        }
+                    } catch (e) {}
+                }
+                
+                console.log(`🔹 TRX: ${poID} | ${serverType} | ${skuProduk} | ${buyerName}`);
+
+                if (!skuProduk || !tujuan) { await db.collection('preorders').doc(poID).delete(); continue; }
+
+                // === LOGIKA CEK STOK & SLOT ===
+                let isSkip = false;
+                let skipReason = '';
+
+                // 1. CEK KHUSUS KHFY PRODUK SPESIAL
+                if (serverType === 'KHFY' && KHFY_SPECIAL_CODES.includes(skuProduk)) {
+                    if (akrabSlotMap) {
+                        const sisaSlot = akrabSlotMap[skuProduk];
+                        const currentSlot = (sisaSlot !== undefined) ? sisaSlot : 0;
+                        if (currentSlot <= 3) { 
+                            isSkip = true;
+                            skipReason = `Stok Kosong (Slot ${currentSlot})`;
+                        }
+                    } else {
+                        isSkip = true; skipReason = `Gagal Cek Slot V3`;
+                    }
+                } 
+                
+                // 2. CEK STOK REGULAR
+                if (!isSkip) {
+                    if (serverType === 'KHFY' && stockMapKHFY) {
+                        const info = stockMapKHFY[skuProduk];
+                        if (info) {
+                            if (info.gangguan) { isSkip = true; skipReason = 'KHFY GANGGUAN'; }
+                            else if (info.kosong) { isSkip = true; skipReason = 'KHFY STOK KOSONG'; }
+                            else if (info.status === 0) { isSkip = true; skipReason = 'KHFY NONAKTIF'; }
+                        }
+                    } else if (serverType === 'ICS' && stockMapICS) {
+                        const info = stockMapICS[skuProduk];
+                        if (info) {
+                            if (info.gangguan) { isSkip = true; skipReason = 'ICS GANGGUAN'; }
+                            else if (info.kosong) { isSkip = true; skipReason = 'ICS STOK KOSONG'; }
+                            else if (info.nonaktif) { isSkip = true; skipReason = 'ICS NONAKTIF'; }
+                        }
+                    }
+                }
+
+                // === SKIP & NOTIF MODIFIKASI ===
+                if (isSkip) {
+                    console.log(`   ⛔ SKIP: ${skipReason}`);
+                    
+                    let shortReason = skipReason;
+                    if (skipReason.includes('Slot')) {
+                        const matches = skipReason.match(/\d+/);
+                        if (matches) shortReason = matches[0];
+                    } else {
+                        shortReason = skipReason.replace('KHFY ', '').replace('ICS ', '').replace('STOK ', '');
+                    }
+                    const skipNotifMsg = `${serverType}-${buyerName}-${skuProduk}-Stok'${shortReason}'-${tujuan}`;
+                    
+                    await sendTelegramLog(skipNotifMsg);
+                    skippedTransactions.push({ buyer: buyerName, sku: skuProduk, dest: tujuan, reason: skipReason, server: serverType });
+                    continue; 
+                }
+
+                // === EKSEKUSI TRANSAKSI ===
+                let reffId = po.active_reff_id;
+                if (!reffId) {
+                    reffId = `${serverType}-AUTO-${Date.now()}`; 
+                    await db.collection('preorders').doc(poID).update({ active_reff_id: reffId });
+                }
+
+                const requestData = { sku: skuProduk, tujuan: tujuan, reffId: reffId };
+                let result = await hitProviderDirect(serverType, requestData, false);
+
+                const isExplicitPending = result.success === true && result.data && result.data.status === 'pending';
+                if (isExplicitPending) {
+                    console.log(`      ⏳ Pending Spesifik. Tunggu 6s...`);
+                    await new Promise(r => setTimeout(r, 6000));
+                    result = await hitProviderDirect(serverType, requestData, true) || result;
+                }
+
+                let msgRaw = String(result.msg || result.message || (result.data && result.data.message) || '').toLowerCase();
+                let isDuplicate = msgRaw.includes('sudah ada') || msgRaw.includes('sudah pernah') || msgRaw.includes('duplicate') || msgRaw.includes('sdh pernah');
+
+                if (serverType !== 'ICS' && !isDuplicate) {
+                    const isQueued = msgRaw.includes('proses') || msgRaw.includes('berhasil') || msgRaw.includes('pending');
+                    if (result.ok === true && isQueued) {
+                        if(!isExplicitPending) await new Promise(r => setTimeout(r, 5000)); 
+                        isDuplicate = true; 
+                    }
+                }
+
+                if (isDuplicate) {
+                    const checkResult = await hitProviderDirect(serverType, requestData, true);
+                    if (checkResult && (checkResult.ok === true || checkResult.data)) { result = checkResult; }
+                }
+                
+                let isSuccess = false;
+                let finalMessage = '-';
+                let finalSN = '-';
+                let trxIdProvider = '-';
+                let isHardFail = false; 
+
+                if (serverType === 'ICS') {
+                    if (result.success === true && result.data) {
+                        if (result.data.status === 'success' || result.data.status === 'sukses') {
+                            isSuccess = true; finalMessage = result.data.message; finalSN = result.data.sn || '-'; trxIdProvider = result.data.refid || '-';
+                        } else if (result.data.status === 'failed' || result.data.status === 'gagal') {
+                            isHardFail = true; finalMessage = result.data.message;
+                        } else { finalMessage = result.data.message || 'Pending'; }
+                    } 
+                    if (!isSuccess && !isHardFail) finalMessage = result.message || 'Gagal/Pending ICS';
+
+                } else {
+                    let dataItem = null;
+                    if (result.data) {
+                        if (Array.isArray(result.data)) dataItem = result.data[0]; else dataItem = result.data;
+                    }
+                    const statusText = dataItem ? (dataItem.status_text || '') : '';
+                    const isExplicitSuccess = (statusText === 'SUKSES'); 
+                    
+                    if (result.ok === true && isExplicitSuccess) {
+                        isSuccess = true; trxIdProvider = dataItem.kode || dataItem.trxid || '-'; finalSN = dataItem.sn || '-';
+                        if (dataItem.kode_produk === 'CFMX' || (finalSN && finalSN.toLowerCase().includes('varian'))) {
+                             finalMessage = `${finalSN}. Tujuan: ${dataItem.tujuan || tujuan}`;
+                        } else { finalMessage = `${statusText}. SN: ${finalSN}`; }
+                    } else {
+                        const msg = (result.msg || result.message || '').toLowerCase();
+                        if (msg.includes('stok kosong') || msg.includes('#gagal')) {
+                            isHardFail = true; finalMessage = msg;
+                        } else if (dataItem && dataItem.status_text === 'GAGAL') {
+                            isHardFail = true; finalMessage = dataItem.keterangan || 'Transaksi Gagal';
+                        } else {
+                            if (dataItem) finalMessage = dataItem.keterangan || dataItem.status_text || 'Pending';
+                            else finalMessage = result.message || 'Pending/Maintenance';
+                        }
+                    }
+                }
+
+                const rawJsonStr = JSON.stringify(result, null, 2); 
+                const safeJsonStr = escapeHtml(rawJsonStr.substring(0, 3500));
+                const jsonBlock = `\n<b>🔽 JSON RESPONSE (${serverType}):</b>\n<blockquote expandable><pre><code class="json">${safeJsonStr}</code></pre></blockquote>`;
+
+                if (isSuccess) {
+                    console.log(`   ✅ SUKSES!`);
+                    successCount++; 
+                    const historyId = po.historyId || `TRX-${Date.now()}`;
+                    let finalTitle = po.productName || skuProduk;
+                    if (!finalTitle.toLowerCase().includes('preorder')) finalTitle = `[PreOrder] ${finalTitle}`;
+
+                    await db.collection('users').doc(uidUser).collection('history').doc(historyId).set({
+                        uid: uidUser, trx_id: reffId, trx_code: Math.floor(100000 + Math.random() * 900000).toString(),
+                        title: finalTitle, type: 'out', amount: po.price || 0, status: 'Sukses',
+                        dest_num: tujuan, sn: finalSN, trx_id_provider: trxIdProvider, provider_code: skuProduk,
+                        date: new Date().toISOString(), api_msg: finalMessage, balance_before: 0, balance_after: 0,
+                        is_preorder: true, raw_provider_json: JSON.stringify(result), provider_source: serverType
+                    });
+
+                    await sendUserLog(uidUser, "PreOrder Berhasil", `Sukses: ${finalTitle}`, historyId);
+                    
+                    const logMsg = `<b>LOG (${getWIBTime()})</b>\n✅ <b>STATUS: SUKSES</b>\n---------------------------\n👤 <b>Pembeli:</b> ${buyerName}\n📦 <b>Produk:</b> ${finalTitle}\n📱 <b>Tujuan:</b> ${tujuan}\n🧾 <b>SN:</b> ${finalSN}\n${jsonBlock}`;
+                    await sendTelegramLog(logMsg, true);
+                    await db.collection('preorders').doc(poID).delete();
+
+                } else {
+                    if (isHardFail) {
+                         console.log(`   ⚠️ HARD FAIL: ${finalMessage}`);
+                         const logMsg = `<b>LOG (${getWIBTime()})</b>\n⚠️ <b>STATUS: HARD FAIL (RESET ID)</b>\n---------------------------\n👤 <b>Pembeli:</b> ${buyerName}\n📦 <b>Produk:</b> ${skuProduk}\n💬 <b>Pesan:</b> ${finalMessage}\n${jsonBlock}`;
+                         await sendTelegramLog(logMsg);
+                         await db.collection('preorders').doc(poID).update({
+                            active_reff_id: admin.firestore.FieldValue.delete(), 
+                            debugLogs: `[${new Date().toLocaleTimeString()}] [FAIL-RESET] ${finalMessage}`
+                        });
+                    } else {
+                        console.log(`   ⏳ PENDING/SOFT FAIL.`);
+                        const logMsg = `<b>LOG (${getWIBTime()})</b>\n⏳ <b>STATUS: PENDING/RETRY</b>\n---------------------------\n👤 <b>Pembeli:</b> ${buyerName}\n📦 <b>Produk:</b> ${skuProduk}\n💬 <b>Pesan:</b> ${finalMessage}\n${jsonBlock}`;
+                        await sendTelegramLog(logMsg);
+                    }
+                }
+                await new Promise(r => setTimeout(r, 6000));
+            }
         }
 
-    } catch (err) {
-        console.error("CRITICAL ERROR:", err);
+    } catch (error) { 
+        console.error("CRITICAL ERROR:", error);
+        await sendTelegramLog(`⚠️ <b>CRITICAL ERROR:</b> ${error.message}`);
+    } finally {
+        // --- 4. PEMBATAS AKHIR (PASTI DIKIRIM) ---
+        await sendTelegramLog("================================");
+        console.log("\n--- SELESAI ---");
     }
 }
 
-// --- 5. START LOOP ---
-console.log("Worker Autorun V3.4 (Native Fetch) Started...");
-// Jalankan setiap 5 detik
-setInterval(runWorker, 5000);
+runPreorderQueue();

@@ -3130,59 +3130,85 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
     };
 
             window.renderEtalaseGrid = (products, provCode) => {
-         const grid = document.getElementById('etalaseGrid');
-         grid.innerHTML = '';
-         if(products.length === 0) {
-             grid.innerHTML = '<div class="col-span-2 text-center py-10 bg-gray-50 dark:bg-gray-800 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700"><i class="fas fa-box-open text-3xl mb-2 text-gray-300"></i><p class="text-xs text-gray-400">Produk Kosong / Gangguan</p></div>';
-             return;
-         }
-         
-         products.sort((a, b) => {
-             const pa = parseInt(a.harga || a.price || a.buyer_price || a.harga_final || 0);
-             const pb = parseInt(b.harga || b.price || b.buyer_price || b.harga_final || 0);
-             return pa - pb;
-         });
+    const grid = document.getElementById('etalaseGrid');
+    grid.innerHTML = '';
+    if(products.length === 0) {
+        grid.innerHTML = '<div class="col-span-2 text-center py-10 bg-gray-50 dark:bg-gray-800 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700"><i class="fas fa-box-open text-3xl mb-2 text-gray-300"></i><p class="text-xs text-gray-400">Produk Kosong / Gangguan</p></div>';
+        return;
+    }
+    
+    products.sort((a, b) => {
+        const pa = parseInt(a.harga || a.price || a.buyer_price || a.harga_final || 0);
+        const pb = parseInt(b.harga || b.price || b.buyer_price || b.harga_final || 0);
+        return pa - pb;
+    });
 
-                 products.forEach(p => {
-            let rawPrice = parseInt(p.harga || p.price || p.buyer_price || p.harga_final || 0);
-            let price = rawPrice;
-            let name = p.nama_produk || p.name || p.product_name || 'Produk';
-            const code = p.kode_produk || p.code || p.buyer_sku_code;
-            let desc = '';
+    products.forEach(p => {
+        let rawPrice = parseInt(p.harga || p.price || p.buyer_price || p.harga_final || 0);
+        let price = rawPrice;
+        let name = p.nama_produk || p.name || p.product_name || 'Produk';
+        const code = p.kode_produk || p.code || p.buyer_sku_code;
+        let desc = '';
 
-            // --- LOGIKA BARU: DESKRIPSI & HARGA ---
-            if(typeof pricingRules !== 'undefined' && pricingRules[code]) {
-                const r = pricingRules[code];
-                if(typeof r === 'object') {
-                    if(r.price) price += parseInt(r.price);
-                    if(r.name) name = r.name;
-                    if(r.desc) desc = r.desc;
-                } else {
-                    price += parseInt(r);
-                }
-            } else { price += 2000; }
+        if(typeof pricingRules !== 'undefined' && pricingRules[code]) {
+            const r = pricingRules[code];
+            if(typeof r === 'object') {
+                if(r.price) price += parseInt(r.price);
+                if(r.name) name = r.name;
+                if(r.desc) desc = r.desc;
+            } else {
+                price += parseInt(r);
+            }
+        } else { price += 2000; }
 
-            // --- STATUS BARANG ---
-            let isHabis = false;
-            if (p.gangguan == 1) isHabis = true;
-            if (p.kosong == 1) isHabis = true;
-            if (p.buyer_product_status === false || p.buyer_product_status === 0) isHabis = true;
-            if (p.seller_product_status === false || p.seller_product_status === 0) isHabis = true;
-            if (p.stock === 0 || p.stock === '0') isHabis = true;
-            if(typeof provCode !== 'undefined' && (provCode === 'ICS_XDA' || provCode === 'ICS_CIRCLE')) isHabis = false;
+        let currentStock = 0;
+        if(p.stock !== undefined) currentStock = parseInt(p.stock);
+        else if(p.stok !== undefined) currentStock = parseInt(p.stok);
+        else if(p.sisa_slot !== undefined) currentStock = parseInt(p.sisa_slot);
+        else currentStock = 999;
 
-            // --- TAMPILAN CARD (GRID) ---
-            const card = document.createElement('div');
-            // Tambah min-h-[110px] agar lebih panjang 25%
-            card.className = `relative p-4 rounded-3xl border transition-all duration-300 ${isHabis ? 'bg-gray-100 dark:bg-gray-800 border-gray-200 opacity-60 grayscale cursor-not-allowed pointer-events-none' : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-lg hover:border-blue-200 dark:hover:border-blue-800 cursor-pointer group'} flex flex-col justify-between min-h-[110px]`;
+        let isHabis = false;
+        if (p.gangguan == 1 || p.kosong == 1 || currentStock <= 0) isHabis = true;
+        if (p.buyer_product_status === false || p.seller_product_status === false) isHabis = true;
 
-            if(!isHabis) {
-                card.onclick = () => {
-                    document.getElementById('formProduct').value = code;
-                    document.getElementById('selectedProductName').value = name;
-                    document.getElementById('selectedProductPrice').value = price;
-                    window.processFormTransaction();
-                };
+        const card = document.createElement('div');
+        card.className = `relative p-4 rounded-3xl border transition-all duration-300 ${isHabis ? 'bg-gray-100 dark:bg-gray-800 border-gray-200 opacity-60 grayscale cursor-not-allowed pointer-events-none' : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-lg hover:border-blue-200 dark:hover:border-blue-800 cursor-pointer group'} flex flex-col justify-between min-h-[110px]`;
+
+        if(!isHabis) {
+            card.onclick = () => {
+                document.getElementById('formProduct').value = code;
+                document.getElementById('selectedProductName').value = name;
+                document.getElementById('selectedProductPrice').value = price;
+                window.processFormTransaction();
+            };
+        }
+
+        let stockLabel = currentStock > 900 ? 'Tersedia' : `Stok: ${currentStock}`;
+        let stockClass = isHabis ? 'text-red-500' : (currentStock < 10 ? 'text-orange-500' : 'text-green-500');
+        let badgeStyle = isHabis ? 'bg-gray-100 text-gray-500 border-gray-200' : 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-800';
+
+        card.innerHTML = `
+            <div class="flex flex-col h-full">
+                <div class="mb-1">
+                    <h4 class="text-xs font-bold text-gray-700 dark:text-gray-200 leading-tight ${!isHabis ? 'group-hover:text-blue-600 transition' : ''}">${name}</h4>
+                </div>
+                ${desc ? `<div class="mt-1 mb-2"><p class="text-[8px] leading-tight text-blue-600 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded border border-blue-100 dark:border-blue-800 inline-block"><i class="fas fa-info-circle mr-1"></i>${desc}</p></div>` : '<div class="my-1"></div>'}
+                <div class="mt-auto">
+                    <div class="flex items-center gap-1 mb-2">
+                        <i class="fas fa-box text-[9px] ${stockClass}"></i>
+                        <p class="text-[9px] text-gray-400">${isHabis ? 'Habis/Gangguan' : stockLabel}</p>
+                    </div>
+                    <div class="flex justify-between items-end border-t border-dashed border-gray-100 dark:border-gray-800 pt-2">
+                        <div>
+                            <p class="text-[9px] text-gray-400">Harga</p>
+                            <p class="text-sm font-black text-gray-800 dark:text-white">${window.formatRp(price).replace(',00', '').replace('Rp', '')}<span class="text-[9px] font-normal text-gray-400">rb</span></p>
+                        </div>
+                        <span class="text-[9px] font-bold px-2 py-1 rounded-lg border ${badgeStyle}">${isHabis ? 'OFF' : 'BELI'}</span>
+                    </div>
+                </div>
+            </div>`;
+        grid.appendChild(card);
+    };
             }
 
             let stockLabel = 'Tersedia';

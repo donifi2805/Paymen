@@ -3091,7 +3091,17 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
 
         document.getElementById('formProvider').value = code;
         const grid = document.getElementById('etalaseGrid');
-        grid.innerHTML = '<div class="col-span-2 text-center py-12"><div class="loader mx-auto mb-3"></div><p class="text-xs text-gray-500 font-bold animate-pulse">Memuat Produk...</p></div>';
+                // --- LOGIKA CACHE & SILENT REFRESH ---
+        if (!window.providerCache) window.providerCache = {};
+        
+        if (window.providerCache[code]) {
+            // Jika ada cache, render langsung (User merasa instan)
+            window.renderEtalaseGrid(window.providerCache[code], code);
+        } else {
+            // Jika tidak ada, baru tampilkan loader
+            grid.innerHTML = '<div class="col-span-2 text-center py-12"><div class="loader mx-auto mb-3"></div><p class="text-xs text-gray-500 font-bold animate-pulse">Memuat Produk...</p></div>';
+        }
+
 
         let products = [];
         if(code.startsWith('ICS_')) {
@@ -3140,7 +3150,11 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
                 return false;
              });
         }
-        window.renderEtalaseGrid(products, code);
+                     // Simpan data terbaru ke cache sebelum render ulang
+             if (!window.providerCache) window.providerCache = {};
+             if (products && products.length > 0) window.providerCache[code] = products;
+             
+             window.renderEtalaseGrid(products, code);
     };
 
             // --- INTEGRASI STOK REALTIME KHFY V3 (Sesuai Autorun.js) ---
@@ -3230,7 +3244,7 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
             // --- TAMPILAN CARD (GRID) ---
             const card = document.createElement('div');
             // MODIFIKASI: Hapus pointer-events-none agar bisa diklik untuk notifikasi habis
-            card.className = `relative p-4 rounded-3xl border transition-all duration-300 ${isHabis ? 'bg-gray-100 dark:bg-gray-800 border-gray-200 opacity-60 grayscale cursor-not-allowed' : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-lg hover:border-blue-200 dark:hover:border-blue-800 cursor-pointer group'} flex flex-col justify-between min-h-[110px]`;
+            card.className = `relative p-4 rounded-3xl border transition-all duration-300 ${isHabis ? 'bg-gray-100 dark:bg-gray-800 border-gray-200 opacity-60 grayscale cursor-not-allowed pointer-events-none' : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-lg hover:border-blue-200 dark:hover:border-blue-800 cursor-pointer group'} flex flex-col justify-between min-h-[110px]`;
 
             if(isHabis) {
                 // Block Checkout jika Habis (Tampilkan Alert)

@@ -3516,36 +3516,68 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
                         // --- LOGIKA CARD (LIST VIEW) DENGAN DESKRIPSI ---
                 filtered.forEach(p => {
                     let price = p.price || p.harga_final || p.buyer_price || 0;
-                    const code = p.code || p.kode_produk || p.buyer_sku_code;
-                    let name = p.name || p.nama_produk || p.product_name;
-                    let desc = '';
+                                const code = p.code || p.kode_produk;
+            const name = p.name || p.nama_produk;
+            const price = parseInt(p.price || p.harga_produk);
+            const desc = p.description || p.keterangan || '';
 
-                    if(typeof pricingRules !== 'undefined' && pricingRules[code]) {
-                        const r = pricingRules[code];
-                        if(typeof r === 'object') {
-                            if(r.price) price += parseInt(r.price);
-                            if(r.name) name = r.name;
-                            if(r.desc) desc = r.desc;
-                        } else {
-                            price += parseInt(r);
-                        }
+            // --- 1. LOGIKA STOK & STATUS (PRIORITAS UTAMA) ---
+            let realStock = 999;
+            let isHabis = false;
+            let stockLabel = 'Tersedia';
+            let stockClass = 'text-green-500';
+            
+            // Normalisasi Kode
+            const normalizedCode = (code || '').toUpperCase();
+            const khfySpecialCodes = ['XLA14', 'XLA32', 'XLA39', 'XLA51', 'XLA65', 'XLA89'];
+
+            // A. Cek KHFY V3 (Provider XLA/XDA)
+            if (provCode === 'XLA' || provCode === 'XDA') {
+                    if (khfySpecialCodes.includes(normalizedCode) && window.khfyV3StockMap && window.khfyV3StockMap[normalizedCode] !== undefined) {
+                        realStock = window.khfyV3StockMap[normalizedCode];
+                        stockLabel = `Sisa ${realStock}`;
                     }
-                    
-                    let isGangguan = false;
-                    if (p.gangguan == 1) isGangguan = true;
-                    if (p.kosong == 1) isGangguan = true;
-                    if (p.buyer_product_status === false || p.buyer_product_status === 0) isGangguan = true;
-                    if (p.seller_product_status === false || p.seller_product_status === 0) isGangguan = true;
-                    if (p.stock == 0 && p.unlimited_stock === false) isGangguan = true;
+            }
+            
+            // B. Cek ICS (API Bawaan)
+            if (provCode && provCode.startsWith('ICS_')) {
+                if (p.stock !== undefined && p.stock !== null) {
+                    realStock = parseInt(p.stock);
+                    stockLabel = `Stok: ${realStock}`;
+                } else if (p.stok !== undefined && p.stok !== null) {
+                    realStock = parseInt(p.stok);
+                    stockLabel = `Stok: ${realStock}`;
+                }
+            }
 
-                    const isPreorder = !document.getElementById('preorderPage').classList.contains('hide');
-                    const div = document.createElement('div');
-                    
-                    // Style Card List (Lebih Tinggi: min-h-[90px])
-                    div.className = `p-4 py-4 rounded-2xl border ${isGangguan && !isPreorder ? 'border-red-200 bg-red-50 cursor-not-allowed opacity-70' : 'border-gray-100 bg-white cursor-pointer transition active:scale-[0.98]'} mb-3 flex justify-between items-start group relative overflow-hidden min-h-[130px] shadow-sm`;
+            // C. Penentuan Status Habis (Logic Strict)
+            if (realStock <= 0) isHabis = true;
+            if (p.gangguan) isHabis = true;
+            if (p.status === 'gangguan' || p.status === 'error' || p.status === 'empty' || p.status === 'kosong') isHabis = true;
+            // CATATAN: Pengecualian untuk XDA/Circle DIHAPUS agar sesuai stok asli
 
-                    if(isGangguan && !isPreorder) {
-                        div.innerHTML = `
+            // D. Pewarnaan Label
+            if (isHabis) {
+                stockLabel = 'Habis / Gangguan';
+                stockClass = 'text-red-500';
+            } else if (realStock <= 5) {
+                stockClass = 'text-red-500 font-bold animate-pulse'; 
+            } else if (realStock <= 20) {
+                stockClass = 'text-orange-500 font-bold';
+            }
+
+            // --- 2. PEMBUATAN ELEMENT CARD ---
+            const div = document.createElement('div');
+            
+            // CLASS: Tambahkan 'pointer-events-none' jika habis agar TIDAK BISA DIKLIK SAMA SEKALI
+            div.className = `relative p-4 rounded-3xl border transition-all duration-300 ${isHabis ? 'bg-gray-100 dark:bg-gray-800 border-gray-200 opacity-60 grayscale cursor-not-allowed pointer-events-none' : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-lg hover:border-blue-200 dark:hover:border-blue-800 cursor-pointer group'} flex flex-col justify-between min-h-[110px]`;
+
+            // EVENT: Hanya pasang onclick jika TIDAK habis
+            if (!isHabis) {
+                    div.onclick = () => window.selectProduct(code, name, price, desc, encodeURIComponent(name));
+            }
+
+            div.innerHTML = `
                             <div>
                                 <p class="text-xs font-bold text-red-500 line-through">${name}</p>
                                 <p class="text-[9px] text-red-400 font-bold mt-1">GANGGUAN / KOSONG</p>

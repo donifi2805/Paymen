@@ -2917,6 +2917,7 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
     window.openPPOB = async (cat) => { 
         document.getElementById('homePage').classList.add('hide'); 
         document.getElementById('ppobPage').classList.remove('hide'); 
+        window.fetchKhfyV3Stock(); // Ambil stok V3 terbaru 
         document.getElementById('bottomNav').classList.add('hide');
         
         const pSelect = document.getElementById('formProvider');
@@ -3129,7 +3130,49 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
         window.renderEtalaseGrid(products, code);
     };
 
-            window.renderEtalaseGrid = (products, provCode) => {
+            // --- INTEGRASI STOK REALTIME KHFY V3 (Sesuai Autorun.js) ---
+    window.khfyV3StockMap = {};
+    window.fetchKhfyV3Stock = async () => {
+        // Hanya fetch jika belum ada data atau memaksa refresh
+        console.log("Mengambil Stok KHFY V3...");
+        const targetUrl = "https://panel.khfy-store.com/api_v3/cek_stock_akrab";
+        let data = null;
+
+        // Gunakan Proxy List Global (Sama seperti live stock)
+        for (const proxy of PROXY_LIST) {
+            try {
+                const fullUrl = proxy.url ? proxy.url + encodeURIComponent(targetUrl) : targetUrl;
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                
+                const res = await fetch(fullUrl, { signal: controller.signal });
+                clearTimeout(timeoutId);
+                
+                if(res.ok) {
+                    const json = await res.json();
+                    if(json.ok && Array.isArray(json.data)) {
+                        data = json.data;
+                        break; 
+                    }
+                }
+            } catch(e) { console.log("V3 Fetch Skip:", e); }
+        }
+
+        if(data) {
+            data.forEach(item => {
+                if(item.type) window.khfyV3StockMap[item.type] = parseInt(item.sisa_slot || 0);
+            });
+            console.log("Stok V3 Updated:", window.khfyV3StockMap);
+            
+            // Auto Refresh Grid jika sedang membuka provider XLA
+            const currentProv = document.getElementById('formProvider').value;
+            if(currentProv === 'XLA' && !document.getElementById('ppobPage').classList.contains('hide')) {
+                window.selectProviderTab('XLA');
+            }
+        }
+    };
+
+    window.renderEtalaseGrid = (products, provCode) => {
          const grid = document.getElementById('etalaseGrid');
          grid.innerHTML = '';
          if(products.length === 0) {
@@ -3185,10 +3228,49 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
                 };
             }
 
+            // --- LOGIKA STOK DINAMIS V3.4 (ICS & KHFY) ---
             let stockLabel = 'Tersedia';
             let stockClass = 'text-green-500';
             let badgeStyle = 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-800';
             
+            let realStock = 999;
+            // Kode Spesial KHFY Akrab (Sesuai Autorun.js)
+            const khfySpecialCodes = ['XLA14', 'XLA32', 'XLA39', 'XLA51', 'XLA65', 'XLA89'];
+            const normalizedCode = (code || '').toUpperCase();
+
+            // 1. Cek KHFY V3 (Hanya untuk provider XLA/XDA)
+            if (provCode === 'XLA' || provCode === 'XDA') {
+                 // Jika kode produk terdaftar di V3 Map
+                 if (khfySpecialCodes.includes(normalizedCode) && window.khfyV3StockMap && window.khfyV3StockMap[normalizedCode] !== undefined) {
+                     realStock = window.khfyV3StockMap[normalizedCode];
+                     stockLabel = `Sisa ${realStock}`;
+                 }
+            }
+            
+            // 2. Cek ICS (Bawaan API listProducts)
+            if (provCode && provCode.startsWith('ICS_')) {
+                if (p.stock !== undefined && p.stock !== null) {
+                    realStock = parseInt(p.stock);
+                    stockLabel = `Stok: ${realStock}`;
+                } else if (p.stok !== undefined && p.stok !== null) {
+                    realStock = parseInt(p.stok);
+                    stockLabel = `Stok: ${realStock}`;
+                }
+            }
+
+            // Pewarnaan & Status Habis Berdasarkan Angka
+            if (realStock <= 0) {
+                isHabis = true;
+                stockLabel = 'Habis / Gangguan';
+                stockClass = 'text-red-500';
+                badgeStyle = 'bg-gray-100 text-gray-500 border-gray-200';
+            } else if (realStock <= 5) {
+                stockClass = 'text-red-500 font-bold animate-pulse'; // Stok Kritis
+            } else if (realStock <= 20) {
+                stockClass = 'text-orange-500 font-bold'; // Stok Menipis
+            }
+            
+            // Fallback jika status produk memang gangguan dari awal
             if(isHabis) {
                 stockLabel = 'Habis / Gangguan';
                 stockClass = 'text-red-500';

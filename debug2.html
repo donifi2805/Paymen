@@ -3104,8 +3104,21 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
                 else if (res.data && res.data.ready && Array.isArray(res.data.ready)) products = res.data.ready;
                 else if (Array.isArray(res.data)) products = res.data;
                 
-                if (code === 'ICS_CIRCLE') products = products.filter(p => (p.type === 'circle' || (p.code||'').toUpperCase().startsWith('XCL')));
-                                else if (code === 'ICS_XDA') products = products.filter(p => (p.type === 'xda' || (p.code||'').toUpperCase().startsWith('XDA')));
+                                // FILTER LONGGAR UNTUK PREORDER (Keyword Matching)
+                if (code === 'ICS_CIRCLE') {
+                    products = products.filter(p => {
+                        const n = (p.name || p.nama_produk || '').toUpperCase();
+                        const c = (p.code || p.kode_produk || '').toUpperCase();
+                        return p.type === 'circle' || c.startsWith('XCL') || n.includes('CIRCLE');
+                    });
+                }
+                else if (code === 'ICS_XDA') {
+                    products = products.filter(p => {
+                        const n = (p.name || p.nama_produk || '').toUpperCase();
+                        const c = (p.code || p.kode_produk || '').toUpperCase();
+                        return p.type === 'xda' || c.startsWith('XDA') || n.includes('FRESH') || n.includes('AKRAB');
+                    });
+                }
                 else if (code === 'ICS_XLA') products = products.filter(p => (p.type === 'xla' || (p.code||'').toUpperCase().startsWith('XLA')));
              }
         } else {
@@ -3216,10 +3229,16 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
 
             // --- TAMPILAN CARD (GRID) ---
             const card = document.createElement('div');
-            // Tambah min-h-[110px] agar lebih panjang 25%
-            card.className = `relative p-4 rounded-3xl border transition-all duration-300 ${isHabis ? 'bg-gray-100 dark:bg-gray-800 border-gray-200 opacity-60 grayscale cursor-not-allowed pointer-events-none' : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-lg hover:border-blue-200 dark:hover:border-blue-800 cursor-pointer group'} flex flex-col justify-between min-h-[110px]`;
+            // MODIFIKASI: Hapus pointer-events-none agar bisa diklik untuk notifikasi habis
+            card.className = `relative p-4 rounded-3xl border transition-all duration-300 ${isHabis ? 'bg-gray-100 dark:bg-gray-800 border-gray-200 opacity-60 grayscale cursor-not-allowed' : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-lg hover:border-blue-200 dark:hover:border-blue-800 cursor-pointer group'} flex flex-col justify-between min-h-[110px]`;
 
-            if(!isHabis) {
+            if(isHabis) {
+                // Block Checkout jika Habis (Tampilkan Alert)
+                card.onclick = (e) => {
+                    e.preventDefault();
+                    window.showAlert('Stok Habis / Gangguan', 'Maaf, produk ini sedang tidak tersedia atau gangguan saat ini.', 'error');
+                };
+            } else {
                 card.onclick = () => {
                     document.getElementById('formProduct').value = code;
                     document.getElementById('selectedProductName').value = name;

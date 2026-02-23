@@ -5,44 +5,60 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>System Debug - Injeksi Riwayat & Saldo</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        body { font-family: 'Poppins', sans-serif; background-color: #F4F7FE; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4">
 
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-gray-100">
-        <div class="bg-red-600 px-6 py-4 flex items-center justify-between">
-            <h2 class="text-white font-bold text-lg"><i class="fas fa-bug mr-2"></i> System Debugger</h2>
-            <span class="bg-red-800 text-white text-xs px-2 py-1 rounded-md">Admin Only</span>
+    <div class="bg-white rounded-3xl shadow-2xl shadow-blue-900/10 w-full max-w-lg overflow-hidden border border-gray-100">
+        <div class="bg-gradient-to-r from-red-600 to-red-700 px-6 py-5 flex items-center justify-between">
+            <div>
+                <h2 class="text-white font-black text-xl tracking-tight"><i class="fas fa-bug mr-2"></i> System Debugger</h2>
+                <p class="text-red-100 text-xs font-medium mt-0.5">Pandawa Store - Injector Tool</p>
+            </div>
+            <span class="bg-white/20 text-white text-[10px] font-bold px-2 py-1 rounded-md border border-white/30 backdrop-blur-sm">Admin Only</span>
         </div>
 
         <div class="p-6 space-y-4">
-            <p class="text-sm text-gray-500 mb-4">Gunakan *tool* ini untuk memperbaiki riwayat transaksi dan menyesuaikan saldo user.</p>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Target User (UID / Email)</label>
-                <input type="text" id="targetUser" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all" placeholder="Masukkan UID atau Email user...">
+            <div class="bg-blue-50 border border-blue-100 p-3 rounded-xl mb-2">
+                <p class="text-xs text-blue-700 leading-relaxed"><i class="fas fa-info-circle mr-1"></i> Tool ini akan otomatis memotong/menambah <b>balance</b> dan mencatat di <b>DoniGuard Audit</b> agar sistem tidak mendeteksi anomali.</p>
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Deskripsi Transaksi</label>
-                <input type="text" id="txDesc" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all" placeholder="Contoh: Refund Topup Telkomsel Gagal">
+                <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Target User (Username / Email / UID)</label>
+                <div class="relative">
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" id="targetUser" class="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 pl-11 text-sm font-bold text-gray-700" placeholder="Masukkan Username / Email target...">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Deskripsi / Judul Riwayat</label>
+                <div class="relative">
+                    <i class="fas fa-pen absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" id="txDesc" class="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 pl-11 text-sm font-bold text-gray-700" placeholder="Contoh: Refund Transaksi Gagal">
+                </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Nominal (Rp)</label>
-                    <input type="number" id="txAmount" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all" placeholder="0">
+                    <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Nominal (Rp)</label>
+                    <div class="relative">
+                        <i class="fas fa-rupiah-sign absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <input type="number" id="txAmount" class="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 pl-11 text-sm font-bold text-gray-700" placeholder="0">
+                    </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Aksi Saldo</label>
-                    <select id="txAction" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all">
-                        <option value="deduct">Potong Saldo (-)</option>
+                    <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Aksi Saldo</label>
+                    <select id="txAction" class="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 px-4 text-sm font-bold text-gray-700">
                         <option value="add">Tambah Saldo (+)</option>
+                        <option value="deduct">Potong Saldo (-)</option>
                         <option value="none">Hanya Injeksi Riwayat</option>
                     </select>
                 </div>
@@ -50,122 +66,190 @@
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Status Riwayat</label>
-                    <select id="txStatus" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all">
+                    <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Status Riwayat</label>
+                    <select id="txStatus" class="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 px-4 text-sm font-bold text-gray-700">
                         <option value="Sukses">Sukses</option>
                         <option value="Gagal">Gagal</option>
                         <option value="Pending">Pending</option>
+                        <option value="Dibatalkan">Dibatalkan</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Waktu (Manual)</label>
-                    <input type="datetime-local" id="txDatetime" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all text-sm">
+                    <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Waktu (Kosongkan = Saat ini)</label>
+                    <input type="datetime-local" id="txDatetime" class="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 px-4 text-xs font-bold text-gray-700">
                 </div>
             </div>
-            <p class="text-[11px] text-gray-500 -mt-2 text-right">*Kosongkan waktu untuk pakai waktu saat ini.</p>
 
-            <button onclick="executeInjection()" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-lg mt-4 transition-colors shadow-lg shadow-red-500/30">
-                <i class="fas fa-bolt mr-2"></i> Eksekusi Injeksi
+            <button id="btnExecute" class="w-full bg-red-600 hover:bg-red-700 text-white font-black py-3.5 rounded-xl mt-6 transition-transform active:scale-95 shadow-lg shadow-red-600/30 flex justify-center items-center gap-2">
+                <i class="fas fa-bolt"></i> EKSEKUSI INJEKSI
             </button>
         </div>
     </div>
 
-    <script>
-        // INISIALISASI FIREBASE KAMU DI SINI
-        // const firebaseConfig = { ... };
-        // firebase.initializeApp(firebaseConfig);
-        // const db = firebase.firestore();
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, getDoc, collection, query, where, getDocs, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        function executeInjection() {
-            const user = document.getElementById('targetUser').value;
-            const desc = document.getElementById('txDesc').value;
+        const firebaseConfig = {
+            apiKey: "AIzaSyBnVxgxkS8InH1PQCMGe3cY8IvPqSN6dLo",
+            authDomain: "ppob-3ea96.firebaseapp.com",
+            projectId: "ppob-3ea96",
+            storageBucket: "ppob-3ea96.firebasestorage.app",
+            messagingSenderId: "181320175094",
+            appId: "1:181320175094:web:306b79071018410b910bd7",
+            measurementId: "G-0K2V796QDX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Fungsi Helper Pencarian Target (UID / Email / Username)
+        async function findTargetUser(identifier) {
+            // 1. Cek jika identifier adalah UID langsung
+            const docRef = doc(db, "users", identifier);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) return { uid: docSnap.id, ...docSnap.data() };
+
+            const usersRef = collection(db, "users");
+            
+            // 2. Cek Berdasarkan Email
+            const qEmail = query(usersRef, where("email", "==", identifier));
+            const snapEmail = await getDocs(qEmail);
+            if (!snapEmail.empty) return { uid: snapEmail.docs[0].id, ...snapEmail.docs[0].data() };
+
+            // 3. Cek Berdasarkan Username
+            const qUser = query(usersRef, where("username", "==", identifier));
+            const snapUser = await getDocs(qUser);
+            if (!snapUser.empty) return { uid: snapUser.docs[0].id, ...snapUser.docs[0].data() };
+
+            return null; // Tidak ditemukan
+        }
+
+        document.getElementById('btnExecute').addEventListener('click', async () => {
+            const targetInput = document.getElementById('targetUser').value.trim();
+            const desc = document.getElementById('txDesc').value.trim();
             const amount = parseInt(document.getElementById('txAmount').value) || 0;
             const action = document.getElementById('txAction').value;
             const status = document.getElementById('txStatus').value;
-            const datetime = document.getElementById('txDatetime').value;
+            const datetimeInput = document.getElementById('txDatetime').value;
 
-            if(!user || !desc) {
-                Swal.fire({ icon: 'error', title: 'Data Tidak Lengkap', text: 'UID/Email dan Deskripsi wajib diisi!' });
-                return;
+            if(!targetInput || !desc) {
+                return Swal.fire({ icon: 'error', title: 'Data Tidak Lengkap', text: 'Target User dan Deskripsi wajib diisi!' });
             }
 
-            let timeMsg = datetime ? `waktu manual (${datetime.replace('T', ' ')})` : 'waktu saat ini otomatis';
-
             Swal.fire({
-                title: 'Konfirmasi Injeksi',
-                html: `Menyuntikkan riwayat ke <b>${user}</b><br>Aksi: <b>${action.toUpperCase()} Rp${amount}</b><br>Waktu: <b>${timeMsg}</b>`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Ya, Eksekusi!'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    processDatabaseUpdate(user, desc, amount, action, status, datetime);
-                }
+                title: 'Mencari User...',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
             });
-        }
-
-        async function processDatabaseUpdate(userId, desc, amount, action, status, datetimeInput) {
-            Swal.fire({ title: 'Memproses...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); }});
 
             try {
-                /* ==========================================================
-                   LOGIKA FIREBASE (Buka komentar dan sesuaikan field-nya)
-                   ========================================================== */
-                
-                // const userRef = db.collection('users').doc(userId);
-                // const historyRef = userRef.collection('history').doc(); 
-                
-                // // Tentukan Timestamp: Manual vs Otomatis
-                // let txTimestamp;
-                // if (datetimeInput) {
-                //     // Konversi string datetime-local ke objek Date, lalu ke Firestore Timestamp
-                //     const manualDate = new Date(datetimeInput);
-                //     txTimestamp = firebase.firestore.Timestamp.fromDate(manualDate);
-                // } else {
-                //     // Gunakan waktu server Firestore
-                //     txTimestamp = firebase.firestore.FieldValue.serverTimestamp();
-                // }
+                const targetData = await findTargetUser(targetInput);
+                if (!targetData) {
+                    return Swal.fire({ icon: 'error', title: 'User Tidak Ditemukan', text: `Tidak ada user dengan ID, Email, atau Username: ${targetInput}` });
+                }
 
-                // // Hitung saldo baru
-                // let balanceModifier = 0;
-                // if(action === 'deduct') balanceModifier = -amount;
-                // if(action === 'add') balanceModifier = amount;
+                Swal.fire({
+                    title: 'Konfirmasi Injeksi',
+                    html: `
+                        <div class="text-left text-sm space-y-2 bg-gray-50 p-4 rounded-xl border mt-2">
+                            <p><b>User:</b> ${targetData.username} (${targetData.email || 'Tanpa Email'})</p>
+                            <p><b>Aksi Saldo:</b> <span class="${action === 'deduct' ? 'text-red-500' : 'text-green-600'} font-bold">${action.toUpperCase()} Rp ${amount.toLocaleString('id-ID')}</span></p>
+                            <p><b>Status:</b> ${status}</p>
+                            <p class="text-xs text-gray-500 mt-2">*Tindakan ini akan tercatat dalam DoniGuard Audit.</p>
+                        </div>
+                    `,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#cbd5e1',
+                    confirmButtonText: 'Ya, Eksekusi!',
+                    cancelButtonText: '<span class="text-gray-700">Batal</span>'
+                }).then(async (result) => {
+                    if (result.isConfirmed) {
+                        await processDatabaseUpdate(targetData, desc, amount, action, status, datetimeInput);
+                    }
+                });
 
-                // const batch = db.batch();
-                
-                // // Update Saldo
-                // if(action !== 'none') {
-                //     batch.update(userRef, {
-                //         saldo: firebase.firestore.FieldValue.increment(balanceModifier)
-                //     });
-                // }
+            } catch (error) {
+                console.error(error);
+                Swal.fire({ icon: 'error', title: 'Terjadi Kesalahan', text: error.message });
+            }
+        });
 
-                // // Injeksi Riwayat
-                // batch.set(historyRef, {
-                //     title: desc,
-                //     amount: amount,
-                //     type: action === 'deduct' ? 'Pengeluaran' : 'Pemasukan',
-                //     status: status,
-                //     timestamp: txTimestamp,
-                //     isManualInjection: true
-                // });
+        async function processDatabaseUpdate(user, desc, amount, action, status, datetimeInput) {
+            Swal.fire({ title: 'Menyuntikkan Data...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); }});
 
-                // await batch.commit();
+            try {
+                const userRef = doc(db, "users", user.uid);
+                const trxId = 'MANUAL-DBG-' + Date.now();
+                const historyRef = doc(db, "users", user.uid, "history", trxId);
+                const auditId = 'DG-DBG-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+                const auditRef = doc(db, "doniguard_audit", auditId);
 
-                // Simulasi sukses (Hapus setTimeout ini jika sudah pakai Firebase asli)
-                setTimeout(() => {
-                    Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Riwayat dan saldo berhasil diinjeksi dengan waktu yang ditentukan.' });
-                    
-                    // Reset Form parsial
+                // Penentuan Waktu Riwayat (Sesuai format index.html -> ISO String)
+                let finalDateISO = new Date().toISOString();
+                if (datetimeInput) {
+                    finalDateISO = new Date(datetimeInput).toISOString();
+                }
+
+                await runTransaction(db, async (t) => {
+                    const uDoc = await t.get(userRef);
+                    const currentBal = uDoc.data().balance || 0;
+                    let newBal = currentBal;
+
+                    if (action === 'add') newBal += amount;
+                    if (action === 'deduct') newBal -= amount;
+
+                    // 1. Update Saldo User
+                    if (action !== 'none') {
+                        t.update(userRef, { balance: newBal });
+                    }
+
+                    // 2. Suntik Data History dengan struktur identik bawaan sistem
+                    t.set(historyRef, {
+                        title: desc,
+                        amount: amount,
+                        type: action === 'deduct' ? 'out' : 'in',
+                        date: finalDateISO,
+                        status: status,
+                        api_msg: 'Injeksi Manual oleh Admin',
+                        trx_id: trxId,
+                        provider_id: 'SYSTEM_DEBUG',
+                        balance_before: currentBal,
+                        balance_after: newBal
+                    });
+
+                    // 3. Suntik Data DoniGuard Audit
+                    if (action !== 'none') {
+                        t.set(auditRef, {
+                            uid: user.uid,
+                            type: action === 'deduct' ? 'OUT_MANUAL' : 'IN_MANUAL',
+                            amount: amount,
+                            balance_before: currentBal,
+                            balance_after: newBal,
+                            trx_id: trxId,
+                            timestamp: serverTimestamp(),
+                            note: `Debug Tool: ${desc}`
+                        });
+                    }
+                });
+
+                Swal.fire({ 
+                    icon: 'success', 
+                    title: 'Injeksi Berhasil!', 
+                    text: 'Riwayat dan saldo target telah diperbarui dengan aman.',
+                    confirmButtonColor: '#2563eb'
+                }).then(() => {
+                    // Reset Form
+                    document.getElementById('targetUser').value = '';
                     document.getElementById('txDesc').value = '';
                     document.getElementById('txAmount').value = '';
                     document.getElementById('txDatetime').value = '';
-                }, 1500);
+                });
 
             } catch (error) {
-                console.error("Error injeksi:", error);
+                console.error("Gagal Injeksi:", error);
                 Swal.fire({ icon: 'error', title: 'Gagal Eksekusi', text: error.message });
             }
         }

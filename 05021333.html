@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>System Debug - Injeksi Riwayat & Saldo</title>
+    <title>System Debug - Injector Saldo & Riwayat</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -14,80 +14,123 @@
         .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
-<body class="flex items-center justify-center min-h-screen p-4">
+<body class="flex items-center justify-center min-h-screen p-4 py-10">
 
     <div class="bg-white rounded-3xl shadow-2xl shadow-blue-900/10 w-full max-w-lg overflow-hidden border border-gray-100 relative">
-        <div id="authOverlay" class="absolute inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
-            <i class="fas fa-spinner fa-spin text-4xl text-red-600 mb-3"></i>
+        <div id="authOverlay" class="absolute inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center transition-all duration-300">
+            <i class="fas fa-spinner fa-spin text-4xl text-blue-600 mb-3"></i>
             <p class="text-sm font-bold text-gray-700">Memverifikasi Akses Admin...</p>
-            <p class="text-[10px] text-gray-500 mt-1 text-center px-4">Pastikan Anda sudah login di halaman utama dengan akun Admin.</p>
+            <p class="text-[10px] text-gray-500 mt-1 text-center px-4">Pastikan Anda sudah login di aplikasi utama dengan akun Admin.</p>
         </div>
 
-        <div class="bg-gradient-to-r from-red-600 to-red-700 px-6 py-5 flex items-center justify-between">
+        <div class="bg-gradient-to-r from-slate-800 to-slate-900 px-6 py-5 flex items-center justify-between">
             <div>
-                <h2 class="text-white font-black text-xl tracking-tight"><i class="fas fa-bug mr-2"></i> System Debugger</h2>
-                <p class="text-red-100 text-xs font-medium mt-0.5">Pandawa Store - Injector Tool</p>
+                <h2 class="text-white font-black text-xl tracking-tight"><i class="fas fa-terminal mr-2"></i> Trx Injector</h2>
+                <p class="text-slate-400 text-xs font-medium mt-0.5">Pandawa Store - Stealth Mode</p>
             </div>
-            <span class="bg-white/20 text-white text-[10px] font-bold px-2 py-1 rounded-md border border-white/30 backdrop-blur-sm">Admin Only</span>
+            <span class="bg-white/10 text-white text-[10px] font-bold px-2 py-1 rounded-md border border-white/20 backdrop-blur-sm">Admin Only</span>
         </div>
 
         <div class="p-6 space-y-4">
-            <div class="bg-blue-50 border border-blue-100 p-3 rounded-xl mb-2">
-                <p class="text-xs text-blue-700 leading-relaxed"><i class="fas fa-info-circle mr-1"></i> Tool ini akan memodifikasi saldo dan menyuntikkan riwayat. Aktivitas akan tercatat di <b>DoniGuard Audit</b>.</p>
+            <div class="bg-amber-50 border border-amber-100 p-3 rounded-xl mb-2">
+                <p class="text-[11px] text-amber-700 leading-relaxed font-medium"><i class="fas fa-user-secret mr-1"></i> Mode Stealth: Data yang diinput akan tampil persis seperti transaksi organik di aplikasi user.</p>
             </div>
 
             <div>
                 <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Target User (Username / Email / UID)</label>
                 <div class="relative">
                     <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                    <input type="text" id="targetUser" class="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 pl-11 text-sm font-bold text-gray-700" placeholder="Masukkan Username / Email target...">
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Deskripsi / Judul Riwayat</label>
-                <div class="relative">
-                    <i class="fas fa-pen absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                    <input type="text" id="txDesc" class="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 pl-11 text-sm font-bold text-gray-700" placeholder="Contoh: Refund Transaksi Gagal">
+                    <input type="text" id="targetUser" class="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 pl-11 text-sm font-bold text-gray-700" placeholder="Masukkan target...">
                 </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Nomor Tujuan</label>
+                    <div class="relative">
+                        <i class="fas fa-mobile-alt absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <input type="tel" id="txDestNum" class="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 pl-11 text-sm font-bold text-gray-700" placeholder="08xx...">
+                    </div>
+                </div>
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Nominal (Rp)</label>
                     <div class="relative">
                         <i class="fas fa-rupiah-sign absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        <input type="number" id="txAmount" class="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 pl-11 text-sm font-bold text-gray-700" placeholder="0">
+                        <input type="number" id="txAmount" class="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 pl-11 text-sm font-bold text-gray-700" placeholder="0">
                     </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Aksi Saldo</label>
-                    <select id="txAction" class="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 px-4 text-sm font-bold text-gray-700">
-                        <option value="add">Tambah Saldo (+)</option>
-                        <option value="deduct">Potong Saldo (-)</option>
-                        <option value="none">Hanya Injeksi Riwayat</option>
-                    </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Judul Transaksi</label>
+                <div class="relative">
+                    <i class="fas fa-shopping-bag absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" id="txDesc" class="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 pl-11 text-sm font-bold text-gray-700" placeholder="Contoh: Akrab Fresh (XDA)">
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="bg-gray-50 p-3 rounded-2xl border border-gray-200 space-y-3">
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Status Riwayat</label>
-                    <select id="txStatus" class="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 px-4 text-sm font-bold text-gray-700">
-                        <option value="Sukses">Sukses</option>
-                        <option value="Gagal">Gagal</option>
-                        <option value="Pending">Pending</option>
-                        <option value="Dibatalkan">Dibatalkan</option>
+                    <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Jenis Riwayat</label>
+                    <select id="txType" class="w-full h-10 bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 px-4 text-sm font-bold text-gray-700">
+                        <option value="out">Pengeluaran (Saldo Berkurang)</option>
+                        <option value="in">Pemasukan (Saldo Bertambah)</option>
                     </select>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Waktu (Kosongkan = Saat ini)</label>
-                    <input type="datetime-local" id="txDatetime" class="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 px-4 text-xs font-bold text-gray-700">
+
+                <div class="flex items-center justify-between bg-white border border-gray-300 p-3 rounded-xl">
+                    <div>
+                        <p class="text-xs font-bold text-gray-800">Manipulasi Saldo Asli?</p>
+                        <p class="text-[10px] text-gray-500">Mati = Hanya input riwayat palsu</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="txUpdateBalance" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
                 </div>
             </div>
 
-            <button id="btnExecute" disabled class="w-full bg-red-600 hover:bg-red-700 text-white font-black py-3.5 rounded-xl mt-6 transition-transform active:scale-95 shadow-lg shadow-red-600/30 flex justify-center items-center gap-2 opacity-50 cursor-not-allowed">
-                <i class="fas fa-bolt"></i> EKSEKUSI INJEKSI
+            <div class="border-t border-dashed border-gray-200 pt-3 mt-2">
+                <p class="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-3"><i class="fas fa-sliders-h mr-1"></i> Parameter Server</p>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Status</label>
+                        <select id="txStatus" class="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 px-4 text-sm font-bold text-gray-700">
+                            <option value="Sukses">Sukses</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Gagal">Gagal</option>
+                            <option value="Dibatalkan">Dibatalkan</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Prefix Trx ID</label>
+                        <select id="txPrefix" class="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 px-4 text-sm font-bold text-gray-700">
+                            <option value="TRX">TRX- (PPOB Biasa)</option>
+                            <option value="ICS">ICS- (Akrab/Circle)</option>
+                            <option value="PO">PO- (Preorder)</option>
+                            <option value="QP">QP- (QiosPay)</option>
+                            <option value="MANUAL">MANUAL- (TopUp)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Pesan API (Muncul di Info User)</label>
+                    <div class="relative">
+                        <i class="fas fa-comment-alt absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" id="txApiMsg" class="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 pl-11 text-sm font-bold text-gray-700" value="Transaksi Berhasil">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Waktu Custom (Kosong = Saat ini)</label>
+                    <input type="datetime-local" id="txDatetime" class="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 px-4 text-xs font-bold text-gray-700">
+                </div>
+            </div>
+
+            <button id="btnExecute" disabled class="w-full bg-slate-800 hover:bg-slate-900 text-white font-black py-4 rounded-xl mt-6 transition-transform active:scale-95 shadow-lg shadow-slate-800/30 flex justify-center items-center gap-2 opacity-50 cursor-not-allowed">
+                <i class="fas fa-paper-plane"></i> SUNTIKKAN DATA
             </button>
         </div>
     </div>
@@ -112,7 +155,6 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        // Daftar UID Admin yang berhak mengakses (Sesuai dengan Rules Firestore)
         const ADMIN_UIDS = [
             "spWlYpsVNwdyjaguzpB1IYz1bO93", 
             "5c6oMpsKusUNjJtCj5zaL01iieE2"
@@ -122,38 +164,34 @@
         const btnExecute = document.getElementById('btnExecute');
         const authOverlay = document.getElementById('authOverlay');
 
-        // Autentikasi Admin Latar Belakang
         onAuthStateChanged(auth, (user) => {
             if (user && ADMIN_UIDS.includes(user.uid)) {
                 currentAdmin = user;
-                authOverlay.classList.add('hidden'); // Tutup layar loading
+                authOverlay.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => authOverlay.classList.add('hidden'), 300);
                 btnExecute.disabled = false;
                 btnExecute.classList.remove('opacity-50', 'cursor-not-allowed');
             } else {
                 currentAdmin = null;
                 authOverlay.innerHTML = `
-                    <i class="fas fa-lock text-5xl text-gray-300 mb-4"></i>
-                    <h3 class="text-lg font-black text-gray-800">Akses Ditolak</h3>
-                    <p class="text-xs text-gray-500 mt-2 text-center px-6">Anda tidak dikenali sebagai Admin atau belum login. Buka halaman utama dan login terlebih dahulu.</p>
+                    <i class="fas fa-shield-alt text-5xl text-gray-300 mb-4"></i>
+                    <h3 class="text-lg font-black text-gray-800">Akses Terkunci</h3>
+                    <p class="text-xs text-gray-500 mt-2 text-center px-6">Anda tidak memiliki otorisasi (Bukan Admin) atau belum login. Buka halaman utama dan login terlebih dahulu.</p>
                 `;
             }
         });
 
-        // Mesin Pencari User Target
         async function findTargetUser(identifier) {
-            // Cek jika UID langsung
             const docRef = doc(db, "users", identifier);
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) return { uid: docSnap.id, ...docSnap.data() };
 
             const usersRef = collection(db, "users");
             
-            // Cek Email
             const qEmail = query(usersRef, where("email", "==", identifier));
             const snapEmail = await getDocs(qEmail);
             if (!snapEmail.empty) return { uid: snapEmail.docs[0].id, ...snapEmail.docs[0].data() };
 
-            // Cek Username
             const qUser = query(usersRef, where("username", "==", identifier));
             const snapUser = await getDocs(qUser);
             if (!snapUser.empty) return { uid: snapUser.docs[0].id, ...snapUser.docs[0].data() };
@@ -161,19 +199,24 @@
             return null;
         }
 
-        // Eksekusi Tombol
         btnExecute.addEventListener('click', async () => {
             if (!currentAdmin) return;
 
             const targetInput = document.getElementById('targetUser').value.trim();
+            const destNum = document.getElementById('txDestNum').value.trim();
             const desc = document.getElementById('txDesc').value.trim();
             const amount = parseInt(document.getElementById('txAmount').value) || 0;
-            const action = document.getElementById('txAction').value;
+            
+            const txType = document.getElementById('txType').value; // 'out' atau 'in'
+            const isUpdateBalance = document.getElementById('txUpdateBalance').checked; // true/false
+            
             const status = document.getElementById('txStatus').value;
+            const apiMsg = document.getElementById('txApiMsg').value.trim() || 'Transaksi Berhasil';
+            const prefixId = document.getElementById('txPrefix').value;
             const datetimeInput = document.getElementById('txDatetime').value;
 
             if(!targetInput || !desc) {
-                return Swal.fire({ icon: 'error', title: 'Data Belum Lengkap', text: 'Target User dan Deskripsi transaksi wajib diisi.' });
+                return Swal.fire({ icon: 'error', title: 'Data Belum Lengkap', text: 'Target User dan Judul Transaksi wajib diisi.' });
             }
 
             Swal.fire({
@@ -188,26 +231,33 @@
                     return Swal.fire({ icon: 'error', title: 'Tidak Ditemukan', text: `Data dengan ID, Email, atau Username "${targetInput}" tidak terdaftar.` });
                 }
 
-                // Konfirmasi Sebelum Eksekusi
+                // Susun pesan konfirmasi logika saldo
+                let saldoMsg = `<span class="text-gray-500 font-bold">Hanya Tambah Riwayat (Saldo Asli Tetap)</span>`;
+                if (isUpdateBalance) {
+                    saldoMsg = txType === 'out' 
+                        ? `<span class="text-red-500 font-bold">POTONG Saldo Rp ${amount.toLocaleString('id-ID')}</span>`
+                        : `<span class="text-green-600 font-bold">TAMBAH Saldo Rp ${amount.toLocaleString('id-ID')}</span>`;
+                }
+
                 Swal.fire({
-                    title: 'Konfirmasi Tindakan',
+                    title: 'Konfirmasi Data',
                     html: `
                         <div class="text-left text-sm space-y-2 bg-gray-50 p-4 rounded-xl border mt-2">
-                            <p><b>Target:</b> ${targetData.username} (${targetData.email || 'Tanpa Email'})</p>
-                            <p><b>Aksi Saldo:</b> <span class="${action === 'deduct' ? 'text-red-500' : (action === 'add' ? 'text-green-600' : 'text-gray-500')} font-bold">${action.toUpperCase()} Rp ${amount.toLocaleString('id-ID')}</span></p>
-                            <p><b>Status:</b> ${status}</p>
-                            <p class="text-[10px] text-gray-500 mt-3">*Tercatat otomatis ke DoniGuard Audit.</p>
+                            <p><b>Target:</b> ${targetData.username}</p>
+                            <p><b>Tujuan:</b> ${destNum || '-'}</p>
+                            <p><b>Aksi:</b> ${saldoMsg}</p>
+                            <p><b>Pesan:</b> "${apiMsg}"</p>
                         </div>
                     `,
-                    icon: 'warning',
+                    icon: 'question',
                     showCancelButton: true,
-                    confirmButtonColor: '#dc2626',
+                    confirmButtonColor: '#1e293b',
                     cancelButtonColor: '#94a3b8',
-                    confirmButtonText: '<i class="fas fa-check mr-1"></i> Ya, Eksekusi',
+                    confirmButtonText: 'Suntikkan Sekarang',
                     cancelButtonText: 'Batal'
                 }).then(async (result) => {
                     if (result.isConfirmed) {
-                        await processDatabaseUpdate(targetData, desc, amount, action, status, datetimeInput);
+                        await processDatabaseUpdate(targetData, destNum, desc, amount, txType, isUpdateBalance, status, apiMsg, prefixId, datetimeInput);
                     }
                 });
 
@@ -217,17 +267,18 @@
             }
         });
 
-        // Proses Update Database menggunakan Firestore Transaction
-        async function processDatabaseUpdate(user, desc, amount, action, status, datetimeInput) {
+        async function processDatabaseUpdate(user, destNum, desc, amount, txType, isUpdateBalance, status, apiMsg, prefixId, datetimeInput) {
             Swal.fire({ title: 'Memproses Data...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); }});
 
             try {
                 const userRef = doc(db, "users", user.uid);
                 const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
-                const trxId = 'MANUAL-DBG-' + Date.now() + '-' + trxCode;
+                
+                // Membuat ID se-natural mungkin
+                const trxId = `${prefixId}-${Date.now()}`;
                 const historyRef = doc(db, "users", user.uid, "history", trxId);
                 
-                const auditId = 'DG-DBG-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+                const auditId = `DG-FIX-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
                 const auditRef = doc(db, "doniguard_audit", auditId);
 
                 let finalDateISO = new Date().toISOString();
@@ -235,47 +286,52 @@
                     finalDateISO = new Date(datetimeInput).toISOString();
                 }
 
+                let simulatedProvider = 'KHFY';
+                if(prefixId === 'ICS') simulatedProvider = 'ICS';
+                if(prefixId === 'QP') simulatedProvider = 'QiosPay';
+                if(prefixId === 'MANUAL') simulatedProvider = 'MANUAL_SEABANK';
+
                 await runTransaction(db, async (t) => {
                     const uDoc = await t.get(userRef);
-                    if (!uDoc.exists()) throw new Error("Dokumen user tidak ditemukan saat memproses transaksi.");
+                    if (!uDoc.exists()) throw new Error("Dokumen user tidak ditemukan.");
 
                     const currentBal = uDoc.data().balance || 0;
                     let newBal = currentBal;
 
-                    if (action === 'add') newBal += amount;
-                    if (action === 'deduct') newBal -= amount;
-
-                    // 1. Modifikasi Saldo
-                    if (action !== 'none') {
+                    // 1. Modifikasi Saldo (Jika toggle diaktifkan)
+                    if (isUpdateBalance) {
+                        if (txType === 'in') newBal += amount;
+                        if (txType === 'out') newBal -= amount;
                         t.update(userRef, { balance: newBal });
                     }
 
-                    // 2. Suntik Data Riwayat
+                    // 2. Suntik Data Riwayat (ORGANIK)
                     t.set(historyRef, {
                         title: desc,
                         amount: amount,
-                        type: action === 'deduct' ? 'out' : 'in',
+                        type: txType, // 'in' atau 'out'
                         date: finalDateISO,
                         status: status,
-                        api_msg: 'Injeksi Manual via System Debugger',
+                        api_msg: apiMsg, 
                         trx_id: trxId,
                         trx_code: trxCode,
-                        provider_id: 'SYSTEM_DEBUG',
+                        provider_id: simulatedProvider,
+                        dest_num: destNum, // <-- Nomor Tujuan Disimpan
                         balance_before: currentBal,
                         balance_after: newBal
                     });
 
-                    // 3. Suntik Log Audit (DoniGuard Bypass)
-                    if (action !== 'none') {
+                    // 3. Suntik Log Audit (Supaya hitungan DoniGuard klop)
+                    if (isUpdateBalance) {
                         t.set(auditRef, {
                             uid: user.uid,
-                            type: action === 'deduct' ? 'OUT_MANUAL' : 'IN_MANUAL',
+                            type: txType === 'out' ? 'OUT' : 'IN',
                             amount: amount,
                             balance_before: currentBal,
                             balance_after: newBal,
                             trx_id: trxId,
                             timestamp: serverTimestamp(),
-                            note: `Debug Tool Injection: ${desc}`
+                            note: desc
                         });
                     }
                 });
@@ -283,14 +339,14 @@
                 Swal.fire({ 
                     icon: 'success', 
                     title: 'Berhasil!', 
-                    text: 'Riwayat dan saldo user target berhasil diperbarui.',
-                    confirmButtonColor: '#2563eb'
+                    text: 'Data telah disuntikkan dan terlihat organik.',
+                    confirmButtonColor: '#1e293b'
                 }).then(() => {
-                    // Kosongkan form setelah sukses
+                    // Reset isi form
                     document.getElementById('targetUser').value = '';
+                    document.getElementById('txDestNum').value = '';
                     document.getElementById('txDesc').value = '';
                     document.getElementById('txAmount').value = '';
-                    document.getElementById('txDatetime').value = '';
                 });
 
             } catch (error) {

@@ -21,7 +21,7 @@
         </div>
 
         <div class="p-6 space-y-4">
-            <p class="text-sm text-gray-500 mb-4">Gunakan *tool* ini untuk memperbaiki riwayat transaksi user yang gagal tersinkronisasi dan menyesuaikan saldo mereka.</p>
+            <p class="text-sm text-gray-500 mb-4">Gunakan *tool* ini untuk memperbaiki riwayat transaksi dan menyesuaikan saldo user.</p>
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Target User (UID / Email)</label>
@@ -48,14 +48,21 @@
                 </div>
             </div>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Status Riwayat</label>
-                <select id="txStatus" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all">
-                    <option value="Sukses">Sukses</option>
-                    <option value="Gagal">Gagal</option>
-                    <option value="Pending">Pending</option>
-                </select>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status Riwayat</label>
+                    <select id="txStatus" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all">
+                        <option value="Sukses">Sukses</option>
+                        <option value="Gagal">Gagal</option>
+                        <option value="Pending">Pending</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Waktu (Manual)</label>
+                    <input type="datetime-local" id="txDatetime" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all text-sm">
+                </div>
             </div>
+            <p class="text-[11px] text-gray-500 -mt-2 text-right">*Kosongkan waktu untuk pakai waktu saat ini.</p>
 
             <button onclick="executeInjection()" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-lg mt-4 transition-colors shadow-lg shadow-red-500/30">
                 <i class="fas fa-bolt mr-2"></i> Eksekusi Injeksi
@@ -75,15 +82,18 @@
             const amount = parseInt(document.getElementById('txAmount').value) || 0;
             const action = document.getElementById('txAction').value;
             const status = document.getElementById('txStatus').value;
+            const datetime = document.getElementById('txDatetime').value;
 
             if(!user || !desc) {
                 Swal.fire({ icon: 'error', title: 'Data Tidak Lengkap', text: 'UID/Email dan Deskripsi wajib diisi!' });
                 return;
             }
 
+            let timeMsg = datetime ? `waktu manual (${datetime.replace('T', ' ')})` : 'waktu saat ini otomatis';
+
             Swal.fire({
                 title: 'Konfirmasi Injeksi',
-                text: `Anda yakin ingin menyuntikkan riwayat ke ${user} dan melakukan aksi: ${action.toUpperCase()} sebesar Rp${amount}?`,
+                html: `Menyuntikkan riwayat ke <b>${user}</b><br>Aksi: <b>${action.toUpperCase()} Rp${amount}</b><br>Waktu: <b>${timeMsg}</b>`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
@@ -91,13 +101,12 @@
                 confirmButtonText: 'Ya, Eksekusi!'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    processDatabaseUpdate(user, desc, amount, action, status);
+                    processDatabaseUpdate(user, desc, amount, action, status, datetime);
                 }
             });
         }
 
-        async function processDatabaseUpdate(userId, desc, amount, action, status) {
-            // Tampilkan loading
+        async function processDatabaseUpdate(userId, desc, amount, action, status, datetimeInput) {
             Swal.fire({ title: 'Memproses...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); }});
 
             try {
@@ -105,43 +114,54 @@
                    LOGIKA FIREBASE (Buka komentar dan sesuaikan field-nya)
                    ========================================================== */
                 
-                // const userRef = db.collection('users').doc(userId); // Pastikan userId valid
+                // const userRef = db.collection('users').doc(userId);
                 // const historyRef = userRef.collection('history').doc(); 
                 
-                // 1. Hitung saldo baru
+                // // Tentukan Timestamp: Manual vs Otomatis
+                // let txTimestamp;
+                // if (datetimeInput) {
+                //     // Konversi string datetime-local ke objek Date, lalu ke Firestore Timestamp
+                //     const manualDate = new Date(datetimeInput);
+                //     txTimestamp = firebase.firestore.Timestamp.fromDate(manualDate);
+                // } else {
+                //     // Gunakan waktu server Firestore
+                //     txTimestamp = firebase.firestore.FieldValue.serverTimestamp();
+                // }
+
+                // // Hitung saldo baru
                 // let balanceModifier = 0;
                 // if(action === 'deduct') balanceModifier = -amount;
                 // if(action === 'add') balanceModifier = amount;
 
-                // 2. Lakukan Batch Write agar Saldo & Riwayat terupdate bersamaan
                 // const batch = db.batch();
                 
-                // Update Saldo (Jika bukan 'none')
+                // // Update Saldo
                 // if(action !== 'none') {
                 //     batch.update(userRef, {
                 //         saldo: firebase.firestore.FieldValue.increment(balanceModifier)
                 //     });
                 // }
 
-                // Injeksi Riwayat
+                // // Injeksi Riwayat
                 // batch.set(historyRef, {
                 //     title: desc,
                 //     amount: amount,
                 //     type: action === 'deduct' ? 'Pengeluaran' : 'Pemasukan',
                 //     status: status,
-                //     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                //     isManualInjection: true // Flag penanda bahwa ini hasil debug admin
+                //     timestamp: txTimestamp,
+                //     isManualInjection: true
                 // });
 
                 // await batch.commit();
 
                 // Simulasi sukses (Hapus setTimeout ini jika sudah pakai Firebase asli)
                 setTimeout(() => {
-                    Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Riwayat dan saldo berhasil diinjeksi.' });
+                    Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Riwayat dan saldo berhasil diinjeksi dengan waktu yang ditentukan.' });
                     
-                    // Reset Form
+                    // Reset Form parsial
                     document.getElementById('txDesc').value = '';
                     document.getElementById('txAmount').value = '';
+                    document.getElementById('txDatetime').value = '';
                 }, 1500);
 
             } catch (error) {

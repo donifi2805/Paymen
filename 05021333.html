@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Debug - Injeksi Riwayat & Saldo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #F4F7FE; }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-gray-100">
+        <div class="bg-red-600 px-6 py-4 flex items-center justify-between">
+            <h2 class="text-white font-bold text-lg"><i class="fas fa-bug mr-2"></i> System Debugger</h2>
+            <span class="bg-red-800 text-white text-xs px-2 py-1 rounded-md">Admin Only</span>
+        </div>
+
+        <div class="p-6 space-y-4">
+            <p class="text-sm text-gray-500 mb-4">Gunakan *tool* ini untuk memperbaiki riwayat transaksi user yang gagal tersinkronisasi dan menyesuaikan saldo mereka.</p>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Target User (UID / Email)</label>
+                <input type="text" id="targetUser" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all" placeholder="Masukkan UID atau Email user...">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Deskripsi Transaksi</label>
+                <input type="text" id="txDesc" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all" placeholder="Contoh: Refund Topup Telkomsel Gagal">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nominal (Rp)</label>
+                    <input type="number" id="txAmount" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all" placeholder="0">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Aksi Saldo</label>
+                    <select id="txAction" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all">
+                        <option value="deduct">Potong Saldo (-)</option>
+                        <option value="add">Tambah Saldo (+)</option>
+                        <option value="none">Hanya Injeksi Riwayat</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Status Riwayat</label>
+                <select id="txStatus" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all">
+                    <option value="Sukses">Sukses</option>
+                    <option value="Gagal">Gagal</option>
+                    <option value="Pending">Pending</option>
+                </select>
+            </div>
+
+            <button onclick="executeInjection()" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-lg mt-4 transition-colors shadow-lg shadow-red-500/30">
+                <i class="fas fa-bolt mr-2"></i> Eksekusi Injeksi
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // INISIALISASI FIREBASE KAMU DI SINI
+        // const firebaseConfig = { ... };
+        // firebase.initializeApp(firebaseConfig);
+        // const db = firebase.firestore();
+
+        function executeInjection() {
+            const user = document.getElementById('targetUser').value;
+            const desc = document.getElementById('txDesc').value;
+            const amount = parseInt(document.getElementById('txAmount').value) || 0;
+            const action = document.getElementById('txAction').value;
+            const status = document.getElementById('txStatus').value;
+
+            if(!user || !desc) {
+                Swal.fire({ icon: 'error', title: 'Data Tidak Lengkap', text: 'UID/Email dan Deskripsi wajib diisi!' });
+                return;
+            }
+
+            Swal.fire({
+                title: 'Konfirmasi Injeksi',
+                text: `Anda yakin ingin menyuntikkan riwayat ke ${user} dan melakukan aksi: ${action.toUpperCase()} sebesar Rp${amount}?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Ya, Eksekusi!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    processDatabaseUpdate(user, desc, amount, action, status);
+                }
+            });
+        }
+
+        async function processDatabaseUpdate(userId, desc, amount, action, status) {
+            // Tampilkan loading
+            Swal.fire({ title: 'Memproses...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); }});
+
+            try {
+                /* ==========================================================
+                   LOGIKA FIREBASE (Buka komentar dan sesuaikan field-nya)
+                   ========================================================== */
+                
+                // const userRef = db.collection('users').doc(userId); // Pastikan userId valid
+                // const historyRef = userRef.collection('history').doc(); 
+                
+                // 1. Hitung saldo baru
+                // let balanceModifier = 0;
+                // if(action === 'deduct') balanceModifier = -amount;
+                // if(action === 'add') balanceModifier = amount;
+
+                // 2. Lakukan Batch Write agar Saldo & Riwayat terupdate bersamaan
+                // const batch = db.batch();
+                
+                // Update Saldo (Jika bukan 'none')
+                // if(action !== 'none') {
+                //     batch.update(userRef, {
+                //         saldo: firebase.firestore.FieldValue.increment(balanceModifier)
+                //     });
+                // }
+
+                // Injeksi Riwayat
+                // batch.set(historyRef, {
+                //     title: desc,
+                //     amount: amount,
+                //     type: action === 'deduct' ? 'Pengeluaran' : 'Pemasukan',
+                //     status: status,
+                //     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                //     isManualInjection: true // Flag penanda bahwa ini hasil debug admin
+                // });
+
+                // await batch.commit();
+
+                // Simulasi sukses (Hapus setTimeout ini jika sudah pakai Firebase asli)
+                setTimeout(() => {
+                    Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Riwayat dan saldo berhasil diinjeksi.' });
+                    
+                    // Reset Form
+                    document.getElementById('txDesc').value = '';
+                    document.getElementById('txAmount').value = '';
+                }, 1500);
+
+            } catch (error) {
+                console.error("Error injeksi:", error);
+                Swal.fire({ icon: 'error', title: 'Gagal Eksekusi', text: error.message });
+            }
+        }
+    </script>
+</body>
+</html>

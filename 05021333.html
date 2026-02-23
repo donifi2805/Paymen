@@ -16,7 +16,13 @@
 </head>
 <body class="flex items-center justify-center min-h-screen p-4">
 
-    <div class="bg-white rounded-3xl shadow-2xl shadow-blue-900/10 w-full max-w-lg overflow-hidden border border-gray-100">
+    <div class="bg-white rounded-3xl shadow-2xl shadow-blue-900/10 w-full max-w-lg overflow-hidden border border-gray-100 relative">
+        <div id="authOverlay" class="absolute inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
+            <i class="fas fa-spinner fa-spin text-4xl text-red-600 mb-3"></i>
+            <p class="text-sm font-bold text-gray-700">Memverifikasi Akses Admin...</p>
+            <p class="text-[10px] text-gray-500 mt-1 text-center px-4">Pastikan Anda sudah login di halaman utama dengan akun Admin.</p>
+        </div>
+
         <div class="bg-gradient-to-r from-red-600 to-red-700 px-6 py-5 flex items-center justify-between">
             <div>
                 <h2 class="text-white font-black text-xl tracking-tight"><i class="fas fa-bug mr-2"></i> System Debugger</h2>
@@ -27,7 +33,7 @@
 
         <div class="p-6 space-y-4">
             <div class="bg-blue-50 border border-blue-100 p-3 rounded-xl mb-2">
-                <p class="text-xs text-blue-700 leading-relaxed"><i class="fas fa-info-circle mr-1"></i> Tool ini akan otomatis memotong/menambah <b>balance</b> dan mencatat di <b>DoniGuard Audit</b> agar sistem tidak mendeteksi anomali.</p>
+                <p class="text-xs text-blue-700 leading-relaxed"><i class="fas fa-info-circle mr-1"></i> Tool ini akan memodifikasi saldo dan menyuntikkan riwayat. Aktivitas akan tercatat di <b>DoniGuard Audit</b>.</p>
             </div>
 
             <div>
@@ -80,7 +86,7 @@
                 </div>
             </div>
 
-            <button id="btnExecute" class="w-full bg-red-600 hover:bg-red-700 text-white font-black py-3.5 rounded-xl mt-6 transition-transform active:scale-95 shadow-lg shadow-red-600/30 flex justify-center items-center gap-2">
+            <button id="btnExecute" disabled class="w-full bg-red-600 hover:bg-red-700 text-white font-black py-3.5 rounded-xl mt-6 transition-transform active:scale-95 shadow-lg shadow-red-600/30 flex justify-center items-center gap-2 opacity-50 cursor-not-allowed">
                 <i class="fas fa-bolt"></i> EKSEKUSI INJEKSI
             </button>
         </div>
@@ -89,7 +95,9 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, doc, getDoc, collection, query, where, getDocs, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+        // Konfigurasi Database Pandawa Store
         const firebaseConfig = {
             apiKey: "AIzaSyBnVxgxkS8InH1PQCMGe3cY8IvPqSN6dLo",
             authDomain: "ppob-3ea96.firebaseapp.com",
@@ -102,30 +110,61 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const auth = getAuth(app);
 
-        // Fungsi Helper Pencarian Target (UID / Email / Username)
+        // Daftar UID Admin yang berhak mengakses (Sesuai dengan Rules Firestore)
+        const ADMIN_UIDS = [
+            "spWlYpsVNwdyjaguzpB1IYz1bO93", 
+            "5c6oMpsKusUNjJtCj5zaL01iieE2"
+        ];
+        
+        let currentAdmin = null;
+        const btnExecute = document.getElementById('btnExecute');
+        const authOverlay = document.getElementById('authOverlay');
+
+        // Autentikasi Admin Latar Belakang
+        onAuthStateChanged(auth, (user) => {
+            if (user && ADMIN_UIDS.includes(user.uid)) {
+                currentAdmin = user;
+                authOverlay.classList.add('hidden'); // Tutup layar loading
+                btnExecute.disabled = false;
+                btnExecute.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else {
+                currentAdmin = null;
+                authOverlay.innerHTML = `
+                    <i class="fas fa-lock text-5xl text-gray-300 mb-4"></i>
+                    <h3 class="text-lg font-black text-gray-800">Akses Ditolak</h3>
+                    <p class="text-xs text-gray-500 mt-2 text-center px-6">Anda tidak dikenali sebagai Admin atau belum login. Buka halaman utama dan login terlebih dahulu.</p>
+                `;
+            }
+        });
+
+        // Mesin Pencari User Target
         async function findTargetUser(identifier) {
-            // 1. Cek jika identifier adalah UID langsung
+            // Cek jika UID langsung
             const docRef = doc(db, "users", identifier);
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) return { uid: docSnap.id, ...docSnap.data() };
 
             const usersRef = collection(db, "users");
             
-            // 2. Cek Berdasarkan Email
+            // Cek Email
             const qEmail = query(usersRef, where("email", "==", identifier));
             const snapEmail = await getDocs(qEmail);
             if (!snapEmail.empty) return { uid: snapEmail.docs[0].id, ...snapEmail.docs[0].data() };
 
-            // 3. Cek Berdasarkan Username
+            // Cek Username
             const qUser = query(usersRef, where("username", "==", identifier));
             const snapUser = await getDocs(qUser);
             if (!snapUser.empty) return { uid: snapUser.docs[0].id, ...snapUser.docs[0].data() };
 
-            return null; // Tidak ditemukan
+            return null;
         }
 
-        document.getElementById('btnExecute').addEventListener('click', async () => {
+        // Eksekusi Tombol
+        btnExecute.addEventListener('click', async () => {
+            if (!currentAdmin) return;
+
             const targetInput = document.getElementById('targetUser').value.trim();
             const desc = document.getElementById('txDesc').value.trim();
             const amount = parseInt(document.getElementById('txAmount').value) || 0;
@@ -134,7 +173,7 @@
             const datetimeInput = document.getElementById('txDatetime').value;
 
             if(!targetInput || !desc) {
-                return Swal.fire({ icon: 'error', title: 'Data Tidak Lengkap', text: 'Target User dan Deskripsi wajib diisi!' });
+                return Swal.fire({ icon: 'error', title: 'Data Belum Lengkap', text: 'Target User dan Deskripsi transaksi wajib diisi.' });
             }
 
             Swal.fire({
@@ -146,25 +185,26 @@
             try {
                 const targetData = await findTargetUser(targetInput);
                 if (!targetData) {
-                    return Swal.fire({ icon: 'error', title: 'User Tidak Ditemukan', text: `Tidak ada user dengan ID, Email, atau Username: ${targetInput}` });
+                    return Swal.fire({ icon: 'error', title: 'Tidak Ditemukan', text: `Data dengan ID, Email, atau Username "${targetInput}" tidak terdaftar.` });
                 }
 
+                // Konfirmasi Sebelum Eksekusi
                 Swal.fire({
-                    title: 'Konfirmasi Injeksi',
+                    title: 'Konfirmasi Tindakan',
                     html: `
                         <div class="text-left text-sm space-y-2 bg-gray-50 p-4 rounded-xl border mt-2">
-                            <p><b>User:</b> ${targetData.username} (${targetData.email || 'Tanpa Email'})</p>
-                            <p><b>Aksi Saldo:</b> <span class="${action === 'deduct' ? 'text-red-500' : 'text-green-600'} font-bold">${action.toUpperCase()} Rp ${amount.toLocaleString('id-ID')}</span></p>
+                            <p><b>Target:</b> ${targetData.username} (${targetData.email || 'Tanpa Email'})</p>
+                            <p><b>Aksi Saldo:</b> <span class="${action === 'deduct' ? 'text-red-500' : (action === 'add' ? 'text-green-600' : 'text-gray-500')} font-bold">${action.toUpperCase()} Rp ${amount.toLocaleString('id-ID')}</span></p>
                             <p><b>Status:</b> ${status}</p>
-                            <p class="text-xs text-gray-500 mt-2">*Tindakan ini akan tercatat dalam DoniGuard Audit.</p>
+                            <p class="text-[10px] text-gray-500 mt-3">*Tercatat otomatis ke DoniGuard Audit.</p>
                         </div>
                     `,
                     icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#cbd5e1',
-                    confirmButtonText: 'Ya, Eksekusi!',
-                    cancelButtonText: '<span class="text-gray-700">Batal</span>'
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#94a3b8',
+                    confirmButtonText: '<i class="fas fa-check mr-1"></i> Ya, Eksekusi',
+                    cancelButtonText: 'Batal'
                 }).then(async (result) => {
                     if (result.isConfirmed) {
                         await processDatabaseUpdate(targetData, desc, amount, action, status, datetimeInput);
@@ -177,17 +217,19 @@
             }
         });
 
+        // Proses Update Database menggunakan Firestore Transaction
         async function processDatabaseUpdate(user, desc, amount, action, status, datetimeInput) {
-            Swal.fire({ title: 'Menyuntikkan Data...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); }});
+            Swal.fire({ title: 'Memproses Data...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); }});
 
             try {
                 const userRef = doc(db, "users", user.uid);
-                const trxId = 'MANUAL-DBG-' + Date.now();
+                const trxCode = Math.floor(100000 + Math.random() * 900000).toString();
+                const trxId = 'MANUAL-DBG-' + Date.now() + '-' + trxCode;
                 const historyRef = doc(db, "users", user.uid, "history", trxId);
+                
                 const auditId = 'DG-DBG-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
                 const auditRef = doc(db, "doniguard_audit", auditId);
 
-                // Penentuan Waktu Riwayat (Sesuai format index.html -> ISO String)
                 let finalDateISO = new Date().toISOString();
                 if (datetimeInput) {
                     finalDateISO = new Date(datetimeInput).toISOString();
@@ -195,32 +237,35 @@
 
                 await runTransaction(db, async (t) => {
                     const uDoc = await t.get(userRef);
+                    if (!uDoc.exists()) throw new Error("Dokumen user tidak ditemukan saat memproses transaksi.");
+
                     const currentBal = uDoc.data().balance || 0;
                     let newBal = currentBal;
 
                     if (action === 'add') newBal += amount;
                     if (action === 'deduct') newBal -= amount;
 
-                    // 1. Update Saldo User
+                    // 1. Modifikasi Saldo
                     if (action !== 'none') {
                         t.update(userRef, { balance: newBal });
                     }
 
-                    // 2. Suntik Data History dengan struktur identik bawaan sistem
+                    // 2. Suntik Data Riwayat
                     t.set(historyRef, {
                         title: desc,
                         amount: amount,
                         type: action === 'deduct' ? 'out' : 'in',
                         date: finalDateISO,
                         status: status,
-                        api_msg: 'Injeksi Manual oleh Admin',
+                        api_msg: 'Injeksi Manual via System Debugger',
                         trx_id: trxId,
+                        trx_code: trxCode,
                         provider_id: 'SYSTEM_DEBUG',
                         balance_before: currentBal,
                         balance_after: newBal
                     });
 
-                    // 3. Suntik Data DoniGuard Audit
+                    // 3. Suntik Log Audit (DoniGuard Bypass)
                     if (action !== 'none') {
                         t.set(auditRef, {
                             uid: user.uid,
@@ -230,18 +275,18 @@
                             balance_after: newBal,
                             trx_id: trxId,
                             timestamp: serverTimestamp(),
-                            note: `Debug Tool: ${desc}`
+                            note: `Debug Tool Injection: ${desc}`
                         });
                     }
                 });
 
                 Swal.fire({ 
                     icon: 'success', 
-                    title: 'Injeksi Berhasil!', 
-                    text: 'Riwayat dan saldo target telah diperbarui dengan aman.',
+                    title: 'Berhasil!', 
+                    text: 'Riwayat dan saldo user target berhasil diperbarui.',
                     confirmButtonColor: '#2563eb'
                 }).then(() => {
-                    // Reset Form
+                    // Kosongkan form setelah sukses
                     document.getElementById('targetUser').value = '';
                     document.getElementById('txDesc').value = '';
                     document.getElementById('txAmount').value = '';

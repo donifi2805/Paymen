@@ -591,7 +591,7 @@
       </div>
       <div class="mx-6 -mt-24 relative z-20">
         
-        <div id="runningTextContainer" class="hide bg-blue-900/50 backdrop-blur-md border border-white/20 text-white text-xs py-2 px-3 rounded-xl mb-3 flex items-center shadow-lg overflow-hidden relative">
+        <div id="runningTextContainer" style="display: none;" class="hide bg-blue-900/50 backdrop-blur-md border border-white/20 text-white text-xs py-2 px-3 rounded-xl mb-3 flex items-center shadow-lg overflow-hidden relative">
            <i class="fas fa-bullhorn text-orange-400 mr-2 flex-shrink-0 animate-pulse"></i>
            <div class="flex-1 overflow-hidden whitespace-nowrap relative mask-edges">
               <div id="runningTextContent" class="inline-block animate-marquee font-medium tracking-wide"></div>
@@ -1761,26 +1761,35 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
   initFeatureListener();
 
 
+
     function initRunningTextListener() {
-        onSnapshot(doc(db, "settings", "running_text"), (docSnap) => {
-            const container = document.getElementById('runningTextContainer');
-            const content = document.getElementById('runningTextContent');
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                if (data.active && data.text) {
-                    container.classList.remove('hide');
-                    content.innerText = data.text;
-                    if (data.speed) content.style.animationDuration = data.speed + 's';
-                    if (data.bgColor) container.style.backgroundColor = data.bgColor;
-                    if (data.textColor) content.style.color = data.textColor;
+        try {
+            onSnapshot(doc(db, "settings", "running_text"), (docSnap) => {
+                const container = document.getElementById('runningTextContainer');
+                const content = document.getElementById('runningTextContent');
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data.active === true && data.text && data.text.trim() !== '') {
+                        container.style.display = 'flex';
+                        container.classList.remove('hide', 'hidden');
+                        content.innerText = data.text;
+                        if (data.speed) content.style.animationDuration = data.speed + 's';
+                        if (data.bgColor) container.style.backgroundColor = data.bgColor;
+                        if (data.textColor) content.style.color = data.textColor;
+                    } else {
+                        container.style.display = 'none';
+                        container.classList.add('hide');
+                    }
                 } else {
+                    container.style.display = 'none';
                     container.classList.add('hide');
                 }
-            } else {
-                container.classList.add('hide');
-            }
-        });
+            });
+        } catch(e) {
+            console.error('Running Text Error:', e);
+        }
     }
+
     initRunningTextListener();
 
 

@@ -84,9 +84,7 @@
 </head>
 <body>
   <div class="app-container transition-colors duration-300">
-    <div id="toastContainer" class="fixed top-5 right-5 z-[300] flex flex-col gap-2 pointer-events-none transition-all duration-300"></div>
-
-    <div id="audioUnlockBubble" class="fixed top-5 left-5 z-[500] bg-white dark:bg-gray-900 p-3 rounded-2xl shadow-2xl border border-blue-100 dark:border-gray-800 flex items-center gap-3 transition-all duration-500">
+        <div id="audioUnlockBubble" class="fixed top-5 left-5 z-[500] bg-white dark:bg-gray-900 p-3 rounded-2xl shadow-2xl border border-blue-100 dark:border-gray-800 animate-fade-in-down flex items-center gap-3 transition-all duration-500">
       <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center ring-4 ring-blue-50 dark:ring-blue-900/20">
         <i class="fas fa-bell text-lg"></i>
       </div>
@@ -95,16 +93,7 @@
         <button onclick="unlockAudio()" class="text-xs font-black text-blue-600 dark:text-blue-400 active:scale-95 transition-transform">AKTIFKAN</button>
       </div>
     </div>
-
-    <div id="audioUnlockBubble" class="fixed top-5 left-5 z-[500] bg-white dark:bg-gray-900 p-3 rounded-2xl shadow-2xl border border-blue-100 dark:border-gray-800 animate-fade-in-down flex items-center gap-3 transition-all duration-500">
-      <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center ring-4 ring-blue-50 dark:ring-blue-900/20">
-        <i class="fas fa-bell text-lg"></i>
-      </div>
-      <div>
-        <p class="text-[9px] font-bold text-gray-400 uppercase tracking-tighter mb-0.5">Aktifkan Notif</p>
-        <button onclick="unlockAudio()" class="text-xs font-black text-blue-600 dark:text-blue-400 active:scale-95 transition-transform">NYALAKAN</button>
-      </div>
-    </div>
+    <div id="toastContainer" class="fixed top-5 right-5 z-[300] flex flex-col gap-2 pointer-events-none transition-all duration-300"></div>
     <div id="customAlertModal" class="hide fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
       <div class="bg-white dark:bg-gray-900 w-full max-w-xs rounded-[2.5rem] p-8 shadow-2xl border border-white/20 dark:border-gray-800 transform transition-all animate-pop-in relative overflow-hidden">
         <div id="alertIconContainer" class="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg">
@@ -909,12 +898,6 @@
           </div>
           <div class="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
             <span class="text-xs text-gray-500">Tgl. Lahir</span><span class="text-sm font-bold dark:text-white" id="profileDob">-</span>
-          </div>
-          <div onclick="window.speakNotification('Notifikasi suara berhasil diaktifkan')" class="p-4 flex items-center gap-4 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors group border-b border-gray-100 dark:border-gray-800">
-            <div class="w-9 h-9 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-500 dark:text-blue-400 flex items-center justify-center transition-colors">
-                <i class="fas fa-volume-up"></i>
-            </div>
-            <div class="flex-1 text-sm font-bold text-blue-600 dark:text-blue-400">Aktifkan / Tes Notifikasi Suara</div>
           </div>
           <div onclick="handleLogout()" class="p-4 flex items-center gap-4 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer transition-colors group">
             <div class="w-9 h-9 rounded-full bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400 group-hover:bg-red-100 dark:group-hover:bg-red-900/50 flex items-center justify-center transition-colors"></div>
@@ -2088,17 +2071,18 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
             snapshot.forEach((doc) => {
                 const data = doc.data();
                 transactions.push(data);
-                
-                const trxId = data.trx_id || doc.id;
-                const vKey = `voiced_v4_${trxId}`;
-                const trxTime = new Date(data.date).getTime();
-                const isNew = (Date.now() - trxTime < 180000); // Batas 3 menit
 
-                if (isNew && !sessionStorage.getItem(vKey)) {
+                // --- SISTEM NOTIFIKASI SUARA PANDAWA ---
+                const trxId = data.trx_id || doc.id;
+                const vKey = `voiced_final_${trxId}`;
+                const trxTime = new Date(data.date).getTime();
+                const isRecent = (Date.now() - trxTime < 120000); // 2 Menit terakhir
+
+                if (isRecent && !sessionStorage.getItem(vKey)) {
                     const title = data.title || 'Layanan';
-                    const destRaw = data.dest_num || data.targetNumber || '';
-                    const destSpelled = window.spellNumber(destRaw);
-                    
+                    const destNum = data.dest_num || data.targetNumber || '';
+                    const destSpelled = window.spellNumber(destNum);
+
                     if (data.status === 'Sukses') {
                         if (data.type === 'in' && title.toLowerCase().includes('top up')) {
                             window.speakNotification(`Pemberitahuan sistem. Pengisian saldo senilai ${window.terbilang(data.amount)} rupiah telah berhasil dikreditkan ke akun Anda.`);
@@ -2112,6 +2096,7 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
                     }
                 }
             });
+
             // Sinkronkan data Firebase ke Cache Lokal setiap ada perubahan
             const cacheKey = `trx_cache_${currentUser.uid}`;
             localStorage.setItem(cacheKey, JSON.stringify(transactions));
@@ -2513,44 +2498,19 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
         return res.trim();
     };
 
-    window.spellNumber = (num) => num.toString().split('').join(' ');
+    window.spellNumber = (num) => (num || '').toString().split('').join(' ').replace(/0/g, 'kosong');
 
     window.speakNotification = (text) => {
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
             const msg = new SpeechSynthesisUtterance(text);
             msg.lang = 'id-ID';
-            msg.rate = 0.88; // Kecepatan bicara lebih tenang dan profesional
-            msg.pitch = 1.15; // Nada suara wanita muda yang berwibawa
+            msg.rate = 0.85; // Bicara lebih tenang dan profesional
+            msg.pitch = 1.2;  // Nada wanita muda yang sopan
             window.speechSynthesis.speak(msg);
         }
     };
 ('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
-
-    window.terbilang = (n) => {
-        const bilangan = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
-        let res = '';
-        if (n < 12) res = bilangan[n];
-        else if (n < 20) res = window.terbilang(n - 10) + ' belas';
-        else if (n < 100) res = window.terbilang(Math.floor(n / 10)) + ' puluh ' + window.terbilang(n % 10);
-        else if (n < 200) res = 'seratus ' + window.terbilang(n - 100);
-        else if (n < 1000) res = window.terbilang(Math.floor(n / 100)) + ' ratus ' + window.terbilang(n % 100);
-        else if (n < 2000) res = 'seribu ' + window.terbilang(n - 1000);
-        else if (n < 1000000) res = window.terbilang(Math.floor(n / 1000)) + ' ribu ' + window.terbilang(n % 1000);
-        return res.trim();
-    };
-
-    
-    window.speakNotification = (text) => {
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel();
-            const msg = new SpeechSynthesisUtterance(text);
-            msg.lang = 'id-ID';
-            msg.rate = 1.1; // Sedikit lebih cepat agar ceria
-            msg.pitch = 1.3; // Nada lebih tinggi agar terdengar seperti wanita muda
-            window.speechSynthesis.speak(msg);
-        }
-    };
     // --- FUNGSI SENSOR SALDO (ANTI LEAK) ---
     window.sanitizeResponse = (msg) => {
         if (!msg || typeof msg !== 'string') return '-';
@@ -2796,7 +2756,8 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
             const b = document.getElementById('audioUnlockBubble');
             if(b) { b.style.opacity = '0'; b.style.transform = 'translateX(-20px)'; setTimeout(() => b.remove(), 500); }
         }, 5000);
-    }); 
+    });
+ 
     
     // Auth Event Listeners (Register, Login, etc)
     document.getElementById('togglePassBtn').addEventListener('click', () => {
@@ -4793,19 +4754,6 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
     // Auto Update Badge
     setInterval(window.updateTopUpBadge, 2000);
 
-    window.unlockAudio = () => {
-        window.speakNotification('Notifikasi Berhasil Dinyalakan');
-        const b = document.getElementById('audioUnlockBubble');
-        if(b) { b.style.opacity = '0'; setTimeout(() => b.remove(), 500); }
-    };
-
-    window.addEventListener('load', () => {
-        setTimeout(() => {
-            const b = document.getElementById('audioUnlockBubble');
-            if(b) { b.style.opacity = '0'; setTimeout(() => b.remove(), 500); }
-        }, 5000);
-    });
-
         window.liveStockInterval = null;
 
     window.fetchLiveStock = async () => {
@@ -5488,12 +5436,10 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                     });
                 });
 
-                                // Kirim Notif Telegram
+                // Kirim Notif Telegram
                 window.sendTelegramNotif('TOPUP', { amount: targetAmount, trxId: "QP-" + qiosTicket.created });
 
-                setTimeout(() => {
-                    alert(`SUKSES! Saldo Rp ${targetAmount.toLocaleString()} telah masuk ke akun Anda.`);
-                }, 600);
+                alert(`SUKSES! Saldo Rp ${targetAmount.toLocaleString()} telah masuk ke akun Anda.`);
                 localStorage.removeItem('qios_trx_' + currentUser.uid);
                 window.closeQios();
                 window.nav('homePage');

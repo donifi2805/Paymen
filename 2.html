@@ -652,12 +652,15 @@
                 <div class="space-y-3">
                     <div>
                         <label class="text-[10px] font-bold text-gray-500 block mb-1">Isi Teks Pengumuman</label>
-                        <input type="text" id="rtTextInput" placeholder="Contoh: Promo hari ini! Diskon 50%..." class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs focus:ring-1 focus:ring-blue-500 outline-none">
+                        <input type="text" id="rtTextInput" oninput="this.value = this.value.replace(/&/g, '')" placeholder="Contoh: Promo hari ini! Diskon 50%..." class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs focus:ring-1 focus:ring-blue-500 outline-none">
                     </div>
                     <div class="grid grid-cols-3 gap-3">
                         <div>
-                            <label class="text-[10px] font-bold text-gray-500 block mb-1">Kecepatan (Detik)</label>
-                            <input type="number" id="rtSpeedInput" placeholder="15" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs focus:ring-1 focus:ring-blue-500 outline-none">
+                            <label class="text-[10px] font-bold text-gray-500 flex justify-between mb-1">
+                                <span>Kecepatan</span>
+                                <span id="speedValPreview" class="text-blue-600">85%</span>
+                            </label>
+                            <input type="range" id="rtSpeedInput" min="1" max="100" value="85" oninput="document.getElementById('speedValPreview').innerText = this.value + '%'" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600 mt-2">
                         </div>
                         <div>
                             <label class="text-[10px] font-bold text-gray-500 block mb-1">Warna Background</label>
@@ -1438,7 +1441,13 @@ window.listenDebugPreOrders = () => {
                     const d = docSnap.data();
                     document.getElementById('toggleRunningText').checked = d.active || false;
                     document.getElementById('rtTextInput').value = d.text || '';
-                    document.getElementById('rtSpeedInput').value = d.speed || 15;
+                    // Konversi dari detik ke persentase (101 - detik)
+                    let savedSpeed = d.speed || 15;
+                    let sliderVal = 101 - savedSpeed;
+                    if(sliderVal < 1) sliderVal = 1;
+                    if(sliderVal > 100) sliderVal = 100;
+                    document.getElementById('rtSpeedInput').value = sliderVal;
+                    if(document.getElementById('speedValPreview')) document.getElementById('speedValPreview').innerText = sliderVal + '%';
                     document.getElementById('rtBgColorInput').value = d.bgColor || '#1e3a8a';
                     document.getElementById('rtTextColorInput').value = d.textColor || '#ffffff';
 
@@ -1455,8 +1464,8 @@ window.listenDebugPreOrders = () => {
                 Swal.showLoading();
                 await setDoc(doc(db, "settings", "running_text"), {
                     active: document.getElementById('toggleRunningText').checked,
-                    text: document.getElementById('rtTextInput').value,
-                    speed: document.getElementById('rtSpeedInput').value || 15,
+                    text: document.getElementById('rtTextInput').value.replace(/&/g, ''),
+                    speed: 101 - (parseInt(document.getElementById('rtSpeedInput').value) || 85),
                     bgColor: document.getElementById('rtBgColorInput').value,
                     textColor: document.getElementById('rtTextColorInput').value,
                     bgTransparent: document.getElementById('rtBgTransparent').value === 'true',

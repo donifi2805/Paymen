@@ -2448,6 +2448,29 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
     };
   
     window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+
+    window.terbilang = (n) => {
+        const bilangan = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
+        let res = '';
+        if (n < 12) res = bilangan[n];
+        else if (n < 20) res = window.terbilang(n - 10) + ' belas';
+        else if (n < 100) res = window.terbilang(Math.floor(n / 10)) + ' puluh ' + window.terbilang(n % 10);
+        else if (n < 200) res = 'seratus ' + window.terbilang(n - 100);
+        else if (n < 1000) res = window.terbilang(Math.floor(n / 100)) + ' ratus ' + window.terbilang(n % 100);
+        else if (n < 2000) res = 'seribu ' + window.terbilang(n - 1000);
+        else if (n < 1000000) res = window.terbilang(Math.floor(n / 1000)) + ' ribu ' + window.terbilang(n % 1000);
+        return res.trim();
+    };
+
+    window.speakNotification = (text) => {
+        if ('speechSynthesis' in window) {
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.lang = 'id-ID';
+            msg.rate = 1.0;
+            window.speechSynthesis.speak(msg);
+        }
+    };
+
     // --- FUNGSI SENSOR SALDO (ANTI LEAK) ---
     window.sanitizeResponse = (msg) => {
         if (!msg || typeof msg !== 'string') return '-';
@@ -5360,8 +5383,11 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                     });
                 });
 
-                // Kirim Notif Telegram
+                                // Kirim Notif Telegram
                 window.sendTelegramNotif('TOPUP', { amount: targetAmount, trxId: "QP-" + qiosTicket.created });
+
+                // Notifikasi Suara
+                window.speakNotification(`Topup Saldo Berhasil, Saldo bertambah ${window.terbilang(targetAmount)} rupiah`);
 
                 alert(`SUKSES! Saldo Rp ${targetAmount.toLocaleString()} telah masuk ke akun Anda.`);
                 localStorage.removeItem('qios_trx_' + currentUser.uid);

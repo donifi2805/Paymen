@@ -615,7 +615,7 @@
       </div>
       <div class="mt-6 px-6">
         <h3 class="font-bold text-gray-800 dark:text-white mb-4 text-sm">Layanan</h3>
-        <div class="grid grid-cols-4 gap-4">
+        <div class="grid grid-cols-3 gap-4">
           <div class="text-center group cursor-pointer" onclick="openPPOB('akrab')">
             <div class="bg-blue-100 dark:bg-blue-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fa-solid fa-mobile-screen-button text-2xl text-blue-600"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Data</span>
           </div>
@@ -5096,6 +5096,7 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
     window.generateQiosTicket = () => {
         const input = parseInt(document.getElementById('qiosInputAmount').value);
         if(!input || input < 1000) return alert('Minimal Top Up Rp 1.000');
+        if(input > 499000) return alert('Maksimal Top Up Rp 499.000');
         
         const uniqueCode = Math.floor(Math.random() * 900) + 100;
         const total = input + uniqueCode;

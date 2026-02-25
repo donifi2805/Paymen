@@ -1441,9 +1441,9 @@ window.listenDebugPreOrders = () => {
                     const d = docSnap.data();
                     document.getElementById('toggleRunningText').checked = d.active || false;
                     document.getElementById('rtTextInput').value = d.text || '';
-                    // Skala Baru: 1% (35 detik) - 100% (5 detik)
+                    // Skala Ultra Cepat: 1% (20 detik) - 100% (0.1 detik)
                     let savedSpeed = d.speed || 15;
-                    let sliderVal = Math.round((35.3 - savedSpeed) / 0.3);
+                    let sliderVal = Math.round((20.2 - savedSpeed) / 0.2);
                     if(sliderVal < 1) sliderVal = 1; if(sliderVal > 100) sliderVal = 100;
                     document.getElementById('rtSpeedInput').value = sliderVal;
                     if(document.getElementById('speedValPreview')) document.getElementById('speedValPreview').innerText = sliderVal + '%';
@@ -1464,7 +1464,7 @@ window.listenDebugPreOrders = () => {
                 await setDoc(doc(db, "settings", "running_text"), {
                     active: document.getElementById('toggleRunningText').checked,
                     text: document.getElementById('rtTextInput').value.replace(/&/g, ''),
-                    speed: parseFloat((35.3 - (parseInt(document.getElementById('rtSpeedInput').value) * 0.3)).toFixed(1)),
+                    speed: Math.max(0.1, parseFloat((20.2 - (parseInt(document.getElementById('rtSpeedInput').value) * 0.2)).toFixed(2))),
                     bgColor: document.getElementById('rtBgColorInput').value,
                     textColor: document.getElementById('rtTextColorInput').value,
                     bgTransparent: document.getElementById('rtBgTransparent').value === 'true',

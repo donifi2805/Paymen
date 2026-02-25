@@ -1762,95 +1762,116 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
 
 
 
-            function initRunningTextListener() {
-            const container = document.getElementById('runningTextContainer');
-            const content = document.getElementById('runningTextContent');
+                function initRunningTextListener() {
+        const container = document.getElementById('runningTextContainer');
+        const content = document.getElementById('runningTextContent');
+        const cacheKey = 'rt_settings_cache';
 
-            // Fungsi untuk menerapkan tampilan UI
-            const applyRTUI = (data) => {
-                if (data.active === true && data.text && data.text.trim() !== '') {
-                    container.style.display = 'flex';
-                    container.classList.remove('hide', 'hidden');
-                    
-                    let spacingAmount = data.spacing || 50;
-                    let spaceStr = '&nbsp;'.repeat(spacingAmount);
-                    let combinedText = data.text + spaceStr + data.text + spaceStr + data.text;
-                    
-                    if (data.rainbowText) {
-                        let coloredText = '';
-                        let inHtmlEntity = false;
-                        let entityStr = '';
-                        for(let i=0; i<combinedText.length; i++) {
-                            let char = combinedText[i];
-                            if (char === '&') inHtmlEntity = true;
-                            if (inHtmlEntity) {
-                                entityStr += char;
-                                if (char === ';') { coloredText += entityStr; inHtmlEntity = false; entityStr = ''; }
-                            } else if (char !== ' ') {
-                                const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#a855f7', '#ec4899', '#f43f5e'];
-                                const randomColor = colors[Math.floor(Math.random() * colors.length)];
-                                coloredText += `<span style="color:${randomColor}">${char}</span>`;
-                            } else { coloredText += ' ' ; }
-                        }
-                        content.innerHTML = coloredText;
-                    } else {
-                        content.innerHTML = combinedText;
-                        content.style.color = data.textColor || '#ffffff';
+        // Fungsi untuk menerapkan tampilan UI
+        const applyRTUI = (data) => {
+            if (data.active === true && data.text && data.text.trim() !== '') {
+                container.style.display = 'flex';
+                container.classList.remove('hide', 'hidden');
+                
+                let spacingAmount = data.spacing || 50;
+                let spaceStr = '&nbsp;'.repeat(spacingAmount);
+                let combinedText = data.text + spaceStr + data.text + spaceStr + data.text;
+                
+                if (data.rainbowText) {
+                    let coloredText = '';
+                    let inHtmlEntity = false;
+                    let entityStr = '';
+                    for(let i=0; i<combinedText.length; i++) {
+                        let char = combinedText[i];
+                        if (char === '&') inHtmlEntity = true;
+                        if (inHtmlEntity) {
+                            entityStr += char;
+                            if (char === ';') { coloredText += entityStr; inHtmlEntity = false; entityStr = ''; }
+                        } else if (char !== ' ') {
+                            const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#a855f7', '#ec4899', '#f43f5e'];
+                            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                            coloredText += `<span style="color:${randomColor}">${char}</span>`;
+                        } else { coloredText += ' ' ; }
                     }
+                    content.innerHTML = coloredText;
+                } else {
+                    content.innerHTML = combinedText;
+                    content.style.color = data.textColor || '#ffffff';
+                }
 
-                    if (data.bgTransparent) {
-                        container.style.background = 'transparent';
-                        container.style.border = 'none';
-                        container.style.boxShadow = 'none';
-                        container.classList.remove('backdrop-blur-md', 'bg-blue-900/50');
-                    } else {
-                        container.style.background = data.bgColor || '#1e3a8a';
-                        container.style.border = '';
-                        container.style.boxShadow = '';
-                        container.classList.add('backdrop-blur-md');
-                    }
+                if (data.bgTransparent) {
+                    container.style.background = 'transparent';
+                    container.style.border = 'none';
+                    container.style.boxShadow = 'none';
+                    container.classList.remove('backdrop-blur-md', 'bg-blue-900/50');
+                } else {
+                    container.style.background = data.bgColor || '#1e3a8a';
+                    container.style.border = '';
+                    container.style.boxShadow = '';
+                    container.classList.add('backdrop-blur-md');
+                }
 
-                    content.className = 'inline-block font-medium tracking-wide';
-                    let animSpeed = data.speed || 15;
-                    if(data.animation === 'pulse') {
-                        content.classList.add('animate-pulse');
-                        content.style.animationDuration = (animSpeed/5) + 's';
-                    } else if(data.animation === 'bounce') {
-                        content.classList.add('animate-bounce');
-                        content.style.animationDuration = (animSpeed/5) + 's';
-                    } else {
-                        content.classList.add('animate-marquee');
-                        content.style.animationDuration = animSpeed + 's';
-                    }
+                content.className = 'inline-block font-medium tracking-wide';
+                let animSpeed = data.speed || 15;
+                if(data.animation === 'pulse') {
+                    content.classList.add('animate-pulse');
+                    content.style.animationDuration = (animSpeed/5) + 's';
+                } else if(data.animation === 'bounce') {
+                    content.classList.add('animate-bounce');
+                    content.style.animationDuration = (animSpeed/5) + 's';
+                } else {
+                    content.classList.add('animate-marquee');
+                    content.style.animationDuration = animSpeed + 's';
+                }
+            } else {
+                container.style.display = 'none';
+                container.classList.add('hide');
+            }
+        };
+
+        // 1. TAMPILKAN LANGSUNG DARI CACHE ATAU DEFAULT (Tanpa Delay)
+        let cachedData = localStorage.getItem(cacheKey);
+        if (cachedData) {
+            try { applyRTUI(JSON.parse(cachedData)); } catch(e) {}
+        } else {
+            // Teks Sementara jika aplikasi baru pertama kali dibuka
+            applyRTUI({
+                active: true,
+                text: "Selamat Datang di Pandawa Store! Sedang memuat pembaruan server...",
+                speed: 15,
+                bgColor: "#1e3a8a",
+                textColor: "#ffffff",
+                rainbowText: false,
+                bgTransparent: false,
+                spacing: 50
+            });
+        }
+
+        // 2. MENDOWNLOAD DATA TERBARU SECARA AGRESIF (Prioritas Reload)
+        try {
+            getDoc(doc(db, "settings", "running_text")).then((docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    localStorage.setItem(cacheKey, JSON.stringify(data));
+                    applyRTUI(data);
+                }
+            }).catch(e => console.warn('Fetch RT Error:', e));
+
+            // 3. TETAP PANTAU PERUBAHAN DARI ADMIN REALTIME
+            onSnapshot(doc(db, "settings", "running_text"), (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    localStorage.setItem(cacheKey, JSON.stringify(data));
+                    applyRTUI(data);
                 } else {
                     container.style.display = 'none';
                     container.classList.add('hide');
                 }
-            };
-
-            // 1. Ambil dari Cache Lokal (Agar Langsung Muncul Tanpa Delay)
-            const cacheKey = 'rt_settings_cache';
-            const cachedData = localStorage.getItem(cacheKey);
-            if (cachedData) {
-                try { applyRTUI(JSON.parse(cachedData)); } catch(e) { console.warn('RT Cache Error', e); }
-            }
-
-            // 2. Hubungkan ke Firebase (Update Realtime)
-            try {
-                onSnapshot(doc(db, "settings", "running_text"), (docSnap) => {
-                    if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        localStorage.setItem(cacheKey, JSON.stringify(data)); // Simpan ke Cache
-                        applyRTUI(data);
-                    } else {
-                        container.style.display = 'none';
-                        container.classList.add('hide');
-                    }
-                });
-            } catch(e) {
-                console.error('Running Text Error:', e);
-            }
+            });
+        } catch(e) {
+            console.error('Running Text Error:', e);
         }
+    }
 
     initRunningTextListener();
 

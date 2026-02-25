@@ -3256,54 +3256,7 @@ window.loadChatList = () => {
             Swal.fire('Gagal', e.message, 'error');
             document.getElementById('toggleGlobalMt').checked = !isActive; 
         }
-    };
-    window.loadTopupSettings = async () => {
-        const mToggle = document.getElementById('toggleManual');
-        const qToggle = document.getElementById('toggleQios');
-        const poToggle = document.getElementById('togglePreorder');
-        
-        mToggle.parentElement.classList.add('opacity-50');
-        qToggle.parentElement.classList.add('opacity-50');
-        if(poToggle) poToggle.parentElement.classList.add('opacity-50');
-        
-        try {
-            const docSnap = await getDoc(doc(db, "settings", "topup"));
-            if (docSnap.exists()) {
-                const d = docSnap.data();
-                mToggle.checked = d.manual !== false; 
-                qToggle.checked = d.qios !== false;   
-            } else {
-                mToggle.checked = true; qToggle.checked = true;
-            }
-            
-            const featSnap = await getDoc(doc(db, "settings", "features"));
-            if (featSnap.exists()) {
-                const f = featSnap.data();
-                if(poToggle) poToggle.checked = f.preorder !== false;
-            } else {
-                if(poToggle) poToggle.checked = true;
-            }
-        } catch (e) { Swal.fire('Error', e.message, 'error'); }
-        
-        mToggle.parentElement.classList.remove('opacity-50');
-        qToggle.parentElement.classList.remove('opacity-50');
-        if(poToggle) poToggle.parentElement.classList.remove('opacity-50');
-    };
-
-    window.saveTopupSettings = async () => {
-        const m = document.getElementById('toggleManual').checked;
-        const q = document.getElementById('toggleQios').checked;
-        const poToggle = document.getElementById('togglePreorder');
-        const po = poToggle ? poToggle.checked : true;
-        
-        try {
-            Swal.showLoading();
-            await setDoc(doc(db, "settings", "topup"), { manual: m, qios: q }, { merge: true });
-            await setDoc(doc(db, "settings", "features"), { preorder: po }, { merge: true });
-            Swal.fire('Berhasil', 'Status pengaturan diperbarui!', 'success');
-        } catch(e) { Swal.fire('Gagal', e.message, 'error'); }
-    };
-    window.loadTopupSettings = async () => {
+    };    window.loadTopupSettings = async () => {
         const mToggle = document.getElementById('toggleManual');
         const qToggle = document.getElementById('toggleQios');
         const poToggle = document.getElementById('togglePreorder');
@@ -3581,10 +3534,9 @@ window.deactivateNotif = async () => {
 
     // Jalankan saat script dimuat
     window.renderNavigation();
-
     </script>
     
-        <div id="statusChangeModal" class="hide fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 fade-in">
+    <div id="statusChangeModal" class="hide fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 fade-in">
         <div class="bg-white rounded-xl w-full max-w-xs shadow-2xl p-4">
             <h3 class="text-sm font-bold text-gray-800 mb-3 text-center">Ubah Status Manual</h3>
             <input type="hidden" id="statusChangeUid"><input type="hidden" id="statusChangeTrxId">
@@ -3597,7 +3549,7 @@ window.deactivateNotif = async () => {
         </div>
     </div>
 
-<div id="searchTrxModal" class="hide fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 fade-in">
+    <div id="searchTrxModal" class="hide fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 fade-in">
         <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
             <div class="bg-gray-50 px-4 py-4 border-b border-gray-100 flex justify-between items-center">
                 <h3 class="text-sm font-bold text-gray-800"><i class="fas fa-search-dollar mr-2 text-orange-500"></i>Pelacak Transaksi Sistem</h3>
@@ -3608,13 +3560,11 @@ window.deactivateNotif = async () => {
                     <input type="number" id="searchTrxCode" placeholder="Masukkan 6 digit kode..." class="flex-1 px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-orange-500 outline-none font-mono font-bold text-lg text-center tracking-widest">
                     <button onclick="findTransactionByCode()" class="bg-orange-500 hover:bg-orange-600 text-white px-6 rounded-xl font-bold transition-all"><i class="fas fa-search"></i></button>
                 </div>
-                
-                <div id="searchTrxResult" class="hide space-y-4 max-h-[60vh] overflow-y-auto custom-scroll pr-2">
-                    
-                </div>
+                <div id="searchTrxResult" class="hide space-y-4 max-h-[60vh] overflow-y-auto custom-scroll pr-2"></div>
             </div>
         </div>
     </div>
+
     <div id="maintenanceModal" class="hide fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 fade-in">
         <div class="bg-white rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
             <div class="bg-orange-50 px-4 py-3 border-b border-orange-100 flex justify-between items-center">
@@ -3623,9 +3573,7 @@ window.deactivateNotif = async () => {
             </div>
             <div class="p-5">
                 <p class="text-[10px] text-gray-500 mb-4">Aktifkan switch untuk menandai provider sebagai <b>GANGGUAN</b> (User tidak bisa transaksi).</p>
-                <div class="space-y-4 max-h-[60vh] overflow-y-auto custom-scroll pr-2" id="maintenanceList">
-                    
-                </div>
+                <div class="space-y-4 max-h-[60vh] overflow-y-auto custom-scroll pr-2" id="maintenanceList"></div>
                 <div class="mt-4 pt-3 border-t border-gray-100 flex justify-end">
                     <button onclick="saveMaintenanceStatus()" class="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded-lg font-bold text-xs shadow-lg transition">SIMPAN STATUS</button>
                 </div>
@@ -3633,6 +3581,6 @@ window.deactivateNotif = async () => {
         </div>
     </div>
 
-<audio id="trxNotifySound" src="trx.ogg" preload="auto"></audio>
+    <audio id="trxNotifySound" src="trx.ogg" preload="auto"></audio>
 </body>
 </html>

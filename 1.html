@@ -77,8 +77,8 @@
         .prov-maintenance .mt-badge { display: inline-block; } 
         .prov-maintenance .fa-chevron-right { display: none; }
   
-                @keyframes marquee { 0% { transform: translateX(0%); } 100% { transform: translateX(-50%); } }
-        .animate-marquee { animation: marquee 15s linear infinite; display: inline-block; white-space: nowrap; }
+        @keyframes marquee { 0% { transform: translateX(100vw); } 100% { transform: translateX(-100%); } }
+        .animate-marquee { animation: marquee 15s linear infinite; display: inline-block; }
         .mask-edges { -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent); mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent); }
 </style>
 </head>
@@ -1056,7 +1056,8 @@
     </div>
   </div>
   <script type="module">
-        import { 
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { 
         getAuth, 
         signInWithEmailAndPassword, 
         createUserWithEmailAndPassword,
@@ -1072,7 +1073,8 @@
         signInWithRedirect,
         getRedirectResult,
         setPersistence,
-        browserLocalPersistence
+        browserLocalPersistence,
+        browserSessionPersistence
     } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, onSnapshot, query, orderBy, where, getDocs, runTransaction, deleteDoc, serverTimestamp, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -1606,8 +1608,7 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
 
 
     
-        const auth = getAuth(app);
-    setPersistence(auth, browserLocalPersistence).catch(console.error);
+    const auth = getAuth(app);
     const db = getFirestore(app);
                 // --- DONIGUARD SYSTEM CORE (v3.6) ---
         window.logDoniGuardAudit = (transaction, uid, type, amount, before, after, trxId, note) => {
@@ -1775,11 +1776,10 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
                             container.style.display = 'flex';
                             container.classList.remove('hide', 'hidden');
                             
-                                                        // 1. Teks Bersambung & Jarak (Seamless Marquee)
+                            // 1. Teks Bersambung & Jarak
                             let spacingAmount = data.spacing || 50;
                             let spaceStr = '&nbsp;'.repeat(spacingAmount);
-                            let singleText = data.text + spaceStr;
-                            let combinedText = singleText.repeat(20);
+                            let combinedText = data.text + spaceStr + data.text + spaceStr + data.text;
                             
                             // 2. Teks Warna-Warni (Rainbow)
                             if (data.rainbowText) {
@@ -1825,7 +1825,7 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
                                 container.classList.add('backdrop-blur-md');
                             }
 
-                                                        // 4. Gaya Animasi & Kecepatan
+                            // 4. Gaya Animasi & Kecepatan
                             content.className = 'inline-block font-medium tracking-wide';
                             let animSpeed = data.speed || 15;
                             
@@ -1837,7 +1837,7 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
                                 content.style.animationDuration = (animSpeed/5) + 's';
                             } else {
                                 content.classList.add('animate-marquee');
-                                content.style.animationDuration = (animSpeed * 10) + 's';
+                                content.style.animationDuration = animSpeed + 's';
                             }
 
                         } else {
@@ -2725,7 +2725,9 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
 
         // 3. HANDLER LOGIN
         if(authMode === 'login') {
-            try { 
+            try {
+                const isRemember = document.getElementById('rememberMe') && document.getElementById('rememberMe').checked;
+                await setPersistence(auth, isRemember ? browserLocalPersistence : browserSessionPersistence);
                 await signInWithEmailAndPassword(auth, email, password);
             } catch(e) {
                 window.showLoader(false);

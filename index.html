@@ -76,7 +76,11 @@
         .mt-badge { display: none; font-size: 9px; background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-left: 8px; } 
         .prov-maintenance .mt-badge { display: inline-block; } 
         .prov-maintenance .fa-chevron-right { display: none; }
-  </style>
+  
+        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+        .animate-marquee { animation: marquee linear infinite; display: inline-block; padding-left: 100%; width: max-content; max-width: none; will-change: transform; }
+        .mask-edges { -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent); mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent); }
+</style>
 </head>
 <body>
   <div class="app-container transition-colors duration-300">
@@ -613,7 +617,14 @@
           </div>
         </div>
       </div>
-      <div class="mt-6 px-6">
+              <div id="runningTextContainer" style="display: none;" class="hide bg-blue-900/50 backdrop-blur-md border border-white/20 text-white text-xs py-2 px-3 rounded-xl mt-4 mb-2 flex items-center shadow-lg overflow-hidden relative z-20">
+           <i class="fas fa-bullhorn text-orange-400 mr-2 flex-shrink-0 animate-pulse z-10"></i>
+           <div class="flex-1 overflow-hidden whitespace-nowrap relative mask-edges z-0">
+              <div id="runningTextContent" class="inline-block animate-marquee font-medium tracking-wide"></div>
+           </div>
+        </div>
+
+<div class="mt-6 px-6">
         <h3 class="font-bold text-gray-800 dark:text-white mb-4 text-sm">Layanan</h3>
         <div class="grid grid-cols-3 gap-4">
           <div class="text-center group cursor-pointer" onclick="openPPOB('akrab')">
@@ -1060,7 +1071,10 @@
         GoogleAuthProvider,
         signInWithPopup,
         signInWithRedirect,
-        getRedirectResult
+        getRedirectResult,
+        setPersistence,
+        browserLocalPersistence,
+        browserSessionPersistence
     } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, onSnapshot, query, orderBy, where, getDocs, runTransaction, deleteDoc, serverTimestamp, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -1748,6 +1762,105 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
   initTopupSettingsListener();
 
   initFeatureListener();
+
+
+
+    function initRunningTextListener() {
+            try {
+                onSnapshot(doc(db, "settings", "running_text"), (docSnap) => {
+                    const container = document.getElementById('runningTextContainer');
+                    const content = document.getElementById('runningTextContent');
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        if (data.active === true && data.text && data.text.trim() !== '') {
+                            container.style.display = 'flex';
+                            container.classList.remove('hide', 'hidden');
+                            
+                            // 1. Teks Bersambung & Jarak
+                            let spacingAmount = data.spacing || 50;
+                            let spaceStr = '&nbsp;'.repeat(spacingAmount);
+                            // Cukup 2x pengulangan agar elemen tidak melebihi batas render browser (mencegah terpotong)
+                            let combinedText = data.text + spaceStr + data.text;
+                            
+                            // 2. Teks Warna-Warni (Rainbow)
+                            if (data.rainbowText) {
+                                let coloredText = '';
+                                let inHtmlEntity = false;
+                                let entityStr = '';
+                                
+                                for(let i=0; i<combinedText.length; i++) {
+                                    let char = combinedText[i];
+                                    if (char === '&') inHtmlEntity = true;
+                                    
+                                    if (inHtmlEntity) {
+                                        entityStr += char;
+                                        if (char === ';') {
+                                            coloredText += entityStr;
+                                            inHtmlEntity = false;
+                                            entityStr = '';
+                                        }
+                                    } else if (char !== ' ') {
+                                        const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#a855f7', '#ec4899', '#f43f5e'];
+                                        const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                                        coloredText += `<span style="color:${randomColor}">${char}</span>`;
+                                    } else {
+                                        coloredText += ' ';
+                                    }
+                                }
+                                content.innerHTML = coloredText;
+                            } else {
+                                content.innerHTML = combinedText;
+                                content.style.color = data.textColor || '#ffffff';
+                            }
+
+                            // 3. Background Transparan
+                            if (data.bgTransparent) {
+                                container.style.background = 'transparent';
+                                container.style.border = 'none';
+                                container.style.boxShadow = 'none';
+                                container.classList.remove('backdrop-blur-md', 'bg-blue-900/50');
+                            } else {
+                                container.style.background = data.bgColor || '#1e3a8a';
+                                container.style.border = '';
+                                container.style.boxShadow = '';
+                                container.classList.add('backdrop-blur-md');
+                            }
+
+                            // 4. Gaya Animasi & Kecepatan
+                            content.className = 'inline-block font-medium tracking-wide';
+                            let animSpeed = data.speed || 15;
+                            
+                            // Kalkulasi durasi dinamis: Sesuaikan waktu dengan panjang karakter agar kecepatan baca selalu stabil
+                            let charCount = combinedText.replace(/<[^>]*>?/gm, '').length;
+                            let dynamicDuration = Math.max(animSpeed, (charCount / 50) * animSpeed);
+
+                            if(data.animation === 'pulse') {
+                                content.classList.add('animate-pulse');
+                                content.style.animationDuration = (animSpeed/5) + 's';
+                            } else if(data.animation === 'bounce') {
+                                content.classList.add('animate-bounce');
+                                content.style.animationDuration = (animSpeed/5) + 's';
+                            } else {
+                                content.classList.add('animate-marquee');
+                                content.style.animationDuration = dynamicDuration + 's';
+                            }
+
+                        } else {
+                            container.style.display = 'none';
+                            container.classList.add('hide');
+                        }
+                    } else {
+                        container.style.display = 'none';
+                        container.classList.add('hide');
+                    }
+                });
+            } catch(e) {
+                console.error('Running Text Error:', e);
+            }
+        }
+
+    initRunningTextListener();
+
 
     auth.languageCode = 'id';
 
@@ -2617,7 +2730,9 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
 
         // 3. HANDLER LOGIN
         if(authMode === 'login') {
-            try { 
+            try {
+                const isRemember = document.getElementById('rememberMe') && document.getElementById('rememberMe').checked;
+                await setPersistence(auth, isRemember ? browserLocalPersistence : browserSessionPersistence);
                 await signInWithEmailAndPassword(auth, email, password);
             } catch(e) {
                 window.showLoader(false);

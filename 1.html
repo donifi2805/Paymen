@@ -77,8 +77,8 @@
         .prov-maintenance .mt-badge { display: inline-block; } 
         .prov-maintenance .fa-chevron-right { display: none; }
   
-        @keyframes marquee { 0% { transform: translateX(100vw); } 100% { transform: translateX(-100%); } }
-        .animate-marquee { animation: marquee 15s linear infinite; display: inline-block; }
+        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+        .animate-marquee { animation: marquee linear infinite; display: inline-block; padding-left: 100%; width: max-content; max-width: none; will-change: transform; }
         .mask-edges { -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent); mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent); }
 </style>
 </head>
@@ -1779,7 +1779,8 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
                             // 1. Teks Bersambung & Jarak
                             let spacingAmount = data.spacing || 50;
                             let spaceStr = '&nbsp;'.repeat(spacingAmount);
-                            let combinedText = data.text + spaceStr + data.text + spaceStr + data.text;
+                            // Cukup 2x pengulangan agar elemen tidak melebihi batas render browser (mencegah terpotong)
+                            let combinedText = data.text + spaceStr + data.text;
                             
                             // 2. Teks Warna-Warni (Rainbow)
                             if (data.rainbowText) {
@@ -1829,6 +1830,10 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
                             content.className = 'inline-block font-medium tracking-wide';
                             let animSpeed = data.speed || 15;
                             
+                            // Kalkulasi durasi dinamis: Sesuaikan waktu dengan panjang karakter agar kecepatan baca selalu stabil
+                            let charCount = combinedText.replace(/<[^>]*>?/gm, '').length;
+                            let dynamicDuration = Math.max(animSpeed, (charCount / 50) * animSpeed);
+
                             if(data.animation === 'pulse') {
                                 content.classList.add('animate-pulse');
                                 content.style.animationDuration = (animSpeed/5) + 's';
@@ -1837,7 +1842,7 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
                                 content.style.animationDuration = (animSpeed/5) + 's';
                             } else {
                                 content.classList.add('animate-marquee');
-                                content.style.animationDuration = animSpeed + 's';
+                                content.style.animationDuration = dynamicDuration + 's';
                             }
 
                         } else {

@@ -622,7 +622,7 @@
           <div class="text-center group cursor-pointer" onclick="window.showAlert('Informasi', 'Paket OTP Segera Hadir', 'info')">
             <div class="bg-emerald-100 dark:bg-emerald-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fa-solid fa-key text-2xl text-emerald-600"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Paket OTP</span>
           </div>
-          <div class="text-center group cursor-pointer" onclick="nav('preorderPage')">
+          <div id="btn-menu-preorder" class="text-center group cursor-pointer" onclick="nav('preorderPage')">
             <div class="bg-purple-100 dark:bg-purple-900/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 transition-transform group-active:scale-95"><i class="fa-solid fa-clock-rotate-left text-2xl text-purple-600"></i></div><span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">Pre-Order</span>
           </div>
           <div class="text-center group cursor-pointer" onclick="checkAkrabStock()">
@@ -1700,7 +1700,21 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
         return true;
     };
 
-        function initProviderListener() {
+        let featureStatus = { preorder: true };
+    function initFeatureListener() {
+        onSnapshot(doc(db, "settings", "features"), (docSnap) => {
+            if (docSnap.exists()) {
+                featureStatus = docSnap.data();
+                const btnPo = document.getElementById('btn-menu-preorder');
+                if(btnPo) {
+                    if(featureStatus.preorder === false) btnPo.classList.add('hide');
+                    else btnPo.classList.remove('hide');
+                }
+            }
+        });
+    }
+
+    function initProviderListener() {
         onSnapshot(doc(db, "settings", "providers"), (docSnap) => {
             if (docSnap.exists()) {
                 providerStatus = docSnap.data();
@@ -1732,6 +1746,8 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
     }
     initProviderListener();
   initTopupSettingsListener();
+
+  initFeatureListener();
 
     auth.languageCode = 'id';
 

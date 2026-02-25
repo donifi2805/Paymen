@@ -1775,11 +1775,11 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
                             container.style.display = 'flex';
                             container.classList.remove('hide', 'hidden');
                             
-                            // 1. Teks Bersambung & Jarak
-                                                let spacingAmount = data.spacing || 50;
-                    let spaceStr = '&nbsp;'.repeat(spacingAmount);
-                    let singleText = data.text + spaceStr;
-                    let combinedText = singleText.repeat(20);
+                                                        // 1. Teks Bersambung & Jarak (Seamless Marquee)
+                            let spacingAmount = data.spacing || 50;
+                            let spaceStr = '&nbsp;'.repeat(spacingAmount);
+                            let singleText = data.text + spaceStr;
+                            let combinedText = singleText.repeat(20);
                             
                             // 2. Teks Warna-Warni (Rainbow)
                             if (data.rainbowText) {
@@ -1825,19 +1825,20 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
                                 container.classList.add('backdrop-blur-md');
                             }
 
-                            // 4. Gaya Animasi & Kecepatan
-                                            content.className = 'inline-block font-medium tracking-wide';
-                let animSpeed = data.speed || 15;
-                if(data.animation === 'pulse') {
-                    content.classList.add('animate-pulse');
-                    content.style.animationDuration = (animSpeed/5) + 's';
-                } else if(data.animation === 'bounce') {
-                    content.classList.add('animate-bounce');
-                    content.style.animationDuration = (animSpeed/5) + 's';
-                } else {
-                    content.classList.add('animate-marquee');
-                    content.style.animationDuration = (animSpeed * 10) + 's';
-                }
+                                                        // 4. Gaya Animasi & Kecepatan
+                            content.className = 'inline-block font-medium tracking-wide';
+                            let animSpeed = data.speed || 15;
+                            
+                            if(data.animation === 'pulse') {
+                                content.classList.add('animate-pulse');
+                                content.style.animationDuration = (animSpeed/5) + 's';
+                            } else if(data.animation === 'bounce') {
+                                content.classList.add('animate-bounce');
+                                content.style.animationDuration = (animSpeed/5) + 's';
+                            } else {
+                                content.classList.add('animate-marquee');
+                                content.style.animationDuration = (animSpeed * 10) + 's';
+                            }
 
                         } else {
                             container.style.display = 'none';

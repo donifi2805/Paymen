@@ -626,6 +626,22 @@
             </div>
 
             <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 mt-4">
+                <h3 class="font-bold text-gray-800 mb-4 border-b pb-2">Status Fitur Tambahan</h3>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div class="p-4 border border-gray-200 rounded-xl bg-gray-50">
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="font-bold text-gray-700"><i class="fas fa-clock-rotate-left mr-2 text-purple-500"></i>Menu Pre-Order</div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="togglePreorder" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                            </label>
+                        </div>
+                        <p class="text-[10px] text-gray-500">Jika dimatikan, icon menu Pre-Order akan disembunyikan dari Beranda user.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 mt-4">
                 <h3 class="font-bold text-gray-800 mb-4 border-b pb-2">Kontrol Versi Aplikasi (PWA)</h3>
                 <div class="flex gap-4 items-end">
                     <div class="flex-1">
@@ -3241,12 +3257,15 @@ window.loadChatList = () => {
             document.getElementById('toggleGlobalMt').checked = !isActive; 
         }
     };
-
-window.loadTopupSettings = async () => {
+    window.loadTopupSettings = async () => {
         const mToggle = document.getElementById('toggleManual');
         const qToggle = document.getElementById('toggleQios');
+        const poToggle = document.getElementById('togglePreorder');
+        
         mToggle.parentElement.classList.add('opacity-50');
         qToggle.parentElement.classList.add('opacity-50');
+        if(poToggle) poToggle.parentElement.classList.add('opacity-50');
+        
         try {
             const docSnap = await getDoc(doc(db, "settings", "topup"));
             if (docSnap.exists()) {
@@ -3256,26 +3275,43 @@ window.loadTopupSettings = async () => {
             } else {
                 mToggle.checked = true; qToggle.checked = true;
             }
+            
+            const featSnap = await getDoc(doc(db, "settings", "features"));
+            if (featSnap.exists()) {
+                const f = featSnap.data();
+                if(poToggle) poToggle.checked = f.preorder !== false;
+            } else {
+                if(poToggle) poToggle.checked = true;
+            }
         } catch (e) { Swal.fire('Error', e.message, 'error'); }
+        
         mToggle.parentElement.classList.remove('opacity-50');
         qToggle.parentElement.classList.remove('opacity-50');
+        if(poToggle) poToggle.parentElement.classList.remove('opacity-50');
     };
 
     window.saveTopupSettings = async () => {
         const m = document.getElementById('toggleManual').checked;
         const q = document.getElementById('toggleQios').checked;
+        const poToggle = document.getElementById('togglePreorder');
+        const po = poToggle ? poToggle.checked : true;
+        
         try {
             Swal.showLoading();
             await setDoc(doc(db, "settings", "topup"), { manual: m, qios: q }, { merge: true });
-            Swal.fire('Berhasil', 'Status layanan top up diperbarui!', 'success');
+            await setDoc(doc(db, "settings", "features"), { preorder: po }, { merge: true });
+            Swal.fire('Berhasil', 'Status pengaturan diperbarui!', 'success');
         } catch(e) { Swal.fire('Gagal', e.message, 'error'); }
     };
-
-        window.loadTopupSettings = async () => {
+    window.loadTopupSettings = async () => {
         const mToggle = document.getElementById('toggleManual');
         const qToggle = document.getElementById('toggleQios');
+        const poToggle = document.getElementById('togglePreorder');
+        
         mToggle.parentElement.classList.add('opacity-50');
         qToggle.parentElement.classList.add('opacity-50');
+        if(poToggle) poToggle.parentElement.classList.add('opacity-50');
+        
         try {
             const docSnap = await getDoc(doc(db, "settings", "topup"));
             if (docSnap.exists()) {
@@ -3285,18 +3321,32 @@ window.loadTopupSettings = async () => {
             } else {
                 mToggle.checked = true; qToggle.checked = true;
             }
+            
+            const featSnap = await getDoc(doc(db, "settings", "features"));
+            if (featSnap.exists()) {
+                const f = featSnap.data();
+                if(poToggle) poToggle.checked = f.preorder !== false;
+            } else {
+                if(poToggle) poToggle.checked = true;
+            }
         } catch (e) { Swal.fire('Error', e.message, 'error'); }
+        
         mToggle.parentElement.classList.remove('opacity-50');
         qToggle.parentElement.classList.remove('opacity-50');
+        if(poToggle) poToggle.parentElement.classList.remove('opacity-50');
     };
 
     window.saveTopupSettings = async () => {
         const m = document.getElementById('toggleManual').checked;
         const q = document.getElementById('toggleQios').checked;
+        const poToggle = document.getElementById('togglePreorder');
+        const po = poToggle ? poToggle.checked : true;
+        
         try {
             Swal.showLoading();
             await setDoc(doc(db, "settings", "topup"), { manual: m, qios: q }, { merge: true });
-            Swal.fire('Berhasil', 'Status layanan top up diperbarui!', 'success');
+            await setDoc(doc(db, "settings", "features"), { preorder: po }, { merge: true });
+            Swal.fire('Berhasil', 'Status pengaturan diperbarui!', 'success');
         } catch(e) { Swal.fire('Gagal', e.message, 'error'); }
     };
 

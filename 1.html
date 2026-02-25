@@ -899,6 +899,14 @@
           <div class="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
             <span class="text-xs text-gray-500">Tgl. Lahir</span><span class="text-sm font-bold dark:text-white" id="profileDob">-</span>
           </div>
+          <div onclick="unlockAudio()" class="p-4 flex items-center gap-4 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors group border-b border-gray-100 dark:border-gray-800">
+            <div class="w-9 h-9 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-500 dark:text-blue-400 flex items-center justify-center transition-colors">
+                <i class="fas fa-volume-up"></i>
+            </div>
+            <div class="flex-1 text-sm font-bold text-blue-600 dark:text-blue-400">
+              Aktifkan / Tes Notifikasi Suara
+            </div>
+          </div>
           <div onclick="handleLogout()" class="p-4 flex items-center gap-4 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer transition-colors group">
             <div class="w-9 h-9 rounded-full bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400 group-hover:bg-red-100 dark:group-hover:bg-red-900/50 flex items-center justify-center transition-colors"></div>
             <div class="flex-1 text-sm font-bold text-red-500 dark:text-red-400">
@@ -2074,7 +2082,7 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
 
                 // --- SISTEM NOTIFIKASI SUARA PANDAWA ---
                 const trxId = data.trx_id || doc.id;
-                const vKey = `voiced_final_${trxId}`;
+                const vKey = `voiced_v11_${trxId}`;
                 const trxTime = new Date(data.date).getTime();
                 const isRecent = (Date.now() - trxTime < 120000); // 2 Menit terakhir
 
@@ -2483,7 +2491,7 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
         window.showAlert(title, msg, type);
     };
   
-    window.formatRp = (n) => new Intl.NumberFormat
+    window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 
     window.terbilang = (n) => {
         const bilangan = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
@@ -2505,12 +2513,25 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
             window.speechSynthesis.cancel();
             const msg = new SpeechSynthesisUtterance(text);
             msg.lang = 'id-ID';
-            msg.rate = 0.85; // Bicara lebih tenang dan profesional
-            msg.pitch = 1.2;  // Nada wanita muda yang sopan
+            msg.rate = 0.85; // Bicara tenang dan profesional
+            msg.pitch = 1.2;  // Nada wanita muda yang elegan
             window.speechSynthesis.speak(msg);
         }
     };
-('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+
+    window.unlockAudio = () => {
+        window.speakNotification('Pemberitahuan sistem. Notifikasi suara telah berhasil diaktifkan.');
+        const b = document.getElementById('audioUnlockBubble');
+        if(b) { b.style.opacity = '0'; b.style.transform = 'translateY(-20px)'; setTimeout(() => b.remove(), 500); }
+    };
+
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            const b = document.getElementById('audioUnlockBubble');
+            if(b) { b.style.opacity = '0'; b.style.transform = 'translateY(-20px)'; setTimeout(() => b.remove(), 500); }
+        }, 5000);
+    });
+
     // --- FUNGSI SENSOR SALDO (ANTI LEAK) ---
     window.sanitizeResponse = (msg) => {
         if (!msg || typeof msg !== 'string') return '-';
@@ -2744,20 +2765,7 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
   }
 
     // Initialize
-    window.updateUI = () => {};
-
-    window.unlockAudio = () => {
-        window.speakNotification('Pemberitahuan sistem. Notifikasi suara telah berhasil diaktifkan.');
-        const b = document.getElementById('audioUnlockBubble');
-        if(b) { b.style.opacity = '0'; b.style.transform = 'translateX(-20px)'; setTimeout(() => b.remove(), 500); }
-    };
-    window.addEventListener('load', () => {
-        setTimeout(() => {
-            const b = document.getElementById('audioUnlockBubble');
-            if(b) { b.style.opacity = '0'; b.style.transform = 'translateX(-20px)'; setTimeout(() => b.remove(), 500); }
-        }, 5000);
-    });
- 
+    window.updateUI = () => {}; 
     
     // Auth Event Listeners (Register, Login, etc)
     document.getElementById('togglePassBtn').addEventListener('click', () => {
@@ -5437,9 +5445,12 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                 });
 
                 // Kirim Notif Telegram
+                                // Kirim Notif Telegram
                 window.sendTelegramNotif('TOPUP', { amount: targetAmount, trxId: "QP-" + qiosTicket.created });
 
-                alert(`SUKSES! Saldo Rp ${targetAmount.toLocaleString()} telah masuk ke akun Anda.`);
+                setTimeout(() => {
+                    alert(`SUKSES! Saldo Rp ${targetAmount.toLocaleString()} telah masuk ke akun Anda.`);
+                }, 500);
                 localStorage.removeItem('qios_trx_' + currentUser.uid);
                 window.closeQios();
                 window.nav('homePage');

@@ -2059,7 +2059,18 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
         const qH = query(historyRef, orderBy("date", "desc"));
         onSnapshot(qH, (snapshot) => {
             transactions = [];
-            snapshot.forEach((doc) => transactions.push(doc.data()));
+                        snapshot.forEach((doc) => {
+                const data = doc.data();
+                transactions.push(data);
+                if (data.status === 'Sukses' && data.type === 'in' && (data.title || '').toLowerCase().includes('top up')) {
+                    const trxId = data.trx_id || doc.id;
+                    const sessionKey = `voiced_${trxId}`;
+                    if (!sessionStorage.getItem(sessionKey)) {
+                        window.speakNotification(`Topup Saldo Berhasil, Saldo bertambah ${window.terbilang(data.amount)} rupiah`);
+                        sessionStorage.setItem(sessionKey, 'true');
+                    }
+                }
+            });
 
             // Sinkronkan data Firebase ke Cache Lokal setiap ada perubahan
             const cacheKey = `trx_cache_${currentUser.uid}`;
@@ -2464,13 +2475,13 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
 
     window.speakNotification = (text) => {
         if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
             const msg = new SpeechSynthesisUtterance(text);
             msg.lang = 'id-ID';
             msg.rate = 1.0;
             window.speechSynthesis.speak(msg);
         }
     };
-
     // --- FUNGSI SENSOR SALDO (ANTI LEAK) ---
     window.sanitizeResponse = (msg) => {
         if (!msg || typeof msg !== 'string') return '-';
@@ -5383,11 +5394,8 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                     });
                 });
 
-                                // Kirim Notif Telegram
+                // Kirim Notif Telegram
                 window.sendTelegramNotif('TOPUP', { amount: targetAmount, trxId: "QP-" + qiosTicket.created });
-
-                // Notifikasi Suara
-                window.speakNotification(`Topup Saldo Berhasil, Saldo bertambah ${window.terbilang(targetAmount)} rupiah`);
 
                 alert(`SUKSES! Saldo Rp ${targetAmount.toLocaleString()} telah masuk ke akun Anda.`);
                 localStorage.removeItem('qios_trx_' + currentUser.uid);

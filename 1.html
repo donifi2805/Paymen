@@ -77,8 +77,8 @@
         .prov-maintenance .mt-badge { display: inline-block; } 
         .prov-maintenance .fa-chevron-right { display: none; }
   
-        @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
-        .animate-marquee { animation: marquee 15s linear infinite; display: inline-block; padding-left: 100%; }
+                @keyframes marquee { 0% { transform: translateX(0%); } 100% { transform: translateX(-50%); } }
+        .animate-marquee { animation: marquee 15s linear infinite; display: inline-block; white-space: nowrap; }
         .mask-edges { -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent); mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent); }
 </style>
 </head>
@@ -1056,8 +1056,7 @@
     </div>
   </div>
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { 
+        import { 
         getAuth, 
         signInWithEmailAndPassword, 
         createUserWithEmailAndPassword,
@@ -1071,7 +1070,9 @@
         GoogleAuthProvider,
         signInWithPopup,
         signInWithRedirect,
-        getRedirectResult
+        getRedirectResult,
+        setPersistence,
+        browserLocalPersistence
     } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, onSnapshot, query, orderBy, where, getDocs, runTransaction, deleteDoc, serverTimestamp, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -1605,7 +1606,8 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
 
 
     
-    const auth = getAuth(app);
+        const auth = getAuth(app);
+    setPersistence(auth, browserLocalPersistence).catch(console.error);
     const db = getFirestore(app);
                 // --- DONIGUARD SYSTEM CORE (v3.6) ---
         window.logDoniGuardAudit = (transaction, uid, type, amount, before, after, trxId, note) => {
@@ -1774,9 +1776,10 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
                             container.classList.remove('hide', 'hidden');
                             
                             // 1. Teks Bersambung & Jarak
-                            let spacingAmount = data.spacing || 50;
-                            let spaceStr = '&nbsp;'.repeat(spacingAmount);
-                            let combinedText = data.text + spaceStr + data.text + spaceStr + data.text;
+                                                let spacingAmount = data.spacing || 50;
+                    let spaceStr = '&nbsp;'.repeat(spacingAmount);
+                    let singleText = data.text + spaceStr;
+                    let combinedText = singleText.repeat(20);
                             
                             // 2. Teks Warna-Warni (Rainbow)
                             if (data.rainbowText) {
@@ -1823,19 +1826,18 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
                             }
 
                             // 4. Gaya Animasi & Kecepatan
-                            content.className = 'inline-block font-medium tracking-wide';
-                            let animSpeed = data.speed || 15;
-                            
-                            if(data.animation === 'pulse') {
-                                content.classList.add('animate-pulse');
-                                content.style.animationDuration = (animSpeed/5) + 's';
-                            } else if(data.animation === 'bounce') {
-                                content.classList.add('animate-bounce');
-                                content.style.animationDuration = (animSpeed/5) + 's';
-                            } else {
-                                content.classList.add('animate-marquee');
-                                content.style.animationDuration = animSpeed + 's';
-                            }
+                                            content.className = 'inline-block font-medium tracking-wide';
+                let animSpeed = data.speed || 15;
+                if(data.animation === 'pulse') {
+                    content.classList.add('animate-pulse');
+                    content.style.animationDuration = (animSpeed/5) + 's';
+                } else if(data.animation === 'bounce') {
+                    content.classList.add('animate-bounce');
+                    content.style.animationDuration = (animSpeed/5) + 's';
+                } else {
+                    content.classList.add('animate-marquee');
+                    content.style.animationDuration = (animSpeed * 10) + 's';
+                }
 
                         } else {
                             container.style.display = 'none';

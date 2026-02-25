@@ -86,6 +86,16 @@
   <div class="app-container transition-colors duration-300">
     <div id="toastContainer" class="fixed top-5 right-5 z-[300] flex flex-col gap-2 pointer-events-none transition-all duration-300"></div>
 
+    <div id="audioUnlockBubble" class="fixed top-5 left-5 z-[500] bg-white dark:bg-gray-900 p-3 rounded-2xl shadow-2xl border border-blue-100 dark:border-gray-800 flex items-center gap-3 transition-all duration-500">
+      <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center ring-4 ring-blue-50 dark:ring-blue-900/20">
+        <i class="fas fa-bell text-lg"></i>
+      </div>
+      <div>
+        <p class="text-[9px] font-bold text-gray-400 uppercase tracking-tighter mb-0.5">Notifikasi</p>
+        <button onclick="unlockAudio()" class="text-xs font-black text-blue-600 dark:text-blue-400 active:scale-95 transition-transform">AKTIFKAN</button>
+      </div>
+    </div>
+
     <div id="audioUnlockBubble" class="fixed top-5 left-5 z-[500] bg-white dark:bg-gray-900 p-3 rounded-2xl shadow-2xl border border-blue-100 dark:border-gray-800 animate-fade-in-down flex items-center gap-3 transition-all duration-500">
       <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center ring-4 ring-blue-50 dark:ring-blue-900/20">
         <i class="fas fa-bell text-lg"></i>
@@ -2079,17 +2089,29 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
                 const data = doc.data();
                 transactions.push(data);
                 
-                // Pemantau Suara Otomatis (Anti-Macet)
-                if (data.status === 'Sukses' && data.type === 'in' && (data.title || '').toLowerCase().includes('top up')) {
-                    const vKey = `voiced_${data.trx_id || doc.id}`;
-                    const trxTime = new Date(data.date).getTime();
-                    if (Date.now() - trxTime < 600000 && !sessionStorage.getItem(vKey)) {
-                        window.speakNotification(`Topup Saldo Berhasil, Saldo bertambah ${window.terbilang(data.amount)} rupiah`);
+                const trxId = data.trx_id || doc.id;
+                const vKey = `voiced_v4_${trxId}`;
+                const trxTime = new Date(data.date).getTime();
+                const isNew = (Date.now() - trxTime < 180000); // Batas 3 menit
+
+                if (isNew && !sessionStorage.getItem(vKey)) {
+                    const title = data.title || 'Layanan';
+                    const destRaw = data.dest_num || data.targetNumber || '';
+                    const destSpelled = window.spellNumber(destRaw);
+                    
+                    if (data.status === 'Sukses') {
+                        if (data.type === 'in' && title.toLowerCase().includes('top up')) {
+                            window.speakNotification(`Pemberitahuan sistem. Pengisian saldo senilai ${window.terbilang(data.amount)} rupiah telah berhasil dikreditkan ke akun Anda.`);
+                        } else if (data.type === 'out') {
+                            window.speakNotification(`Konfirmasi. Transaksi pembelian ${title} untuk nomor ${destSpelled} telah berhasil diselesaikan.`);
+                        }
+                        sessionStorage.setItem(vKey, 'true');
+                    } else if (data.status === 'Gagal' && data.type === 'out') {
+                        window.speakNotification(`Mohon maaf. Transaksi ${title} untuk nomor ${destSpelled} gagal diproses. Saldo Anda telah dikembalikan otomatis.`);
                         sessionStorage.setItem(vKey, 'true');
                     }
                 }
             });
-
             // Sinkronkan data Firebase ke Cache Lokal setiap ada perubahan
             const cacheKey = `trx_cache_${currentUser.uid}`;
             localStorage.setItem(cacheKey, JSON.stringify(transactions));
@@ -2476,7 +2498,34 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
         window.showAlert(title, msg, type);
     };
   
-    window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+    window.formatRp = (n) => new Intl.NumberFormat
+
+    window.terbilang = (n) => {
+        const bilangan = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
+        let res = '';
+        if (n < 12) res = bilangan[n];
+        else if (n < 20) res = window.terbilang(n - 10) + ' belas';
+        else if (n < 100) res = window.terbilang(Math.floor(n / 10)) + ' puluh ' + window.terbilang(n % 10);
+        else if (n < 200) res = 'seratus ' + window.terbilang(n - 100);
+        else if (n < 1000) res = window.terbilang(Math.floor(n / 100)) + ' ratus ' + window.terbilang(n % 100);
+        else if (n < 2000) res = 'seribu ' + window.terbilang(n - 1000);
+        else if (n < 1000000) res = window.terbilang(Math.floor(n / 1000)) + ' ribu ' + window.terbilang(n % 1000);
+        return res.trim();
+    };
+
+    window.spellNumber = (num) => num.toString().split('').join(' ');
+
+    window.speakNotification = (text) => {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.lang = 'id-ID';
+            msg.rate = 0.88; // Kecepatan bicara lebih tenang dan profesional
+            msg.pitch = 1.15; // Nada suara wanita muda yang berwibawa
+            window.speechSynthesis.speak(msg);
+        }
+    };
+('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 
     window.terbilang = (n) => {
         const bilangan = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
@@ -2735,7 +2784,19 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
   }
 
     // Initialize
-    window.updateUI = () => {}; 
+    window.updateUI = () => {};
+
+    window.unlockAudio = () => {
+        window.speakNotification('Pemberitahuan sistem. Notifikasi suara telah berhasil diaktifkan.');
+        const b = document.getElementById('audioUnlockBubble');
+        if(b) { b.style.opacity = '0'; b.style.transform = 'translateX(-20px)'; setTimeout(() => b.remove(), 500); }
+    };
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            const b = document.getElementById('audioUnlockBubble');
+            if(b) { b.style.opacity = '0'; b.style.transform = 'translateX(-20px)'; setTimeout(() => b.remove(), 500); }
+        }, 5000);
+    }); 
     
     // Auth Event Listeners (Register, Login, etc)
     document.getElementById('togglePassBtn').addEventListener('click', () => {

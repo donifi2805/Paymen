@@ -84,15 +84,6 @@
 </head>
 <body>
   <div class="app-container transition-colors duration-300">
-        <div id="audioUnlockBubble" onclick="unlockAudio()" class="fixed top-5 left-5 z-[500] bg-white dark:bg-gray-900 p-3 rounded-2xl shadow-2xl border border-blue-100 dark:border-gray-800 animate-fade-in-down flex items-center gap-3 transition-all duration-500 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 active:scale-95">
-      <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center ring-4 ring-blue-50 dark:ring-blue-900/20 pointer-events-none">
-        <i class="fas fa-bell text-lg"></i>
-      </div>
-      <div class="pointer-events-none">
-        <p class="text-[9px] font-bold text-gray-400 uppercase tracking-tighter mb-0.5">Notifikasi</p>
-        <span class="text-xs font-black text-blue-600 dark:text-blue-400">AKTIFKAN</span>
-      </div>
-    </div>
     <div id="toastContainer" class="fixed top-5 right-5 z-[300] flex flex-col gap-2 pointer-events-none transition-all duration-300"></div>
     <div id="customAlertModal" class="hide fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
       <div class="bg-white dark:bg-gray-900 w-full max-w-xs rounded-[2.5rem] p-8 shadow-2xl border border-white/20 dark:border-gray-800 transform transition-all animate-pop-in relative overflow-hidden">
@@ -593,7 +584,10 @@
               <p class="font-bold text-lg leading-tight" id="headerUsername">Loading...</p>
             </div>
           </div>
-          <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2">
+            <button id="voiceToggleBtn" onclick="toggleVoice()" class="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center hover:bg-white/30 transition active:scale-95">
+                <i id="voiceIcon" class="fas fa-volume-mute text-white opacity-50"></i>
+            </button>
             <button onclick="toggleDarkMode()" class="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center hover:bg-white/30 transition active:scale-95"><i id="themeIcon" class="fas fa-moon text-white"></i></button>
           </div>
         </div>
@@ -898,14 +892,6 @@
           </div>
           <div class="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
             <span class="text-xs text-gray-500">Tgl. Lahir</span><span class="text-sm font-bold dark:text-white" id="profileDob">-</span>
-          </div>
-          <div onclick="unlockAudio()" class="p-4 flex items-center gap-4 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors group border-b border-gray-100 dark:border-gray-800">
-            <div class="w-9 h-9 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-500 dark:text-blue-400 flex items-center justify-center transition-colors">
-                <i class="fas fa-volume-up"></i>
-            </div>
-            <div class="flex-1 text-sm font-bold text-blue-600 dark:text-blue-400">
-              Aktifkan / Tes Notifikasi Suara
-            </div>
           </div>
           <div onclick="handleLogout()" class="p-4 flex items-center gap-4 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer transition-colors group">
             <div class="w-9 h-9 rounded-full bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400 group-hover:bg-red-100 dark:group-hover:bg-red-900/50 flex items-center justify-center transition-colors"></div>
@@ -2080,30 +2066,30 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
                 const data = doc.data();
                 transactions.push(data);
 
-                // --- SISTEM NOTIFIKASI SUARA PANDAWA ---
+                // --- LOGIKA SUARA PROFESIONAL PANDAWA ---
                 const trxId = data.trx_id || doc.id;
                 const statusStr = data.status || '';
-                const vKey = `voiced_v12_${trxId}_${statusStr}`; // Simpan cache berdasarkan STATUS agar bisa bersuara 2x (Pending -> Sukses)
+                const vKey = `vo_v13_${trxId}_${statusStr}`;
                 const trxTime = new Date(data.date).getTime();
-                const isRecent = (Date.now() - trxTime < 120000); // 2 Menit terakhir
+                const isRecent = (Date.now() - trxTime < 180000); // 3 Menit Terakhir
 
                 if (isRecent && !sessionStorage.getItem(vKey)) {
                     const title = data.title || 'Layanan';
                     const destNum = data.dest_num || data.targetNumber || '';
-                    const destSpelled = window.spellNumber(destNum);
+                    const spelled = window.spellNumber(destNum);
 
                     if (statusStr === 'Sukses') {
                         if (data.type === 'in' && title.toLowerCase().includes('top up')) {
                             window.speakNotification(`Pemberitahuan sistem. Pengisian saldo senilai ${window.terbilang(data.amount)} rupiah telah berhasil.`);
                         } else if (data.type === 'out') {
-                            window.speakNotification(`Konfirmasi. Transaksi pembelian ${title} untuk nomor ${destSpelled} telah berhasil diselesaikan.`);
+                            window.speakNotification(`Konfirmasi. Transaksi pembelian ${title} untuk nomor ${spelled} telah berhasil.`);
                         }
                         sessionStorage.setItem(vKey, 'true');
                     } else if (statusStr === 'Gagal' && data.type === 'out') {
                         window.speakNotification(`Mohon maaf. Transaksi ${title} gagal diproses. Saldo Anda telah dikembalikan otomatis.`);
                         sessionStorage.setItem(vKey, 'true');
                     } else if ((statusStr === 'Pending' || statusStr === 'Proses') && data.type === 'out') {
-                        window.speakNotification(`Pesanan ${title} sedang diproses. Mohon tunggu sebentar.`);
+                        window.speakNotification(`Pemberitahuan. Pesanan ${title} sedang dalam proses, mohon tunggu sebentar.`);
                         sessionStorage.setItem(vKey, 'true');
                     }
                 }
@@ -2497,6 +2483,9 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
   
     window.formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 
+    // --- SISTEM SUARA (TTS) PROFESIONAL ---
+    let isVoiceEnabled = localStorage.getItem('pandawa_voice') === 'true';
+
     window.terbilang = (n) => {
         const bilangan = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
         let res = '';
@@ -2513,28 +2502,30 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
     window.spellNumber = (num) => (num || '').toString().split('').join(' ').replace(/0/g, 'kosong');
 
     window.speakNotification = (text) => {
-        if ('speechSynthesis' in window) {
+        if (isVoiceEnabled && 'speechSynthesis' in window) {
             window.speechSynthesis.cancel();
             const msg = new SpeechSynthesisUtterance(text);
             msg.lang = 'id-ID';
-            msg.rate = 0.85; // Bicara tenang dan profesional
-            msg.pitch = 1.2;  // Nada wanita muda yang elegan
+            msg.rate = 0.8; // Kecepatan tenang
+            msg.pitch = 1.2; // Nada wanita elegan
             window.speechSynthesis.speak(msg);
         }
     };
 
-    window.unlockAudio = () => {
-        window.speakNotification('Pemberitahuan sistem. Notifikasi suara telah berhasil diaktifkan.');
-        const b = document.getElementById('audioUnlockBubble');
-        if(b) { b.style.opacity = '0'; b.style.transform = 'translateY(-20px)'; setTimeout(() => b.remove(), 500); }
+    window.toggleVoice = () => {
+        isVoiceEnabled = !isVoiceEnabled;
+        localStorage.setItem('pandawa_voice', isVoiceEnabled);
+        window.updateVoiceUI();
+        if(isVoiceEnabled) window.speakNotification('Pemberitahuan sistem. Notifikasi suara berhasil diaktifkan.');
     };
 
-    window.addEventListener('load', () => {
-        setTimeout(() => {
-            const b = document.getElementById('audioUnlockBubble');
-            if(b) { b.style.opacity = '0'; b.style.transform = 'translateY(-20px)'; setTimeout(() => b.remove(), 500); }
-        }, 5000);
-    });
+    window.updateVoiceUI = () => {
+        const icon = document.getElementById('voiceIcon');
+        if(icon) {
+            icon.className = isVoiceEnabled ? 'fas fa-volume-up text-white' : 'fas fa-volume-mute text-white opacity-50';
+        }
+    };
+    setTimeout(() => window.updateVoiceUI(), 1000);
 
     // --- FUNGSI SENSOR SALDO (ANTI LEAK) ---
     window.sanitizeResponse = (msg) => {
@@ -5449,7 +5440,6 @@ alert(`Transaksi Berhasil Dikirim!\nInfo: ${msg}`);
                 });
 
                 // Kirim Notif Telegram
-                                // Kirim Notif Telegram
                 window.sendTelegramNotif('TOPUP', { amount: targetAmount, trxId: "QP-" + qiosTicket.created });
 
                 setTimeout(() => {

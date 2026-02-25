@@ -642,6 +642,71 @@
             </div>
 
             <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 mt-4">
+                <div class="flex justify-between items-center mb-4 border-b pb-2">
+                    <h3 class="font-bold text-gray-800"><i class="fas fa-bullhorn text-orange-500 mr-2"></i>Pengaturan Running Text</h3>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggleRunningText" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                    </label>
+                </div>
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-500 block mb-1">Isi Teks Pengumuman</label>
+                        <input type="text" id="rtTextInput" oninput="this.value = this.value.replace(/&/g, '')" placeholder="Contoh: Promo hari ini! Diskon 50%..." class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs focus:ring-1 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div>
+                            <label class="text-[10px] font-bold text-gray-500 flex justify-between mb-1">
+                                <span>Kecepatan</span>
+                                <span id="speedValPreview" class="text-blue-600">85%</span>
+                            </label>
+                            <input type="range" id="rtSpeedInput" min="1" max="100" value="85" oninput="document.getElementById('speedValPreview').innerText = this.value + '%'" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600 mt-2">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-gray-500 block mb-1">Warna Background</label>
+                            <input type="color" id="rtBgColorInput" value="#1e3a8a" class="w-full h-[34px] border border-gray-200 rounded-lg bg-gray-50 cursor-pointer">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-gray-500 block mb-1">Warna Teks</label>
+                            <input type="color" id="rtTextColorInput" value="#ffffff" class="w-full h-[34px] border border-gray-200 rounded-lg bg-gray-50 cursor-pointer">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mt-3">
+                        <div>
+                            <label class="text-[10px] font-bold text-gray-500 block mb-1">Background Transparan</label>
+                            <select id="rtBgTransparent" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs focus:ring-1 focus:ring-blue-500 outline-none">
+                                <option value="false">Tidak</option>
+                                <option value="true">Ya</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-gray-500 block mb-1">Teks Warna-warni (Rainbow)</label>
+                            <select id="rtRainbowText" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs focus:ring-1 focus:ring-blue-500 outline-none">
+                                <option value="false">Tidak</option>
+                                <option value="true">Ya</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 mt-3 mb-2">
+                        <div>
+                            <label class="text-[10px] font-bold text-gray-500 block mb-1">Jarak Bersambung</label>
+                            <input type="number" id="rtSpacingInput" placeholder="Contoh: 50" value="50" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs focus:ring-1 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-gray-500 block mb-1">Gaya Animasi</label>
+                            <select id="rtAnimationType" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-xs focus:ring-1 focus:ring-blue-500 outline-none">
+                                <option value="scroll">Berjalan</option>
+                                <option value="pulse">Berkedip</option>
+                                <option value="bounce">Memantul</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button onclick="saveRunningTextSettings()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-bold text-xs shadow transition mt-2"><i class="fas fa-save mr-1"></i> Simpan Running Text</button>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 mt-4">
                 <h3 class="font-bold text-gray-800 mb-4 border-b pb-2">Kontrol Versi Aplikasi (PWA)</h3>
                 <div class="flex gap-4 items-end">
                     <div class="flex-1">
@@ -1369,6 +1434,51 @@ window.listenDebugPreOrders = () => {
             }
         };
 
+
+        window.loadRunningTextSettings = () => {
+            onSnapshot(doc(db, "settings", "running_text"), (docSnap) => {
+                if(docSnap.exists()) {
+                    const d = docSnap.data();
+                    document.getElementById('toggleRunningText').checked = d.active || false;
+                    document.getElementById('rtTextInput').value = d.text || '';
+                    // Skala Ultra Cepat: 1% (20 detik) - 100% (0.1 detik)
+                    let savedSpeed = d.speed || 15;
+                    let sliderVal = Math.round((20.2 - savedSpeed) / 0.2);
+                    if(sliderVal < 1) sliderVal = 1; if(sliderVal > 100) sliderVal = 100;
+                    document.getElementById('rtSpeedInput').value = sliderVal;
+                    if(document.getElementById('speedValPreview')) document.getElementById('speedValPreview').innerText = sliderVal + '%';
+                    document.getElementById('rtBgColorInput').value = d.bgColor || '#1e3a8a';
+                    document.getElementById('rtTextColorInput').value = d.textColor || '#ffffff';
+
+                    document.getElementById('rtBgTransparent').value = d.bgTransparent ? 'true' : 'false';
+                    document.getElementById('rtRainbowText').value = d.rainbowText ? 'true' : 'false';
+                    document.getElementById('rtSpacingInput').value = d.spacing || 50;
+                    document.getElementById('rtAnimationType').value = d.animation || 'scroll';
+                }
+            });
+        };
+
+        window.saveRunningTextSettings = async () => {
+            try {
+                Swal.showLoading();
+                await setDoc(doc(db, "settings", "running_text"), {
+                    active: document.getElementById('toggleRunningText').checked,
+                    text: document.getElementById('rtTextInput').value.replace(/&/g, ''),
+                    speed: Math.max(0.1, parseFloat((20.2 - (parseInt(document.getElementById('rtSpeedInput').value) * 0.2)).toFixed(2))),
+                    bgColor: document.getElementById('rtBgColorInput').value,
+                    textColor: document.getElementById('rtTextColorInput').value,
+                    bgTransparent: document.getElementById('rtBgTransparent').value === 'true',
+                    rainbowText: document.getElementById('rtRainbowText').value === 'true',
+                    spacing: parseInt(document.getElementById('rtSpacingInput').value) || 50,
+                    animation: document.getElementById('rtAnimationType').value || 'scroll'
+                }, { merge: true });
+                Swal.fire('Berhasil', 'Pengaturan Running Text disimpan', 'success');
+            } catch(e) {
+                Swal.fire('Error', e.message, 'error');
+            }
+        };
+
+
         window.switchTab = (tabId) => {
                         if(tabId === 'pending-trx') loadPendingTransactions();
                         if(tabId === 'success-trx') loadSuccessTransactions();
@@ -1378,7 +1488,7 @@ window.listenDebugPreOrders = () => {
             document.querySelectorAll('nav a').forEach(el => el.classList.remove('active-nav', 'text-white'));
             const activeLink = document.getElementById('nav-' + tabId);
             if(activeLink) activeLink.classList.add('active-nav', 'text-white');
-                                if(tabId === 'settings') { loadTopupSettings(); loadAppVersion(); loadGlobalMaintenance(); }
+                                if(tabId === 'settings') { loadTopupSettings(); loadAppVersion(); loadGlobalMaintenance(); loadRunningTextSettings(); }
             if(tabId === 'notification') loadActiveNotif();
             if(tabId === 'users') { if(!lastUserDoc && !isAllUsersLoaded) loadUsers(true); }
 if(tabId === 'pricing') loadPricingData();
@@ -3534,9 +3644,10 @@ window.deactivateNotif = async () => {
 
     // Jalankan saat script dimuat
     window.renderNavigation();
+
     </script>
     
-    <div id="statusChangeModal" class="hide fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 fade-in">
+        <div id="statusChangeModal" class="hide fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 fade-in">
         <div class="bg-white rounded-xl w-full max-w-xs shadow-2xl p-4">
             <h3 class="text-sm font-bold text-gray-800 mb-3 text-center">Ubah Status Manual</h3>
             <input type="hidden" id="statusChangeUid"><input type="hidden" id="statusChangeTrxId">
@@ -3549,7 +3660,7 @@ window.deactivateNotif = async () => {
         </div>
     </div>
 
-    <div id="searchTrxModal" class="hide fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 fade-in">
+<div id="searchTrxModal" class="hide fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 fade-in">
         <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
             <div class="bg-gray-50 px-4 py-4 border-b border-gray-100 flex justify-between items-center">
                 <h3 class="text-sm font-bold text-gray-800"><i class="fas fa-search-dollar mr-2 text-orange-500"></i>Pelacak Transaksi Sistem</h3>
@@ -3560,11 +3671,13 @@ window.deactivateNotif = async () => {
                     <input type="number" id="searchTrxCode" placeholder="Masukkan 6 digit kode..." class="flex-1 px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-orange-500 outline-none font-mono font-bold text-lg text-center tracking-widest">
                     <button onclick="findTransactionByCode()" class="bg-orange-500 hover:bg-orange-600 text-white px-6 rounded-xl font-bold transition-all"><i class="fas fa-search"></i></button>
                 </div>
-                <div id="searchTrxResult" class="hide space-y-4 max-h-[60vh] overflow-y-auto custom-scroll pr-2"></div>
+                
+                <div id="searchTrxResult" class="hide space-y-4 max-h-[60vh] overflow-y-auto custom-scroll pr-2">
+                    
+                </div>
             </div>
         </div>
     </div>
-
     <div id="maintenanceModal" class="hide fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 fade-in">
         <div class="bg-white rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
             <div class="bg-orange-50 px-4 py-3 border-b border-orange-100 flex justify-between items-center">
@@ -3573,7 +3686,9 @@ window.deactivateNotif = async () => {
             </div>
             <div class="p-5">
                 <p class="text-[10px] text-gray-500 mb-4">Aktifkan switch untuk menandai provider sebagai <b>GANGGUAN</b> (User tidak bisa transaksi).</p>
-                <div class="space-y-4 max-h-[60vh] overflow-y-auto custom-scroll pr-2" id="maintenanceList"></div>
+                <div class="space-y-4 max-h-[60vh] overflow-y-auto custom-scroll pr-2" id="maintenanceList">
+                    
+                </div>
                 <div class="mt-4 pt-3 border-t border-gray-100 flex justify-end">
                     <button onclick="saveMaintenanceStatus()" class="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded-lg font-bold text-xs shadow-lg transition">SIMPAN STATUS</button>
                 </div>
@@ -3581,6 +3696,6 @@ window.deactivateNotif = async () => {
         </div>
     </div>
 
-    <audio id="trxNotifySound" src="trx.ogg" preload="auto"></audio>
+<audio id="trxNotifySound" src="trx.ogg" preload="auto"></audio>
 </body>
 </html>

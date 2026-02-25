@@ -76,7 +76,11 @@
         .mt-badge { display: none; font-size: 9px; background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-left: 8px; } 
         .prov-maintenance .mt-badge { display: inline-block; } 
         .prov-maintenance .fa-chevron-right { display: none; }
-  </style>
+  
+        @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+        .animate-marquee { animation: marquee 15s linear infinite; display: inline-block; padding-left: 100%; }
+        .mask-edges { -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent); mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent); }
+</style>
 </head>
 <body>
   <div class="app-container transition-colors duration-300">
@@ -586,16 +590,14 @@
         </div>
       </div>
       <div class="mx-6 -mt-24 relative z-20">
-        <div class="mb-3 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md rounded-xl px-4 py-2 flex items-center shadow-lg shadow-blue-900/5 dark:shadow-none border border-white/50 dark:border-gray-700 relative overflow-hidden">
-  <div class="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white/80 dark:from-gray-900/80 to-transparent z-10"></div>
-  <i class="fas fa-bullhorn text-blue-600 dark:text-blue-400 text-xs mr-2 animate-pulse z-20"></i>
-  <marquee scrollamount="4" class="text-[10px] font-bold text-gray-700 dark:text-gray-300 w-full">
-    Selamat datang di PANDAWA STORE! Nikmati layanan transaksi Digital tercepat dan termurah.
-  </marquee>
-  <div class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white/80 dark:from-gray-900/80 to-transparent z-10"></div>
-</div>
-
-<div class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-[2.5rem] p-5 shadow-[0_20px_40px_-15px_rgba(37,99,235,0.2)] dark:shadow-none border border-white/50 dark:border-gray-700 relative overflow-hidden group">
+        
+        <div id="runningTextContainer" class="hide bg-blue-900/50 backdrop-blur-md border border-white/20 text-white text-xs py-2 px-3 rounded-xl mb-3 flex items-center shadow-lg overflow-hidden relative">
+           <i class="fas fa-bullhorn text-orange-400 mr-2 flex-shrink-0 animate-pulse"></i>
+           <div class="flex-1 overflow-hidden whitespace-nowrap relative mask-edges">
+              <div id="runningTextContent" class="inline-block animate-marquee font-medium tracking-wide"></div>
+           </div>
+        </div>
+        <div class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-[2.5rem] p-5 shadow-[0_20px_40px_-15px_rgba(37,99,235,0.2)] dark:shadow-none border border-white/50 dark:border-gray-700 relative overflow-hidden group">
           <div class="flex justify-between items-start mb-3 relative">
             <div>
               <p class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">Total Saldo</p>
@@ -1757,6 +1759,30 @@ alert("Transaksi Berhasil Dikirim!\nSistem akan mengecek status otomatis...\nSil
   initTopupSettingsListener();
 
   initFeatureListener();
+
+
+    function initRunningTextListener() {
+        onSnapshot(doc(db, "settings", "running_text"), (docSnap) => {
+            const container = document.getElementById('runningTextContainer');
+            const content = document.getElementById('runningTextContent');
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (data.active && data.text) {
+                    container.classList.remove('hide');
+                    content.innerText = data.text;
+                    if (data.speed) content.style.animationDuration = data.speed + 's';
+                    if (data.bgColor) container.style.backgroundColor = data.bgColor;
+                    if (data.textColor) content.style.color = data.textColor;
+                } else {
+                    container.classList.add('hide');
+                }
+            } else {
+                container.classList.add('hide');
+            }
+        });
+    }
+    initRunningTextListener();
+
 
     auth.languageCode = 'id';
 
